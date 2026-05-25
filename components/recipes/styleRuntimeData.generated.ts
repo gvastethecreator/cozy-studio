@@ -225,6 +225,28 @@ export const GENERATED_STYLE_PACKS = [
         },
       },
       {
+        id: 'SP01-081',
+        name: 'Soft Editorial Window',
+        category: '1. Portrait Styles',
+        negativePrompt:
+          'illustration, painting, 3d render, cartoon, anime, watermark, text, signature, flash photography, harsh shadows, overexposed',
+        style: {
+          aesthetic: 'Editorial fashion portrait, soft natural light, lifestyle feel',
+          subject_treatment:
+            'Gentle focus on eyes, smooth skin texture retention, natural hair rendering',
+          color_and_tone:
+            'Subdued earth tones, gentle color harmony, slight warm cast from window light',
+          lighting_and_shadow:
+            'Soft side-lit window daylight, wrap-around ambient fill, minimal shadow depth',
+          texture_and_material: 'True fabric weave, subtle skin texture, natural environment bokeh',
+          camera_and_composition:
+            '85mm portrait lens, f/2.0, eye-level, subject off-center right, rule-of-thirds',
+          atmosphere_and_mood: 'Quiet confidence, editorial intimacy, relaxed morning light',
+          rendering_and_quality:
+            'Photorealistic, 8k, fine lens optics, natural chromatic aberration',
+        },
+      },
+      {
         id: 'SP01-035',
         name: 'Rembrandt Lighting',
         category: '2. Lighting',

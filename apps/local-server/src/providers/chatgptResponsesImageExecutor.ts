@@ -8,7 +8,11 @@ import {
 } from '../auth/constants';
 import { readChatgptAccountId } from '../auth/jwt';
 import { getUsableAccessToken, invalidateStoredAccessToken } from '../auth/tokens';
-import type { CodexImagegenInputItem } from './codexProvider';
+import {
+  compileChatgptImageInput,
+  compileCodexImagegenInput,
+  type CodexImagegenInputItem,
+} from './openaiImageInput';
 import type { GenerationProviderJob } from './types';
 import {
   isRecord,
@@ -23,7 +27,7 @@ import { resolveCodexExecutionPolicy } from '../../../../packages/shared/src/cod
 
 type ReadLocalFile = (path: string) => Uint8Array;
 
-export interface CodexResponsesImageExecutorDependencies {
+export interface ChatgptResponsesImageExecutorDependencies {
   env?: Record<string, string | undefined>;
   fetch?: ExternalProviderFetch;
   resolveLibraryPath?: typeof resolveLibraryPath;
@@ -137,34 +141,109 @@ function sseFailureMessage(event: Record<string, unknown>, secrets: readonly str
   ) {
     return `ChatGPT HTTP response incomplete: ${responseSnippet(response.incomplete_details.reason, secrets)}`;
   }
-  return 'Codex Responses rejected the image request.';
+  return 'ChatGPT HTTP rejected the image request.';
 }
 
-function isUsageLimitMessage(message: string) {
-  return /usage\s*(?:limit|quota)|rate[\s_-]*limit|usagelimitexceeded/i.test(message);
+function classifyProviderFailure(
+  payload: unknown,
+  message: string,
+  httpStatus: number | null,
+  secrets: readonly string[],
+  retryAfterSeconds: number | null = null,
+) {
+  const response = isRecord(payload) && isRecord(payload.response) ? payload.response : payload;
+  const error = isRecord(response) && isRecord(response.error) ? response.error : response;
+  const rawCode = isRecord(error) ? (error.code ?? error.type) : null;
+  const providerCode = typeof rawCode === 'string' ? responseSnippet(rawCode, secrets) : null;
+  const code = providerCode?.toLowerCase() ?? '';
+  const lower = message.toLowerCase();
+  let category: SubscriptionHttpError['code'] = 'invalid_request';
+  let detail = message || 'ChatGPT rejected the image request.';
+  const quotaCodes = [
+    'usage_limit_reached',
+    'usage_limit_exceeded',
+    'insufficient_quota',
+    'quota_exceeded',
+    'usagelimitexceeded',
+  ];
+  const rateCodes = ['rate_limit', 'rate_limit_exceeded', 'rate_limit_error', 'too_many_requests'];
+  // An explicit provider code takes precedence over status and message heuristics.
+  if (['invalid_grant', 'invalid_token', 'token_expired'].includes(code))
+    category = 'invalid_grant';
+  else if (quotaCodes.includes(code)) category = 'source_limit';
+  else if (rateCodes.includes(code)) category = 'rate_limit';
+  else if (
+    [
+      'permission_denied',
+      'access_denied',
+      'insufficient_permissions',
+      'entitlement_denied',
+    ].includes(code)
+  )
+    category = 'entitlement_denied';
+  else if (/moderat|safety|content_filter/.test(code)) category = 'moderation';
+  else if (['server_error', 'internal_error', 'service_unavailable'].includes(code))
+    category = 'http_error';
+  else if (httpStatus === 401) category = 'invalid_grant';
+  else if (httpStatus === 403) category = 'entitlement_denied';
+  else if (httpStatus !== null && httpStatus >= 500) category = 'http_error';
+  else if (
+    !providerCode &&
+    /(?:hit|reached|exceeded|exhausted) (?:your |the )?(?:usage limit|quota)|(?:usage limit|quota) (?:has been |is )?(?:reached|exceeded|exhausted)|no available usage/i.test(
+      message,
+    )
+  )
+    category = 'source_limit';
+  else if (
+    httpStatus === 429 ||
+    (!providerCode && /rate[ _-]?limit|too many requests/i.test(message))
+  )
+    category = 'rate_limit';
+  else if (!providerCode && /moderat|safety|content_filter/.test(lower)) category = 'moderation';
+  if (category === 'invalid_grant')
+    detail = 'ChatGPT session expired or was rejected. Sign in again in Studio Settings.';
+  else if (category === 'source_limit')
+    detail =
+      'ChatGPT reported an exhausted usage limit for this HTTP route. Wait for the limit to reset.';
+  else if (category === 'rate_limit')
+    detail =
+      'ChatGPT temporarily limited requests.' +
+      (retryAfterSeconds === null
+        ? ' Wait before retrying.'
+        : ` Try again in ${retryAfterSeconds} seconds.`);
+  else if (category === 'entitlement_denied')
+    detail =
+      'This account cannot access HTTP image generation. Check the accepted ChatGPT account.';
+  else if (category === 'http_error') detail = 'ChatGPT reported a service failure.';
+  // Keep bounded vendor detail for diagnosis; never include credentials.
+  if (message && detail !== message) detail += ` ${message}`;
+  return new SubscriptionHttpError(detail, {
+    code: category,
+    fallbackAllowed: false,
+    httpStatus,
+    providerCode,
+    retryAfterSeconds,
+  });
 }
 
-function createUsageLimitError(httpStatus?: number | null) {
-  return new SubscriptionHttpError(
-    'ChatGPT Sign in has no available usage for this HTTP route. Wait for its usage limit to reset or select another available route.',
-    { code: 'source_limit', fallbackAllowed: false, httpStatus },
+function classifySseFailure(
+  event: Record<string, unknown>,
+  secrets: readonly string[],
+  retryAfterSeconds: number | null,
+) {
+  return classifyProviderFailure(
+    event,
+    sseFailureMessage(event, secrets),
+    null,
+    secrets,
+    retryAfterSeconds,
   );
 }
 
-function classifySseFailure(event: Record<string, unknown>, secrets: readonly string[]) {
-  const message = sseFailureMessage(event, secrets);
-  if (isUsageLimitMessage(message)) return createUsageLimitError();
-  const lower = message.toLowerCase();
-  if (lower.includes('moderat') || lower.includes('safety') || lower.includes('content_filter')) {
-    return new SubscriptionHttpError(message, {
-      code: 'moderation',
-      fallbackAllowed: false,
-    });
-  }
-  return new SubscriptionHttpError(message, {
-    code: 'invalid_request',
-    fallbackAllowed: false,
-  });
+function readRetryAfter(value: string | null, now: number): number | null {
+  if (!value?.trim()) return null;
+  const seconds = /^\d+(?:\.\d+)?$/.test(value) ? Number(value) : (Date.parse(value) - now) / 1000;
+  return Number.isFinite(seconds) && seconds >= 0 ? Math.ceil(seconds) : null;
 }
 
 function isFailedSseEvent(event: unknown): event is Record<string, unknown> {
@@ -191,45 +270,28 @@ function summarizeCodexError(body: string, secrets: readonly string[]) {
   return responseSnippet(body, secrets);
 }
 
-function classifyCodexHttpFailure(status: number, message: string): SubscriptionHttpError {
-  if (isUsageLimitMessage(message)) return createUsageLimitError(status);
-  if (status === 401) {
-    return new SubscriptionHttpError(message || 'ChatGPT credentials were rejected.', {
-      code: 'invalid_grant',
-      fallbackAllowed: false,
-      httpStatus: status,
-    });
+function classifyCodexHttpFailure(
+  status: number,
+  body: string,
+  secrets: readonly string[],
+  retryAfterSeconds: number | null,
+) {
+  let payload: unknown = null;
+  try {
+    payload = JSON.parse(body);
+  } catch {
+    /* Preserve a bounded non-JSON error. */
   }
-  if (status === 403) {
-    return new SubscriptionHttpError(
-      message ||
-        'This ChatGPT account is not authorized for HTTP image generation. Restore access to the accepted account before retrying.',
-      { code: 'entitlement_denied', fallbackAllowed: false, httpStatus: status },
-    );
-  }
-  if (status >= 500 || status === 429) {
-    return new SubscriptionHttpError(message || `Codex Responses failed (${status}).`, {
-      code: 'http_error',
-      fallbackAllowed: false,
-      httpStatus: status,
-    });
-  }
-  const lower = message.toLowerCase();
-  if (lower.includes('moderat') || lower.includes('safety')) {
-    return new SubscriptionHttpError(message, {
-      code: 'moderation',
-      fallbackAllowed: false,
-      httpStatus: status,
-    });
-  }
-  return new SubscriptionHttpError(message || `Codex Responses failed (${status}).`, {
-    code: 'invalid_request',
-    fallbackAllowed: false,
-    httpStatus: status,
-  });
+  return classifyProviderFailure(
+    payload,
+    summarizeCodexError(body, secrets),
+    status,
+    secrets,
+    retryAfterSeconds,
+  );
 }
 
-export function createCodexResponsesImageExecutor({
+export function createChatgptResponsesImageExecutor({
   env = process.env,
   fetch: fetchImpl = fetch,
   resolveLibraryPath: resolveLibraryPathFn = resolveLibraryPath,
@@ -240,10 +302,11 @@ export function createCodexResponsesImageExecutor({
   getAccessToken = () => getUsableAccessToken('codex', { env, fetch: fetchImpl as typeof fetch }),
   invalidateAccessToken = (message) => invalidateStoredAccessToken('codex', message),
   requestTimeoutMs = 120_000,
-}: CodexResponsesImageExecutorDependencies = {}) {
+}: ChatgptResponsesImageExecutorDependencies = {}) {
   return async (job: GenerationProviderJob) => {
+    const providerId = job.providerId === 'chatgpt' ? 'chatgpt' : 'codex';
     if (job.remoteExecution) {
-      if (job.remoteExecution.providerId === 'codex' && job.remoteExecution.phase === 'failed') {
+      if (job.remoteExecution.providerId === providerId && job.remoteExecution.phase === 'failed') {
         throw new Error(
           'The previous HTTP attempt was rejected. Retry this failed job after restoring access.',
         );
@@ -254,10 +317,13 @@ export function createCodexResponsesImageExecutor({
     }
     if (!job.checkpointRemoteExecution)
       throw new Error('HTTP execution requires durable submission storage.');
-    const { compileCodexImagegenInput } = await import('./codexProvider');
-    const compiled = compileCodexImagegenInput(job);
+    const compiled =
+      providerId === 'chatgpt' ? compileChatgptImageInput(job) : compileCodexImagegenInput(job);
     const startedAt = now();
-    const policy = job.execution?.providerOptions?.codex;
+    const policy =
+      providerId === 'chatgpt'
+        ? { ...job.execution?.providerOptions?.chatgpt, transport: 'subscription_http' }
+        : job.execution?.providerOptions?.codex;
     if (!job.execution || policy?.transport !== 'subscription_http' || !policy.image) {
       throw new ProviderExecutionUncertainError(
         'This job has no captured HTTP execution contract. Review it before creating another request.',
@@ -319,7 +385,7 @@ export function createCodexResponsesImageExecutor({
       ? AbortSignal.any([job.signal, AbortSignal.timeout(requestTimeoutMs)])
       : AbortSignal.timeout(requestTimeoutMs);
     job.signal?.throwIfAborted();
-    job.checkpointRemoteExecution({ providerId: 'codex', phase: 'submitting', startedAt });
+    job.checkpointRemoteExecution({ providerId, phase: 'submitting', startedAt });
     try {
       response = await fetchImpl(`${CODEX_RESPONSES_BASE_URL}/responses`, {
         method: 'POST',
@@ -347,23 +413,28 @@ export function createCodexResponsesImageExecutor({
         'Local observation stopped after HTTP submission. Remote cancellation is not confirmed.',
       );
     }
+    const retryAfterSeconds = readRetryAfter(response.headers.get('retry-after'), now());
     if (response.status >= 500) {
+      const failure = classifyCodexHttpFailure(response.status, raw, [token], retryAfterSeconds);
       throw new ProviderExecutionUncertainError(
-        `ChatGPT HTTP returned ${response.status} after submission. Review this job before sending another request.`,
+        `ChatGPT HTTP returned ${response.status} after submission. Review this job before sending another request. ${failure.message}`,
+        { cause: failure },
       );
     }
     if (!response.ok) {
-      const failure = classifyCodexHttpFailure(response.status, summarizeCodexError(raw, [token]));
+      const failure = classifyCodexHttpFailure(response.status, raw, [token], retryAfterSeconds);
       if (response.status === 401) invalidateAccessToken(failure.message);
-      job.checkpointRemoteExecution({ providerId: 'codex', phase: 'failed', startedAt });
+      job.checkpointRemoteExecution({ providerId, phase: 'failed', startedAt });
       throw failure;
     }
 
     const events = parseSseJson(raw);
     for (const event of events) {
       if (isFailedSseEvent(event)) {
-        job.checkpointRemoteExecution({ providerId: 'codex', phase: 'failed', startedAt });
-        throw classifySseFailure(event, [token]);
+        job.checkpointRemoteExecution({ providerId, phase: 'failed', startedAt });
+        const failure = classifySseFailure(event, [token], retryAfterSeconds);
+        if (failure.code === 'invalid_grant') invalidateAccessToken(failure.message);
+        throw failure;
       }
     }
     let finalB64: string | null = null;
@@ -379,8 +450,8 @@ export function createCodexResponsesImageExecutor({
 
     try {
       const result = storeInlineImageResult({
-        providerId: 'codex',
-        providerSlug: 'codex-http',
+        providerId,
+        providerSlug: providerId === 'chatgpt' ? 'chatgpt-http' : 'codex-http',
         model: imageModel,
         endpointBase: CODEX_RESPONSES_BASE_URL,
         job: { id: job.id },
@@ -392,7 +463,7 @@ export function createCodexResponsesImageExecutor({
         diagnostics: { runtime: 'subscription_http', quality, size },
         files: { resolveLibraryPath: resolveLibraryPathFn, mkdir, writeFile, now },
       });
-      job.checkpointRemoteExecution({ providerId: 'codex', phase: 'completed', startedAt });
+      job.checkpointRemoteExecution({ providerId, phase: 'completed', startedAt });
       return result;
     } catch {
       throw new ProviderExecutionUncertainError(

@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-24T04:17:55Z",
-  "generated_from_commit": "2a19b4c7fba9fbc50ced7ebf5205e5522be60d2a",
+  "generated_at": "2026-09-24T05:21:51Z",
+  "generated_from_commit": "a0b16133f8aaf090353e183bb89d4c4e217f5ce1",
   "scope": [
     "."
   ],
@@ -2343,8 +2343,8 @@
         "path": "components/recipes/StylesBrowser.tsx",
         "origin": "tracked",
         "state": "present",
-        "digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
-        "size": 119401
+        "digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
+        "size": 119271
       },
       {
         "path": "components/recipes/StylesRecipe.tsx",
@@ -3946,8 +3946,8 @@
         "path": "components/recipes/styles/TcgComponentStudio.tsx",
         "origin": "tracked",
         "state": "present",
-        "digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
-        "size": 38878
+        "digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
+        "size": 38920
       },
       {
         "path": "components/recipes/styles/collections/categoryDisplayNames.ts",
@@ -6060,15 +6060,15 @@
         "path": "lib/styleThumbnailCatalog.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
-        "size": 1945
+        "digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
+        "size": 2165
       },
       {
         "path": "lib/styleThumbnailCatalog.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "d8b6ae331f808fd89d97e762bbd8bb1337a83c447f011166b04ac69d0f0eb6f3",
-        "size": 3452
+        "digest": "ca7f86dabbc63fbd1ce9b8dee63597f101391acc414bd85872c1cab30a1cdec2",
+        "size": 3440
       },
       {
         "path": "lib/styleThumbnailPacks.generated/index.ts",
@@ -6088,8 +6088,8 @@
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_02.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "954a68e3b0edc26a94a1ee3b79b79a23ce9cf8efd86746d5a62a7391597b51f0",
-        "size": 60831
+        "digest": "59785fae6a331f7df138ec89d211a2ed69f65eca7abd6f0e3dece9bcc0ec0fdb",
+        "size": 61463
       },
       {
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_03.ts",
@@ -6102,15 +6102,15 @@
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_04.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "1837e8ea528418f38003d75f36f3e3e4d8736d2eacfe7a133bfd89d96b3aa644",
-        "size": 60920
+        "digest": "ddacf1cb325f118a5e8e5735c78e58fd0699ae1c59958d1c09fe024d1ca0ffc6",
+        "size": 60750
       },
       {
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_05.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "2b0b874bf5efd6a6b05c7602186ff681251763a09c00738a3ef0f9cb2d6f64ae",
-        "size": 74452
+        "digest": "50bf41a9dace2b2fe87bcf63162ad35b83c12c49eb29c32e38bfc9f43530f16b",
+        "size": 74316
       },
       {
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_06.ts",
@@ -6123,36 +6123,36 @@
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_07.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "1b5314875f78ab5beb207d9748bdf6b91baf5897ea024fd9ed10d4e3ecdbf551",
-        "size": 36687
+        "digest": "8db656a856ac7641c471bccf81b8ed4376dab55c6fe70ab658e02b0eae597a74",
+        "size": 36670
       },
       {
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_08.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "a55f184081b512a4f119b8ce8872d077d1a58a179c2b362d1afa32155f7a1413",
-        "size": 36083
+        "digest": "cce1977644dcb2c4ff65525b15965070ec83e8b4cfe20a0f1cf27c36fd604d73",
+        "size": 36557
       },
       {
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_09.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "db209ab05143ac4eb3cac417261fefad4d7ff5e99fa498bfa8578b6b9f01ad6b",
-        "size": 34994
+        "digest": "8eaf5df74690993af672142338ddc26bf17d97b04f3a06629dd9cdbf129d20a7",
+        "size": 35626
       },
       {
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_10.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "69861812973908907da5228bb88ce171fdcb6c4383da88680825d4fbea29bb65",
-        "size": 35272
+        "digest": "177d482dfe7506f8cfb8c71604e90d7243538490b38bea1c841affc5a3e49fff",
+        "size": 35588
       },
       {
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_11.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "0d587991552443608cc09560be30ea79c2c00be6756fb6b399a9f461860c33c3",
-        "size": 35288
+        "digest": "82f184c53a2efc4c8ee06a9cb6f5f2d3bd6c47c57dba6df1c4d9aa9a69b41b95",
+        "size": 35604
       },
       {
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_12.ts",
@@ -6165,8 +6165,8 @@
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_13.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "c25c03a83e18b44783ff09723a9185bb39c5eca199379bd7276aada9c240d89a",
-        "size": 57876
+        "digest": "dff4ed4be50362eca083e38ca92df2a422705b30379b334d24486b8f14e6bfa9",
+        "size": 58034
       },
       {
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_14.ts",
@@ -6193,29 +6193,29 @@
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_17.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "29c727370d959e118aaee19c8a0d1ae72703f0d15f7da811d8387414b340c220",
-        "size": 39723
+        "digest": "ce26611e8911ac404a1f8fb07a0fd83fa6b06e77781479f8e9c7fb89719d63f4",
+        "size": 39908
       },
       {
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_18.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "9bdd52783029235ac88d3be959072d75c34268285d7e0ccda1f7e35631293df6",
-        "size": 1379
+        "digest": "704b7768ead67520ea7862d0cf644bfc069abb21baddb9c24adf260644185e93",
+        "size": 1784
       },
       {
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_19.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "ea7918dcfa56bf314bb560a1a9b4bc2eac29b9065f1b8082ac34d7b1840d033b",
-        "size": 1379
+        "digest": "8ac952c4bab440df59eaa28749c95aae076103b85d6d9fec8cfb34b884155337",
+        "size": 1514
       },
       {
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_20.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "771b62296af7b2fbb8ee3e1f2a41d230c523366a633ee0f795071946db4c267e",
-        "size": 1379
+        "digest": "4c6741f0356549e65a60217c9edb15a99b27de08debb4ccedaa435d7b5fbebfa",
+        "size": 1649
       },
       {
         "path": "lib/styleThumbnailPacks.generated/thumbnail_group_21.ts",
@@ -6326,8 +6326,8 @@
         "path": "package.json",
         "origin": "tracked",
         "state": "present",
-        "digest": "336eb93de602ab7bd9fb874f1c81262121c9d093c3f83209d900564142874b35",
-        "size": 9463
+        "digest": "3bbfca851b4c822fe4c17a1849801a2fb43e324d8f4a4c91f54a8d3463ed4d41",
+        "size": 9540
       },
       {
         "path": "packages/shared/src/animationSequenceContracts.test.ts",
@@ -7075,8 +7075,8 @@
         "path": "scripts/generate-style-thumbnail-projections.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
-        "size": 15750
+        "digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
+        "size": 16422
       },
       {
         "path": "scripts/interface-handoff/export.ts",
@@ -8146,8 +8146,8 @@
         "path": "vite.config.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "375e8d0058d56e429cf9a8c3626d3238551068ed6393c22adac6d9bf3154f352",
-        "size": 3206
+        "digest": "50c7d631f5415d1ed7b88cb7a4c43b965b2102e2c1a206a2f7469bfc8e1e55ef",
+        "size": 4117
       },
       {
         "path": "vite.handoff.config.ts",
@@ -8164,10 +8164,10 @@
         "size": 710
       }
     ],
-    "digest": "4347e343c0ae2038aa0e2d1e6e9b1e5a481f2a03c9eb1b92af5e1354d9dc038d"
+    "digest": "1ea5143357991fe6200dbc4d7cae94ecee1e12ad883a253e472fc22d0b11792e"
   },
   "coverage": {
-    "discovered_files": 12850,
+    "discovered_files": 12882,
     "included_files": 1160,
     "analyzed_files": 1148,
     "configuration_files": 7,
@@ -14767,11 +14767,27 @@
         "reason": "not-source"
       },
       {
+        "path": "assets/recipes/styles/defaults/.locks/SP02-012.e0f81458-3ad5-4f5d-9fdd-15c05e7c7a01.reviewed.chatgpt.lock",
+        "reason": "not-source"
+      },
+      {
         "path": "assets/recipes/styles/defaults/.locks/SP02-036.chatgpt.lock",
         "reason": "not-source"
       },
       {
+        "path": "assets/recipes/styles/defaults/.locks/SP02-036.d9339719-c49a-4ca2-825f-d75a9bfac648.reviewed.chatgpt.lock",
+        "reason": "not-source"
+      },
+      {
         "path": "assets/recipes/styles/defaults/.locks/SP02-038.chatgpt.lock",
+        "reason": "not-source"
+      },
+      {
+        "path": "assets/recipes/styles/defaults/.locks/SP02-038.de28dae5-bed9-4744-bad2-421295b0e8b3.reviewed.chatgpt.lock",
+        "reason": "not-source"
+      },
+      {
+        "path": "assets/recipes/styles/defaults/.locks/SP02-051.621d5eee-d4dd-4f1c-8972-5abc321ffdc0.reviewed.chatgpt.lock",
         "reason": "not-source"
       },
       {
@@ -14783,6 +14799,10 @@
         "reason": "not-source"
       },
       {
+        "path": "assets/recipes/styles/defaults/.locks/SP05-187.54bbed53-956a-4fa3-9d09-16a039ac3a5c.reviewed.chatgpt.lock",
+        "reason": "not-source"
+      },
+      {
         "path": "assets/recipes/styles/defaults/.locks/SP05-187.chatgpt.lock",
         "reason": "not-source"
       },
@@ -14791,7 +14811,15 @@
         "reason": "not-source"
       },
       {
+        "path": "assets/recipes/styles/defaults/.locks/SP08-021.67362d54-edb2-4e04-a0b1-41a0464a345b.reviewed.chatgpt.lock",
+        "reason": "not-source"
+      },
+      {
         "path": "assets/recipes/styles/defaults/.locks/SP08-021.chatgpt.lock",
+        "reason": "not-source"
+      },
+      {
+        "path": "assets/recipes/styles/defaults/.locks/SP08-033.33ae9fbb-7079-4208-b9d9-4385c7462d5d.reviewed.chatgpt.lock",
         "reason": "not-source"
       },
       {
@@ -14799,7 +14827,15 @@
         "reason": "not-source"
       },
       {
+        "path": "assets/recipes/styles/defaults/.locks/SP08-037.a2b208bb-7acc-4f99-9dfd-73f9930a007c.reviewed.chatgpt.lock",
+        "reason": "not-source"
+      },
+      {
         "path": "assets/recipes/styles/defaults/.locks/SP08-037.chatgpt.lock",
+        "reason": "not-source"
+      },
+      {
+        "path": "assets/recipes/styles/defaults/.locks/SP09-028.9564e98d-e2b1-46a6-8eef-b32cafeb291c.reviewed.chatgpt.lock",
         "reason": "not-source"
       },
       {
@@ -14807,7 +14843,15 @@
         "reason": "not-source"
       },
       {
+        "path": "assets/recipes/styles/defaults/.locks/SP09-030.1325b8f7-9f93-4fea-8612-780aeb447666.reviewed.chatgpt.lock",
+        "reason": "not-source"
+      },
+      {
         "path": "assets/recipes/styles/defaults/.locks/SP09-030.chatgpt.lock",
+        "reason": "not-source"
+      },
+      {
+        "path": "assets/recipes/styles/defaults/.locks/SP09-045.90ac9e36-7791-4412-b1d7-dcec56c4eca7.reviewed.chatgpt.lock",
         "reason": "not-source"
       },
       {
@@ -14815,7 +14859,15 @@
         "reason": "not-source"
       },
       {
+        "path": "assets/recipes/styles/defaults/.locks/SP09-078.4e795616-cbfd-4d89-9361-aa2c2a219848.reviewed.chatgpt.lock",
+        "reason": "not-source"
+      },
+      {
         "path": "assets/recipes/styles/defaults/.locks/SP09-078.chatgpt.lock",
+        "reason": "not-source"
+      },
+      {
+        "path": "assets/recipes/styles/defaults/.locks/SP10-005.0c27592e-504d-4cfe-a413-6274048e1510.reviewed.chatgpt.lock",
         "reason": "not-source"
       },
       {
@@ -14823,11 +14875,23 @@
         "reason": "not-source"
       },
       {
+        "path": "assets/recipes/styles/defaults/.locks/SP10-058.b67663a8-27e9-42db-a144-a0f49c58166e.reviewed.chatgpt.lock",
+        "reason": "not-source"
+      },
+      {
         "path": "assets/recipes/styles/defaults/.locks/SP10-058.chatgpt.lock",
         "reason": "not-source"
       },
       {
+        "path": "assets/recipes/styles/defaults/.locks/SP11-075.77a548da-00a8-4010-8fc0-41ca9d1c8f81.reviewed.chatgpt.lock",
+        "reason": "not-source"
+      },
+      {
         "path": "assets/recipes/styles/defaults/.locks/SP11-075.chatgpt.lock",
+        "reason": "not-source"
+      },
+      {
+        "path": "assets/recipes/styles/defaults/.locks/SP11-078.262ffd93-f643-4d7c-98f3-1b970ccac5fb.reviewed.chatgpt.lock",
         "reason": "not-source"
       },
       {
@@ -29991,6 +30055,10 @@
         "reason": "not-source"
       },
       {
+        "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP02-012.webp",
+        "reason": "not-source"
+      },
+      {
         "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP02-013.webp",
         "reason": "not-source"
       },
@@ -30083,7 +30151,15 @@
         "reason": "not-source"
       },
       {
+        "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP02-036.webp",
+        "reason": "not-source"
+      },
+      {
         "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP02-037.webp",
+        "reason": "not-source"
+      },
+      {
+        "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP02-038.webp",
         "reason": "not-source"
       },
       {
@@ -30132,6 +30208,10 @@
       },
       {
         "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP02-050.webp",
+        "reason": "not-source"
+      },
+      {
+        "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP02-051.webp",
         "reason": "not-source"
       },
       {
@@ -31907,6 +31987,10 @@
         "reason": "not-source"
       },
       {
+        "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP05-187.webp",
+        "reason": "not-source"
+      },
+      {
         "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP05-188.webp",
         "reason": "not-source"
       },
@@ -33527,6 +33611,10 @@
         "reason": "not-source"
       },
       {
+        "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP08-021.webp",
+        "reason": "not-source"
+      },
+      {
         "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP08-022.webp",
         "reason": "not-source"
       },
@@ -33571,6 +33659,10 @@
         "reason": "not-source"
       },
       {
+        "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP08-033.webp",
+        "reason": "not-source"
+      },
+      {
         "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP08-034.webp",
         "reason": "not-source"
       },
@@ -33580,6 +33672,10 @@
       },
       {
         "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP08-036.webp",
+        "reason": "not-source"
+      },
+      {
+        "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP08-037.webp",
         "reason": "not-source"
       },
       {
@@ -33863,7 +33959,15 @@
         "reason": "not-source"
       },
       {
+        "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP09-028.webp",
+        "reason": "not-source"
+      },
+      {
         "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP09-029.webp",
+        "reason": "not-source"
+      },
+      {
+        "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP09-030.webp",
         "reason": "not-source"
       },
       {
@@ -33920,6 +34024,10 @@
       },
       {
         "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP09-044.webp",
+        "reason": "not-source"
+      },
+      {
+        "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP09-045.webp",
         "reason": "not-source"
       },
       {
@@ -34051,6 +34159,10 @@
         "reason": "not-source"
       },
       {
+        "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP09-078.webp",
+        "reason": "not-source"
+      },
+      {
         "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP09-079.webp",
         "reason": "not-source"
       },
@@ -34072,6 +34184,10 @@
       },
       {
         "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP10-004.webp",
+        "reason": "not-source"
+      },
+      {
+        "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP10-005.webp",
         "reason": "not-source"
       },
       {
@@ -34280,6 +34396,10 @@
       },
       {
         "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP10-057.webp",
+        "reason": "not-source"
+      },
+      {
+        "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP10-058.webp",
         "reason": "not-source"
       },
       {
@@ -34667,11 +34787,19 @@
         "reason": "not-source"
       },
       {
+        "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP11-075.webp",
+        "reason": "not-source"
+      },
+      {
         "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP11-076.webp",
         "reason": "not-source"
       },
       {
         "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP11-077.webp",
+        "reason": "not-source"
+      },
+      {
+        "path": "assets/recipes/styles/defaults/providers/previous-gpt-image/SP11-078.webp",
         "reason": "not-source"
       },
       {
@@ -70961,127 +71089,127 @@
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 132,
+        "line": 131,
         "reference": "React",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 162,
+        "line": 161,
         "reference": "STYLE_RUNTIME_PACK_SUMMARIES",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 202,
+        "line": 201,
         "reference": "React",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 208,
+        "line": 207,
         "reference": "React",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 214,
+        "line": 213,
         "reference": "React",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 220,
+        "line": 219,
         "reference": "React",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 226,
+        "line": 225,
         "reference": "React",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 232,
+        "line": 231,
         "reference": "React",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 238,
+        "line": 237,
         "reference": "React",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 537,
+        "line": 536,
         "reference": "React",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 573,
+        "line": 572,
         "reference": "React",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 780,
+        "line": 779,
         "reference": "STYLE_RUNTIME_PACK_SUMMARIES",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 984,
+        "line": 983,
         "reference": "useWorkspaceState",
         "reason": "call-target-symbol-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 1075,
+        "line": 1074,
         "reference": "React",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 1310,
+        "line": 1309,
         "reference": "STYLE_RUNTIME_PACK_SUMMARIES",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 1387,
+        "line": 1386,
         "reference": "STYLE_RUNTIME_PACK_SUMMARIES",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 1513,
+        "line": 1512,
         "reference": "runtimeLogger",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 1555,
+        "line": 1554,
         "reference": "React",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 1922,
+        "line": 1921,
         "reference": "React",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 1929,
+        "line": 1928,
         "reference": "getStyleRuntimePresetDisplayName",
         "reason": "call-target-symbol-not-resolved"
       },
       {
         "path": "components/recipes/StylesBrowser.tsx",
-        "line": 2049,
+        "line": 2048,
         "reference": "STYLE_RUNTIME_PACK_SUMMARIES",
         "reason": "object-member-call-not-resolved"
       },
@@ -71237,43 +71365,43 @@
       },
       {
         "path": "components/recipes/styles/TcgComponentStudio.tsx",
-        "line": 74,
+        "line": 80,
         "reference": "TCG_RECIPES",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/styles/TcgComponentStudio.tsx",
-        "line": 75,
+        "line": 81,
         "reference": "TCG_FINISHES",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/styles/TcgComponentStudio.tsx",
-        "line": 76,
+        "line": 82,
         "reference": "TCG_LAYOUTS",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/styles/TcgComponentStudio.tsx",
-        "line": 185,
+        "line": 191,
         "reference": "TCG_RECIPES",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/styles/TcgComponentStudio.tsx",
-        "line": 337,
+        "line": 343,
         "reference": "TCG_RECIPES",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/styles/TcgComponentStudio.tsx",
-        "line": 427,
+        "line": 433,
         "reference": "TCG_LAYOUTS",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/styles/TcgComponentStudio.tsx",
-        "line": 506,
+        "line": 512,
         "reference": "TCG_FINISHES",
         "reason": "object-member-call-not-resolved"
       },
@@ -77333,12 +77461,6 @@
       },
       {
         "path": "scripts/generate-style-thumbnail-projections.ts",
-        "line": 30,
-        "reference": "path",
-        "reason": "object-member-call-not-resolved"
-      },
-      {
-        "path": "scripts/generate-style-thumbnail-projections.ts",
         "line": 31,
         "reference": "path",
         "reason": "object-member-call-not-resolved"
@@ -77351,13 +77473,19 @@
       },
       {
         "path": "scripts/generate-style-thumbnail-projections.ts",
-        "line": 235,
+        "line": 33,
         "reference": "path",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "scripts/generate-style-thumbnail-projections.ts",
-        "line": 238,
+        "line": 236,
+        "reference": "path",
+        "reason": "object-member-call-not-resolved"
+      },
+      {
+        "path": "scripts/generate-style-thumbnail-projections.ts",
+        "line": 239,
         "reference": "path",
         "reason": "object-member-call-not-resolved"
       },
@@ -77369,25 +77497,37 @@
       },
       {
         "path": "scripts/generate-style-thumbnail-projections.ts",
-        "line": 247,
+        "line": 246,
         "reference": "path",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "scripts/generate-style-thumbnail-projections.ts",
-        "line": 275,
+        "line": 251,
         "reference": "path",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "scripts/generate-style-thumbnail-projections.ts",
-        "line": 353,
+        "line": 280,
         "reference": "path",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "scripts/generate-style-thumbnail-projections.ts",
-        "line": 430,
+        "line": 290,
+        "reference": "path",
+        "reason": "object-member-call-not-resolved"
+      },
+      {
+        "path": "scripts/generate-style-thumbnail-projections.ts",
+        "line": 368,
+        "reference": "path",
+        "reason": "object-member-call-not-resolved"
+      },
+      {
+        "path": "scripts/generate-style-thumbnail-projections.ts",
+        "line": 445,
         "reference": "path",
         "reason": "object-member-call-not-resolved"
       },
@@ -80753,13 +80893,13 @@
       },
       {
         "path": "vite.config.ts",
-        "line": 47,
+        "line": 56,
         "reference": "path",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "vite.config.ts",
-        "line": 48,
+        "line": 57,
         "reference": "path",
         "reason": "object-member-call-not-resolved"
       },
@@ -128159,28 +128299,28 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "TcgComponentStudio",
-            "start_line": 132,
-            "end_line": 132,
+            "start_line": 131,
+            "end_line": 131,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "definition"
           },
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "StylesBrowserProps",
-            "start_line": 136,
-            "end_line": 136,
+            "start_line": 135,
+            "end_line": 135,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "definition"
           },
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "FAVORITES_PACK_ID",
-            "start_line": 157,
-            "end_line": 157,
+            "start_line": 156,
+            "end_line": 156,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "definition"
           }
         ]
@@ -128367,16 +128507,6 @@
           "id": "components/recipes/styles/collections/index.ts",
           "type": "imports",
           "type_only": true
-        },
-        {
-          "id": "components/recipes/styles/tcgComponentModel.ts",
-          "type": "calls",
-          "type_only": false
-        },
-        {
-          "id": "components/recipes/styles/tcgComponentModel.ts",
-          "type": "imports",
-          "type_only": false
         },
         {
           "id": "components/recipes/stylesData.ts",
@@ -145576,28 +145706,28 @@
           {
             "path": "components/recipes/styles/TcgComponentStudio.tsx",
             "symbol": "TcgComponentStudioProps",
-            "start_line": 13,
-            "end_line": 13,
+            "start_line": 19,
+            "end_line": 19,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
             "kind": "definition"
           },
           {
             "path": "components/recipes/styles/TcgComponentStudio.tsx",
             "symbol": "ArtworkChoice",
-            "start_line": 20,
-            "end_line": 20,
+            "start_line": 26,
+            "end_line": 26,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
             "kind": "definition"
           },
           {
             "path": "components/recipes/styles/TcgComponentStudio.tsx",
             "symbol": "MaskAsset",
-            "start_line": 25,
-            "end_line": 25,
+            "start_line": 31,
+            "end_line": 31,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
             "kind": "definition"
           }
         ]
@@ -149567,16 +149697,6 @@
         ]
       },
       "callers": [
-        {
-          "id": "components/recipes/StylesBrowser.tsx",
-          "type": "calls",
-          "type_only": false
-        },
-        {
-          "id": "components/recipes/StylesBrowser.tsx",
-          "type": "imports",
-          "type_only": false
-        },
         {
           "id": "components/recipes/styles/TcgComponentStudio.tsx",
           "type": "calls",
@@ -156661,7 +156781,7 @@
             "start_line": 3,
             "end_line": 3,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "375e8d0058d56e429cf9a8c3626d3238551068ed6393c22adac6d9bf3154f352",
+            "source_digest": "50c7d631f5415d1ed7b88cb7a4c43b965b2102e2c1a206a2f7469bfc8e1e55ef",
             "kind": "import",
             "resolved_target": "external:javascript:@tailwindcss/vite"
           },
@@ -156678,10 +156798,10 @@
           {
             "path": "vite.config.ts",
             "symbol": "tailwindcss()",
-            "start_line": 44,
-            "end_line": 44,
+            "start_line": 53,
+            "end_line": 53,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "375e8d0058d56e429cf9a8c3626d3238551068ed6393c22adac6d9bf3154f352",
+            "source_digest": "50c7d631f5415d1ed7b88cb7a4c43b965b2102e2c1a206a2f7469bfc8e1e55ef",
             "kind": "call",
             "resolved_target": "external:javascript:@tailwindcss/vite",
             "target_symbol": "default"
@@ -160153,7 +160273,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "375e8d0058d56e429cf9a8c3626d3238551068ed6393c22adac6d9bf3154f352",
+            "source_digest": "50c7d631f5415d1ed7b88cb7a4c43b965b2102e2c1a206a2f7469bfc8e1e55ef",
             "kind": "import",
             "resolved_target": "external:javascript:@vitejs/plugin-react"
           },
@@ -177154,7 +177274,7 @@
             "start_line": 5,
             "end_line": 5,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "375e8d0058d56e429cf9a8c3626d3238551068ed6393c22adac6d9bf3154f352",
+            "source_digest": "50c7d631f5415d1ed7b88cb7a4c43b965b2102e2c1a206a2f7469bfc8e1e55ef",
             "kind": "import",
             "resolved_target": "external:javascript:vite-plus"
           },
@@ -177170,11 +177290,11 @@
           },
           {
             "path": "vite.config.ts",
-            "symbol": "defineConfig({\n  base: './',\n  optimizeDeps: { entries: ['index.html'] },\n  server: {\n    port: 17222,\n    host: '0.0.0.0',\n  },\n  preview: {\n    port: 17222,\n    host: '0.0.0.0',\n  },\n  build: {\n    emptyOutDir: true,\n    rolldownOptions: {\n      output: {\n        codeSplitting: {\n          groups: [14, 15].flatMap((pack) =>\n            Array.from({ length: pack === 14 ? 8 : 5 }, (_, batch) => ({\n              name: `archived-style-presets-${pack}-${batch + 1}`,\n              test: (id: string) => {\n                const match = id.match(\n                  /[\\\\/]styles[\\\\/]manifests[\\\\/]archive[\\\\/](?:conceptual-refactor-20260923|identity-repair-20260923)[\\\\/]presets[\\\\/]pack_(14|15)[\\\\/][^\\\\/]+-(\\d{3})\\.yaml(?:\\?.*)?$/,\n                );\n                return (\n                  match !== null &&\n                  Number(match[1]) === pack &&\n                  Math.floor((Number(match[2]) - 1) / 20) === batch\n                );\n              },\n            })),\n          ),\n        },\n      },\n    },\n  },\n  plugins: [...react(), ...tailwindcss()] as never,\n  resolve: {\n    alias: {\n      '@': path.resolve(rootDir, '.'),\n      'motion/react': path.resolve(rootDir, 'lib/gsapMotion.tsx'),\n    },\n  },\n  fmt: {\n    semi: true,\n    singleQuote: true,\n  },\n  lint: {\n    plugins: ['oxc', 'typescript', 'react'],\n    categories: {\n      correctness: 'error',\n    },\n    env: {\n      builtin: true,\n    },\n    rules: {\n      'no-console': 'error',\n      'no-debugger': 'error',\n      'no-control-regex': 'off',\n      'no-unused-vars': 'off',\n      'no-useless-escape': 'off',\n    },\n    ignorePatterns: [\n      'dist/**',\n      'generated/**',\n      'logs/**',\n      'output/**',\n      'outputs/**',\n      'tmp/**',\n      '.tmp/**',\n      '.tmp-*',\n    ],\n    overrides: [\n      {\n        files: ['**/*.{ts,tsx}'],\n        rules: {\n          'typescript/no-explicit-any': 'off',\n          'typescript/no-unused-vars': 'off',\n          'react/rules-of-hooks': 'error',\n          'react/exhaustive-deps': 'off',\n          'react/only-export-components': 'off',\n        },\n        env: {\n          es2022: true,\n          browser: true,\n        },\n      },\n      {\n        files: [\n          'apps/local-server/src/**/*.ts',\n          'scripts/**/*.ts',\n          'electron/**/*.cjs',\n          'utils/runtimeLogger.ts',\n        ],\n        rules: {\n          'no-console': 'off',\n        },\n        env: {\n          es2022: true,\n          node: true,\n        },\n      },\n    ],\n    options: {\n      typeAware: true,\n      typeCheck: true,\n    },\n  },\n  test: {\n    globals: true,\n    include: ['**/*.test.ts', '**/*.test.tsx'],\n    exclude: ['**/node_modules/**', '**/dist/**', '**/*.bun.test.ts'],\n    coverage: {\n      provider: 'v8',\n      reporter: ['text', 'json-summary', 'html'],\n      reportsDirectory: './coverage',\n    },\n  },\n  staged: {\n    '*.{ts,tsx,js,jsx,css,md,json}': 'vp check --fix',\n  },\n})",
+            "symbol": "defineConfig({\n  base: './',\n  optimizeDeps: { entries: ['index.html'] },\n  server: {\n    port: 17222,\n    host: '0.0.0.0',\n  },\n  preview: {\n    port: 17222,\n    host: '0.0.0.0',\n  },\n  build: {\n    emptyOutDir: true,\n    rolldownOptions: {\n      output: {\n        codeSplitting: {\n          groups: [\n            {\n              name: 'styles-browser-support',\n              test: (id: string) =>\n                /[\\\\/]components[\\\\/]recipes[\\\\/](?:stylePresetManifests|styleLayerComposer|styleBrowserRenderPlan|useStyleComposition|styleCategoryIdentity|styleGridVirtualization|useStyleBrowserNavigation|useUserStyleLibrary)\\.tsx?(?:\\?.*)?$/.test(\n                  id,\n                ),\n            },\n            ...[14, 15].flatMap((pack) =>\n              Array.from({ length: pack === 14 ? 8 : 5 }, (_, batch) => ({\n                name: `archived-style-presets-${pack}-${batch + 1}`,\n                test: (id: string) => {\n                  const match = id.match(\n                    /[\\\\/]styles[\\\\/]manifests[\\\\/]archive[\\\\/](?:conceptual-refactor-20260923|identity-repair-20260923)[\\\\/]presets[\\\\/]pack_(14|15)[\\\\/][^\\\\/]+-(\\d{3})\\.yaml(?:\\?.*)?$/,\n                  );\n                  return (\n                    match !== null &&\n                    Number(match[1]) === pack &&\n                    Math.floor((Number(match[2]) - 1) / 20) === batch\n                  );\n                },\n              })),\n            ),\n          ],\n        },\n      },\n    },\n  },\n  plugins: [...react(), ...tailwindcss()] as never,\n  resolve: {\n    alias: {\n      '@': path.resolve(rootDir, '.'),\n      'motion/react': path.resolve(rootDir, 'lib/gsapMotion.tsx'),\n    },\n  },\n  fmt: {\n    semi: true,\n    singleQuote: true,\n  },\n  lint: {\n    plugins: ['oxc', 'typescript', 'react'],\n    categories: {\n      correctness: 'error',\n    },\n    env: {\n      builtin: true,\n    },\n    rules: {\n      'no-console': 'error',\n      'no-debugger': 'error',\n      'no-control-regex': 'off',\n      'no-unused-vars': 'off',\n      'no-useless-escape': 'off',\n    },\n    ignorePatterns: [\n      'dist/**',\n      'generated/**',\n      'logs/**',\n      'output/**',\n      'outputs/**',\n      'tmp/**',\n      '.tmp/**',\n      '.tmp-*',\n    ],\n    overrides: [\n      {\n        files: ['**/*.{ts,tsx}'],\n        rules: {\n          'typescript/no-explicit-any': 'off',\n          'typescript/no-unused-vars': 'off',\n          'react/rules-of-hooks': 'error',\n          'react/exhaustive-deps': 'off',\n          'react/only-export-components': 'off',\n          // The React Compiler diagnostics introduced by newer Oxlint are a separate\n          // component migration; keep this upgrade on the existing lint contract.\n          'react/set-state-in-effect': 'off',\n          'react/refs': 'off',\n          'react/immutability': 'off',\n          'react/preserve-manual-memoization': 'off',\n          'react/purity': 'off',\n          'react/globals': 'off',\n          'react/static-components': 'off',\n        },\n        env: {\n          es2022: true,\n          browser: true,\n        },\n      },\n      {\n        files: [\n          'apps/local-server/src/**/*.ts',\n          'scripts/**/*.ts',\n          'electron/**/*.cjs',\n          'utils/runtimeLogger.ts',\n        ],\n        rules: {\n          'no-console': 'off',\n        },\n        env: {\n          es2022: true,\n          node: true,\n        },\n      },\n    ],\n    options: {\n      typeAware: true,\n      typeCheck: true,\n    },\n  },\n  test: {\n    globals: true,\n    include: ['**/*.test.ts', '**/*.test.tsx'],\n    exclude: ['**/node_modules/**', '**/dist/**', '**/*.bun.test.ts'],\n    coverage: {\n      provider: 'v8',\n      reporter: ['text', 'json-summary', 'html'],\n      reportsDirectory: './coverage',\n    },\n  },\n  staged: {\n    '*.{ts,tsx,js,jsx,css,md,json}': 'vp check --fix',\n  },\n})",
             "start_line": 9,
-            "end_line": 129,
+            "end_line": 147,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "375e8d0058d56e429cf9a8c3626d3238551068ed6393c22adac6d9bf3154f352",
+            "source_digest": "50c7d631f5415d1ed7b88cb7a4c43b965b2102e2c1a206a2f7469bfc8e1e55ef",
             "kind": "call",
             "resolved_target": "external:javascript:vite-plus",
             "target_symbol": "defineConfig"
@@ -180792,7 +180912,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "import",
             "resolved_target": "external:javascript:vitest"
           }
@@ -249431,11 +249551,11 @@
           "type": "calls",
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
-            "symbol": "describe('styleThumbnailCatalog', () => {\n  it('loads default-image fallbacks into the owning pack projection', async () => {\n    const pack05 = await loadStyleThumbnailPack('pack_05');\n    const pack13 = await loadStyleThumbnailPack('pack_13');\n    const pack16 = await loadStyleThumbnailPack('pack_16');\n\n    expect(pack05['SP05-034']).toBeTruthy();\n    expect(pack05['SP05-001']).toBeUndefined();\n    expect(pack13['SP13-001']).toBeTruthy();\n    expect(pack13['SP05-013']).toBeTruthy();\n    expect(pack13['SP13-026']).toBeUndefined();\n    expect(pack16['SP05-001']).toBeTruthy();\n    expect(pack16['SP13-026']).toBeTruthy();\n    expect(pack16['pack_16__70s_and_80s_retro_anime']).toBeTruthy();\n    expect(getStyleThumbnail('SP05-001')).toBe(pack16['SP05-001']);\n  });\n\n  it('notifies subscribers after a pack load', async () => {\n    let notified = 0;\n    const unsubscribe = subscribeStyleThumbnailCatalog(() => {\n      notified += 1;\n    });\n\n    await loadStyleThumbnailPack('pack_16');\n    unsubscribe();\n\n    expect(notified).toBeGreaterThan(0);\n    expect(getStyleThumbnail('SP05-001')).toBeTruthy();\n  });\n\n  it('places the previous default after the other image variants', () => {\n    const catalog: Record<string, string> = {\n      'SP99-001-01': '/thumbs/SP99-001-01.webp',\n      'SP99-001-grok': '/thumbs/SP99-001-grok.webp',\n      'SP99-001-previous': '/thumbs/SP99-001-previous.webp',\n    };\n\n    expect(resolveStyleDefaultImageVariantThumbnails('SP99-001', (key) => catalog[key])).toEqual([\n      { src: '/thumbs/SP99-001-01.webp', label: 'Variant 1' },\n      { src: '/thumbs/SP99-001-grok.webp', label: 'Grok' },\n      { src: '/thumbs/SP99-001-previous.webp', label: 'Previous GPT Image' },\n    ]);\n  });\n})",
+            "symbol": "describe('styleThumbnailCatalog', () => {\n  it('loads default-image fallbacks into the owning pack projection', async () => {\n    const pack05 = await loadStyleThumbnailPack('pack_05');\n    const pack13 = await loadStyleThumbnailPack('pack_13');\n    const pack16 = await loadStyleThumbnailPack('pack_16');\n    const pack17 = await loadStyleThumbnailPack('pack_17');\n\n    expect(pack05['SP05-034']).toBeTruthy();\n    expect(pack05['SP05-001']).toBeUndefined();\n    expect(pack13['SP13-001']).toBeTruthy();\n    expect(pack13['SP05-013']).toBeTruthy();\n    expect(pack13['SP13-026']).toBeUndefined();\n    expect(pack16['SP05-001']).toBeTruthy();\n    expect(pack16['SP13-026']).toBeTruthy();\n    expect(pack16['pack_16__70s_and_80s_retro_anime']).toBeTruthy();\n    expect(pack17['SP17-078-01']).toBeTruthy();\n    expect(getStyleThumbnail('SP05-001')).toBe(pack16['SP05-001']);\n  });\n\n  it('notifies subscribers after a pack load', async () => {\n    let notified = 0;\n    const unsubscribe = subscribeStyleThumbnailCatalog(() => {\n      notified += 1;\n    });\n\n    await loadStyleThumbnailPack('pack_16');\n    unsubscribe();\n\n    expect(notified).toBeGreaterThan(0);\n    expect(getStyleThumbnail('SP05-001')).toBeTruthy();\n  });\n\n  it('places the previous default after the other image variants', () => {\n    const catalog: Record<string, string> = {\n      'SP99-001-01': '/thumbs/SP99-001-01.webp',\n      'SP99-001-03': '/thumbs/SP99-001-03.webp',\n      'SP99-001-grok': '/thumbs/SP99-001-grok.webp',\n      'SP99-001-previous': '/thumbs/SP99-001-previous.webp',\n    };\n\n    expect(resolveStyleDefaultImageVariantThumbnails('SP99-001', (key) => catalog[key])).toEqual([\n      { src: '/thumbs/SP99-001-01.webp', label: 'Variant 1' },\n      { src: '/thumbs/SP99-001-03.webp', label: 'Variant 3' },\n      { src: '/thumbs/SP99-001-grok.webp', label: 'Grok' },\n      { src: '/thumbs/SP99-001-previous.webp', label: 'Previous GPT Image' },\n    ]);\n  });\n})",
             "start_line": 10,
-            "end_line": 53,
+            "end_line": 57,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "describe"
@@ -249446,11 +249566,11 @@
           "type": "calls",
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
-            "symbol": "it('loads default-image fallbacks into the owning pack projection', async () => {\n    const pack05 = await loadStyleThumbnailPack('pack_05');\n    const pack13 = await loadStyleThumbnailPack('pack_13');\n    const pack16 = await loadStyleThumbnailPack('pack_16');\n\n    expect(pack05['SP05-034']).toBeTruthy();\n    expect(pack05['SP05-001']).toBeUndefined();\n    expect(pack13['SP13-001']).toBeTruthy();\n    expect(pack13['SP05-013']).toBeTruthy();\n    expect(pack13['SP13-026']).toBeUndefined();\n    expect(pack16['SP05-001']).toBeTruthy();\n    expect(pack16['SP13-026']).toBeTruthy();\n    expect(pack16['pack_16__70s_and_80s_retro_anime']).toBeTruthy();\n    expect(getStyleThumbnail('SP05-001')).toBe(pack16['SP05-001']);\n  })",
+            "symbol": "it('loads default-image fallbacks into the owning pack projection', async () => {\n    const pack05 = await loadStyleThumbnailPack('pack_05');\n    const pack13 = await loadStyleThumbnailPack('pack_13');\n    const pack16 = await loadStyleThumbnailPack('pack_16');\n    const pack17 = await loadStyleThumbnailPack('pack_17');\n\n    expect(pack05['SP05-034']).toBeTruthy();\n    expect(pack05['SP05-001']).toBeUndefined();\n    expect(pack13['SP13-001']).toBeTruthy();\n    expect(pack13['SP05-013']).toBeTruthy();\n    expect(pack13['SP13-026']).toBeUndefined();\n    expect(pack16['SP05-001']).toBeTruthy();\n    expect(pack16['SP13-026']).toBeTruthy();\n    expect(pack16['pack_16__70s_and_80s_retro_anime']).toBeTruthy();\n    expect(pack17['SP17-078-01']).toBeTruthy();\n    expect(getStyleThumbnail('SP05-001')).toBe(pack16['SP05-001']);\n  })",
             "start_line": 11,
-            "end_line": 25,
+            "end_line": 27,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "it"
@@ -249462,10 +249582,10 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "expect(pack05['SP05-034'])",
-            "start_line": 16,
-            "end_line": 16,
+            "start_line": 17,
+            "end_line": 17,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "expect"
@@ -249477,10 +249597,10 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "expect(pack05['SP05-001'])",
-            "start_line": 17,
-            "end_line": 17,
+            "start_line": 18,
+            "end_line": 18,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "expect"
@@ -249492,10 +249612,10 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "expect(pack13['SP13-001'])",
-            "start_line": 18,
-            "end_line": 18,
+            "start_line": 19,
+            "end_line": 19,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "expect"
@@ -249507,10 +249627,10 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "expect(pack13['SP05-013'])",
-            "start_line": 19,
-            "end_line": 19,
+            "start_line": 20,
+            "end_line": 20,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "expect"
@@ -249522,10 +249642,10 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "expect(pack13['SP13-026'])",
-            "start_line": 20,
-            "end_line": 20,
+            "start_line": 21,
+            "end_line": 21,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "expect"
@@ -249537,10 +249657,10 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "expect(pack16['SP05-001'])",
-            "start_line": 21,
-            "end_line": 21,
+            "start_line": 22,
+            "end_line": 22,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "expect"
@@ -249552,10 +249672,10 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "expect(pack16['SP13-026'])",
-            "start_line": 22,
-            "end_line": 22,
+            "start_line": 23,
+            "end_line": 23,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "expect"
@@ -249567,10 +249687,25 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "expect(pack16['pack_16__70s_and_80s_retro_anime'])",
-            "start_line": 23,
-            "end_line": 23,
+            "start_line": 24,
+            "end_line": 24,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
+            "kind": "call",
+            "resolved_target": "external:javascript:vitest",
+            "target_symbol": "expect"
+          }
+        },
+        {
+          "test": "lib/styleThumbnailCatalog.test.ts",
+          "type": "calls",
+          "location": {
+            "path": "lib/styleThumbnailCatalog.test.ts",
+            "symbol": "expect(pack17['SP17-078-01'])",
+            "start_line": 25,
+            "end_line": 25,
+            "extractor": "tree-sitter-typescript",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "expect"
@@ -249582,10 +249717,10 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "expect(getStyleThumbnail('SP05-001'))",
-            "start_line": 24,
-            "end_line": 24,
+            "start_line": 26,
+            "end_line": 26,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "expect"
@@ -249597,10 +249732,10 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "it('notifies subscribers after a pack load', async () => {\n    let notified = 0;\n    const unsubscribe = subscribeStyleThumbnailCatalog(() => {\n      notified += 1;\n    });\n\n    await loadStyleThumbnailPack('pack_16');\n    unsubscribe();\n\n    expect(notified).toBeGreaterThan(0);\n    expect(getStyleThumbnail('SP05-001')).toBeTruthy();\n  })",
-            "start_line": 27,
-            "end_line": 38,
+            "start_line": 29,
+            "end_line": 40,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "it"
@@ -249612,10 +249747,10 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "expect(notified)",
-            "start_line": 36,
-            "end_line": 36,
+            "start_line": 38,
+            "end_line": 38,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "expect"
@@ -249627,10 +249762,10 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "expect(getStyleThumbnail('SP05-001'))",
-            "start_line": 37,
-            "end_line": 37,
+            "start_line": 39,
+            "end_line": 39,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "expect"
@@ -249641,11 +249776,11 @@
           "type": "calls",
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
-            "symbol": "it('places the previous default after the other image variants', () => {\n    const catalog: Record<string, string> = {\n      'SP99-001-01': '/thumbs/SP99-001-01.webp',\n      'SP99-001-grok': '/thumbs/SP99-001-grok.webp',\n      'SP99-001-previous': '/thumbs/SP99-001-previous.webp',\n    };\n\n    expect(resolveStyleDefaultImageVariantThumbnails('SP99-001', (key) => catalog[key])).toEqual([\n      { src: '/thumbs/SP99-001-01.webp', label: 'Variant 1' },\n      { src: '/thumbs/SP99-001-grok.webp', label: 'Grok' },\n      { src: '/thumbs/SP99-001-previous.webp', label: 'Previous GPT Image' },\n    ]);\n  })",
-            "start_line": 40,
-            "end_line": 52,
+            "symbol": "it('places the previous default after the other image variants', () => {\n    const catalog: Record<string, string> = {\n      'SP99-001-01': '/thumbs/SP99-001-01.webp',\n      'SP99-001-03': '/thumbs/SP99-001-03.webp',\n      'SP99-001-grok': '/thumbs/SP99-001-grok.webp',\n      'SP99-001-previous': '/thumbs/SP99-001-previous.webp',\n    };\n\n    expect(resolveStyleDefaultImageVariantThumbnails('SP99-001', (key) => catalog[key])).toEqual([\n      { src: '/thumbs/SP99-001-01.webp', label: 'Variant 1' },\n      { src: '/thumbs/SP99-001-03.webp', label: 'Variant 3' },\n      { src: '/thumbs/SP99-001-grok.webp', label: 'Grok' },\n      { src: '/thumbs/SP99-001-previous.webp', label: 'Previous GPT Image' },\n    ]);\n  })",
+            "start_line": 42,
+            "end_line": 56,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "it"
@@ -249657,10 +249792,10 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "expect(resolveStyleDefaultImageVariantThumbnails('SP99-001', (key) => catalog[key]))",
-            "start_line": 47,
-            "end_line": 47,
+            "start_line": 50,
+            "end_line": 50,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "expect"
@@ -305537,7 +305672,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "file"
           }
         ]
@@ -305587,7 +305722,7 @@
             "start_line": 3,
             "end_line": 8,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "import",
             "resolved_target": "lib/styleThumbnailCatalog.ts"
           }
@@ -305601,7 +305736,7 @@
             "start_line": 12,
             "end_line": 12,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "lib/styleThumbnailCatalog.ts",
             "target_symbol": "loadStyleThumbnailPack"
@@ -305616,7 +305751,7 @@
             "start_line": 13,
             "end_line": 13,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "lib/styleThumbnailCatalog.ts",
             "target_symbol": "loadStyleThumbnailPack"
@@ -305631,7 +305766,22 @@
             "start_line": 14,
             "end_line": 14,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
+            "kind": "call",
+            "resolved_target": "lib/styleThumbnailCatalog.ts",
+            "target_symbol": "loadStyleThumbnailPack"
+          }
+        },
+        {
+          "test": "lib/styleThumbnailCatalog.test.ts",
+          "type": "calls",
+          "location": {
+            "path": "lib/styleThumbnailCatalog.test.ts",
+            "symbol": "loadStyleThumbnailPack('pack_17')",
+            "start_line": 15,
+            "end_line": 15,
+            "extractor": "tree-sitter-typescript",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "lib/styleThumbnailCatalog.ts",
             "target_symbol": "loadStyleThumbnailPack"
@@ -305643,10 +305793,10 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "getStyleThumbnail('SP05-001')",
-            "start_line": 24,
-            "end_line": 24,
+            "start_line": 26,
+            "end_line": 26,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "lib/styleThumbnailCatalog.ts",
             "target_symbol": "getStyleThumbnail"
@@ -305658,10 +305808,10 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "subscribeStyleThumbnailCatalog(() => {\n      notified += 1;\n    })",
-            "start_line": 29,
-            "end_line": 31,
+            "start_line": 31,
+            "end_line": 33,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "lib/styleThumbnailCatalog.ts",
             "target_symbol": "subscribeStyleThumbnailCatalog"
@@ -305673,10 +305823,10 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "loadStyleThumbnailPack('pack_16')",
-            "start_line": 33,
-            "end_line": 33,
+            "start_line": 35,
+            "end_line": 35,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "lib/styleThumbnailCatalog.ts",
             "target_symbol": "loadStyleThumbnailPack"
@@ -305688,10 +305838,10 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "getStyleThumbnail('SP05-001')",
-            "start_line": 37,
-            "end_line": 37,
+            "start_line": 39,
+            "end_line": 39,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "lib/styleThumbnailCatalog.ts",
             "target_symbol": "getStyleThumbnail"
@@ -305703,10 +305853,10 @@
           "location": {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "resolveStyleDefaultImageVariantThumbnails('SP99-001', (key) => catalog[key])",
-            "start_line": 47,
-            "end_line": 47,
+            "start_line": 50,
+            "end_line": 50,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "lib/styleThumbnailCatalog.ts",
             "target_symbol": "resolveStyleDefaultImageVariantThumbnails"
@@ -305744,7 +305894,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "d8b6ae331f808fd89d97e762bbd8bb1337a83c447f011166b04ac69d0f0eb6f3",
+            "source_digest": "ca7f86dabbc63fbd1ce9b8dee63597f101391acc414bd85872c1cab30a1cdec2",
             "kind": "definition"
           },
           {
@@ -305753,7 +305903,7 @@
             "start_line": 10,
             "end_line": 10,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "d8b6ae331f808fd89d97e762bbd8bb1337a83c447f011166b04ac69d0f0eb6f3",
+            "source_digest": "ca7f86dabbc63fbd1ce9b8dee63597f101391acc414bd85872c1cab30a1cdec2",
             "kind": "definition"
           },
           {
@@ -305762,7 +305912,7 @@
             "start_line": 17,
             "end_line": 17,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "d8b6ae331f808fd89d97e762bbd8bb1337a83c447f011166b04ac69d0f0eb6f3",
+            "source_digest": "ca7f86dabbc63fbd1ce9b8dee63597f101391acc414bd85872c1cab30a1cdec2",
             "kind": "definition"
           }
         ]
@@ -306103,7 +306253,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "954a68e3b0edc26a94a1ee3b79b79a23ce9cf8efd86746d5a62a7391597b51f0",
+            "source_digest": "59785fae6a331f7df138ec89d211a2ed69f65eca7abd6f0e3dece9bcc0ec0fdb",
             "kind": "definition"
           }
         ]
@@ -306179,7 +306329,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "1837e8ea528418f38003d75f36f3e3e4d8736d2eacfe7a133bfd89d96b3aa644",
+            "source_digest": "ddacf1cb325f118a5e8e5735c78e58fd0699ae1c59958d1c09fe024d1ca0ffc6",
             "kind": "definition"
           }
         ]
@@ -306217,7 +306367,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "2b0b874bf5efd6a6b05c7602186ff681251763a09c00738a3ef0f9cb2d6f64ae",
+            "source_digest": "50bf41a9dace2b2fe87bcf63162ad35b83c12c49eb29c32e38bfc9f43530f16b",
             "kind": "definition"
           }
         ]
@@ -306293,7 +306443,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "1b5314875f78ab5beb207d9748bdf6b91baf5897ea024fd9ed10d4e3ecdbf551",
+            "source_digest": "8db656a856ac7641c471bccf81b8ed4376dab55c6fe70ab658e02b0eae597a74",
             "kind": "definition"
           }
         ]
@@ -306331,7 +306481,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a55f184081b512a4f119b8ce8872d077d1a58a179c2b362d1afa32155f7a1413",
+            "source_digest": "cce1977644dcb2c4ff65525b15965070ec83e8b4cfe20a0f1cf27c36fd604d73",
             "kind": "definition"
           }
         ]
@@ -306369,7 +306519,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "db209ab05143ac4eb3cac417261fefad4d7ff5e99fa498bfa8578b6b9f01ad6b",
+            "source_digest": "8eaf5df74690993af672142338ddc26bf17d97b04f3a06629dd9cdbf129d20a7",
             "kind": "definition"
           }
         ]
@@ -306407,7 +306557,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "69861812973908907da5228bb88ce171fdcb6c4383da88680825d4fbea29bb65",
+            "source_digest": "177d482dfe7506f8cfb8c71604e90d7243538490b38bea1c841affc5a3e49fff",
             "kind": "definition"
           }
         ]
@@ -306445,7 +306595,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "0d587991552443608cc09560be30ea79c2c00be6756fb6b399a9f461860c33c3",
+            "source_digest": "82f184c53a2efc4c8ee06a9cb6f5f2d3bd6c47c57dba6df1c4d9aa9a69b41b95",
             "kind": "definition"
           }
         ]
@@ -306521,7 +306671,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c25c03a83e18b44783ff09723a9185bb39c5eca199379bd7276aada9c240d89a",
+            "source_digest": "dff4ed4be50362eca083e38ca92df2a422705b30379b334d24486b8f14e6bfa9",
             "kind": "definition"
           }
         ]
@@ -306673,7 +306823,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "29c727370d959e118aaee19c8a0d1ae72703f0d15f7da811d8387414b340c220",
+            "source_digest": "ce26611e8911ac404a1f8fb07a0fd83fa6b06e77781479f8e9c7fb89719d63f4",
             "kind": "definition"
           }
         ]
@@ -306711,7 +306861,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "9bdd52783029235ac88d3be959072d75c34268285d7e0ccda1f7e35631293df6",
+            "source_digest": "704b7768ead67520ea7862d0cf644bfc069abb21baddb9c24adf260644185e93",
             "kind": "definition"
           }
         ]
@@ -306749,7 +306899,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "ea7918dcfa56bf314bb560a1a9b4bc2eac29b9065f1b8082ac34d7b1840d033b",
+            "source_digest": "8ac952c4bab440df59eaa28749c95aae076103b85d6d9fec8cfb34b884155337",
             "kind": "definition"
           }
         ]
@@ -306787,7 +306937,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "771b62296af7b2fbb8ee3e1f2a41d230c523366a633ee0f795071946db4c267e",
+            "source_digest": "4c6741f0356549e65a60217c9edb15a99b27de08debb4ccedaa435d7b5fbebfa",
             "kind": "definition"
           }
         ]
@@ -308678,7 +308828,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "json-manifest",
-            "source_digest": "336eb93de602ab7bd9fb874f1c81262121c9d093c3f83209d900564142874b35",
+            "source_digest": "3bbfca851b4c822fe4c17a1849801a2fb43e324d8f4a4c91f54a8d3463ed4d41",
             "kind": "file"
           }
         ]
@@ -325178,6 +325328,7 @@
         "donor",
         "donorByCategorySuffix",
         "existing",
+        "existingHash",
         "expected",
         "filesByPack",
         "formatAndWriteProjection",
@@ -325208,7 +325359,9 @@
         "targetHash",
         "targetPath",
         "thumbnailDirName",
-        "thumbnailFiles"
+        "thumbnailFiles",
+        "variantFiles",
+        "variantsDirName"
       ],
       "evidence": {
         "status": "verified",
@@ -325219,7 +325372,7 @@
             "start_line": 24,
             "end_line": 24,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "definition"
           },
           {
@@ -325228,7 +325381,7 @@
             "start_line": 25,
             "end_line": 25,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "definition"
           },
           {
@@ -325237,7 +325390,7 @@
             "start_line": 26,
             "end_line": 26,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "definition"
           }
         ]
@@ -345801,7 +345954,7 @@
             "start_line": 7,
             "end_line": 7,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "375e8d0058d56e429cf9a8c3626d3238551068ed6393c22adac6d9bf3154f352",
+            "source_digest": "50c7d631f5415d1ed7b88cb7a4c43b965b2102e2c1a206a2f7469bfc8e1e55ef",
             "kind": "definition"
           }
         ]
@@ -414979,10 +415132,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "import('./CompactStyleSelector')",
-            "start_line": 203,
-            "end_line": 203,
+            "start_line": 202,
+            "end_line": 202,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/CompactStyleSelector.tsx"
           }
@@ -415005,7 +415158,7 @@
             "start_line": 2,
             "end_line": 2,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/PagedStyleCatalog.tsx"
           }
@@ -415028,7 +415181,7 @@
             "start_line": 69,
             "end_line": 69,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/RecipeLayout.tsx"
           }
@@ -415051,7 +415204,7 @@
             "start_line": 63,
             "end_line": 68,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/RecipeWorkbenchContext.tsx"
           }
@@ -415071,10 +415224,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "import('./StyleAdvancedControlsPanel')",
-            "start_line": 215,
-            "end_line": 215,
+            "start_line": 214,
+            "end_line": 214,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/StyleAdvancedControlsPanel.tsx"
           }
@@ -415097,7 +415250,7 @@
             "start_line": 55,
             "end_line": 55,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/StyleCategoryGlyph.tsx"
           }
@@ -415117,10 +415270,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "import('./StyleCollectionsLandingSurface')",
-            "start_line": 227,
-            "end_line": 227,
+            "start_line": 226,
+            "end_line": 226,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/StyleCollectionsLandingSurface.tsx"
           }
@@ -415140,10 +415293,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "import('./StylePresetCardSurface')",
-            "start_line": 239,
-            "end_line": 239,
+            "start_line": 238,
+            "end_line": 238,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/StylePresetCardSurface.tsx"
           }
@@ -415166,7 +415319,7 @@
             "start_line": 125,
             "end_line": 129,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/StylePresetCardSurface.tsx"
           }
@@ -415186,10 +415339,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "import('./StylePresetCatalogSearchSurface')",
-            "start_line": 209,
-            "end_line": 209,
+            "start_line": 208,
+            "end_line": 208,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/StylePresetCatalogSearchSurface.tsx"
           }
@@ -415209,10 +415362,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "import('./StyleRecipeNavigationPanel')",
-            "start_line": 233,
-            "end_line": 233,
+            "start_line": 232,
+            "end_line": 232,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/StyleRecipeNavigationPanel.tsx"
           }
@@ -415235,7 +415388,7 @@
             "start_line": 120,
             "end_line": 124,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/StyleRecipeNavigationPanel.tsx"
           }
@@ -415255,10 +415408,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "import('./UserStyleEditorSurface')",
-            "start_line": 221,
-            "end_line": 221,
+            "start_line": 220,
+            "end_line": 220,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/UserStyleEditorSurface.tsx"
           }
@@ -415278,10 +415431,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "import('./archivedStylePresets')",
-            "start_line": 1504,
-            "end_line": 1504,
+            "start_line": 1503,
+            "end_line": 1503,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/archivedStylePresets.ts"
           }
@@ -415304,7 +415457,7 @@
             "start_line": 97,
             "end_line": 97,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/archivedStylePresets.ts"
           }
@@ -415324,10 +415477,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "createStyleBrowserProcessedData({\n        activePack,\n        currentPackId,\n        favoritesPackId: FAVORITES_PACK_ID,\n        favoritePresets,\n        searchPresets:\n          isGlobalStyleSearchActive && !activeStyleCollectionId\n            ? searchableStylePresets\n            : undefined,\n        favoriteIds: favorites,\n        categoryLabelForPreset: (preset) =>\n          getStyleCategoryDisplayName(getPackIdForPreset(preset), preset.category || 'General'),\n        categoryKeyForPreset: isAllStyleCategoriesTab\n          ? getGlobalStyleCategoryKeyForPreset\n          : undefined,\n        pinFavorites: !isGlobalStyleBrowseTab,\n        searchQuery,\n        sortOrder,\n        showFavoritesOnly,\n        viewMode: activeStyleViewMode,\n      })",
-            "start_line": 1588,
-            "end_line": 1608,
+            "start_line": 1587,
+            "end_line": 1607,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/styleBrowserRenderPlan.ts",
             "target_symbol": "createStyleBrowserProcessedData"
@@ -415335,10 +415488,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "createStyleBrowserRenderPlan({\n        groupOrder: isAllStyleCategoriesTab && sortOrder === 'source' ? 'source' : 'natural',\n        processedData,\n        viewMode: activeStyleViewMode,\n      })",
-            "start_line": 1632,
-            "end_line": 1636,
+            "start_line": 1631,
+            "end_line": 1635,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/styleBrowserRenderPlan.ts",
             "target_symbol": "createStyleBrowserRenderPlan"
@@ -415346,10 +415499,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "collectStylePresetPreviewSources({\n        processedData,\n        renderPlan: styleRenderPlan,\n        visualStateByPresetId: eagerPresetVisualStateById,\n        gridColumns,\n        containerWidth: styleScrollWidth,\n      })",
-            "start_line": 1735,
-            "end_line": 1741,
+            "start_line": 1734,
+            "end_line": 1740,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/styleBrowserRenderPlan.ts",
             "target_symbol": "collectStylePresetPreviewSources"
@@ -415373,7 +415526,7 @@
             "start_line": 70,
             "end_line": 77,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/styleBrowserRenderPlan.ts"
           }
@@ -415393,10 +415546,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "resolveStyleCategoryIdentity(currentPackId, groupKey)",
-            "start_line": 2683,
-            "end_line": 2683,
+            "start_line": 2682,
+            "end_line": 2682,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/styleCategoryIdentity.ts",
             "target_symbol": "resolveStyleCategoryIdentity"
@@ -415420,7 +415573,7 @@
             "start_line": 56,
             "end_line": 56,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/styleCategoryIdentity.ts"
           }
@@ -415440,10 +415593,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "createStyleGridVirtualWindow({\n          presetCount: presets.length,\n          gridColumns,\n          containerWidth: scrollContainerWidth,\n          viewportTop: 0,\n          viewportBottom: STYLE_GRID_DEFAULT_VIEWPORT_HEIGHT_PX,\n        })",
-            "start_line": 594,
-            "end_line": 600,
+            "start_line": 593,
+            "end_line": 599,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/styleGridVirtualization.ts",
             "target_symbol": "createStyleGridVirtualWindow"
@@ -415451,10 +415604,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "estimateStyleGroupPlaceholderHeight({\n      renderedPresetCount: presets.length,\n      gridColumns,\n      containerWidth: scrollContainerWidth,\n      hasShowMore: false,\n    })",
-            "start_line": 604,
-            "end_line": 609,
+            "start_line": 603,
+            "end_line": 608,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/styleGridVirtualization.ts",
             "target_symbol": "estimateStyleGroupPlaceholderHeight"
@@ -415462,10 +415615,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "createStyleGridVirtualWindow({\n          presetCount: presets.length,\n          gridColumns,\n          containerWidth: scrollContainerWidth,\n          viewportTop: rootRect.top - gridRect.top,\n          viewportBottom: rootRect.bottom - gridRect.top,\n        })",
-            "start_line": 672,
-            "end_line": 678,
+            "start_line": 671,
+            "end_line": 677,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/styleGridVirtualization.ts",
             "target_symbol": "createStyleGridVirtualWindow"
@@ -415489,7 +415642,7 @@
             "start_line": 78,
             "end_line": 85,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/styleGridVirtualization.ts"
           }
@@ -415509,10 +415662,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "createStylePresetCatalogSearchIndexFromRuntimePacks([userStylePack], {\n            resolveDefaultImage: resolveStyleDefaultImageThumbnail,\n          })",
-            "start_line": 1107,
-            "end_line": 1109,
+            "start_line": 1106,
+            "end_line": 1108,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/stylePresetManifests.ts",
             "target_symbol": "createStylePresetCatalogSearchIndexFromRuntimePacks"
@@ -415536,7 +415689,7 @@
             "start_line": 87,
             "end_line": 90,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/stylePresetManifests.ts"
           }
@@ -415556,10 +415709,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "buildStylePromptText(preset)",
-            "start_line": 1856,
-            "end_line": 1856,
+            "start_line": 1855,
+            "end_line": 1855,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/stylePromptText.ts",
             "target_symbol": "buildStylePromptText"
@@ -415567,10 +415720,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "buildStylePromptText(preset)",
-            "start_line": 1875,
-            "end_line": 1875,
+            "start_line": 1874,
+            "end_line": 1874,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/stylePromptText.ts",
             "target_symbol": "buildStylePromptText"
@@ -415578,10 +415731,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "buildStylePromptText(preset)",
-            "start_line": 1886,
-            "end_line": 1886,
+            "start_line": 1885,
+            "end_line": 1885,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/stylePromptText.ts",
             "target_symbol": "buildStylePromptText"
@@ -415605,7 +415758,7 @@
             "start_line": 86,
             "end_line": 86,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/stylePromptText.ts"
           }
@@ -415625,10 +415778,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "resolveStyleRuntimePackLoadRequest({\n        isPackLandingOpen,\n        currentPackId,\n        activeStyleCollectionId,\n        activeCollectionSourcePackIds: activeStyleCollection?.sourcePackIds ?? [],\n        isGlobalStyleBrowseTab,\n        favoritesCount: favorites.length,\n        isGlobalStyleSearchActive,\n        runtimePackIds: STYLE_RUNTIME_PACK_IDS,\n        favoritesPackId: FAVORITES_PACK_ID,\n      })",
-            "start_line": 1186,
-            "end_line": 1196,
+            "start_line": 1185,
+            "end_line": 1195,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/styleRuntimePackRequirements.ts",
             "target_symbol": "resolveStyleRuntimePackLoadRequest"
@@ -415652,7 +415805,7 @@
             "start_line": 98,
             "end_line": 98,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/styleRuntimePackRequirements.ts"
           }
@@ -415672,10 +415825,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "getStyleTabHashForRoute(tabId, STYLE_TAB_ROUTE_OPTIONS)",
-            "start_line": 375,
-            "end_line": 375,
+            "start_line": 374,
+            "end_line": 374,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/styleTabRouting.ts",
             "target_symbol": "getStyleTabHash"
@@ -415683,10 +415836,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "readStyleTabIdFromRouteHash(window.location.hash, STYLE_TAB_ROUTE_OPTIONS)",
-            "start_line": 1031,
-            "end_line": 1031,
+            "start_line": 1030,
+            "end_line": 1030,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/styleTabRouting.ts",
             "target_symbol": "readStyleTabIdFromHash"
@@ -415694,10 +415847,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "readStyleTabIdFromRouteHash(window.location.hash, STYLE_TAB_ROUTE_OPTIONS)",
-            "start_line": 1116,
-            "end_line": 1116,
+            "start_line": 1115,
+            "end_line": 1115,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/styleTabRouting.ts",
             "target_symbol": "readStyleTabIdFromHash"
@@ -415721,7 +415874,7 @@
             "start_line": 100,
             "end_line": 110,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/styleTabRouting.ts"
           }
@@ -415741,10 +415894,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "import('./styles/TcgComponentStudio')",
-            "start_line": 133,
-            "end_line": 133,
+            "start_line": 132,
+            "end_line": 132,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/styles/TcgComponentStudio.tsx"
           }
@@ -415764,10 +415917,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "getStyleCategoryDisplayName(getPackIdForPreset(preset), preset.category || 'General')",
-            "start_line": 1599,
-            "end_line": 1599,
+            "start_line": 1598,
+            "end_line": 1598,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/styles/collections/categoryDisplayNames.ts",
             "target_symbol": "getStyleCategoryDisplayName"
@@ -415775,10 +415928,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "getStyleCategoryDisplayName(getPackIdForPreset(presets[0]), presets[0].category || 'General')",
-            "start_line": 2692,
-            "end_line": 2692,
+            "start_line": 2691,
+            "end_line": 2691,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/styles/collections/categoryDisplayNames.ts",
             "target_symbol": "getStyleCategoryDisplayName"
@@ -415802,7 +415955,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/styles/collections/categoryDisplayNames.ts"
           }
@@ -415822,20 +415975,20 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "import('./styles/collections')",
-            "start_line": 188,
-            "end_line": 188,
+            "start_line": 187,
+            "end_line": 187,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/styles/collections/index.ts"
           },
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "import('./styles/collections')",
-            "start_line": 1162,
-            "end_line": 1162,
+            "start_line": 1161,
+            "end_line": 1161,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/styles/collections/index.ts"
           }
@@ -415858,56 +416011,9 @@
             "start_line": 99,
             "end_line": 99,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/styles/collections/index.ts"
-          }
-        ]
-      }
-    },
-    {
-      "id": "edge:e9b0147bcd6060a24e7e",
-      "from": "components/recipes/StylesBrowser.tsx",
-      "to": "components/recipes/styles/tcgComponentModel.ts",
-      "type": "calls",
-      "type_only": false,
-      "evidence_count": 1,
-      "evidence": {
-        "status": "verified",
-        "locations": [
-          {
-            "path": "components/recipes/StylesBrowser.tsx",
-            "symbol": "buildTcgRecipeArtPrompt(recipeId, subjectPrompt)",
-            "start_line": 905,
-            "end_line": 905,
-            "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
-            "kind": "call",
-            "resolved_target": "components/recipes/styles/tcgComponentModel.ts",
-            "target_symbol": "buildTcgRecipeArtPrompt"
-          }
-        ]
-      }
-    },
-    {
-      "id": "edge:3de481c7a194a129aff3",
-      "from": "components/recipes/StylesBrowser.tsx",
-      "to": "components/recipes/styles/tcgComponentModel.ts",
-      "type": "imports",
-      "type_only": false,
-      "evidence_count": 1,
-      "evidence": {
-        "status": "verified",
-        "locations": [
-          {
-            "path": "components/recipes/StylesBrowser.tsx",
-            "symbol": "import { buildTcgRecipeArtPrompt } from './styles/tcgComponentModel';",
-            "start_line": 130,
-            "end_line": 130,
-            "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
-            "kind": "import",
-            "resolved_target": "components/recipes/styles/tcgComponentModel.ts"
           }
         ]
       }
@@ -415928,7 +416034,7 @@
             "start_line": 91,
             "end_line": 96,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/stylesData.ts"
           }
@@ -415948,10 +416054,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "useStyleBrowserNavigation({\n    scopeKey: activeWorkspaceId,\n    routeOptions: STYLE_TAB_ROUTE_OPTIONS,\n    defaultPackId: DEFAULT_STYLE_PACK_ID,\n    allCategoriesTabId: ALL_STYLE_CATEGORIES_TAB_ID,\n    allCardsTabId: ALL_STYLE_CARDS_TAB_ID,\n  })",
-            "start_line": 985,
-            "end_line": 991,
+            "start_line": 984,
+            "end_line": 990,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/useStyleBrowserNavigation.ts",
             "target_symbol": "useStyleBrowserNavigation"
@@ -415975,7 +416081,7 @@
             "start_line": 119,
             "end_line": 119,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/useStyleBrowserNavigation.ts"
           }
@@ -415995,10 +416101,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "useStyleComposition({\n    config,\n    updateConfig,\n    onGenerate,\n    referenceImages,\n    generationBlocked: Boolean(grokGenerateBlock),\n    maxSlots: MAX_SELECTED_STYLE_SLOTS,\n    intentionalStylesV1,\n  })",
-            "start_line": 927,
-            "end_line": 935,
+            "start_line": 926,
+            "end_line": 934,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/useStyleComposition.ts",
             "target_symbol": "useStyleComposition"
@@ -416022,7 +416128,7 @@
             "start_line": 118,
             "end_line": 118,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/useStyleComposition.ts"
           }
@@ -416042,10 +416148,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "useUserStyleLibrary({\n    onReconciled: (style, archived) => {\n      if (archived) {\n        removeSelectedStyle(style.id);\n        setInteractionState((prev) => ({\n          ...prev,\n          activePresetId: prev.activePresetId === style.id ? null : prev.activePresetId,\n        }));\n      } else composition.replacePreset(userStylePresetToRuntimePreset(style));\n    },\n    onSaved: (style) => {\n      setInteractionState((prev) => ({ ...prev, activePresetId: style.id }));\n      navigateToStyleTab(USER_STYLE_PACK_ID);\n    },\n    onArchived: () => {\n      navigateToStyleTab(USER_STYLE_PACK_ID);\n    },\n  })",
-            "start_line": 1077,
-            "end_line": 1094,
+            "start_line": 1076,
+            "end_line": 1093,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/useUserStyleLibrary.ts",
             "target_symbol": "useUserStyleLibrary"
@@ -416069,7 +416175,7 @@
             "start_line": 117,
             "end_line": 117,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/useUserStyleLibrary.ts"
           }
@@ -416089,10 +416195,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "userStylePresetToRuntimePreset(style)",
-            "start_line": 1085,
-            "end_line": 1085,
+            "start_line": 1084,
+            "end_line": 1084,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "components/recipes/userStyleRuntimeAdapter.ts",
             "target_symbol": "userStylePresetToRuntimePreset"
@@ -416116,7 +416222,7 @@
             "start_line": 111,
             "end_line": 116,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/recipes/userStyleRuntimeAdapter.ts"
           }
@@ -416139,7 +416245,7 @@
             "start_line": 61,
             "end_line": 61,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/ui/DemandMountedGsapDropdown.tsx"
           }
@@ -416162,7 +416268,7 @@
             "start_line": 62,
             "end_line": 62,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "components/ui/LazySurfaceFallback.tsx"
           }
@@ -416185,7 +416291,7 @@
             "start_line": 5,
             "end_line": 5,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "contexts/GlobalContext.tsx"
           }
@@ -416208,7 +416314,7 @@
             "start_line": 6,
             "end_line": 42,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "external:javascript:@tabler/icons-react"
           }
@@ -416228,10 +416334,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "useRef<HTMLImageElement | null>(null)",
-            "start_line": 542,
-            "end_line": 542,
+            "start_line": 541,
+            "end_line": 541,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "external:javascript:react",
             "target_symbol": "useRef"
@@ -416239,10 +416345,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "useState(() => shouldReduceStyleImageMotion())",
-            "start_line": 543,
-            "end_line": 543,
+            "start_line": 542,
+            "end_line": 542,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "external:javascript:react",
             "target_symbol": "useState"
@@ -416250,10 +416356,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "useLayoutEffect(() => {\n    const node = imageRef.current;\n    if (!node) return;\n    if (shouldReduceStyleImageMotion() || node.complete) {\n      setIsVisible(true);\n      return;\n    }\n    setIsVisible(false);\n  }, [src])",
-            "start_line": 545,
-            "end_line": 553,
+            "start_line": 544,
+            "end_line": 552,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "external:javascript:react",
             "target_symbol": "useLayoutEffect"
@@ -416277,7 +416383,7 @@
             "start_line": 43,
             "end_line": 43,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "external:javascript:react"
           }
@@ -416297,10 +416403,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "useLatestRef(handleSelectStyle)",
-            "start_line": 1766,
-            "end_line": 1766,
+            "start_line": 1765,
+            "end_line": 1765,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "hooks/useLatestRef.ts",
             "target_symbol": "useLatestRef"
@@ -416324,7 +416430,7 @@
             "start_line": 44,
             "end_line": 44,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "hooks/useLatestRef.ts"
           }
@@ -416344,10 +416450,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "useLocalStorage<number | 'auto'>(\n    'styles-grid-columns-v2',\n    'auto',\n  )",
-            "start_line": 1018,
-            "end_line": 1021,
+            "start_line": 1017,
+            "end_line": 1020,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "hooks/useLocalStorage.ts",
             "target_symbol": "useLocalStorage"
@@ -416355,10 +416461,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "useLocalStorage<\n    Partial<StylePanelVisibility>\n  >('styles-panel-visibility', DEFAULT_STYLE_PANEL_VISIBILITY)",
-            "start_line": 1027,
-            "end_line": 1029,
+            "start_line": 1026,
+            "end_line": 1028,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "hooks/useLocalStorage.ts",
             "target_symbol": "useLocalStorage"
@@ -416379,10 +416485,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "import { useLocalStorage } from '../../hooks/useLocalStorage';",
-            "start_line": 372,
-            "end_line": 372,
+            "start_line": 371,
+            "end_line": 371,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "hooks/useLocalStorage.ts"
           }
@@ -416402,10 +416508,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "useStyleRuntimePacks({\n    requiredPackIds:\n      explorerOpen && !styleRuntimePackLoadRequest.loadAll\n        ? styleRuntimePackLoadRequest.requiredPackIds\n        : [],\n    loadAll: false,\n  })",
-            "start_line": 1213,
-            "end_line": 1219,
+            "start_line": 1212,
+            "end_line": 1218,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "hooks/useStyleRuntimePacks.ts",
             "target_symbol": "useStyleRuntimePacks"
@@ -416429,7 +416535,7 @@
             "start_line": 60,
             "end_line": 60,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "hooks/useStyleRuntimePacks.ts"
           }
@@ -416449,10 +416555,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "resolveGrokImagineGenerateBlock({\n    providerId: activeProviderId,\n    recipeId: 'styles',\n    aspectRatio: config.aspectRatio,\n    attachments: referenceImages,\n    canExecute: grokCanExecute,\n  })",
-            "start_line": 919,
-            "end_line": 925,
+            "start_line": 918,
+            "end_line": 924,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "lib/grokImagineUiPolicy.ts",
             "target_symbol": "resolveGrokImagineGenerateBlock"
@@ -416476,7 +416582,7 @@
             "start_line": 59,
             "end_line": 59,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "lib/grokImagineUiPolicy.ts"
           }
@@ -416499,7 +416605,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "lib/gsapMotion.tsx"
           }
@@ -416519,10 +416625,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "styleCategoryImageKey(presetPackId, preset.category)",
-            "start_line": 408,
-            "end_line": 408,
+            "start_line": 407,
+            "end_line": 407,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "lib/recipeAssetKeys.ts",
             "target_symbol": "styleCategoryImageKey"
@@ -416530,10 +416636,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "styleCategoryImageKey(presetPackId, preset.category)",
-            "start_line": 409,
-            "end_line": 409,
+            "start_line": 408,
+            "end_line": 408,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "lib/recipeAssetKeys.ts",
             "target_symbol": "styleCategoryImageKey"
@@ -416557,7 +416663,7 @@
             "start_line": 52,
             "end_line": 52,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "lib/recipeAssetKeys.ts"
           }
@@ -416577,10 +416683,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "hasStylePresetIdentity(img.config, preset.id)",
-            "start_line": 400,
-            "end_line": 400,
+            "start_line": 399,
+            "end_line": 399,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "lib/recipeIdentity.ts",
             "target_symbol": "hasStylePresetIdentity"
@@ -416588,10 +416694,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "resolveRecipeIdentity(image.config)",
-            "start_line": 1654,
-            "end_line": 1654,
+            "start_line": 1653,
+            "end_line": 1653,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "lib/recipeIdentity.ts",
             "target_symbol": "resolveRecipeIdentity"
@@ -416615,7 +416721,7 @@
             "start_line": 53,
             "end_line": 53,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "lib/recipeIdentity.ts"
           }
@@ -416635,10 +416741,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "isStyleDefaultImageStale(preset.id)",
-            "start_line": 402,
-            "end_line": 402,
+            "start_line": 401,
+            "end_line": 401,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "lib/staleStyleDefaultImages.generated.ts",
             "target_symbol": "isStyleDefaultImageStale"
@@ -416662,7 +416768,7 @@
             "start_line": 54,
             "end_line": 54,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "lib/staleStyleDefaultImages.generated.ts"
           }
@@ -416682,10 +416788,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "resolveStyleDefaultImageThumbnail(preset.id)",
-            "start_line": 405,
-            "end_line": 405,
+            "start_line": 404,
+            "end_line": 404,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "lib/styleThumbnailCatalog.ts",
             "target_symbol": "resolveStyleDefaultImageThumbnail"
@@ -416693,10 +416799,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "resolveStyleDefaultImageVariantThumbnails(preset.id)",
-            "start_line": 406,
-            "end_line": 406,
+            "start_line": 405,
+            "end_line": 405,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "lib/styleThumbnailCatalog.ts",
             "target_symbol": "resolveStyleDefaultImageVariantThumbnails"
@@ -416704,10 +416810,10 @@
           {
             "path": "components/recipes/StylesBrowser.tsx",
             "symbol": "getStyleThumbnail(styleCategoryImageKey(presetPackId, preset.category))",
-            "start_line": 408,
-            "end_line": 408,
+            "start_line": 407,
+            "end_line": 407,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "call",
             "resolved_target": "lib/styleThumbnailCatalog.ts",
             "target_symbol": "getStyleThumbnail"
@@ -416731,7 +416837,7 @@
             "start_line": 45,
             "end_line": 51,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "lib/styleThumbnailCatalog.ts"
           }
@@ -416754,7 +416860,7 @@
             "start_line": 58,
             "end_line": 58,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "packages/shared/src/index.ts"
           }
@@ -416777,7 +416883,7 @@
             "start_line": 57,
             "end_line": 57,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "types.ts"
           }
@@ -416800,7 +416906,7 @@
             "start_line": 3,
             "end_line": 3,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "385a9fa2c36c6b76453044c9146efa685aa53a6009f627648b491ce30a094a95",
+            "source_digest": "a751aeedd3d888a688c9140f7e069a74b4ae406f1243a66b365916e23b303265",
             "kind": "import",
             "resolved_target": "utils/runtimeLogger.ts"
           }
@@ -431007,10 +431113,10 @@
           {
             "path": "components/recipes/styles/TcgComponentStudio.tsx",
             "symbol": "getRequiredTcgArtworkCount(layoutId)",
-            "start_line": 78,
-            "end_line": 78,
+            "start_line": 84,
+            "end_line": 84,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
             "kind": "call",
             "resolved_target": "components/recipes/styles/tcgCardRenderer.ts",
             "target_symbol": "getRequiredTcgArtworkCount"
@@ -431018,10 +431124,10 @@
           {
             "path": "components/recipes/styles/TcgComponentStudio.tsx",
             "symbol": "getRequiredTcgMasks(finishId, layoutId)",
-            "start_line": 79,
-            "end_line": 79,
+            "start_line": 85,
+            "end_line": 85,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
             "kind": "call",
             "resolved_target": "components/recipes/styles/tcgCardRenderer.ts",
             "target_symbol": "getRequiredTcgMasks"
@@ -431029,10 +431135,10 @@
           {
             "path": "components/recipes/styles/TcgComponentStudio.tsx",
             "symbol": "renderTcgComposition(renderInput)",
-            "start_line": 135,
-            "end_line": 135,
+            "start_line": 141,
+            "end_line": 141,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
             "kind": "call",
             "resolved_target": "components/recipes/styles/tcgCardRenderer.ts",
             "target_symbol": "renderTcgComposition"
@@ -431053,10 +431159,10 @@
           {
             "path": "components/recipes/styles/TcgComponentStudio.tsx",
             "symbol": "import {\n  getRequiredTcgArtworkCount,\n  getRequiredTcgMasks,\n  renderTcgComposition,\n} from './tcgCardRenderer';",
-            "start_line": 6,
-            "end_line": 10,
+            "start_line": 12,
+            "end_line": 16,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
             "kind": "import",
             "resolved_target": "components/recipes/styles/tcgCardRenderer.ts"
           }
@@ -431076,10 +431182,10 @@
           {
             "path": "components/recipes/styles/TcgComponentStudio.tsx",
             "symbol": "import type { TcgArtworkSource, TcgRenderInput } from './tcgCardRenderer';",
-            "start_line": 11,
-            "end_line": 11,
+            "start_line": 17,
+            "end_line": 17,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
             "kind": "import",
             "resolved_target": "components/recipes/styles/tcgCardRenderer.ts"
           }
@@ -431092,17 +431198,28 @@
       "to": "components/recipes/styles/tcgComponentModel.ts",
       "type": "calls",
       "type_only": false,
-      "evidence_count": 1,
+      "evidence_count": 2,
       "evidence": {
         "status": "verified",
         "locations": [
           {
             "path": "components/recipes/styles/TcgComponentStudio.tsx",
-            "symbol": "resolveTcgRecipe(recipeId)",
-            "start_line": 282,
-            "end_line": 282,
+            "symbol": "buildTcgRecipeArtPrompt(recipeId, subjectPrompt.trim())",
+            "start_line": 255,
+            "end_line": 255,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
+            "kind": "call",
+            "resolved_target": "components/recipes/styles/tcgComponentModel.ts",
+            "target_symbol": "buildTcgRecipeArtPrompt"
+          },
+          {
+            "path": "components/recipes/styles/TcgComponentStudio.tsx",
+            "symbol": "resolveTcgRecipe(recipeId)",
+            "start_line": 288,
+            "end_line": 288,
+            "extractor": "tree-sitter-tsx",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
             "kind": "call",
             "resolved_target": "components/recipes/styles/tcgComponentModel.ts",
             "target_symbol": "resolveTcgRecipe"
@@ -431122,11 +431239,11 @@
         "locations": [
           {
             "path": "components/recipes/styles/TcgComponentStudio.tsx",
-            "symbol": "import { TCG_FINISHES, TCG_LAYOUTS, TCG_RECIPES, resolveTcgRecipe } from './tcgComponentModel';",
+            "symbol": "import {\n  TCG_FINISHES,\n  TCG_LAYOUTS,\n  TCG_RECIPES,\n  buildTcgRecipeArtPrompt,\n  resolveTcgRecipe,\n} from './tcgComponentModel';",
             "start_line": 4,
-            "end_line": 4,
+            "end_line": 10,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
             "kind": "import",
             "resolved_target": "components/recipes/styles/tcgComponentModel.ts"
           }
@@ -431146,10 +431263,10 @@
           {
             "path": "components/recipes/styles/TcgComponentStudio.tsx",
             "symbol": "import type { TcgFinish, TcgLayout, TcgRecipe } from './tcgComponentModel';",
-            "start_line": 5,
-            "end_line": 5,
+            "start_line": 11,
+            "end_line": 11,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
             "kind": "import",
             "resolved_target": "components/recipes/styles/tcgComponentModel.ts"
           }
@@ -431169,10 +431286,10 @@
           {
             "path": "components/recipes/styles/TcgComponentStudio.tsx",
             "symbol": "useState<TcgRecipe['id']>(initialRecipe.id)",
-            "start_line": 58,
-            "end_line": 58,
+            "start_line": 64,
+            "end_line": 64,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
             "kind": "call",
             "resolved_target": "external:javascript:react",
             "target_symbol": "useState"
@@ -431180,10 +431297,10 @@
           {
             "path": "components/recipes/styles/TcgComponentStudio.tsx",
             "symbol": "useState<TcgFinish['id']>(initialRecipe.finishId)",
-            "start_line": 59,
-            "end_line": 59,
+            "start_line": 65,
+            "end_line": 65,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
             "kind": "call",
             "resolved_target": "external:javascript:react",
             "target_symbol": "useState"
@@ -431191,10 +431308,10 @@
           {
             "path": "components/recipes/styles/TcgComponentStudio.tsx",
             "symbol": "useState<TcgLayout['id']>(initialRecipe.layoutId)",
-            "start_line": 60,
-            "end_line": 60,
+            "start_line": 66,
+            "end_line": 66,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
             "kind": "call",
             "resolved_target": "external:javascript:react",
             "target_symbol": "useState"
@@ -431218,7 +431335,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
             "kind": "import",
             "resolved_target": "external:javascript:react"
           }
@@ -431241,7 +431358,7 @@
             "start_line": 2,
             "end_line": 2,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
             "kind": "import",
             "resolved_target": "external:javascript:react"
           }
@@ -431264,7 +431381,7 @@
             "start_line": 3,
             "end_line": 3,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+            "source_digest": "ebe41c86cbc8b907f7eca8b7940c8032f79e24fc7c3b3f8a5d49f2bac0f90df6",
             "kind": "import",
             "resolved_target": "types.ts"
           }
@@ -474393,28 +474510,28 @@
       "to": "external:javascript:vitest",
       "type": "calls",
       "type_only": false,
-      "evidence_count": 16,
+      "evidence_count": 17,
       "evidence": {
         "status": "verified",
         "locations": [
           {
             "path": "lib/styleThumbnailCatalog.test.ts",
-            "symbol": "describe('styleThumbnailCatalog', () => {\n  it('loads default-image fallbacks into the owning pack projection', async () => {\n    const pack05 = await loadStyleThumbnailPack('pack_05');\n    const pack13 = await loadStyleThumbnailPack('pack_13');\n    const pack16 = await loadStyleThumbnailPack('pack_16');\n\n    expect(pack05['SP05-034']).toBeTruthy();\n    expect(pack05['SP05-001']).toBeUndefined();\n    expect(pack13['SP13-001']).toBeTruthy();\n    expect(pack13['SP05-013']).toBeTruthy();\n    expect(pack13['SP13-026']).toBeUndefined();\n    expect(pack16['SP05-001']).toBeTruthy();\n    expect(pack16['SP13-026']).toBeTruthy();\n    expect(pack16['pack_16__70s_and_80s_retro_anime']).toBeTruthy();\n    expect(getStyleThumbnail('SP05-001')).toBe(pack16['SP05-001']);\n  });\n\n  it('notifies subscribers after a pack load', async () => {\n    let notified = 0;\n    const unsubscribe = subscribeStyleThumbnailCatalog(() => {\n      notified += 1;\n    });\n\n    await loadStyleThumbnailPack('pack_16');\n    unsubscribe();\n\n    expect(notified).toBeGreaterThan(0);\n    expect(getStyleThumbnail('SP05-001')).toBeTruthy();\n  });\n\n  it('places the previous default after the other image variants', () => {\n    const catalog: Record<string, string> = {\n      'SP99-001-01': '/thumbs/SP99-001-01.webp',\n      'SP99-001-grok': '/thumbs/SP99-001-grok.webp',\n      'SP99-001-previous': '/thumbs/SP99-001-previous.webp',\n    };\n\n    expect(resolveStyleDefaultImageVariantThumbnails('SP99-001', (key) => catalog[key])).toEqual([\n      { src: '/thumbs/SP99-001-01.webp', label: 'Variant 1' },\n      { src: '/thumbs/SP99-001-grok.webp', label: 'Grok' },\n      { src: '/thumbs/SP99-001-previous.webp', label: 'Previous GPT Image' },\n    ]);\n  });\n})",
+            "symbol": "describe('styleThumbnailCatalog', () => {\n  it('loads default-image fallbacks into the owning pack projection', async () => {\n    const pack05 = await loadStyleThumbnailPack('pack_05');\n    const pack13 = await loadStyleThumbnailPack('pack_13');\n    const pack16 = await loadStyleThumbnailPack('pack_16');\n    const pack17 = await loadStyleThumbnailPack('pack_17');\n\n    expect(pack05['SP05-034']).toBeTruthy();\n    expect(pack05['SP05-001']).toBeUndefined();\n    expect(pack13['SP13-001']).toBeTruthy();\n    expect(pack13['SP05-013']).toBeTruthy();\n    expect(pack13['SP13-026']).toBeUndefined();\n    expect(pack16['SP05-001']).toBeTruthy();\n    expect(pack16['SP13-026']).toBeTruthy();\n    expect(pack16['pack_16__70s_and_80s_retro_anime']).toBeTruthy();\n    expect(pack17['SP17-078-01']).toBeTruthy();\n    expect(getStyleThumbnail('SP05-001')).toBe(pack16['SP05-001']);\n  });\n\n  it('notifies subscribers after a pack load', async () => {\n    let notified = 0;\n    const unsubscribe = subscribeStyleThumbnailCatalog(() => {\n      notified += 1;\n    });\n\n    await loadStyleThumbnailPack('pack_16');\n    unsubscribe();\n\n    expect(notified).toBeGreaterThan(0);\n    expect(getStyleThumbnail('SP05-001')).toBeTruthy();\n  });\n\n  it('places the previous default after the other image variants', () => {\n    const catalog: Record<string, string> = {\n      'SP99-001-01': '/thumbs/SP99-001-01.webp',\n      'SP99-001-03': '/thumbs/SP99-001-03.webp',\n      'SP99-001-grok': '/thumbs/SP99-001-grok.webp',\n      'SP99-001-previous': '/thumbs/SP99-001-previous.webp',\n    };\n\n    expect(resolveStyleDefaultImageVariantThumbnails('SP99-001', (key) => catalog[key])).toEqual([\n      { src: '/thumbs/SP99-001-01.webp', label: 'Variant 1' },\n      { src: '/thumbs/SP99-001-03.webp', label: 'Variant 3' },\n      { src: '/thumbs/SP99-001-grok.webp', label: 'Grok' },\n      { src: '/thumbs/SP99-001-previous.webp', label: 'Previous GPT Image' },\n    ]);\n  });\n})",
             "start_line": 10,
-            "end_line": 53,
+            "end_line": 57,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "describe"
           },
           {
             "path": "lib/styleThumbnailCatalog.test.ts",
-            "symbol": "it('loads default-image fallbacks into the owning pack projection', async () => {\n    const pack05 = await loadStyleThumbnailPack('pack_05');\n    const pack13 = await loadStyleThumbnailPack('pack_13');\n    const pack16 = await loadStyleThumbnailPack('pack_16');\n\n    expect(pack05['SP05-034']).toBeTruthy();\n    expect(pack05['SP05-001']).toBeUndefined();\n    expect(pack13['SP13-001']).toBeTruthy();\n    expect(pack13['SP05-013']).toBeTruthy();\n    expect(pack13['SP13-026']).toBeUndefined();\n    expect(pack16['SP05-001']).toBeTruthy();\n    expect(pack16['SP13-026']).toBeTruthy();\n    expect(pack16['pack_16__70s_and_80s_retro_anime']).toBeTruthy();\n    expect(getStyleThumbnail('SP05-001')).toBe(pack16['SP05-001']);\n  })",
+            "symbol": "it('loads default-image fallbacks into the owning pack projection', async () => {\n    const pack05 = await loadStyleThumbnailPack('pack_05');\n    const pack13 = await loadStyleThumbnailPack('pack_13');\n    const pack16 = await loadStyleThumbnailPack('pack_16');\n    const pack17 = await loadStyleThumbnailPack('pack_17');\n\n    expect(pack05['SP05-034']).toBeTruthy();\n    expect(pack05['SP05-001']).toBeUndefined();\n    expect(pack13['SP13-001']).toBeTruthy();\n    expect(pack13['SP05-013']).toBeTruthy();\n    expect(pack13['SP13-026']).toBeUndefined();\n    expect(pack16['SP05-001']).toBeTruthy();\n    expect(pack16['SP13-026']).toBeTruthy();\n    expect(pack16['pack_16__70s_and_80s_retro_anime']).toBeTruthy();\n    expect(pack17['SP17-078-01']).toBeTruthy();\n    expect(getStyleThumbnail('SP05-001')).toBe(pack16['SP05-001']);\n  })",
             "start_line": 11,
-            "end_line": 25,
+            "end_line": 27,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "it"
@@ -474422,10 +474539,10 @@
           {
             "path": "lib/styleThumbnailCatalog.test.ts",
             "symbol": "expect(pack05['SP05-034'])",
-            "start_line": 16,
-            "end_line": 16,
+            "start_line": 17,
+            "end_line": 17,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "external:javascript:vitest",
             "target_symbol": "expect"
@@ -474449,7 +474566,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "import",
             "resolved_target": "external:javascript:vitest"
           }
@@ -474462,7 +474579,7 @@
       "to": "lib/styleThumbnailCatalog.ts",
       "type": "calls",
       "type_only": false,
-      "evidence_count": 8,
+      "evidence_count": 9,
       "evidence": {
         "status": "verified",
         "locations": [
@@ -474472,7 +474589,7 @@
             "start_line": 12,
             "end_line": 12,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "lib/styleThumbnailCatalog.ts",
             "target_symbol": "loadStyleThumbnailPack"
@@ -474483,7 +474600,7 @@
             "start_line": 13,
             "end_line": 13,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "lib/styleThumbnailCatalog.ts",
             "target_symbol": "loadStyleThumbnailPack"
@@ -474494,7 +474611,7 @@
             "start_line": 14,
             "end_line": 14,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "call",
             "resolved_target": "lib/styleThumbnailCatalog.ts",
             "target_symbol": "loadStyleThumbnailPack"
@@ -474518,7 +474635,7 @@
             "start_line": 3,
             "end_line": 8,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "3978d546e710a3ad9caf8ec3336238200baaa65a529cc1473508d8b482ed629e",
+            "source_digest": "bd20d3c89a292a8535336b81a7ca0416088df95f5f8b05dc5d07cb77fe17af54",
             "kind": "import",
             "resolved_target": "lib/styleThumbnailCatalog.ts"
           }
@@ -474541,7 +474658,7 @@
             "start_line": 2,
             "end_line": 2,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "d8b6ae331f808fd89d97e762bbd8bb1337a83c447f011166b04ac69d0f0eb6f3",
+            "source_digest": "ca7f86dabbc63fbd1ce9b8dee63597f101391acc414bd85872c1cab30a1cdec2",
             "kind": "import",
             "resolved_target": "lib/stylePresetVisuals.ts"
           }
@@ -474564,7 +474681,7 @@
             "start_line": 61,
             "end_line": 61,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "d8b6ae331f808fd89d97e762bbd8bb1337a83c447f011166b04ac69d0f0eb6f3",
+            "source_digest": "ca7f86dabbc63fbd1ce9b8dee63597f101391acc414bd85872c1cab30a1cdec2",
             "kind": "call",
             "resolved_target": "lib/styleThumbnailPacks.generated/index.ts",
             "target_symbol": "loadGeneratedStyleThumbnailPack"
@@ -474588,7 +474705,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "d8b6ae331f808fd89d97e762bbd8bb1337a83c447f011166b04ac69d0f0eb6f3",
+            "source_digest": "ca7f86dabbc63fbd1ce9b8dee63597f101391acc414bd85872c1cab30a1cdec2",
             "kind": "import",
             "resolved_target": "lib/styleThumbnailPacks.generated/index.ts"
           }
@@ -488576,10 +488693,10 @@
           {
             "path": "scripts/generate-style-thumbnail-projections.ts",
             "symbol": "composeStyleRuntimePacksFromManifests(packManifests, presetManifests)",
-            "start_line": 292,
-            "end_line": 292,
+            "start_line": 307,
+            "end_line": 307,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "call",
             "resolved_target": "components/recipes/stylePresetManifests.ts",
             "target_symbol": "composeStyleRuntimePacksFromManifests"
@@ -488603,7 +488720,7 @@
             "start_line": 5,
             "end_line": 5,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "import",
             "resolved_target": "components/recipes/stylePresetManifests.ts"
           }
@@ -488626,7 +488743,7 @@
             "start_line": 6,
             "end_line": 6,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "import",
             "resolved_target": "components/recipes/styles/collections/styleCollectionDefinitions.ts"
           }
@@ -488646,10 +488763,10 @@
           {
             "path": "scripts/generate-style-thumbnail-projections.ts",
             "symbol": "resolveStyleCollection(collection, collectionSourceIndex)",
-            "start_line": 182,
-            "end_line": 182,
+            "start_line": 183,
+            "end_line": 183,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "call",
             "resolved_target": "components/recipes/styles/collections/styleCollectionProjection.ts",
             "target_symbol": "resolveStyleCollection"
@@ -488657,10 +488774,10 @@
           {
             "path": "scripts/generate-style-thumbnail-projections.ts",
             "symbol": "createStyleCollectionSourceIndex(runtimePacks)",
-            "start_line": 293,
-            "end_line": 293,
+            "start_line": 308,
+            "end_line": 308,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "call",
             "resolved_target": "components/recipes/styles/collections/styleCollectionProjection.ts",
             "target_symbol": "createStyleCollectionSourceIndex"
@@ -488684,7 +488801,7 @@
             "start_line": 7,
             "end_line": 10,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "import",
             "resolved_target": "components/recipes/styles/collections/styleCollectionProjection.ts"
           }
@@ -488697,17 +488814,28 @@
       "to": "external:javascript:node:crypto",
       "type": "calls",
       "type_only": false,
-      "evidence_count": 1,
+      "evidence_count": 2,
       "evidence": {
         "status": "verified",
         "locations": [
           {
             "path": "scripts/generate-style-thumbnail-projections.ts",
             "symbol": "createHash('sha256')",
-            "start_line": 276,
-            "end_line": 276,
+            "start_line": 281,
+            "end_line": 281,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
+            "kind": "call",
+            "resolved_target": "external:javascript:node:crypto",
+            "target_symbol": "createHash"
+          },
+          {
+            "path": "scripts/generate-style-thumbnail-projections.ts",
+            "symbol": "createHash('sha256')",
+            "start_line": 289,
+            "end_line": 289,
+            "extractor": "tree-sitter-typescript",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "call",
             "resolved_target": "external:javascript:node:crypto",
             "target_symbol": "createHash"
@@ -488731,7 +488859,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "import",
             "resolved_target": "external:javascript:node:crypto"
           }
@@ -488744,17 +488872,17 @@
       "to": "external:javascript:node:fs",
       "type": "calls",
       "type_only": false,
-      "evidence_count": 14,
+      "evidence_count": 16,
       "evidence": {
         "status": "verified",
         "locations": [
           {
             "path": "scripts/generate-style-thumbnail-projections.ts",
             "symbol": "readdir(path.join(stylesAssetDir, thumbnailDirName))",
-            "start_line": 235,
-            "end_line": 235,
+            "start_line": 236,
+            "end_line": 236,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "call",
             "resolved_target": "external:javascript:node:fs",
             "target_symbol": "readdir"
@@ -488762,21 +488890,21 @@
           {
             "path": "scripts/generate-style-thumbnail-projections.ts",
             "symbol": "readdir(path.join(stylesAssetDir, defaultsDirName))",
-            "start_line": 238,
-            "end_line": 238,
+            "start_line": 239,
+            "end_line": 239,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "call",
             "resolved_target": "external:javascript:node:fs",
             "target_symbol": "readdir"
           },
           {
             "path": "scripts/generate-style-thumbnail-projections.ts",
-            "symbol": "readdir(path.join(stylesAssetDir, grokVariantsDirName))",
+            "symbol": "readdir(path.join(stylesAssetDir, variantsDirName))",
             "start_line": 242,
             "end_line": 242,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "call",
             "resolved_target": "external:javascript:node:fs",
             "target_symbol": "readdir"
@@ -488800,7 +488928,7 @@
             "start_line": 2,
             "end_line": 2,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "import",
             "resolved_target": "external:javascript:node:fs"
           }
@@ -488823,7 +488951,7 @@
             "start_line": 3,
             "end_line": 3,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "import",
             "resolved_target": "external:javascript:node:path"
           }
@@ -488843,10 +488971,10 @@
           {
             "path": "scripts/generate-style-thumbnail-projections.ts",
             "symbol": "styleCategoryImageKey(entry.packId, entry.categoryName)",
-            "start_line": 110,
-            "end_line": 110,
+            "start_line": 111,
+            "end_line": 111,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "call",
             "resolved_target": "lib/recipeAssetKeys.ts",
             "target_symbol": "styleCategoryImageKey"
@@ -488854,10 +488982,10 @@
           {
             "path": "scripts/generate-style-thumbnail-projections.ts",
             "symbol": "styleCategoryImageKey(pack.id, category.name)",
-            "start_line": 313,
-            "end_line": 313,
+            "start_line": 328,
+            "end_line": 328,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "call",
             "resolved_target": "lib/recipeAssetKeys.ts",
             "target_symbol": "styleCategoryImageKey"
@@ -488881,7 +489009,7 @@
             "start_line": 11,
             "end_line": 11,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "import",
             "resolved_target": "lib/recipeAssetKeys.ts"
           }
@@ -488901,10 +489029,10 @@
           {
             "path": "scripts/generate-style-thumbnail-projections.ts",
             "symbol": "loadStyleManifestGraph()",
-            "start_line": 284,
-            "end_line": 284,
+            "start_line": 299,
+            "end_line": 299,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "call",
             "resolved_target": "scripts/style-manifest-files.ts",
             "target_symbol": "loadStyleManifestGraph"
@@ -488928,7 +489056,7 @@
             "start_line": 12,
             "end_line": 12,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "import",
             "resolved_target": "scripts/style-manifest-files.ts"
           }
@@ -488948,10 +489076,10 @@
           {
             "path": "scripts/generate-style-thumbnail-projections.ts",
             "symbol": "collectStyleLandingFolderPreferredKeys({\n    featuredPresetIds: input.featuredPresetIds,\n    categoryKeys: (input.categoryNames ?? []).map((entry) =>\n      styleCategoryImageKey(entry.packId, entry.categoryName),\n    ),\n    presetIds: input.presetIds,\n  })",
-            "start_line": 107,
-            "end_line": 113,
+            "start_line": 108,
+            "end_line": 114,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "call",
             "resolved_target": "scripts/styleThumbnailProjection.ts",
             "target_symbol": "collectStyleLandingFolderPreferredKeys"
@@ -488959,10 +489087,10 @@
           {
             "path": "scripts/generate-style-thumbnail-projections.ts",
             "symbol": "selectStyleLandingFolderImageKeys(\n      preferredKeys,\n      availableKeys,\n      STYLE_LANDING_FOLDER_IMAGE_LIMIT,\n    )",
-            "start_line": 157,
-            "end_line": 161,
+            "start_line": 158,
+            "end_line": 162,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "call",
             "resolved_target": "scripts/styleThumbnailProjection.ts",
             "target_symbol": "selectStyleLandingFolderImageKeys"
@@ -488970,10 +489098,10 @@
           {
             "path": "scripts/generate-style-thumbnail-projections.ts",
             "symbol": "resolveThumbnailAssetPackId(asset.key, packIdByPresetId)",
-            "start_line": 300,
-            "end_line": 300,
+            "start_line": 315,
+            "end_line": 315,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "call",
             "resolved_target": "scripts/styleThumbnailProjection.ts",
             "target_symbol": "resolveThumbnailAssetPackId"
@@ -488997,7 +489125,7 @@
             "start_line": 13,
             "end_line": 22,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "c041206a946a181cbac61884cde9da2770d13a980c2fdb78e98c874f7c228eec",
+            "source_digest": "394eb9ff513c7b4bba017deef72ed0d647e68a54cbbf1cbebd3820bc9489dfd5",
             "kind": "import",
             "resolved_target": "scripts/styleThumbnailProjection.ts"
           }
@@ -514323,10 +514451,10 @@
           {
             "path": "vite.config.ts",
             "symbol": "tailwindcss()",
-            "start_line": 44,
-            "end_line": 44,
+            "start_line": 53,
+            "end_line": 53,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "375e8d0058d56e429cf9a8c3626d3238551068ed6393c22adac6d9bf3154f352",
+            "source_digest": "50c7d631f5415d1ed7b88cb7a4c43b965b2102e2c1a206a2f7469bfc8e1e55ef",
             "kind": "call",
             "resolved_target": "external:javascript:@tailwindcss/vite",
             "target_symbol": "default"
@@ -514350,7 +514478,7 @@
             "start_line": 3,
             "end_line": 3,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "375e8d0058d56e429cf9a8c3626d3238551068ed6393c22adac6d9bf3154f352",
+            "source_digest": "50c7d631f5415d1ed7b88cb7a4c43b965b2102e2c1a206a2f7469bfc8e1e55ef",
             "kind": "import",
             "resolved_target": "external:javascript:@tailwindcss/vite"
           }
@@ -514370,10 +514498,10 @@
           {
             "path": "vite.config.ts",
             "symbol": "react()",
-            "start_line": 44,
-            "end_line": 44,
+            "start_line": 53,
+            "end_line": 53,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "375e8d0058d56e429cf9a8c3626d3238551068ed6393c22adac6d9bf3154f352",
+            "source_digest": "50c7d631f5415d1ed7b88cb7a4c43b965b2102e2c1a206a2f7469bfc8e1e55ef",
             "kind": "call",
             "resolved_target": "external:javascript:@vitejs/plugin-react",
             "target_symbol": "default"
@@ -514397,7 +514525,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "375e8d0058d56e429cf9a8c3626d3238551068ed6393c22adac6d9bf3154f352",
+            "source_digest": "50c7d631f5415d1ed7b88cb7a4c43b965b2102e2c1a206a2f7469bfc8e1e55ef",
             "kind": "import",
             "resolved_target": "external:javascript:@vitejs/plugin-react"
           }
@@ -514420,7 +514548,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "375e8d0058d56e429cf9a8c3626d3238551068ed6393c22adac6d9bf3154f352",
+            "source_digest": "50c7d631f5415d1ed7b88cb7a4c43b965b2102e2c1a206a2f7469bfc8e1e55ef",
             "kind": "import",
             "resolved_target": "external:javascript:node:path"
           }
@@ -514443,7 +514571,7 @@
             "start_line": 7,
             "end_line": 7,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "375e8d0058d56e429cf9a8c3626d3238551068ed6393c22adac6d9bf3154f352",
+            "source_digest": "50c7d631f5415d1ed7b88cb7a4c43b965b2102e2c1a206a2f7469bfc8e1e55ef",
             "kind": "call",
             "resolved_target": "external:javascript:node:url",
             "target_symbol": "fileURLToPath"
@@ -514467,7 +514595,7 @@
             "start_line": 2,
             "end_line": 2,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "375e8d0058d56e429cf9a8c3626d3238551068ed6393c22adac6d9bf3154f352",
+            "source_digest": "50c7d631f5415d1ed7b88cb7a4c43b965b2102e2c1a206a2f7469bfc8e1e55ef",
             "kind": "import",
             "resolved_target": "external:javascript:node:url"
           }
@@ -514486,11 +514614,11 @@
         "locations": [
           {
             "path": "vite.config.ts",
-            "symbol": "defineConfig({\n  base: './',\n  optimizeDeps: { entries: ['index.html'] },\n  server: {\n    port: 17222,\n    host: '0.0.0.0',\n  },\n  preview: {\n    port: 17222,\n    host: '0.0.0.0',\n  },\n  build: {\n    emptyOutDir: true,\n    rolldownOptions: {\n      output: {\n        codeSplitting: {\n          groups: [14, 15].flatMap((pack) =>\n            Array.from({ length: pack === 14 ? 8 : 5 }, (_, batch) => ({\n              name: `archived-style-presets-${pack}-${batch + 1}`,\n              test: (id: string) => {\n                const match = id.match(\n                  /[\\\\/]styles[\\\\/]manifests[\\\\/]archive[\\\\/](?:conceptual-refactor-20260923|identity-repair-20260923)[\\\\/]presets[\\\\/]pack_(14|15)[\\\\/][^\\\\/]+-(\\d{3})\\.yaml(?:\\?.*)?$/,\n                );\n                return (\n                  match !== null &&\n                  Number(match[1]) === pack &&\n                  Math.floor((Number(match[2]) - 1) / 20) === batch\n                );\n              },\n            })),\n          ),\n        },\n      },\n    },\n  },\n  plugins: [...react(), ...tailwindcss()] as never,\n  resolve: {\n    alias: {\n      '@': path.resolve(rootDir, '.'),\n      'motion/react': path.resolve(rootDir, 'lib/gsapMotion.tsx'),\n    },\n  },\n  fmt: {\n    semi: true,\n    singleQuote: true,\n  },\n  lint: {\n    plugins: ['oxc', 'typescript', 'react'],\n    categories: {\n      correctness: 'error',\n    },\n    env: {\n      builtin: true,\n    },\n    rules: {\n      'no-console': 'error',\n      'no-debugger': 'error',\n      'no-control-regex': 'off',\n      'no-unused-vars': 'off',\n      'no-useless-escape': 'off',\n    },\n    ignorePatterns: [\n      'dist/**',\n      'generated/**',\n      'logs/**',\n      'output/**',\n      'outputs/**',\n      'tmp/**',\n      '.tmp/**',\n      '.tmp-*',\n    ],\n    overrides: [\n      {\n        files: ['**/*.{ts,tsx}'],\n        rules: {\n          'typescript/no-explicit-any': 'off',\n          'typescript/no-unused-vars': 'off',\n          'react/rules-of-hooks': 'error',\n          'react/exhaustive-deps': 'off',\n          'react/only-export-components': 'off',\n        },\n        env: {\n          es2022: true,\n          browser: true,\n        },\n      },\n      {\n        files: [\n          'apps/local-server/src/**/*.ts',\n          'scripts/**/*.ts',\n          'electron/**/*.cjs',\n          'utils/runtimeLogger.ts',\n        ],\n        rules: {\n          'no-console': 'off',\n        },\n        env: {\n          es2022: true,\n          node: true,\n        },\n      },\n    ],\n    options: {\n      typeAware: true,\n      typeCheck: true,\n    },\n  },\n  test: {\n    globals: true,\n    include: ['**/*.test.ts', '**/*.test.tsx'],\n    exclude: ['**/node_modules/**', '**/dist/**', '**/*.bun.test.ts'],\n    coverage: {\n      provider: 'v8',\n      reporter: ['text', 'json-summary', 'html'],\n      reportsDirectory: './coverage',\n    },\n  },\n  staged: {\n    '*.{ts,tsx,js,jsx,css,md,json}': 'vp check --fix',\n  },\n})",
+            "symbol": "defineConfig({\n  base: './',\n  optimizeDeps: { entries: ['index.html'] },\n  server: {\n    port: 17222,\n    host: '0.0.0.0',\n  },\n  preview: {\n    port: 17222,\n    host: '0.0.0.0',\n  },\n  build: {\n    emptyOutDir: true,\n    rolldownOptions: {\n      output: {\n        codeSplitting: {\n          groups: [\n            {\n              name: 'styles-browser-support',\n              test: (id: string) =>\n                /[\\\\/]components[\\\\/]recipes[\\\\/](?:stylePresetManifests|styleLayerComposer|styleBrowserRenderPlan|useStyleComposition|styleCategoryIdentity|styleGridVirtualization|useStyleBrowserNavigation|useUserStyleLibrary)\\.tsx?(?:\\?.*)?$/.test(\n                  id,\n                ),\n            },\n            ...[14, 15].flatMap((pack) =>\n              Array.from({ length: pack === 14 ? 8 : 5 }, (_, batch) => ({\n                name: `archived-style-presets-${pack}-${batch + 1}`,\n                test: (id: string) => {\n                  const match = id.match(\n                    /[\\\\/]styles[\\\\/]manifests[\\\\/]archive[\\\\/](?:conceptual-refactor-20260923|identity-repair-20260923)[\\\\/]presets[\\\\/]pack_(14|15)[\\\\/][^\\\\/]+-(\\d{3})\\.yaml(?:\\?.*)?$/,\n                  );\n                  return (\n                    match !== null &&\n                    Number(match[1]) === pack &&\n                    Math.floor((Number(match[2]) - 1) / 20) === batch\n                  );\n                },\n              })),\n            ),\n          ],\n        },\n      },\n    },\n  },\n  plugins: [...react(), ...tailwindcss()] as never,\n  resolve: {\n    alias: {\n      '@': path.resolve(rootDir, '.'),\n      'motion/react': path.resolve(rootDir, 'lib/gsapMotion.tsx'),\n    },\n  },\n  fmt: {\n    semi: true,\n    singleQuote: true,\n  },\n  lint: {\n    plugins: ['oxc', 'typescript', 'react'],\n    categories: {\n      correctness: 'error',\n    },\n    env: {\n      builtin: true,\n    },\n    rules: {\n      'no-console': 'error',\n      'no-debugger': 'error',\n      'no-control-regex': 'off',\n      'no-unused-vars': 'off',\n      'no-useless-escape': 'off',\n    },\n    ignorePatterns: [\n      'dist/**',\n      'generated/**',\n      'logs/**',\n      'output/**',\n      'outputs/**',\n      'tmp/**',\n      '.tmp/**',\n      '.tmp-*',\n    ],\n    overrides: [\n      {\n        files: ['**/*.{ts,tsx}'],\n        rules: {\n          'typescript/no-explicit-any': 'off',\n          'typescript/no-unused-vars': 'off',\n          'react/rules-of-hooks': 'error',\n          'react/exhaustive-deps': 'off',\n          'react/only-export-components': 'off',\n          // The React Compiler diagnostics introduced by newer Oxlint are a separate\n          // component migration; keep this upgrade on the existing lint contract.\n          'react/set-state-in-effect': 'off',\n          'react/refs': 'off',\n          'react/immutability': 'off',\n          'react/preserve-manual-memoization': 'off',\n          'react/purity': 'off',\n          'react/globals': 'off',\n          'react/static-components': 'off',\n        },\n        env: {\n          es2022: true,\n          browser: true,\n        },\n      },\n      {\n        files: [\n          'apps/local-server/src/**/*.ts',\n          'scripts/**/*.ts',\n          'electron/**/*.cjs',\n          'utils/runtimeLogger.ts',\n        ],\n        rules: {\n          'no-console': 'off',\n        },\n        env: {\n          es2022: true,\n          node: true,\n        },\n      },\n    ],\n    options: {\n      typeAware: true,\n      typeCheck: true,\n    },\n  },\n  test: {\n    globals: true,\n    include: ['**/*.test.ts', '**/*.test.tsx'],\n    exclude: ['**/node_modules/**', '**/dist/**', '**/*.bun.test.ts'],\n    coverage: {\n      provider: 'v8',\n      reporter: ['text', 'json-summary', 'html'],\n      reportsDirectory: './coverage',\n    },\n  },\n  staged: {\n    '*.{ts,tsx,js,jsx,css,md,json}': 'vp check --fix',\n  },\n})",
             "start_line": 9,
-            "end_line": 129,
+            "end_line": 147,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "375e8d0058d56e429cf9a8c3626d3238551068ed6393c22adac6d9bf3154f352",
+            "source_digest": "50c7d631f5415d1ed7b88cb7a4c43b965b2102e2c1a206a2f7469bfc8e1e55ef",
             "kind": "call",
             "resolved_target": "external:javascript:vite-plus",
             "target_symbol": "defineConfig"
@@ -514514,7 +514642,7 @@
             "start_line": 5,
             "end_line": 5,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "375e8d0058d56e429cf9a8c3626d3238551068ed6393c22adac6d9bf3154f352",
+            "source_digest": "50c7d631f5415d1ed7b88cb7a4c43b965b2102e2c1a206a2f7469bfc8e1e55ef",
             "kind": "import",
             "resolved_target": "external:javascript:vite-plus"
           }
@@ -520910,7 +521038,7 @@
       "handler_symbol": "main"
     }
   ],
-  "source_digest": "0cca59ef06225f2c5d52ce32538db5548f2bc83000e5299476940e750f18cd8b",
+  "source_digest": "5ac3294c8d4640bb6677a95f2ce3afa7769f7b0eafd8d37c7bfacf5bea089a4f",
   "changes": {
     "added_nodes": [],
     "removed_nodes": [],
@@ -520921,5 +521049,5 @@
     "changed": false,
     "changed_node_ids": []
   },
-  "generation_id": "0f01a63c0d717c164e77ddc0c4524659c48d2bad9f09caa7d485454ccc660b0e"
+  "generation_id": "4d22ed45c30b610b1b111c94319a1872c8d2a9781c86ee395368ef24acfb9fb3"
 }

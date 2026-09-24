@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-24T03:07:30Z",
-  "generated_from_commit": "d43d1f8caa350aad19a3213d36fdbc17fb4ec57a",
+  "generated_at": "2026-09-24T04:17:55Z",
+  "generated_from_commit": "2a19b4c7fba9fbc50ced7ebf5205e5522be60d2a",
   "scope": [
     "."
   ],
@@ -3629,7 +3629,7 @@
       },
       {
         "path": "components/recipes/styleRuntimePacks.generated/pack_17/dungeon-zine-assemblage-and-stampwork-6.ts",
-        "origin": "untracked",
+        "origin": "tracked",
         "state": "present",
         "digest": "48571d18563196f88d930bc50050a851af414cfa8c1d9ec832e0d7e728c60a16",
         "size": 6884
@@ -3650,14 +3650,14 @@
       },
       {
         "path": "components/recipes/styleRuntimePacks.generated/pack_17/medieval-fantasy-drawing-media-8.ts",
-        "origin": "untracked",
+        "origin": "tracked",
         "state": "present",
         "digest": "58afea9ce2b0b0b49345ca91df23677949d825ca33ba90dda091cf014a89db44",
         "size": 10902
       },
       {
         "path": "components/recipes/styleRuntimePacks.generated/pack_17/pulp-fantasy-painting-7.ts",
-        "origin": "untracked",
+        "origin": "tracked",
         "state": "present",
         "digest": "2435cb8c0ac2d8afd1ace28418fc2a14c691d236437b3aadc20bd5085bbd61a3",
         "size": 4645
@@ -3944,17 +3944,10 @@
       },
       {
         "path": "components/recipes/styles/TcgComponentStudio.tsx",
-        "origin": "untracked",
-        "state": "present",
-        "digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
-        "size": 39179
-      },
-      {
-        "path": "components/recipes/styles/TcgPendingCatalog.tsx",
         "origin": "tracked",
-        "state": "missing",
-        "digest": null,
-        "size": 0
+        "state": "present",
+        "digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
+        "size": 38878
       },
       {
         "path": "components/recipes/styles/collections/categoryDisplayNames.ts",
@@ -4056,21 +4049,21 @@
       },
       {
         "path": "components/recipes/styles/tcgCardRenderer.ts",
-        "origin": "untracked",
+        "origin": "tracked",
         "state": "present",
         "digest": "761851b42c5e2c187a6a12c2fb9a6a5f07feaff555e0ccbb1ee6480988843614",
         "size": 34642
       },
       {
         "path": "components/recipes/styles/tcgComponentModel.test.ts",
-        "origin": "untracked",
+        "origin": "tracked",
         "state": "present",
         "digest": "7aa7a79dde2fe54ae72fe5bd541028301616f1b46aeb280be839ad2e76df8b48",
         "size": 1232
       },
       {
         "path": "components/recipes/styles/tcgComponentModel.ts",
-        "origin": "untracked",
+        "origin": "tracked",
         "state": "present",
         "digest": "228ce11590816fe849b366df7f278a306533fe71905a1edd28969c179520581b",
         "size": 1751
@@ -8171,11 +8164,11 @@
         "size": 710
       }
     ],
-    "digest": "fed9860d9f76d52914c031559234139006a5a1fa8ed02fec69ece69242091750"
+    "digest": "4347e343c0ae2038aa0e2d1e6e9b1e5a481f2a03c9eb1b92af5e1354d9dc038d"
   },
   "coverage": {
-    "discovered_files": 12851,
-    "included_files": 1161,
+    "discovered_files": 12850,
+    "included_files": 1160,
     "analyzed_files": 1148,
     "configuration_files": 7,
     "file_statuses": [
@@ -10410,10 +10403,6 @@
       {
         "path": "components/recipes/styles/TcgComponentStudio.tsx",
         "status": "analyzed"
-      },
-      {
-        "path": "components/recipes/styles/TcgPendingCatalog.tsx",
-        "status": "missing"
       },
       {
         "path": "components/recipes/styles/collections/categoryDisplayNames.ts",
@@ -71266,25 +71255,25 @@
       },
       {
         "path": "components/recipes/styles/TcgComponentStudio.tsx",
-        "line": 195,
+        "line": 185,
         "reference": "TCG_RECIPES",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/styles/TcgComponentStudio.tsx",
-        "line": 347,
+        "line": 337,
         "reference": "TCG_RECIPES",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/styles/TcgComponentStudio.tsx",
-        "line": 437,
+        "line": 427,
         "reference": "TCG_LAYOUTS",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "components/recipes/styles/TcgComponentStudio.tsx",
-        "line": 516,
+        "line": 506,
         "reference": "TCG_FINISHES",
         "reason": "object-member-call-not-resolved"
       },
@@ -145590,7 +145579,7 @@
             "start_line": 13,
             "end_line": 13,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
+            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
             "kind": "definition"
           },
           {
@@ -145599,7 +145588,7 @@
             "start_line": 20,
             "end_line": 20,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
+            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
             "kind": "definition"
           },
           {
@@ -145608,7 +145597,7 @@
             "start_line": 25,
             "end_line": 25,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
+            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
             "kind": "definition"
           }
         ]
@@ -431021,7 +431010,7 @@
             "start_line": 78,
             "end_line": 78,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
+            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
             "kind": "call",
             "resolved_target": "components/recipes/styles/tcgCardRenderer.ts",
             "target_symbol": "getRequiredTcgArtworkCount"
@@ -431032,7 +431021,7 @@
             "start_line": 79,
             "end_line": 79,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
+            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
             "kind": "call",
             "resolved_target": "components/recipes/styles/tcgCardRenderer.ts",
             "target_symbol": "getRequiredTcgMasks"
@@ -431040,10 +431029,10 @@
           {
             "path": "components/recipes/styles/TcgComponentStudio.tsx",
             "symbol": "renderTcgComposition(renderInput)",
-            "start_line": 145,
-            "end_line": 145,
+            "start_line": 135,
+            "end_line": 135,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
+            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
             "kind": "call",
             "resolved_target": "components/recipes/styles/tcgCardRenderer.ts",
             "target_symbol": "renderTcgComposition"
@@ -431067,7 +431056,7 @@
             "start_line": 6,
             "end_line": 10,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
+            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
             "kind": "import",
             "resolved_target": "components/recipes/styles/tcgCardRenderer.ts"
           }
@@ -431090,7 +431079,7 @@
             "start_line": 11,
             "end_line": 11,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
+            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
             "kind": "import",
             "resolved_target": "components/recipes/styles/tcgCardRenderer.ts"
           }
@@ -431110,10 +431099,10 @@
           {
             "path": "components/recipes/styles/TcgComponentStudio.tsx",
             "symbol": "resolveTcgRecipe(recipeId)",
-            "start_line": 292,
-            "end_line": 292,
+            "start_line": 282,
+            "end_line": 282,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
+            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
             "kind": "call",
             "resolved_target": "components/recipes/styles/tcgComponentModel.ts",
             "target_symbol": "resolveTcgRecipe"
@@ -431137,7 +431126,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
+            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
             "kind": "import",
             "resolved_target": "components/recipes/styles/tcgComponentModel.ts"
           }
@@ -431160,7 +431149,7 @@
             "start_line": 5,
             "end_line": 5,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
+            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
             "kind": "import",
             "resolved_target": "components/recipes/styles/tcgComponentModel.ts"
           }
@@ -431173,7 +431162,7 @@
       "to": "external:javascript:react",
       "type": "calls",
       "type_only": false,
-      "evidence_count": 21,
+      "evidence_count": 20,
       "evidence": {
         "status": "verified",
         "locations": [
@@ -431183,7 +431172,7 @@
             "start_line": 58,
             "end_line": 58,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
+            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
             "kind": "call",
             "resolved_target": "external:javascript:react",
             "target_symbol": "useState"
@@ -431194,7 +431183,7 @@
             "start_line": 59,
             "end_line": 59,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
+            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
             "kind": "call",
             "resolved_target": "external:javascript:react",
             "target_symbol": "useState"
@@ -431205,7 +431194,7 @@
             "start_line": 60,
             "end_line": 60,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
+            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
             "kind": "call",
             "resolved_target": "external:javascript:react",
             "target_symbol": "useState"
@@ -431229,7 +431218,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
+            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
             "kind": "import",
             "resolved_target": "external:javascript:react"
           }
@@ -431252,7 +431241,7 @@
             "start_line": 2,
             "end_line": 2,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
+            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
             "kind": "import",
             "resolved_target": "external:javascript:react"
           }
@@ -431275,7 +431264,7 @@
             "start_line": 3,
             "end_line": 3,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "b2d91a1e6bcf567543babe951fe47a7e8ff6810fc0a5290481215dd5074fe057",
+            "source_digest": "3d8696f90165c734df14968a0a93109a5efa4f9efc00f2ab1434af12a5826136",
             "kind": "import",
             "resolved_target": "types.ts"
           }
@@ -520921,7 +520910,7 @@
       "handler_symbol": "main"
     }
   ],
-  "source_digest": "28f6fd9636b1dea45ea61492558617a947d3bd7b094472d019fa326de9e88a95",
+  "source_digest": "0cca59ef06225f2c5d52ce32538db5548f2bc83000e5299476940e750f18cd8b",
   "changes": {
     "added_nodes": [],
     "removed_nodes": [],
@@ -520932,5 +520921,5 @@
     "changed": false,
     "changed_node_ids": []
   },
-  "generation_id": "84599abeee656c9bacd1690d566e069f018d5a499f0bd8b77c2ef774e9dba25a"
+  "generation_id": "0f01a63c0d717c164e77ddc0c4524659c48d2bad9f09caa7d485454ccc660b0e"
 }

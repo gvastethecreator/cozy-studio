@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-24T05:21:51Z",
-  "generated_from_commit": "a0b16133f8aaf090353e183bb89d4c4e217f5ce1",
+  "generated_at": "2026-09-24T05:39:40Z",
+  "generated_from_commit": "be459c0998a0c3cbf92ef29c4b9098f8baba51ca",
   "scope": [
     "."
   ],
@@ -124,8 +124,8 @@
         "path": "apps/local-server/src/appFactory.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
-        "size": 18911
+        "digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
+        "size": 18872
       },
       {
         "path": "apps/local-server/src/assetLogRoutes.test.ts",
@@ -4170,8 +4170,8 @@
         "path": "components/settings/SubscriptionAuthControls.tsx",
         "origin": "tracked",
         "state": "present",
-        "digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
-        "size": 8665
+        "digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
+        "size": 8698
       },
       {
         "path": "components/shell/StudioGenerationDock.tsx",
@@ -6326,8 +6326,8 @@
         "path": "package.json",
         "origin": "tracked",
         "state": "present",
-        "digest": "3bbfca851b4c822fe4c17a1849801a2fb43e324d8f4a4c91f54a8d3463ed4d41",
-        "size": 9540
+        "digest": "79b32a5fe360b50b7e9e5db633fcf90cb0366a621bc35f0c0093d28371663248",
+        "size": 9541
       },
       {
         "path": "packages/shared/src/animationSequenceContracts.test.ts",
@@ -8164,10 +8164,10 @@
         "size": 710
       }
     ],
-    "digest": "1ea5143357991fe6200dbc4d7cae94ecee1e12ad883a253e472fc22d0b11792e"
+    "digest": "820f2be1bbfe8233fae12de2f57c02990695759eea1d282bfe4d48985a833e10"
   },
   "coverage": {
-    "discovered_files": 12882,
+    "discovered_files": 12866,
     "included_files": 1160,
     "analyzed_files": 1148,
     "configuration_files": 7,
@@ -14763,23 +14763,11 @@
         "reason": "not-source"
       },
       {
-        "path": "assets/recipes/styles/defaults/.locks/SP02-012.chatgpt.lock",
-        "reason": "not-source"
-      },
-      {
         "path": "assets/recipes/styles/defaults/.locks/SP02-012.e0f81458-3ad5-4f5d-9fdd-15c05e7c7a01.reviewed.chatgpt.lock",
         "reason": "not-source"
       },
       {
-        "path": "assets/recipes/styles/defaults/.locks/SP02-036.chatgpt.lock",
-        "reason": "not-source"
-      },
-      {
         "path": "assets/recipes/styles/defaults/.locks/SP02-036.d9339719-c49a-4ca2-825f-d75a9bfac648.reviewed.chatgpt.lock",
-        "reason": "not-source"
-      },
-      {
-        "path": "assets/recipes/styles/defaults/.locks/SP02-038.chatgpt.lock",
         "reason": "not-source"
       },
       {
@@ -14791,19 +14779,11 @@
         "reason": "not-source"
       },
       {
-        "path": "assets/recipes/styles/defaults/.locks/SP02-051.chatgpt.lock",
-        "reason": "not-source"
-      },
-      {
         "path": "assets/recipes/styles/defaults/.locks/SP05-007.039e6cb2-0d9e-42d0-aa59-ee3f108bdc79.recovered.chatgpt.lock",
         "reason": "not-source"
       },
       {
         "path": "assets/recipes/styles/defaults/.locks/SP05-187.54bbed53-956a-4fa3-9d09-16a039ac3a5c.reviewed.chatgpt.lock",
-        "reason": "not-source"
-      },
-      {
-        "path": "assets/recipes/styles/defaults/.locks/SP05-187.chatgpt.lock",
         "reason": "not-source"
       },
       {
@@ -14815,15 +14795,7 @@
         "reason": "not-source"
       },
       {
-        "path": "assets/recipes/styles/defaults/.locks/SP08-021.chatgpt.lock",
-        "reason": "not-source"
-      },
-      {
         "path": "assets/recipes/styles/defaults/.locks/SP08-033.33ae9fbb-7079-4208-b9d9-4385c7462d5d.reviewed.chatgpt.lock",
-        "reason": "not-source"
-      },
-      {
-        "path": "assets/recipes/styles/defaults/.locks/SP08-033.chatgpt.lock",
         "reason": "not-source"
       },
       {
@@ -14831,15 +14803,7 @@
         "reason": "not-source"
       },
       {
-        "path": "assets/recipes/styles/defaults/.locks/SP08-037.chatgpt.lock",
-        "reason": "not-source"
-      },
-      {
         "path": "assets/recipes/styles/defaults/.locks/SP09-028.9564e98d-e2b1-46a6-8eef-b32cafeb291c.reviewed.chatgpt.lock",
-        "reason": "not-source"
-      },
-      {
-        "path": "assets/recipes/styles/defaults/.locks/SP09-028.chatgpt.lock",
         "reason": "not-source"
       },
       {
@@ -14847,15 +14811,7 @@
         "reason": "not-source"
       },
       {
-        "path": "assets/recipes/styles/defaults/.locks/SP09-030.chatgpt.lock",
-        "reason": "not-source"
-      },
-      {
         "path": "assets/recipes/styles/defaults/.locks/SP09-045.90ac9e36-7791-4412-b1d7-dcec56c4eca7.reviewed.chatgpt.lock",
-        "reason": "not-source"
-      },
-      {
-        "path": "assets/recipes/styles/defaults/.locks/SP09-045.chatgpt.lock",
         "reason": "not-source"
       },
       {
@@ -14863,15 +14819,7 @@
         "reason": "not-source"
       },
       {
-        "path": "assets/recipes/styles/defaults/.locks/SP09-078.chatgpt.lock",
-        "reason": "not-source"
-      },
-      {
         "path": "assets/recipes/styles/defaults/.locks/SP10-005.0c27592e-504d-4cfe-a413-6274048e1510.reviewed.chatgpt.lock",
-        "reason": "not-source"
-      },
-      {
-        "path": "assets/recipes/styles/defaults/.locks/SP10-005.chatgpt.lock",
         "reason": "not-source"
       },
       {
@@ -14879,23 +14827,11 @@
         "reason": "not-source"
       },
       {
-        "path": "assets/recipes/styles/defaults/.locks/SP10-058.chatgpt.lock",
-        "reason": "not-source"
-      },
-      {
         "path": "assets/recipes/styles/defaults/.locks/SP11-075.77a548da-00a8-4010-8fc0-41ca9d1c8f81.reviewed.chatgpt.lock",
         "reason": "not-source"
       },
       {
-        "path": "assets/recipes/styles/defaults/.locks/SP11-075.chatgpt.lock",
-        "reason": "not-source"
-      },
-      {
         "path": "assets/recipes/styles/defaults/.locks/SP11-078.262ffd93-f643-4d7c-98f3-1b970ccac5fb.reviewed.chatgpt.lock",
-        "reason": "not-source"
-      },
-      {
-        "path": "assets/recipes/styles/defaults/.locks/SP11-078.chatgpt.lock",
         "reason": "not-source"
       },
       {
@@ -82565,28 +82501,28 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "StudioAppInstance",
-            "start_line": 111,
-            "end_line": 111,
+            "start_line": 110,
+            "end_line": 110,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "definition"
           },
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "StudioJobStore",
-            "start_line": 120,
-            "end_line": 120,
+            "start_line": 119,
+            "end_line": 119,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "definition"
           },
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "StudioAssetStore",
-            "start_line": 129,
-            "end_line": 129,
+            "start_line": 128,
+            "end_line": 128,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "definition"
           }
         ]
@@ -151716,7 +151652,7 @@
             "start_line": 21,
             "end_line": 21,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "definition"
           },
           {
@@ -151725,7 +151661,7 @@
             "start_line": 23,
             "end_line": 23,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "definition"
           },
           {
@@ -151734,7 +151670,7 @@
             "start_line": 24,
             "end_line": 24,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "definition"
           }
         ]
@@ -161215,7 +161151,7 @@
             "start_line": 2,
             "end_line": 2,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "external:javascript:hono"
           },
@@ -162391,7 +162327,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "external:javascript:node:crypto"
           },
@@ -308828,7 +308764,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "json-manifest",
-            "source_digest": "3bbfca851b4c822fe4c17a1849801a2fb43e324d8f4a4c91f54a8d3463ed4d41",
+            "source_digest": "79b32a5fe360b50b7e9e5db633fcf90cb0366a621bc35f0c0093d28371663248",
             "kind": "file"
           }
         ]
@@ -348188,10 +348124,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createAnimationSequenceRoutes({\n      readLibraryDir: () => getDefaultLibrary().path,\n      getCatalogImage: (imageId) => catalogStore.getCatalogImage(imageId),\n    })",
-            "start_line": 324,
-            "end_line": 327,
+            "start_line": 323,
+            "end_line": 326,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/animationSequenceRoutes.ts",
             "target_symbol": "createAnimationSequenceRoutes"
@@ -348212,10 +348148,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createAnimationSequenceRoutes } from './animationSequenceRoutes';",
-            "start_line": 99,
-            "end_line": 99,
+            "start_line": 98,
+            "end_line": 98,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/animationSequenceRoutes.ts"
           }
@@ -348238,7 +348174,7 @@
             "start_line": 11,
             "end_line": 14,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/antigravityRuntimeDoctor.ts"
           }
@@ -348258,10 +348194,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createAssetLogRoutes({\n      listAssets: () => assetStore.listAssets(),\n      listLogs: () => logStore.listLogs(),\n    })",
-            "start_line": 442,
-            "end_line": 445,
+            "start_line": 441,
+            "end_line": 444,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/assetLogRoutes.ts",
             "target_symbol": "createAssetLogRoutes"
@@ -348282,10 +348218,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createAssetLogRoutes } from './assetLogRoutes';",
-            "start_line": 90,
-            "end_line": 90,
+            "start_line": 89,
+            "end_line": 89,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/assetLogRoutes.ts"
           }
@@ -348305,10 +348241,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createSubscriptionAuthRoutes()",
-            "start_line": 257,
-            "end_line": 257,
+            "start_line": 256,
+            "end_line": 256,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/auth/authRoutes.ts",
             "target_symbol": "createSubscriptionAuthRoutes"
@@ -348329,10 +348265,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createSubscriptionAuthRoutes } from './auth/authRoutes';",
-            "start_line": 84,
-            "end_line": 84,
+            "start_line": 83,
+            "end_line": 83,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/auth/authRoutes.ts"
           }
@@ -348352,10 +348288,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "isCodexHttpCredentialReady()",
-            "start_line": 384,
-            "end_line": 384,
+            "start_line": 383,
+            "end_line": 383,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/auth/tokens.ts",
             "target_symbol": "isCodexHttpCredentialReady"
@@ -348379,7 +348315,7 @@
             "start_line": 5,
             "end_line": 5,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/auth/tokens.ts"
           }
@@ -348399,10 +348335,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createCatalogCommands({\n    listCatalogImageIds: (...args) => catalogStore.listCatalogImageIds(...args),\n    updateCatalogImage: (...args) => catalogStore.updateCatalogImage(...args),\n    softDeleteCatalogImage: (...args) => catalogStore.softDeleteCatalogImage(...args),\n    restoreCatalogImage: (...args) => catalogStore.restoreCatalogImage(...args),\n    purgeCatalogImage: (...args) => catalogStore.purgeCatalogImage(...args),\n    publishEvent,\n  })",
-            "start_line": 225,
-            "end_line": 232,
+            "start_line": 224,
+            "end_line": 231,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/catalogCommands.ts",
             "target_symbol": "createCatalogCommands"
@@ -348426,7 +348362,7 @@
             "start_line": 15,
             "end_line": 15,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/catalogCommands.ts"
           }
@@ -348446,10 +348382,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createCatalogRoutes({\n      catalogStore,\n      catalogCommands,\n      embedMetadata,\n    })",
-            "start_line": 460,
-            "end_line": 464,
+            "start_line": 459,
+            "end_line": 463,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/catalogRoutes.ts",
             "target_symbol": "createCatalogRoutes"
@@ -348473,7 +348409,7 @@
             "start_line": 16,
             "end_line": 16,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/catalogRoutes.ts"
           }
@@ -348493,10 +348429,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createDefaultCatalogStore()",
-            "start_line": 210,
-            "end_line": 210,
+            "start_line": 209,
+            "end_line": 209,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/catalogStore.ts",
             "target_symbol": "createDefaultCatalogStore"
@@ -348520,7 +348456,7 @@
             "start_line": 17,
             "end_line": 17,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/catalogStore.ts"
           }
@@ -348543,7 +348479,7 @@
             "start_line": 57,
             "end_line": 57,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/codex/localCodexSession.ts"
           }
@@ -348566,7 +348502,7 @@
             "start_line": 56,
             "end_line": 56,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/codex/modelCatalog.ts"
           }
@@ -348589,7 +348525,7 @@
             "start_line": 50,
             "end_line": 55,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/codex/processSupervisor.ts"
           }
@@ -348609,10 +348545,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createCodexRoutes({\n      readCodexModelCatalog,\n      readLocalCodexSession,\n    })",
-            "start_line": 292,
-            "end_line": 295,
+            "start_line": 291,
+            "end_line": 294,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/codexRoutes.ts",
             "target_symbol": "createCodexRoutes"
@@ -348633,10 +348569,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createCodexRoutes } from './codexRoutes';",
-            "start_line": 85,
-            "end_line": 85,
+            "start_line": 84,
+            "end_line": 84,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/codexRoutes.ts"
           }
@@ -348659,7 +348595,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/codexRuntimeDoctor.ts"
           }
@@ -348679,10 +348615,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "getSettings()",
-            "start_line": 510,
-            "end_line": 510,
+            "start_line": 509,
+            "end_line": 509,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/config.ts",
             "target_symbol": "getSettings"
@@ -348706,7 +348642,7 @@
             "start_line": 3,
             "end_line": 3,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/config.ts"
           }
@@ -348729,7 +348665,7 @@
             "start_line": 18,
             "end_line": 18,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/db/assets.ts"
           }
@@ -348752,7 +348688,7 @@
             "start_line": 19,
             "end_line": 19,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/db/events.ts"
           }
@@ -348772,10 +348708,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { jobBatchStore } from './db/jobBatches';",
-            "start_line": 89,
-            "end_line": 89,
+            "start_line": 88,
+            "end_line": 88,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/db/jobBatches.ts"
           }
@@ -348798,7 +348734,7 @@
             "start_line": 20,
             "end_line": 27,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/db/jobs.ts"
           }
@@ -348821,7 +348757,7 @@
             "start_line": 28,
             "end_line": 28,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/db/settings.ts"
           }
@@ -348841,10 +348777,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "ensureDefaultWorkspace()",
-            "start_line": 340,
-            "end_line": 340,
+            "start_line": 339,
+            "end_line": 339,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/db/workspaces.ts",
             "target_symbol": "ensureDefaultWorkspace"
@@ -348868,7 +348804,7 @@
             "start_line": 29,
             "end_line": 29,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/db/workspaces.ts"
           }
@@ -348888,10 +348824,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createEventStreamRoutes({\n      subscribeEvents,\n      readEventRevision: getCurrentEventRevision,\n    })",
-            "start_line": 471,
-            "end_line": 474,
+            "start_line": 470,
+            "end_line": 473,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/eventStreamRoutes.ts",
             "target_symbol": "createEventStreamRoutes"
@@ -348912,10 +348848,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createEventStreamRoutes } from './eventStreamRoutes';",
-            "start_line": 94,
-            "end_line": 94,
+            "start_line": 93,
+            "end_line": 93,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/eventStreamRoutes.ts"
           }
@@ -348938,7 +348874,7 @@
             "start_line": 30,
             "end_line": 30,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/events.ts"
           }
@@ -348958,10 +348894,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "grokOnboardingFactsFromDoctor(readGrokRuntimeDoctorFn())",
-            "start_line": 253,
-            "end_line": 253,
+            "start_line": 252,
+            "end_line": 252,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/grokRuntimeDoctor.ts",
             "target_symbol": "grokOnboardingFactsFromDoctor"
@@ -348985,7 +348921,7 @@
             "start_line": 6,
             "end_line": 10,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/grokRuntimeDoctor.ts"
           }
@@ -349005,10 +348941,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "initStudio()",
-            "start_line": 185,
-            "end_line": 185,
+            "start_line": 184,
+            "end_line": 184,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/init.ts",
             "target_symbol": "initStudio"
@@ -349032,7 +348968,7 @@
             "start_line": 31,
             "end_line": 31,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/init.ts"
           }
@@ -349055,7 +348991,7 @@
             "start_line": 59,
             "end_line": 59,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/jobDetails.ts"
           }
@@ -349075,10 +349011,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createJobRoutes({\n      listJobs: (query) => jobStore.listJobSummaries(query),\n      getJob: (jobId) => jobStore.getJob(jobId),\n      getJobStatus: (jobId) => jobStore.getJobStatus(jobId),\n      getJobDetail,\n      requeueJob: (jobId, expected) => jobStore.requeueJob(jobId, undefined, expected),\n      batchStore: jobBatchStore,\n      cancelQueuedOrRunningJob: (jobId) => workerController.cancelQueuedOrRunningJob(jobId),\n      ensureDefaultWorkspaceId: () => ensureDefaultWorkspace()?.id ?? 'default',\n      createJobId: () => randomUUID(),\n      createJob: (input) =>\n        jobStore.createJob({\n          id: input.id,\n          workspaceId: input.workspaceId,\n          kind: input.kind,\n          providerId: input.providerId,\n          sourceSpec: input.sourceSpec,\n          prompt: input.prompt,\n          execution: input.execution,\n          libraryContext: input.libraryContext,\n        }),\n      updateJobFinalPrompt: (jobId, finalPrompt) =>\n        jobStore.updateJobFinalPrompt(jobId, finalPrompt),\n      processReferences: (jobId, prompt, references, libraryDir) =>\n        processReferences(jobId, prompt, references ?? [], libraryDir),\n      hydrateSourceSpecAssetPaths: (\n        sourceSpec,\n        references,\n        persistedRefs,\n        libraryDir,\n        libraryContext,\n      ) =>\n        hydrateSourceSpecAssetPaths(\n          sourceSpec,\n          references ?? [],\n          persistedRefs as ProcessedReference[],\n          libraryDir,\n          libraryContext?.libraryId,\n        ),\n      readLibraryDir: () => getDefaultLibrary().path,\n      readLibraryContext: () => {\n        const library = getDefaultLibrary();\n        return { libraryId: library.id, rootPath: library.path };\n      },\n      readEditableSettings: () => readEditableStudioSettings(settingsStorage),\n      resolveBootstrapExecution: (providerId) =>\n        resolveBootstrapProviderExecutionOptions(providerId, process.env, {\n          grokRuntime: readGrokRuntimeDoctorFn(),\n        }),\n      readGrokAvailableModels: () => readGrokRuntimeDoctorFn().availableModels,\n      readCodexTransportAvailability: () => ({\n        codex_app_server: readCodexRuntimeDoctorFn().canRunJobs,\n        subscription_http: isCodexHttpCredentialReady(),\n      }),\n      resolveProviderExecutionBlocker: async (providerId) => {\n        const codexRuntime =\n          providerId === 'codex'\n            ? (await readiness.refresh({ reason: 'passive' })).codexRuntime\n            : readiness.readSnapshot().codexRuntime;\n        const capabilityReport = readProviderCapabilities(\n          readEditableStudioSettings(settingsStorage),\n          process.env,\n          codexRuntime ?? undefined,\n          readGrokRuntimeDoctorFn(),\n          undefined,\n          readAntigravityRuntimeDoctorFn(),\n        );\n        const runtimePreflights =\n          providerId === 'codex' && codexRuntime\n            ? readGenerationProviderRuntimePreflights(\n                process.env,\n                codexRuntime,\n                readGrokRuntimeDoctorFn(),\n                readAntigravityRuntimeDoctorFn(),\n              )\n            : [\n                getGenerationProviderRuntimePreflight(\n                  providerId,\n                  process.env,\n                  readGrokRuntimeDoctorFn(),\n                ),\n              ].filter((preflight) => preflight !== null);\n        return getProviderExecutionBlocker(capabilityReport, providerId, runtimePreflights);\n      },\n      isReferenceProcessingError: (error): error is ReferenceProcessingError =>\n        error instanceof ReferenceProcessingError,\n      publishEvent,\n      logJobCreated: (kind, jobId) => appLogger('info', 'api', `Job created: ${kind}`, jobId),\n      enqueueJob: (job) => workerController.enqueueJob(job),\n    })",
-            "start_line": 332,
-            "end_line": 421,
+            "start_line": 331,
+            "end_line": 420,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/jobRoutes.ts",
             "target_symbol": "createJobRoutes"
@@ -349099,10 +349035,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createJobRoutes } from './jobRoutes';",
-            "start_line": 88,
-            "end_line": 88,
+            "start_line": 87,
+            "end_line": 87,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/jobRoutes.ts"
           }
@@ -349122,10 +349058,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "getDefaultLibrary()",
-            "start_line": 318,
-            "end_line": 318,
+            "start_line": 317,
+            "end_line": 317,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/libraries.ts",
             "target_symbol": "getDefaultLibrary"
@@ -349133,10 +349069,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "getDefaultLibrary()",
-            "start_line": 325,
-            "end_line": 325,
+            "start_line": 324,
+            "end_line": 324,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/libraries.ts",
             "target_symbol": "getDefaultLibrary"
@@ -349144,10 +349080,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "getDefaultLibrary()",
-            "start_line": 371,
-            "end_line": 371,
+            "start_line": 370,
+            "end_line": 370,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/libraries.ts",
             "target_symbol": "getDefaultLibrary"
@@ -349171,7 +349107,7 @@
             "start_line": 33,
             "end_line": 40,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/libraries.ts"
           }
@@ -349191,10 +349127,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createLibrariesRoutes(libraryRouteDependencies)",
-            "start_line": 456,
-            "end_line": 456,
+            "start_line": 455,
+            "end_line": 455,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/librariesRoutes.ts",
             "target_symbol": "createLibrariesRoutes"
@@ -349215,10 +349151,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createLibrariesRoutes, type LibrariesRoutesDependencies } from './librariesRoutes';",
-            "start_line": 86,
-            "end_line": 86,
+            "start_line": 85,
+            "end_line": 85,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/librariesRoutes.ts"
           }
@@ -349238,10 +349174,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "toPublicAssetUrl(filePath, { libraryId: library.id, rootPath: library.path })",
-            "start_line": 433,
-            "end_line": 433,
+            "start_line": 432,
+            "end_line": 432,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/library.ts",
             "target_symbol": "toPublicAssetUrl"
@@ -349265,7 +349201,7 @@
             "start_line": 32,
             "end_line": 32,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/library.ts"
           }
@@ -349288,7 +349224,7 @@
             "start_line": 68,
             "end_line": 73,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/libraryAssetVariants.ts"
           }
@@ -349308,10 +349244,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createLibraryRoutes({\n      resolvePublicLibraryPath,\n      resolvePublicLibraryAssetRequest,\n      ensureThumbnailVariant,\n      buildLibraryAssetHeaders,\n      resolveAssetCacheSeconds,\n      resolveThumbnailMaxEdge,\n      logger: appLogger,\n    })",
-            "start_line": 479,
-            "end_line": 487,
+            "start_line": 478,
+            "end_line": 486,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/libraryRoutes.ts",
             "target_symbol": "createLibraryRoutes"
@@ -349332,10 +349268,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createLibraryRoutes } from './libraryRoutes';",
-            "start_line": 95,
-            "end_line": 95,
+            "start_line": 94,
+            "end_line": 94,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/libraryRoutes.ts"
           }
@@ -349355,10 +349291,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createLocalApiSecurityMiddleware({ allowedOrigins: options.dependencies?.allowedOrigins })",
-            "start_line": 236,
-            "end_line": 236,
+            "start_line": 235,
+            "end_line": 235,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/localApiSecurity.ts",
             "target_symbol": "createLocalApiSecurityMiddleware"
@@ -349379,10 +349315,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createLocalApiSecurityMiddleware } from './localApiSecurity';",
-            "start_line": 103,
-            "end_line": 103,
+            "start_line": 102,
+            "end_line": 102,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/localApiSecurity.ts"
           }
@@ -349405,7 +349341,7 @@
             "start_line": 41,
             "end_line": 41,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/logger.ts"
           }
@@ -349425,10 +349361,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createMaintenanceRoutes()",
-            "start_line": 306,
-            "end_line": 306,
+            "start_line": 305,
+            "end_line": 305,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/maintenanceRoutes.ts",
             "target_symbol": "createMaintenanceRoutes"
@@ -349449,10 +349385,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createMaintenanceRoutes } from './maintenanceRoutes';",
-            "start_line": 93,
-            "end_line": 93,
+            "start_line": 92,
+            "end_line": 92,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/maintenanceRoutes.ts"
           }
@@ -349475,7 +349411,7 @@
             "start_line": 58,
             "end_line": 58,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/metadataEmbedder.ts"
           }
@@ -349495,10 +349431,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createOutputSourceRoutes({\n      settingsStorage,\n      readSettings: () => readEditableStudioSettings(settingsStorage),\n      readConfig: getSettings,\n      registerCatalogImage: (...args) => catalogStore.registerCatalogImage(...args),\n      ensureThumbnailVariant,\n      publishEvent,\n    })",
-            "start_line": 280,
-            "end_line": 287,
+            "start_line": 279,
+            "end_line": 286,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/outputSourceRoutes.ts",
             "target_symbol": "createOutputSourceRoutes"
@@ -349519,10 +349455,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createOutputSourceRoutes } from './outputSourceRoutes';",
-            "start_line": 81,
-            "end_line": 81,
+            "start_line": 80,
+            "end_line": 80,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/outputSourceRoutes.ts"
           }
@@ -349542,10 +349478,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "readProviderCapabilities(\n          readEditableStudioSettings(settingsStorage),\n          process.env,\n          codexRuntime ?? undefined,\n          readGrokRuntimeDoctorFn(),\n          undefined,\n          readAntigravityRuntimeDoctorFn(),\n        )",
-            "start_line": 391,
-            "end_line": 398,
+            "start_line": 390,
+            "end_line": 397,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/providerCapabilities.ts",
             "target_symbol": "readProviderCapabilities"
@@ -349553,10 +349489,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "getProviderExecutionBlocker(capabilityReport, providerId, runtimePreflights)",
-            "start_line": 414,
-            "end_line": 414,
+            "start_line": 413,
+            "end_line": 413,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/providerCapabilities.ts",
             "target_symbol": "getProviderExecutionBlocker"
@@ -349580,7 +349516,7 @@
             "start_line": 74,
             "end_line": 74,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/providerCapabilities.ts"
           }
@@ -349600,10 +349536,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createProviderRoutes({\n      readSettings: () => readEditableStudioSettings(settingsStorage),\n      readCodexRuntimeDoctor: () =>\n        readiness.readSnapshot().codexRuntime ?? createCheckingRuntimeReport(),\n      readGrokRuntimeDoctor: readGrokRuntimeDoctorFn,\n      readAntigravityRuntimeDoctor: readAntigravityRuntimeDoctorFn,\n    })",
-            "start_line": 269,
-            "end_line": 275,
+            "start_line": 268,
+            "end_line": 274,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/providerRoutes.ts",
             "target_symbol": "createProviderRoutes"
@@ -349624,10 +349560,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createProviderRoutes } from './providerRoutes';",
-            "start_line": 82,
-            "end_line": 82,
+            "start_line": 81,
+            "end_line": 81,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/providerRoutes.ts"
           }
@@ -349647,10 +349583,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "resolveBootstrapProviderExecutionOptions(providerId, process.env, {\n          grokRuntime: readGrokRuntimeDoctorFn(),\n        })",
-            "start_line": 378,
-            "end_line": 380,
+            "start_line": 377,
+            "end_line": 379,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/providers/providerExecutionDefaults.ts",
             "target_symbol": "resolveBootstrapProviderExecutionOptions"
@@ -349674,7 +349610,7 @@
             "start_line": 75,
             "end_line": 75,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/providers/providerExecutionDefaults.ts"
           }
@@ -349694,10 +349630,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "readGenerationProviderRuntimePreflights(\n                process.env,\n                codexRuntime,\n                readGrokRuntimeDoctorFn(),\n                readAntigravityRuntimeDoctorFn(),\n              )",
-            "start_line": 401,
-            "end_line": 406,
+            "start_line": 400,
+            "end_line": 405,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/providers/runtimeConfig.ts",
             "target_symbol": "readGenerationProviderRuntimePreflights"
@@ -349705,10 +349641,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "getGenerationProviderRuntimePreflight(\n                  providerId,\n                  process.env,\n                  readGrokRuntimeDoctorFn(),\n                )",
-            "start_line": 408,
-            "end_line": 412,
+            "start_line": 407,
+            "end_line": 411,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/providers/runtimeConfig.ts",
             "target_symbol": "getGenerationProviderRuntimePreflight"
@@ -349728,11 +349664,11 @@
         "locations": [
           {
             "path": "apps/local-server/src/appFactory.ts",
-            "symbol": "import {\n  getExternalProviderRuntimePreflight,\n  getGenerationProviderRuntimePreflight,\n  readGenerationProviderRuntimePreflights,\n} from './providers/runtimeConfig';",
+            "symbol": "import {\n  getGenerationProviderRuntimePreflight,\n  readGenerationProviderRuntimePreflights,\n} from './providers/runtimeConfig';",
             "start_line": 76,
-            "end_line": 80,
+            "end_line": 79,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/providers/runtimeConfig.ts"
           }
@@ -349752,10 +349688,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "processReferences(jobId, prompt, references ?? [], libraryDir)",
-            "start_line": 356,
-            "end_line": 356,
+            "start_line": 355,
+            "end_line": 355,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/referenceManager.ts",
             "target_symbol": "processReferences"
@@ -349763,10 +349699,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "hydrateSourceSpecAssetPaths(\n          sourceSpec,\n          references ?? [],\n          persistedRefs as ProcessedReference[],\n          libraryDir,\n          libraryContext?.libraryId,\n        )",
-            "start_line": 364,
-            "end_line": 370,
+            "start_line": 363,
+            "end_line": 369,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/referenceManager.ts",
             "target_symbol": "hydrateSourceSpecAssetPaths"
@@ -349774,10 +349710,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "processReferences(handoffId, prompt, references, libraryDir)",
-            "start_line": 429,
-            "end_line": 429,
+            "start_line": 428,
+            "end_line": 428,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/referenceManager.ts",
             "target_symbol": "processReferences"
@@ -349801,7 +349737,7 @@
             "start_line": 60,
             "end_line": 65,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/referenceManager.ts"
           }
@@ -349821,10 +349757,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createReferenceRoutes({\n      createHandoffId: () => `handoff-${randomUUID()}`,\n      processReferences: (handoffId, prompt, references, libraryDir) =>\n        processReferences(handoffId, prompt, references, libraryDir),\n      readLibraryDir: () => getDefaultLibrary().path,\n      toPublicAssetUrl: (filePath) => {\n        const library = getDefaultLibrary();\n        return toPublicAssetUrl(filePath, { libraryId: library.id, rootPath: library.path });\n      },\n      isReferenceProcessingError: (error): error is ReferenceProcessingError =>\n        error instanceof ReferenceProcessingError,\n    })",
-            "start_line": 426,
-            "end_line": 437,
+            "start_line": 425,
+            "end_line": 436,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/referenceRoutes.ts",
             "target_symbol": "createReferenceRoutes"
@@ -349845,10 +349781,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createReferenceRoutes } from './referenceRoutes';",
-            "start_line": 96,
-            "end_line": 96,
+            "start_line": 95,
+            "end_line": 95,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/referenceRoutes.ts"
           }
@@ -349871,7 +349807,7 @@
             "start_line": 67,
             "end_line": 67,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/reset.ts"
           }
@@ -349891,10 +349827,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createRuntimeRoutes({\n      readSettings: getSettings,\n      inspectLibrary,\n      readCodexRuntimeDoctor: readCodexRuntimeDoctorFn,\n      getCodexWsUrl,\n      getEnvLocalPath,\n      hasEnvLocalFile,\n      ensureAppServer: ensureLocalAppServer,\n      readAppServerDiagnostics,\n      isAppServerRunning: isLocalAppServerRunning,\n      readWorkerStatus: () => workerController.getWorkerStatus(),\n      readiness,\n      readGrokOnboardingFacts: () => grokOnboardingFactsFromDoctor(readGrokRuntimeDoctorFn()),\n    })",
-            "start_line": 241,
-            "end_line": 254,
+            "start_line": 240,
+            "end_line": 253,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/runtimeRoutes.ts",
             "target_symbol": "createRuntimeRoutes"
@@ -349902,10 +349838,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createCheckingRuntimeReport()",
-            "start_line": 272,
-            "end_line": 272,
+            "start_line": 271,
+            "end_line": 271,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/runtimeRoutes.ts",
             "target_symbol": "createCheckingRuntimeReport"
@@ -349926,10 +349862,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createCheckingRuntimeReport, createRuntimeRoutes } from './runtimeRoutes';",
-            "start_line": 91,
-            "end_line": 91,
+            "start_line": 90,
+            "end_line": 90,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/runtimeRoutes.ts"
           }
@@ -349949,10 +349885,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createSettingsRoutes({\n      readSettings: () => readEditableStudioSettings(settingsStorage),\n      updateSettings: (patch) => updateEditableStudioSettings(settingsStorage, patch),\n    })",
-            "start_line": 261,
-            "end_line": 264,
+            "start_line": 260,
+            "end_line": 263,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/settingsRoutes.ts",
             "target_symbol": "createSettingsRoutes"
@@ -349973,10 +349909,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createSettingsRoutes } from './settingsRoutes';",
-            "start_line": 83,
-            "end_line": 83,
+            "start_line": 82,
+            "end_line": 82,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/settingsRoutes.ts"
           }
@@ -349996,10 +349932,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createSpriteAtlasRoutes({\n      readLibraryDir: () => getDefaultLibrary().path,\n    })",
-            "start_line": 317,
-            "end_line": 319,
+            "start_line": 316,
+            "end_line": 318,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/spriteAtlasRoutes.ts",
             "target_symbol": "createSpriteAtlasRoutes"
@@ -350020,10 +349956,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createSpriteAtlasRoutes } from './spriteAtlasRoutes';",
-            "start_line": 98,
-            "end_line": 98,
+            "start_line": 97,
+            "end_line": 97,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/spriteAtlasRoutes.ts"
           }
@@ -350043,10 +349979,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createDefaultUserStyleStore()",
-            "start_line": 211,
-            "end_line": 211,
+            "start_line": 210,
+            "end_line": 210,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/sqliteUserStyles.ts",
             "target_symbol": "createDefaultUserStyleStore"
@@ -350067,10 +350003,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createDefaultUserStyleStore } from './sqliteUserStyles';",
-            "start_line": 101,
-            "end_line": 101,
+            "start_line": 100,
+            "end_line": 100,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/sqliteUserStyles.ts"
           }
@@ -350090,10 +350026,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createStudioControlRoutes({\n      resetStudioData,\n      worker: workerController,\n    })",
-            "start_line": 300,
-            "end_line": 303,
+            "start_line": 299,
+            "end_line": 302,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/studioControlRoutes.ts",
             "target_symbol": "createStudioControlRoutes"
@@ -350114,10 +350050,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createStudioControlRoutes } from './studioControlRoutes';",
-            "start_line": 92,
-            "end_line": 92,
+            "start_line": 91,
+            "end_line": 91,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/studioControlRoutes.ts"
           }
@@ -350137,10 +350073,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createStudioReadinessLifecycle({\n    isAppServerRunning: isLocalAppServerRunning,\n    readLocalCodexSession,\n    probeCodexRuntime: options.dependencies?.readCodexRuntimeDoctor\n      ? async () => readCodexRuntimeDoctorFn()\n      : undefined,\n  })",
-            "start_line": 200,
-            "end_line": 206,
+            "start_line": 199,
+            "end_line": 205,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/studioReadinessLifecycle.ts",
             "target_symbol": "createStudioReadinessLifecycle"
@@ -350161,10 +350097,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createStudioReadinessLifecycle } from './studioReadinessLifecycle';",
-            "start_line": 100,
-            "end_line": 100,
+            "start_line": 99,
+            "end_line": 99,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/studioReadinessLifecycle.ts"
           }
@@ -350184,10 +350120,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "readEditableStudioSettings(settingsStorage)",
-            "start_line": 262,
-            "end_line": 262,
+            "start_line": 261,
+            "end_line": 261,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/studioSettingsStore.ts",
             "target_symbol": "readEditableStudioSettings"
@@ -350195,10 +350131,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "updateEditableStudioSettings(settingsStorage, patch)",
-            "start_line": 263,
-            "end_line": 263,
+            "start_line": 262,
+            "end_line": 262,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/studioSettingsStore.ts",
             "target_symbol": "updateEditableStudioSettings"
@@ -350206,10 +350142,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "readEditableStudioSettings(settingsStorage)",
-            "start_line": 270,
-            "end_line": 270,
+            "start_line": 269,
+            "end_line": 269,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/studioSettingsStore.ts",
             "target_symbol": "readEditableStudioSettings"
@@ -350233,7 +350169,7 @@
             "start_line": 42,
             "end_line": 46,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/studioSettingsStore.ts"
           }
@@ -350253,10 +350189,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "resolveUiDistDir()",
-            "start_line": 492,
-            "end_line": 492,
+            "start_line": 491,
+            "end_line": 491,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/uiStaticRoutes.ts",
             "target_symbol": "resolveUiDistDir"
@@ -350264,10 +350200,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "uiDistIsReady(uiDistDir)",
-            "start_line": 494,
-            "end_line": 494,
+            "start_line": 493,
+            "end_line": 493,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/uiStaticRoutes.ts",
             "target_symbol": "uiDistIsReady"
@@ -350275,10 +350211,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createUiStaticHandler({ rootDir: uiDistDir })",
-            "start_line": 495,
-            "end_line": 495,
+            "start_line": 494,
+            "end_line": 494,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/uiStaticRoutes.ts",
             "target_symbol": "createUiStaticHandler"
@@ -350299,10 +350235,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createUiStaticHandler, resolveUiDistDir, uiDistIsReady } from './uiStaticRoutes';",
-            "start_line": 104,
-            "end_line": 104,
+            "start_line": 103,
+            "end_line": 103,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/uiStaticRoutes.ts"
           }
@@ -350322,10 +350258,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createUserStyleRoutes({\n      store: userStyleStore,\n      publishEvent,\n    })",
-            "start_line": 309,
-            "end_line": 312,
+            "start_line": 308,
+            "end_line": 311,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/userStyleRoutes.ts",
             "target_symbol": "createUserStyleRoutes"
@@ -350346,10 +350282,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import { createUserStyleRoutes } from './userStyleRoutes';",
-            "start_line": 97,
-            "end_line": 97,
+            "start_line": 96,
+            "end_line": 96,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/userStyleRoutes.ts"
           }
@@ -350369,10 +350305,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import type { UserStyleStore } from './userStyles';",
-            "start_line": 102,
-            "end_line": 102,
+            "start_line": 101,
+            "end_line": 101,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/userStyles.ts"
           }
@@ -350392,10 +350328,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createWorkerController({\n      logger: appLogger,\n      readEditableStudioSettings,\n      resolveJobCatalogContext,\n      resolveWorkerRuntimeTarget,\n    })",
-            "start_line": 219,
-            "end_line": 224,
+            "start_line": 218,
+            "end_line": 223,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/worker.ts",
             "target_symbol": "createWorkerController"
@@ -350419,7 +350355,7 @@
             "start_line": 47,
             "end_line": 47,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/worker.ts"
           }
@@ -350442,7 +350378,7 @@
             "start_line": 48,
             "end_line": 48,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/workerCatalogContext.ts"
           }
@@ -350465,7 +350401,7 @@
             "start_line": 49,
             "end_line": 49,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/workerRouting.ts"
           }
@@ -350485,10 +350421,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "createWorkspaceRoutes(options.dependencies?.workspaceRoutes)",
-            "start_line": 467,
-            "end_line": 467,
+            "start_line": 466,
+            "end_line": 466,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "apps/local-server/src/workspaceRoutes.ts",
             "target_symbol": "createWorkspaceRoutes"
@@ -350512,7 +350448,7 @@
             "start_line": 66,
             "end_line": 66,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "apps/local-server/src/workspaceRoutes.ts"
           }
@@ -350535,7 +350471,7 @@
             "start_line": 2,
             "end_line": 2,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "external:javascript:hono"
           }
@@ -350555,10 +350491,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "randomUUID()",
-            "start_line": 341,
-            "end_line": 341,
+            "start_line": 340,
+            "end_line": 340,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "external:javascript:node:crypto",
             "target_symbol": "randomUUID"
@@ -350566,10 +350502,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "randomUUID()",
-            "start_line": 427,
-            "end_line": 427,
+            "start_line": 426,
+            "end_line": 426,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "call",
             "resolved_target": "external:javascript:node:crypto",
             "target_symbol": "randomUUID"
@@ -350593,7 +350529,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "external:javascript:node:crypto"
           }
@@ -350613,10 +350549,10 @@
           {
             "path": "apps/local-server/src/appFactory.ts",
             "symbol": "import type {\n  AppServerEnsureReason,\n  CodexModelCatalogResponse,\n  LocalCodexSessionResponse,\n} from '../../../packages/shared/src';",
-            "start_line": 105,
-            "end_line": 109,
+            "start_line": 104,
+            "end_line": 108,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "a2e4089f5bae5b21e95be870fabf76817ee8e68e64c03c9902242eef45c5464d",
+            "source_digest": "8ff8f5d837bb433d7d075a94938fb979ec1d6a9138424f9a0e5d9742dcce3168",
             "kind": "import",
             "resolved_target": "packages/shared/src/index.ts"
           }
@@ -435292,7 +435228,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "import",
             "resolved_target": "external:javascript:@tabler/icons-react"
           }
@@ -435315,7 +435251,7 @@
             "start_line": 34,
             "end_line": 34,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "call",
             "resolved_target": "external:javascript:react",
             "target_symbol": "useState"
@@ -435326,7 +435262,7 @@
             "start_line": 35,
             "end_line": 35,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "call",
             "resolved_target": "external:javascript:react",
             "target_symbol": "useState"
@@ -435337,7 +435273,7 @@
             "start_line": 36,
             "end_line": 36,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "call",
             "resolved_target": "external:javascript:react",
             "target_symbol": "useState"
@@ -435361,7 +435297,7 @@
             "start_line": 2,
             "end_line": 2,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "import",
             "resolved_target": "external:javascript:react"
           }
@@ -435384,7 +435320,7 @@
             "start_line": 146,
             "end_line": 146,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "call",
             "resolved_target": "lib/providerBrand.ts",
             "target_symbol": "subscriptionAuthPillClass"
@@ -435395,7 +435331,7 @@
             "start_line": 186,
             "end_line": 186,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "call",
             "resolved_target": "lib/providerBrand.ts",
             "target_symbol": "subscriptionAuthPillClass"
@@ -435419,7 +435355,7 @@
             "start_line": 15,
             "end_line": 15,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "import",
             "resolved_target": "lib/providerBrand.ts"
           }
@@ -435442,7 +435378,7 @@
             "start_line": 101,
             "end_line": 101,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "call",
             "resolved_target": "lib/subscriptionAuthUi.ts",
             "target_symbol": "subscriptionAuthStatusLabel"
@@ -435453,7 +435389,7 @@
             "start_line": 169,
             "end_line": 169,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "call",
             "resolved_target": "lib/subscriptionAuthUi.ts",
             "target_symbol": "subscriptionAuthOpenLabel"
@@ -435477,7 +435413,7 @@
             "start_line": 16,
             "end_line": 19,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "import",
             "resolved_target": "lib/subscriptionAuthUi.ts"
           }
@@ -435500,7 +435436,7 @@
             "start_line": 4,
             "end_line": 7,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "import",
             "resolved_target": "packages/shared/src/subscriptionAuth.ts"
           }
@@ -435523,7 +435459,7 @@
             "start_line": 45,
             "end_line": 45,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "call",
             "resolved_target": "services/studio-api/auth.ts",
             "target_symbol": "getSubscriptionAuthStatus"
@@ -435534,7 +435470,7 @@
             "start_line": 68,
             "end_line": 68,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "call",
             "resolved_target": "services/studio-api/auth.ts",
             "target_symbol": "getSubscriptionAuthStatus"
@@ -435545,7 +435481,7 @@
             "start_line": 88,
             "end_line": 88,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "call",
             "resolved_target": "services/studio-api/auth.ts",
             "target_symbol": "getSubscriptionAuthStatus"
@@ -435569,7 +435505,7 @@
             "start_line": 8,
             "end_line": 13,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "import",
             "resolved_target": "services/studio-api/auth.ts"
           }
@@ -435592,7 +435528,7 @@
             "start_line": 65,
             "end_line": 65,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "call",
             "resolved_target": "services/studioEventSource.ts",
             "target_symbol": "createStudioEventStream"
@@ -435616,7 +435552,7 @@
             "start_line": 14,
             "end_line": 14,
             "extractor": "tree-sitter-tsx",
-            "source_digest": "e5373e9dd9ffe0b19a97829ef1ce49afeaea04e5acc45e67709d331ec2d8afcf",
+            "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
             "kind": "import",
             "resolved_target": "services/studioEventSource.ts"
           }
@@ -521038,7 +520974,7 @@
       "handler_symbol": "main"
     }
   ],
-  "source_digest": "5ac3294c8d4640bb6677a95f2ce3afa7769f7b0eafd8d37c7bfacf5bea089a4f",
+  "source_digest": "b9ad2ce3478508aec9863569ed92abe7559e4dd921c2a054d9be15c6c10ece7c",
   "changes": {
     "added_nodes": [],
     "removed_nodes": [],
@@ -521049,5 +520985,5 @@
     "changed": false,
     "changed_node_ids": []
   },
-  "generation_id": "4d22ed45c30b610b1b111c94319a1872c8d2a9781c86ee395368ef24acfb9fb3"
+  "generation_id": "ead39bad44a5b1b9548949dcf9606d2b06c803737b35f084c3c89b39e5359106"
 }

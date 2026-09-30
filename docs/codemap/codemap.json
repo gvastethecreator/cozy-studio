@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-30T06:56:34Z",
-  "generated_from_commit": "a14716b193cff2ec91a6edf7195cd64a1d368e73",
+  "generated_at": "2026-09-30T07:19:30Z",
+  "generated_from_commit": "aae0d8ee336b72e36732b2dbca0dc464c87288d7",
   "scope": [
     "."
   ],
@@ -867,8 +867,8 @@
         "path": "apps/local-server/src/libraryAssetVariants.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "11946690c1883a26dc17575819fd3e87c3fdd7fe8fea4f9a5cb4ed484623f637",
-        "size": 4272
+        "digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
+        "size": 4334
       },
       {
         "path": "apps/local-server/src/libraryRoutes.test.ts",
@@ -5655,8 +5655,8 @@
         "path": "scripts/core-assets-browser-smoke.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "068141bbff113f8b78b38c564bc05082595bce32632b3da359d13c7535dbb090",
-        "size": 2877
+        "digest": "983a4635435ddbf68a9cb408adeb9d9015e97a863b10c47d5e00299d4062b4c4",
+        "size": 2881
       },
       {
         "path": "scripts/core-assets-smoke.ts",
@@ -6555,7 +6555,7 @@
         "size": 710
       }
     ],
-    "digest": "3dd23929d7bf01b1d3a33281c7c81531ddfeff00472b050342623b66c2c7b121"
+    "digest": "8d78acaa72f5d86f120be84dc84362079cf94bd918ccb7d4130da11d64af2d49"
   },
   "coverage": {
     "discovered_files": 1762,
@@ -16426,37 +16426,31 @@
       },
       {
         "path": "apps/local-server/src/libraryAssetVariants.ts",
-        "line": 28,
+        "line": 29,
         "reference": "getSettings",
         "reason": "shadowed-call-binding"
       },
       {
         "path": "apps/local-server/src/libraryAssetVariants.ts",
-        "line": 29,
+        "line": 30,
         "reference": "path",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "apps/local-server/src/libraryAssetVariants.ts",
-        "line": 42,
+        "line": 43,
         "reference": "path",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "apps/local-server/src/libraryAssetVariants.ts",
-        "line": 50,
+        "line": 80,
         "reference": "path",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "apps/local-server/src/libraryAssetVariants.ts",
-        "line": 79,
-        "reference": "path",
-        "reason": "object-member-call-not-resolved"
-      },
-      {
-        "path": "apps/local-server/src/libraryAssetVariants.ts",
-        "line": 97,
+        "line": 98,
         "reference": "path",
         "reason": "object-member-call-not-resolved"
       },
@@ -51290,6 +51284,16 @@
           "type_only": false
         },
         {
+          "id": "apps/local-server/src/libraryAssetVariants.ts",
+          "type": "calls",
+          "type_only": false
+        },
+        {
+          "id": "apps/local-server/src/libraryAssetVariants.ts",
+          "type": "imports",
+          "type_only": false
+        },
+        {
           "id": "apps/local-server/src/libraryRoutes.ts",
           "type": "imports",
           "type_only": true
@@ -51807,28 +51811,28 @@
           {
             "path": "apps/local-server/src/libraryAssetVariants.ts",
             "symbol": "DEFAULT_THUMBNAIL_MAX_EDGE",
-            "start_line": 7,
-            "end_line": 7,
+            "start_line": 8,
+            "end_line": 8,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "11946690c1883a26dc17575819fd3e87c3fdd7fe8fea4f9a5cb4ed484623f637",
+            "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
             "kind": "definition"
           },
           {
             "path": "apps/local-server/src/libraryAssetVariants.ts",
             "symbol": "MIN_THUMBNAIL_MAX_EDGE",
-            "start_line": 8,
-            "end_line": 8,
+            "start_line": 9,
+            "end_line": 9,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "11946690c1883a26dc17575819fd3e87c3fdd7fe8fea4f9a5cb4ed484623f637",
+            "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
             "kind": "definition"
           },
           {
             "path": "apps/local-server/src/libraryAssetVariants.ts",
             "symbol": "MAX_THUMBNAIL_MAX_EDGE",
-            "start_line": 9,
-            "end_line": 9,
+            "start_line": 10,
+            "end_line": 10,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "11946690c1883a26dc17575819fd3e87c3fdd7fe8fea4f9a5cb4ed484623f637",
+            "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
             "kind": "definition"
           }
         ]
@@ -51908,6 +51912,16 @@
         },
         {
           "id": "apps/local-server/src/imagePipeline.ts",
+          "type": "imports",
+          "type_only": false
+        },
+        {
+          "id": "apps/local-server/src/library.ts",
+          "type": "calls",
+          "type_only": false
+        },
+        {
+          "id": "apps/local-server/src/library.ts",
           "type": "imports",
           "type_only": false
         },
@@ -120108,7 +120122,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "068141bbff113f8b78b38c564bc05082595bce32632b3da359d13c7535dbb090",
+            "source_digest": "983a4635435ddbf68a9cb408adeb9d9015e97a863b10c47d5e00299d4062b4c4",
             "kind": "import",
             "resolved_target": "external:javascript:playwright"
           },
@@ -273214,7 +273228,7 @@
             "start_line": 3,
             "end_line": 3,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "068141bbff113f8b78b38c564bc05082595bce32632b3da359d13c7535dbb090",
+            "source_digest": "983a4635435ddbf68a9cb408adeb9d9015e97a863b10c47d5e00299d4062b4c4",
             "kind": "definition"
           },
           {
@@ -273223,7 +273237,7 @@
             "start_line": 9,
             "end_line": 9,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "068141bbff113f8b78b38c564bc05082595bce32632b3da359d13c7535dbb090",
+            "source_digest": "983a4635435ddbf68a9cb408adeb9d9015e97a863b10c47d5e00299d4062b4c4",
             "kind": "definition"
           },
           {
@@ -273232,7 +273246,7 @@
             "start_line": 10,
             "end_line": 10,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "068141bbff113f8b78b38c564bc05082595bce32632b3da359d13c7535dbb090",
+            "source_digest": "983a4635435ddbf68a9cb408adeb9d9015e97a863b10c47d5e00299d4062b4c4",
             "kind": "definition"
           }
         ]
@@ -314049,10 +314063,10 @@
           {
             "path": "apps/local-server/src/libraryAssetVariants.ts",
             "symbol": "getSettings()",
-            "start_line": 41,
-            "end_line": 41,
+            "start_line": 42,
+            "end_line": 42,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "11946690c1883a26dc17575819fd3e87c3fdd7fe8fea4f9a5cb4ed484623f637",
+            "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
             "kind": "call",
             "resolved_target": "apps/local-server/src/config.ts",
             "target_symbol": "getSettings"
@@ -314060,10 +314074,10 @@
           {
             "path": "apps/local-server/src/libraryAssetVariants.ts",
             "symbol": "getSettings()",
-            "start_line": 57,
-            "end_line": 57,
+            "start_line": 58,
+            "end_line": 58,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "11946690c1883a26dc17575819fd3e87c3fdd7fe8fea4f9a5cb4ed484623f637",
+            "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
             "kind": "call",
             "resolved_target": "apps/local-server/src/config.ts",
             "target_symbol": "getSettings"
@@ -314087,7 +314101,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "11946690c1883a26dc17575819fd3e87c3fdd7fe8fea4f9a5cb4ed484623f637",
+            "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
             "kind": "import",
             "resolved_target": "apps/local-server/src/config.ts"
           }
@@ -314107,10 +314121,10 @@
           {
             "path": "apps/local-server/src/libraryAssetVariants.ts",
             "symbol": "encodeResizedWebpFromPath(sourceFilePath, thumbnailPath, {\n      maxEdge,\n      quality: 82,\n    })",
-            "start_line": 80,
-            "end_line": 83,
+            "start_line": 81,
+            "end_line": 84,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "11946690c1883a26dc17575819fd3e87c3fdd7fe8fea4f9a5cb4ed484623f637",
+            "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
             "kind": "call",
             "resolved_target": "apps/local-server/src/imagePipeline.ts",
             "target_symbol": "encodeResizedWebpFromPath"
@@ -314134,9 +314148,56 @@
             "start_line": 5,
             "end_line": 5,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "11946690c1883a26dc17575819fd3e87c3fdd7fe8fea4f9a5cb4ed484623f637",
+            "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
             "kind": "import",
             "resolved_target": "apps/local-server/src/imagePipeline.ts"
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge:82c79f34041dc68f4681",
+      "from": "apps/local-server/src/libraryAssetVariants.ts",
+      "to": "apps/local-server/src/library.ts",
+      "type": "calls",
+      "type_only": false,
+      "evidence_count": 1,
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "apps/local-server/src/libraryAssetVariants.ts",
+            "symbol": "resolveLibraryPathFromRoot(libraryDir, 'thumbnails', `${cacheKey}.${maxEdge}.webp`)",
+            "start_line": 51,
+            "end_line": 51,
+            "extractor": "tree-sitter-typescript",
+            "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
+            "kind": "call",
+            "resolved_target": "apps/local-server/src/library.ts",
+            "target_symbol": "resolveLibraryPathFromRoot"
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge:10162dd926aedd6fd436",
+      "from": "apps/local-server/src/libraryAssetVariants.ts",
+      "to": "apps/local-server/src/library.ts",
+      "type": "imports",
+      "type_only": false,
+      "evidence_count": 1,
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "apps/local-server/src/libraryAssetVariants.ts",
+            "symbol": "import { resolveLibraryPathFromRoot } from './library';",
+            "start_line": 6,
+            "end_line": 6,
+            "extractor": "tree-sitter-typescript",
+            "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
+            "kind": "import",
+            "resolved_target": "apps/local-server/src/library.ts"
           }
         ]
       }
@@ -314154,10 +314215,10 @@
           {
             "path": "apps/local-server/src/libraryAssetVariants.ts",
             "symbol": "createHash('sha1')",
-            "start_line": 45,
-            "end_line": 45,
+            "start_line": 46,
+            "end_line": 46,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "11946690c1883a26dc17575819fd3e87c3fdd7fe8fea4f9a5cb4ed484623f637",
+            "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
             "kind": "call",
             "resolved_target": "external:javascript:node:crypto",
             "target_symbol": "createHash"
@@ -314181,7 +314242,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "11946690c1883a26dc17575819fd3e87c3fdd7fe8fea4f9a5cb4ed484623f637",
+            "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
             "kind": "import",
             "resolved_target": "external:javascript:node:crypto"
           }
@@ -314201,10 +314262,10 @@
           {
             "path": "apps/local-server/src/libraryAssetVariants.ts",
             "symbol": "statSync(sourceFilePath)",
-            "start_line": 44,
-            "end_line": 44,
+            "start_line": 45,
+            "end_line": 45,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "11946690c1883a26dc17575819fd3e87c3fdd7fe8fea4f9a5cb4ed484623f637",
+            "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
             "kind": "call",
             "resolved_target": "external:javascript:node:fs",
             "target_symbol": "statSync"
@@ -314212,10 +314273,10 @@
           {
             "path": "apps/local-server/src/libraryAssetVariants.ts",
             "symbol": "existsSync(thumbnailPath)",
-            "start_line": 69,
-            "end_line": 69,
+            "start_line": 70,
+            "end_line": 70,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "11946690c1883a26dc17575819fd3e87c3fdd7fe8fea4f9a5cb4ed484623f637",
+            "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
             "kind": "call",
             "resolved_target": "external:javascript:node:fs",
             "target_symbol": "existsSync"
@@ -314223,10 +314284,10 @@
           {
             "path": "apps/local-server/src/libraryAssetVariants.ts",
             "symbol": "mkdirSync(path.dirname(thumbnailPath), { recursive: true })",
-            "start_line": 79,
-            "end_line": 79,
+            "start_line": 80,
+            "end_line": 80,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "11946690c1883a26dc17575819fd3e87c3fdd7fe8fea4f9a5cb4ed484623f637",
+            "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
             "kind": "call",
             "resolved_target": "external:javascript:node:fs",
             "target_symbol": "mkdirSync"
@@ -314250,7 +314311,7 @@
             "start_line": 2,
             "end_line": 2,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "11946690c1883a26dc17575819fd3e87c3fdd7fe8fea4f9a5cb4ed484623f637",
+            "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
             "kind": "import",
             "resolved_target": "external:javascript:node:fs"
           }
@@ -314273,7 +314334,7 @@
             "start_line": 3,
             "end_line": 3,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "11946690c1883a26dc17575819fd3e87c3fdd7fe8fea4f9a5cb4ed484623f637",
+            "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
             "kind": "import",
             "resolved_target": "external:javascript:node:path"
           }
@@ -431090,7 +431151,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "068141bbff113f8b78b38c564bc05082595bce32632b3da359d13c7535dbb090",
+            "source_digest": "983a4635435ddbf68a9cb408adeb9d9015e97a863b10c47d5e00299d4062b4c4",
             "kind": "import",
             "resolved_target": "external:javascript:playwright"
           }
@@ -456371,724 +456432,39 @@
       "handler_symbol": "main"
     }
   ],
-  "source_digest": "98fc17e3590906a8ef1e36dce1fb5d906e35d131c7197872ba1b50fe2669af91",
+  "source_digest": "244a815a08989c85408c24115afe5be2769aa239233f30902eb0c094fcc08bb4",
   "changes": {
-    "added_nodes": [
-      {
-        "id": "external:javascript:iconoir-react",
-        "path": "external:javascript:iconoir-react",
-        "label": "iconoir-react",
-        "type": "external",
-        "boundary": "External",
-        "entrypoints": [],
-        "tests": [],
-        "test_evidence": [],
-        "analysis": "reference-only",
-        "is_test": false,
-        "symbols": [],
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/CatalogCardBackdrop.tsx",
-              "symbol": "import { MoreHoriz } from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "28e47babb61bf211bdc1aa416b052a49d76aec09a22c1128a70a4607b264aeb8",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            },
-            {
-              "path": "components/ConfirmationModal.tsx",
-              "symbol": "import {\n  WarningTriangle as AlertTriangle,\n  RefreshCircle as RotateCcw,\n  ShieldAlert,\n  Xmark as X,\n} from 'iconoir-react';",
-              "start_line": 4,
-              "end_line": 9,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "43530d8124ccce001dfb1a60e38bb2dccb6be21c585fb475a8ef1a6bc5ce2103",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            },
-            {
-              "path": "components/DashboardModal.tsx",
-              "symbol": "import {\n  Xmark as X,\n  User,\n  Download,\n  Database,\n  MultiplePages as Layers,\n  Computer as HardDrive,\n} from 'iconoir-react';",
-              "start_line": 4,
-              "end_line": 11,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "2982dd4537ac02db47dd78772bd9b1a3e16a74d505860c1a22a51d6c30c3b997",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        },
-        "callers": [
-          {
-            "id": "components/CatalogCardBackdrop.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/ConfirmationModal.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/DashboardModal.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/DebugPanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/DropZoneOverlay.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/ErrorBoundary.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/HeaderToolbar.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/ImageCarousel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/ImageEditorModal.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/ImageGrid.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/JobInspectorDetail.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/KeyPopover.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/OnboardingModal.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/ProviderBrandMark.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/QueuePanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/ReferenceTray.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/SessionOverview.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/StudioChatPanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/StudioSettingsModal.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/Toast.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/Toolbar.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/ToolbarLiveStatus.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/TrashModal.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/create/CreatePromptExpandDialog.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/create/CreateWorkflowPicker.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/header/ProviderQuickSwitch.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/header/UsageStatusCard.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/header/WorkspaceStrip.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/AnimationSequenceRecipe.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/CharacterLabRecipe.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/CharacterSheetRecipe.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/CinematicRecipe.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/CompactStyleSelector.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/NoStylePacksNotice.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/RecipeDiscoveryList.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/RecipeResultPreview.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/RecipeUI.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/RemasterRecipe.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/SpriteAtlasRecipe.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/SpritesheetRecipe.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/StyleAdvancedControlsPanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/StyleBrowseSwitch.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/StyleCategoryGlyph.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/StyleCollectionsLandingSurface.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/StylePresetCardSurface.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/StylePresetCatalogSearchSurface.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/StyleRecipeNavigationPanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/StylesBrowser.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/TimelineRecipe.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/UserStyleEditorSurface.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/styleNavigationPresentation.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/settings/SettingsExtensionsPanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/settings/SettingsFormPanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/settings/SettingsMaintenancePanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/settings/SettingsOutputSourcesPanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/settings/StylePackBrowser.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/settings/SubscriptionAuthControls.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/shell/StudioStatusBar.tsx",
-            "type": "imports",
-            "type_only": false
-          }
-        ],
-        "callees": [],
-        "parent": "External"
-      }
-    ],
-    "removed_nodes": [
-      {
-        "id": "external:javascript:@tabler/icons-react",
-        "path": "external:javascript:@tabler/icons-react",
-        "label": "@tabler/icons-react",
-        "type": "external",
-        "boundary": "External",
-        "entrypoints": [],
-        "tests": [],
-        "test_evidence": [],
-        "analysis": "reference-only",
-        "is_test": false,
-        "symbols": [],
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/CatalogCardBackdrop.tsx",
-              "symbol": "import { IconDots } from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "2119beac9167e57c187d3275ceac91523e76a98eeda026df2947b50e4e0301d0",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            },
-            {
-              "path": "components/ConfirmationModal.tsx",
-              "symbol": "import {\n  IconAlertTriangle as AlertTriangle,\n  IconRotate as RotateCcw,\n  IconShieldExclamation as ShieldAlert,\n  IconX as X,\n} from '@tabler/icons-react';",
-              "start_line": 4,
-              "end_line": 9,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "d0aa2eb9aea1db3105ceef14c21af46e24ca1cb6081e7f9da634e6da60a1000a",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            },
-            {
-              "path": "components/DashboardModal.tsx",
-              "symbol": "import {\n  IconX as X,\n  IconUser as User,\n  IconDownload as Download,\n  IconDatabase as Database,\n  IconStack as Layers,\n  IconDeviceDesktop as HardDrive,\n} from '@tabler/icons-react';",
-              "start_line": 4,
-              "end_line": 11,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "ec46d2446f1873818d968ba568f9e48e30b646373178aaa56d4f65a699cbf31d",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        },
-        "callers": [
-          {
-            "id": "components/CatalogCardBackdrop.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/ConfirmationModal.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/DashboardModal.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/DebugPanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/DropZoneOverlay.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/ErrorBoundary.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/HeaderToolbar.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/ImageCarousel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/ImageEditorModal.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/ImageGrid.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/JobInspectorDetail.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/KeyPopover.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/OnboardingModal.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/ProviderBrandMark.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/QueuePanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/ReferenceTray.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/SessionOverview.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/StudioChatPanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/StudioSettingsModal.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/Toast.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/Toolbar.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/ToolbarLiveStatus.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/TrashModal.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/create/CreatePromptExpandDialog.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/create/CreateWorkflowPicker.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/header/ProviderQuickSwitch.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/header/UsageStatusCard.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/header/WorkspaceStrip.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/AnimationSequenceRecipe.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/CharacterLabRecipe.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/CharacterSheetRecipe.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/CinematicRecipe.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/CompactStyleSelector.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/NoStylePacksNotice.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/RecipeDiscoveryList.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/RecipeResultPreview.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/RecipeUI.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/RemasterRecipe.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/SpriteAtlasRecipe.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/SpritesheetRecipe.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/StyleAdvancedControlsPanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/StyleBrowseSwitch.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/StyleCategoryGlyph.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/StyleCollectionsLandingSurface.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/StylePresetCardSurface.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/StylePresetCatalogSearchSurface.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/StyleRecipeNavigationPanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/StylesBrowser.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/TimelineRecipe.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/UserStyleEditorSurface.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/recipes/styleNavigationPresentation.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/settings/SettingsExtensionsPanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/settings/SettingsFormPanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/settings/SettingsMaintenancePanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/settings/SettingsOutputSourcesPanel.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/settings/StylePackBrowser.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/settings/SubscriptionAuthControls.tsx",
-            "type": "imports",
-            "type_only": false
-          },
-          {
-            "id": "components/shell/StudioStatusBar.tsx",
-            "type": "imports",
-            "type_only": false
-          }
-        ],
-        "callees": [],
-        "parent": "External"
-      }
-    ],
+    "added_nodes": [],
+    "removed_nodes": [],
     "added_edges": [
       {
-        "id": "edge:7f25e32eccc2ba55ff2d",
-        "from": "components/CatalogCardBackdrop.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
+        "id": "edge:82c79f34041dc68f4681",
+        "from": "apps/local-server/src/libraryAssetVariants.ts",
+        "to": "apps/local-server/src/library.ts",
+        "type": "calls",
         "type_only": false,
         "evidence_count": 1,
         "evidence": {
           "status": "verified",
           "locations": [
             {
-              "path": "components/CatalogCardBackdrop.tsx",
-              "symbol": "import { MoreHoriz } from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "28e47babb61bf211bdc1aa416b052a49d76aec09a22c1128a70a4607b264aeb8",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
+              "path": "apps/local-server/src/libraryAssetVariants.ts",
+              "symbol": "resolveLibraryPathFromRoot(libraryDir, 'thumbnails', `${cacheKey}.${maxEdge}.webp`)",
+              "start_line": 51,
+              "end_line": 51,
+              "extractor": "tree-sitter-typescript",
+              "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
+              "kind": "call",
+              "resolved_target": "apps/local-server/src/library.ts",
+              "target_symbol": "resolveLibraryPathFromRoot"
             }
           ]
         }
       },
       {
-        "id": "edge:cfa369657d19cf814c6f",
-        "from": "components/ConfirmationModal.tsx",
-        "to": "external:javascript:iconoir-react",
+        "id": "edge:10162dd926aedd6fd436",
+        "from": "apps/local-server/src/libraryAssetVariants.ts",
+        "to": "apps/local-server/src/library.ts",
         "type": "imports",
         "type_only": false,
         "evidence_count": 1,
@@ -457096,2731 +456472,27 @@
           "status": "verified",
           "locations": [
             {
-              "path": "components/ConfirmationModal.tsx",
-              "symbol": "import {\n  WarningTriangle as AlertTriangle,\n  RefreshCircle as RotateCcw,\n  ShieldAlert,\n  Xmark as X,\n} from 'iconoir-react';",
-              "start_line": 4,
-              "end_line": 9,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "43530d8124ccce001dfb1a60e38bb2dccb6be21c585fb475a8ef1a6bc5ce2103",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:e17b37e8f9077d31c7aa",
-        "from": "components/DashboardModal.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/DashboardModal.tsx",
-              "symbol": "import {\n  Xmark as X,\n  User,\n  Download,\n  Database,\n  MultiplePages as Layers,\n  Computer as HardDrive,\n} from 'iconoir-react';",
-              "start_line": 4,
-              "end_line": 11,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "2982dd4537ac02db47dd78772bd9b1a3e16a74d505860c1a22a51d6c30c3b997",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:6d5f5635bface33ab00c",
-        "from": "components/DebugPanel.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/DebugPanel.tsx",
-              "symbol": "import { Brain as BrainCircuit, Xmark as X } from 'iconoir-react';",
-              "start_line": 3,
-              "end_line": 3,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "cf7507fae45df441d3ffb84eefe5ec12bc2a7327cdc993f0264c9ed1a706a9f1",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:6dd6dcec87531c4acc29",
-        "from": "components/DropZoneOverlay.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/DropZoneOverlay.tsx",
-              "symbol": "import { Attachment as Paperclip } from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "3578f0659b078dd9e876ec2be05476f81ca9877e9cb5a80743ef4d3af6c3fb69",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:14a6e4315f44721149d6",
-        "from": "components/ErrorBoundary.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/ErrorBoundary.tsx",
-              "symbol": "import { WarningTriangle as AlertTriangle } from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "a4aeae13986b586b4ec846aead3f5d5d0d54feecb2f5c5c86f341d2f1f1e772d",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:6f50829029d641be5de4",
-        "from": "components/HeaderToolbar.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/HeaderToolbar.tsx",
-              "symbol": "import {\n  Sparks,\n  BookStack,\n  Trash as Trash2,\n  HelpCircle as CircleHelp,\n  Activity,\n  Suitcase as Briefcase,\n  Menu as Menu2,\n  ChatBubble as MessageSquare,\n  Settings,\n  SunLight as Sun,\n  HalfMoon as Moon,\n} from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 14,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "e2920d1252e61ee886c16504cde1bbadff3f7ebf27fd692d87a5e39bbf1e698c",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:2e3f759cf0867d3dfebf",
-        "from": "components/ImageCarousel.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/ImageCarousel.tsx",
-              "symbol": "import {\n  NavArrowLeft as ChevronLeft,\n  NavArrowRight as ChevronRight,\n  Xmark as X,\n  Download,\n  PlusCircle,\n  Refresh as RefreshCw,\n  Trash as Trash2,\n  Expand as Maximize2,\n  Collapse as Minimize2,\n  List as ClipboardList,\n  Clock as History,\n  Check,\n  Heart,\n  ViewColumns2 as SplitSquareHorizontal,\n  Plus,\n  Minus,\n  Copy,\n} from 'iconoir-react';",
-              "start_line": 4,
-              "end_line": 22,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "f4831d17d1d71283f19a44361ec26c263d677dee1fe99290d698db6df3c4dd39",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:c1697ff5a412693866ec",
-        "from": "components/ImageEditorModal.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/ImageEditorModal.tsx",
-              "symbol": "import {\n  DesignPencil as Brush,\n  Sparks as Sparkles,\n  Trash as Trash2,\n  Undo,\n  Xmark as X,\n} from 'iconoir-react';",
-              "start_line": 3,
-              "end_line": 9,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "ac23a78109af63ca05b0a15e807b4ef059cec57107bf49322aafe381a263d443",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:610fa5640cd0e178cf72",
-        "from": "components/ImageGrid.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/ImageGrid.tsx",
-              "symbol": "import {\n  Download,\n  PlusCircle,\n  Refresh as RefreshCw,\n  Trash as Trash2,\n  Check,\n  List as ClipboardList,\n  Clock as History,\n  Heart,\n  MediaImageXmark as ImageOff,\n  MediaImage as Photo,\n  Sort as ArrowUpDown,\n  ViewGrid as LayoutCards,\n  ViewGrid as LayoutCollage,\n  ViewGrid as LayoutGrid,\n  List as LayoutList,\n  CheckSquare,\n  Square,\n} from 'iconoir-react';",
-              "start_line": 8,
-              "end_line": 26,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "d15a673c4c1a0ace9a360c37eb4e953a3a1c9d78a14d6ed61b401f784055ae4c",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:247052a191cc93ee3900",
-        "from": "components/JobInspectorDetail.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/JobInspectorDetail.tsx",
-              "symbol": "import {\n  Activity,\n  WarningCircle as AlertCircle,\n  Brain as BrainCircuit,\n  Clock as Clock3,\n  Eye,\n  Page as FileText,\n  MediaImage,\n  MultiplePagesEmpty as Layers3,\n  Link as Link2,\n  ChatBubble as MessageSquare,\n  RefreshCircle as RotateCcw,\n  Wrench,\n} from 'iconoir-react';",
-              "start_line": 3,
-              "end_line": 16,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "afec49d072a9c3e6a069268fa96c875396f14e91c9d458cc947d99cd71cea2a8",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:a762b6d58842e1b8d62b",
-        "from": "components/KeyPopover.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/KeyPopover.tsx",
-              "symbol": "import { Key, OpenNewWindow as ExternalLink, ShieldCheck, Xmark as X } from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "b34d7999f9e4cc3611d65bf61464b39928aa0bcfc06f1e27490ac474b182aad8",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:f74eac6af8d00fa8362b",
-        "from": "components/OnboardingModal.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/OnboardingModal.tsx",
-              "symbol": "import {\n  ArrowRight,\n  CheckCircle as CheckCircle2,\n  WarningCircle as CircleAlert,\n  Circle as CircleDashed,\n  PasteClipboard as Clipboard,\n  ClipboardCheck,\n  Folder,\n  Palette,\n  MediaImage,\n  Play,\n  Refresh as RefreshCw,\n  Sparks as Sparkles,\n  Terminal,\n  Xmark as X,\n} from 'iconoir-react';",
+              "path": "apps/local-server/src/libraryAssetVariants.ts",
+              "symbol": "import { resolveLibraryPathFromRoot } from './library';",
               "start_line": 6,
-              "end_line": 21,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "817bf80d4b6aa9cbcb4535fd6229effaf59727f662e82c8406face26a8f6ed0d",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:788dc734512d9b0e5841",
-        "from": "components/ProviderBrandMark.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/ProviderBrandMark.tsx",
-              "symbol": "import { PlugTypeA, Flask } from 'iconoir-react';",
-              "start_line": 1,
-              "end_line": 1,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "359159d00d13121115dd58919def543d9161ff8ea74156a400db1b853dc69e6e",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:256e27907f0180074337",
-        "from": "components/QueuePanel.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/QueuePanel.tsx",
-              "symbol": "import {\n  WarningTriangle as AlertTriangle,\n  CheckCircle as CheckCircle2,\n  NavArrowLeft as ChevronLeft,\n  NavArrowRight as ChevronRight,\n  Clock,\n  MultiplePages as Layers,\n  Expand as Maximize2,\n  RefreshCircle as RotateCcw,\n  XmarkCircle as XCircle,\n} from 'iconoir-react';",
-              "start_line": 3,
-              "end_line": 13,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "0ae50406508fca8809386af58345665d5e158e1654e75d79d0513d1a378f853c",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:8bfab05cbd1e932f1273",
-        "from": "components/ReferenceTray.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/ReferenceTray.tsx",
-              "symbol": "import { EditPencil as Pencil, Refresh, Xmark as X } from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "340d1ecbbfbea74209d1d894aa67676739c1549cd18e7e4bf68f1130f267b9ff",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:8c1bd029b54251e28cb1",
-        "from": "components/SessionOverview.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/SessionOverview.tsx",
-              "symbol": "import { Activity, Database, MultiplePagesEmpty as Layers3, Terminal } from 'iconoir-react';",
-              "start_line": 3,
-              "end_line": 3,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "00a43955db66abc62063e07e255df98b0219b9db23f7d0bda2296b55682e40c6",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:88319d1b21a0b7bfddf7",
-        "from": "components/StudioChatPanel.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/StudioChatPanel.tsx",
-              "symbol": "import {\n  WarningTriangle as AlertTriangle,\n  ElectronicsChip as Bot,\n  CheckCircle as CheckCircle2,\n  Clock,\n  ChatBubble as MessageSquare,\n  SendDiagonal as Send,\n  User,\n  Xmark as X,\n} from 'iconoir-react';",
-              "start_line": 3,
-              "end_line": 12,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "96f96a8f4207b382a9a379488e26a4cad30455ecd278f7e72fdb4f094cce13b0",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:d7cc6d352504edd77337",
-        "from": "components/StudioSettingsModal.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/StudioSettingsModal.tsx",
-              "symbol": "import { Refresh as RefreshCw, FloppyDisk as Save, Settings, Xmark as X } from 'iconoir-react';",
-              "start_line": 8,
-              "end_line": 8,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "fa492d27f9f077056e28ef3c2a11ba23f61cf6b34bd5c9a9b3456929f30f371c",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:531ae060a34010c358d2",
-        "from": "components/Toast.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/Toast.tsx",
-              "symbol": "import {\n  Xmark as X,\n  WarningCircle as AlertCircle,\n  CheckCircle,\n  InfoCircle as Info,\n  WarningTriangle as AlertTriangle,\n} from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 8,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "83e9d25d36b98e2ee06a1bb02e50b90256655549357439a3dd87b9be72c76db4",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:87b278b86ad47b5d9c9a",
-        "from": "components/Toolbar.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/Toolbar.tsx",
-              "symbol": "import {\n  Prohibition as Ban,\n  ElectronicsChip as Bot,\n  Brain as BrainCircuit,\n  Check,\n  NavArrowDown as ChevronDown,\n  EditPencil as Edit3,\n  Erase as Eraser,\n  Hashtag as Hash,\n  MediaImagePlus as ImagePlus,\n  MultiplePages as Layers,\n  Expand as Maximize,\n  Computer as Monitor,\n  MoreHoriz as MoreHorizontal,\n  PlusCircle,\n  Minus,\n  Plus,\n  Crop as Ratio,\n  Square as RectangleHorizontal,\n  ScanBarcode as Scan,\n  ControlSlider as SlidersHorizontal,\n  SendDiagonal as Send,\n  ShieldAlert,\n  Square,\n  Sparks as Sparkles,\n  MagicWand as Wand,\n  MagicWand as Wand2,\n  Xmark as X,\n  Flash as Zap,\n} from 'iconoir-react';",
-              "start_line": 9,
-              "end_line": 38,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "0eb62f238dacb3b22b67389ecbd7278b4aaea406a5553fcb91df8ace125268c0",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:ebac23de420d9af30889",
-        "from": "components/ToolbarLiveStatus.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/ToolbarLiveStatus.tsx",
-              "symbol": "import { SendDiagonal as Send } from 'iconoir-react';",
-              "start_line": 1,
-              "end_line": 1,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "968f1a50ab7bc761ededfb4faec2af22bd87d6a26bd9c6d459dcacc675978897",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:0024e07de7acf7cb5b2a",
-        "from": "components/TrashModal.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/TrashModal.tsx",
-              "symbol": "import {\n  Trash as Trash2,\n  RefreshCircle as RotateCcw,\n  Xmark as X,\n  Trash,\n  WarningCircle as AlertCircle,\n} from 'iconoir-react';",
-              "start_line": 4,
-              "end_line": 10,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "070b74b556d43da8d93eedbbd728e36b2079a9215990f1636d05450dea17e94f",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:2a0b6c89721b99473586",
-        "from": "components/create/CreatePromptExpandDialog.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/create/CreatePromptExpandDialog.tsx",
-              "symbol": "import { Xmark as X } from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "1711e659e5014cf5bdd5bb158b026771bec0abce0c5be92aa9809c67aa766c9c",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:820dd2b211a3f0916547",
-        "from": "components/create/CreateWorkflowPicker.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/create/CreateWorkflowPicker.tsx",
-              "symbol": "import { NavArrowDown, Network } from 'iconoir-react';",
-              "start_line": 3,
-              "end_line": 3,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "0d714fd15773c9f926aa804a41c7d5ae4a677a67e3749488efb3d4823da8d5df",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:e22f2c5dbe3de576008c",
-        "from": "components/header/ProviderQuickSwitch.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/header/ProviderQuickSwitch.tsx",
-              "symbol": "import { Check, NavArrowDown as ChevronDown } from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "8d7fcaa82778fac2eccb44ebda3e0190aa547553bcb64c30cda445a33eec0cc7",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:2a250086b2a407bdb1e9",
-        "from": "components/header/UsageStatusCard.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/header/UsageStatusCard.tsx",
-              "symbol": "import { Dashboard as Gauge, WifiOff } from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "317c52dcd75d724388fba8881ab466ff87eb0371d6a6eb943ecb4f4a32d2ece7",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:95296098e4d1bae7dc49",
-        "from": "components/header/WorkspaceStrip.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/header/WorkspaceStrip.tsx",
-              "symbol": "import {\n  Clock,\n  Database,\n  MoreVert as DotsVertical,\n  Folder,\n  MediaImage as Photo,\n  Plus,\n  Trash as Trash2,\n} from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 10,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "9d8313b40518c7ac8e6107d865b132b977777967b00c78a1412ad5549a481f31",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:8bbec669d9cb6bb80625",
-        "from": "components/recipes/AnimationSequenceRecipe.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/AnimationSequenceRecipe.tsx",
-              "symbol": "import {\n  WarningTriangle as AlertTriangle,\n  Check,\n  Download,\n  GifFormat as Gif,\n  Play,\n  Refresh as RefreshCw,\n  Sparks as Sparkles,\n} from 'iconoir-react';",
-              "start_line": 7,
-              "end_line": 15,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "925e74dd40f6a6ee388eb698e5e21a4c0324c6f091e1fd8611a6e11c2b80c7fd",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:d02a770505f02cf135da",
-        "from": "components/recipes/CharacterLabRecipe.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/CharacterLabRecipe.tsx",
-              "symbol": "import {\n  Check,\n  NavArrowDown as ChevronDown,\n  Page as FileText,\n  Lock,\n  Search,\n  Sparks as Sparkles,\n  Xmark as X,\n} from 'iconoir-react';",
-              "start_line": 11,
-              "end_line": 19,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "fd0820f0c9183f98273fc8de4baf3068755a16b8562fcd35f9447ce4e8ed266a",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:609a5538f8e6fef5a90e",
-        "from": "components/recipes/CharacterSheetRecipe.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/CharacterSheetRecipe.tsx",
-              "symbol": "import { LayoutLeft as Layout, Palette, Camera, UserScan as ScanFace } from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "c016e77deef7336591ee748734a645c4b2b86fadd1df4ddc6bc96d4eac01d60e",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:da94983220f276030b9b",
-        "from": "components/recipes/CinematicRecipe.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/CinematicRecipe.tsx",
-              "symbol": "import {\n  Check,\n  NavArrowDown as ChevronDown,\n  Movie as Clapperboard,\n  VideoCamera as Video,\n  Lens as Aperture,\n  Movie as Film,\n  Xmark as X,\n  SunLight as Sun,\n  ViewGrid as Grid3X3,\n  Clock,\n  Rain as CloudRain,\n  ViewColumns2 as LayoutTemplate,\n  Square as RectangleHorizontal,\n  Upload,\n} from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 17,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "c6fdafc92858d2c6456edfabadb3c792b2d1cba275d1ee8ba242faa10909358f",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:d9bf8c902cb8c35dc77d",
-        "from": "components/recipes/CompactStyleSelector.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/CompactStyleSelector.tsx",
-              "symbol": "import {\n  Check,\n  NavArrowDown as ChevronDown,\n  NavArrowLeft as ChevronLeft,\n  NavArrowRight as ChevronRight,\n  NavArrowUp as ChevronUp,\n  Eye,\n  Folder,\n  Heart,\n  ViewGrid as LayoutGrid,\n  Pause,\n  Play,\n  Plus,\n  Search,\n  Xmark as X,\n} from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 17,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "54eccdfc085d8c14dd2d152d9f10b3b061cae0d3b9bf494cc7f1e42abe2443aa",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:d62bf6bd1b0c2987cd90",
-        "from": "components/recipes/NoStylePacksNotice.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/NoStylePacksNotice.tsx",
-              "symbol": "import { Palette } from 'iconoir-react';",
-              "start_line": 1,
-              "end_line": 1,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "ce7111f409ee8f7be625cb4757667e3f6e1f5fbf1779df9b663dc95e377e4844",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:70731cb88ecdd427a8ae",
-        "from": "components/recipes/RecipeDiscoveryList.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/RecipeDiscoveryList.tsx",
-              "symbol": "import { ArrowRight } from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "7df0ccc44c11d26078fbfea25afbb360762378dab1545feed33db822fe7af72e",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:0978275910b09d8244ff",
-        "from": "components/recipes/RecipeResultPreview.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/RecipeResultPreview.tsx",
-              "symbol": "import {\n  NavArrowLeft as ChevronLeft,\n  NavArrowRight as ChevronRight,\n  Copy,\n  Download,\n  Heart,\n  Minus,\n  Plus,\n  Expand as OpenFull,\n  Attachment as Paperclip,\n} from 'iconoir-react';",
-              "start_line": 3,
-              "end_line": 13,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "dd92446d2c9fd948da8468dbf89123ef4c99dbdf4d0e594d933523b6268315af",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:fa3be438e24da92729e7",
-        "from": "components/recipes/RecipeUI.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/RecipeUI.tsx",
-              "symbol": "import { Check, NavArrowDown as ChevronDown, ColorPicker as Pipette } from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "5a6f2190f38422ec694cbc1784773bb61c706e820fa3f82a6da70de060523de9",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:55a98714d121ae37de07",
-        "from": "components/recipes/RemasterRecipe.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/RemasterRecipe.tsx",
-              "symbol": "import {\n  SunLight as Sun,\n  Camera,\n  Palette,\n  Tv as MonitorPlay,\n  Fingerprint,\n  Text as TextIcon,\n} from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 9,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "4581709532d0183b5f6e9ddf337ee89647d872d8ea8e6dbd69ffbfb17a250310",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:d7c4175d653baf84fd49",
-        "from": "components/recipes/SpriteAtlasRecipe.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/SpriteAtlasRecipe.tsx",
-              "symbol": "import {\n  WarningTriangle as AlertTriangle,\n  Check,\n  NavArrowDown as ChevronDown,\n  List as ClipboardList,\n  Import as FileImport,\n  Page as FileText,\n  Folder,\n  Package,\n  Plus,\n  Refresh as RefreshCw,\n  Search,\n} from 'iconoir-react';",
-              "start_line": 5,
-              "end_line": 17,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "4d89c7d40b64e77ac0a0ce823aa2c072c023926d9174ebcdea90f525fc4dd60b",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:6d4cc7c6f9c17a6f6bb1",
-        "from": "components/recipes/SpritesheetRecipe.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/SpritesheetRecipe.tsx",
-              "symbol": "import {\n  ViewGrid as Grid3X3,\n  Palette,\n  FillColor as PaintBucket,\n  Eye,\n  ExpandLines as SeparatorHorizontal,\n  Hashtag as Hash,\n  ScanBarcode as ScanLine,\n  EditPencil as Edit3,\n  Xmark as X,\n  NavArrowLeft as ChevronLeft,\n} from 'iconoir-react';",
-              "start_line": 4,
-              "end_line": 15,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "03b0c929820800a963023108d218cf7bf6e3d8d693e45270041f5aee8c85cb29",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:df0b7cdcccd15fcc93ef",
-        "from": "components/recipes/StyleAdvancedControlsPanel.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/StyleAdvancedControlsPanel.tsx",
-              "symbol": "import { Check } from 'iconoir-react';",
-              "start_line": 1,
-              "end_line": 1,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "f7735b3426b63cc72dc4b557da8602bbbc3fe2c56d3e9990d5f64caf0bf50210",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:0bd361281781afcc4008",
-        "from": "components/recipes/StyleBrowseSwitch.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/StyleBrowseSwitch.tsx",
-              "symbol": "import { Compass, BookStack as Library } from 'iconoir-react';",
-              "start_line": 1,
-              "end_line": 1,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "4e3e4c8a0d57545dc26f0dd913f6e21505a05d67a14b621ceebc8579ed6c4d5b",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:76605daa0a84de9469b1",
-        "from": "components/recipes/StyleCategoryGlyph.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/StyleCategoryGlyph.tsx",
-              "symbol": "import {\n  Archive,\n  Flash as Bolt,\n  Box3dCenter as Box,\n  Suitcase as Briefcase,\n  Building,\n  Camera,\n  Cpu,\n  Gamepad as Gamepad2,\n  Tv,\n  Folder,\n  Leaf,\n  MoonSat as MoonStars,\n  EditPencil as Pen,\n  Play,\n  Shirt,\n  Sparks as Sparkles,\n  MultiplePages as Layers,\n  SunLight as Sun,\n  ControlSlider as SlidersHorizontal,\n  User,\n  MagicWand as Wand2,\n} from 'iconoir-react';",
-              "start_line": 1,
-              "end_line": 23,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "b11ee37ec26c23ed2f131f4ff7e3b76a2c3f99f197e7b3cbdd0eeebbf1f8c36e",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:08720789701e9fa35e22",
-        "from": "components/recipes/StyleCollectionsLandingSurface.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/StyleCollectionsLandingSurface.tsx",
-              "symbol": "import {\n  NavArrowLeft as ChevronLeft,\n  NavArrowRight as ChevronRight,\n  MultiplePages as Layers,\n} from 'iconoir-react';",
-              "start_line": 2,
               "end_line": 6,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "3be7a468211df5bc4af3ad6fdfefbcc9d31c8241e5949eb6362df2102ca378bc",
+              "extractor": "tree-sitter-typescript",
+              "source_digest": "0d4b754fd744f728cf807285ecdc27b1ca2a5775d9631f8916098f027d3e3f91",
               "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:f20fd1540d9f9f13be66",
-        "from": "components/recipes/StylePresetCardSurface.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/StylePresetCardSurface.tsx",
-              "symbol": "import {\n  Check,\n  NavArrowLeft as ChevronLeft,\n  NavArrowRight as ChevronRight,\n  Copy,\n  Heart,\n  Palette,\n  Plus,\n  InfoCircle as Eye,\n  TextBox as TextPlus,\n  Xmark as X,\n} from 'iconoir-react';",
-              "start_line": 3,
-              "end_line": 14,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "cf9586a8f64b36f434009f25f0dfbcbced8dc97188f431f2c7ba14249ef877c9",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:532b2d131b27a0903da3",
-        "from": "components/recipes/StylePresetCatalogSearchSurface.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/StylePresetCatalogSearchSurface.tsx",
-              "symbol": "import {\n  Check,\n  NavArrowDown as ChevronDown,\n  Search,\n  Xmark as X,\n  ArrowRight,\n  Database,\n  Sparks as Sparkles,\n  InfoCircle as Info,\n  Heart,\n  Copy,\n  TextBox as TextPlus,\n} from 'iconoir-react';",
-              "start_line": 3,
-              "end_line": 15,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "cf24d27af762da501c9ba2dce9308746712b412a79bf9bc9046b03d73d13fd9c",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:2607863abcd081422a9b",
-        "from": "components/recipes/StyleRecipeNavigationPanel.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/StyleRecipeNavigationPanel.tsx",
-              "symbol": "import { NavArrowLeft as ChevronLeft } from 'iconoir-react';",
-              "start_line": 1,
-              "end_line": 1,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "44d9a47e4f35361556afff631f0f38ef21165accf3b9214dd2c8fd2c738c651a",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:36dd88c98b0e2d0d5506",
-        "from": "components/recipes/StylesBrowser.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/StylesBrowser.tsx",
-              "symbol": "import {\n  Archive,\n  Sort as ArrowUpDown,\n  Box3dCenter as Box,\n  Suitcase as Briefcase,\n  Check,\n  NavArrowDown as ChevronDown,\n  NavArrowLeft as ChevronLeft,\n  NavArrowRight as ChevronRight,\n  Copy,\n  Filter,\n  Folder as Folders,\n  Heart,\n  ViewGrid as LayoutGrid,\n  MultiplePages as Layers,\n  EditPencil as PenTool,\n  Play,\n  Plus,\n  Search,\n  ControlSlider as SlidersHorizontal,\n  Sparks as Sparkles,\n  MagicWand as Wand2,\n  Xmark as X,\n} from 'iconoir-react';",
-              "start_line": 6,
-              "end_line": 29,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "89c955ca858a5e3257cd23939b380b9f23e0f1487213c77d0549c0fcc4ccdb90",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:d58ac2cc91a549a9ebcb",
-        "from": "components/recipes/TimelineRecipe.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/TimelineRecipe.tsx",
-              "symbol": "import {\n  Clock,\n  FastArrowLeft as StepBack,\n  FastArrowRight as StepForward,\n  Lock,\n  VideoCamera as Video,\n  SkipNext as FastForward,\n  SkipPrev as Rewind,\n  Hourglass,\n  Movie as Film,\n  Upload,\n  MultiplePages as Layers,\n  Activity,\n  SunLight as Sun,\n} from 'iconoir-react';",
-              "start_line": 3,
-              "end_line": 17,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "f767e35f462336b38c8c224e887a78cde715b46eee3313e9345b01b11e8b8dab",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:481b8e6808dec1577991",
-        "from": "components/recipes/UserStyleEditorSurface.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/UserStyleEditorSurface.tsx",
-              "symbol": "import {\n  Check,\n  Copy,\n  FloppyDisk as Save,\n  MediaImage as Photo,\n  Sparks as Sparkles,\n  Trash as Trash2,\n  Upload,\n  MagicWand as Wand2,\n  Xmark as X,\n} from 'iconoir-react';",
-              "start_line": 1,
-              "end_line": 11,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "8d07c07cef9e7981392caf679b480e58a9d4eea9da0cca7d77778fd7acf3d675",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:a6c9e5ff8020e0e4f698",
-        "from": "components/recipes/styleNavigationPresentation.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/styleNavigationPresentation.tsx",
-              "symbol": "import {\n  Flash as Bolt,\n  Book as BookOpen,\n  Box3dCenter as Box,\n  Building,\n  Camera,\n  Movie as Clapperboard,\n  Gamepad as Gamepad2,\n  Heart,\n  MultiplePages as Layers,\n  MoonSat as MoonStars,\n  Palette,\n  EditPencil as PenTool,\n  Play,\n  Search,\n  Shirt,\n  ControlSlider as SlidersHorizontal,\n  Emoji as SmilePlus,\n  Sparks as Sparkles,\n  Star,\n  Shield as Sword,\n  Tv,\n  MagicWand as Wand2,\n} from 'iconoir-react';",
-              "start_line": 1,
-              "end_line": 24,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "098c1a67b6d369afbf57e45e6441d2c73bb34b75fa363e9e860808547a3b4804",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:f9b6dc70c301c8a9b31b",
-        "from": "components/settings/SettingsExtensionsPanel.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/settings/SettingsExtensionsPanel.tsx",
-              "symbol": "import { Refresh as RefreshCw } from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "4d12d617c38043126ec534edc09931b385d16928cc15bdd76861404f3db788f8",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:d01f720db2b8fc55a6c6",
-        "from": "components/settings/SettingsFormPanel.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/settings/SettingsFormPanel.tsx",
-              "symbol": "import {\n  Database,\n  Folder as FolderOpen,\n  RefreshCircle as RotateCcw,\n  Settings,\n} from 'iconoir-react';",
-              "start_line": 4,
-              "end_line": 9,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "18bb94d4261bd8be79243d4cf58155676763fb86369282536ad63a8b5f0443c5",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:ac16d2aa4e1ff637d0d9",
-        "from": "components/settings/SettingsMaintenancePanel.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/settings/SettingsMaintenancePanel.tsx",
-              "symbol": "import { Database, MediaImage as FileImage, Refresh as RefreshCw } from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "632f427e264d9777af06ac7b82003373fa0df5aa78a9e88d818b4742c77abf53",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:0396190c3609ba0476f9",
-        "from": "components/settings/SettingsOutputSourcesPanel.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/settings/SettingsOutputSourcesPanel.tsx",
-              "symbol": "import { MediaImage as FileImage, FolderPlus, Upload } from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "0410a490cab55af72e1240a67f12f6c47171c97bacbb484396b774acf219a4c6",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:f26fac135fafd83f202d",
-        "from": "components/settings/StylePackBrowser.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/settings/StylePackBrowser.tsx",
-              "symbol": "import { ArrowLeft, MediaImage } from 'iconoir-react';",
-              "start_line": 1,
-              "end_line": 1,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "e7c9d94d85a35f183a52daec1b8c197526ca96b694973f2fa35d2ad3b6f1e334",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:d0d19cf4def9276bc052",
-        "from": "components/settings/SubscriptionAuthControls.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/settings/SubscriptionAuthControls.tsx",
-              "symbol": "import { Check, Copy as CopyIcon, OpenNewWindow } from 'iconoir-react';",
-              "start_line": 1,
-              "end_line": 1,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "18516b0c0e3b8caf5736dfdb9d537af30d6e545ed54bbfc7ffa6981da5315312",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:825d6ce42808e4501183",
-        "from": "components/shell/StudioStatusBar.tsx",
-        "to": "external:javascript:iconoir-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/shell/StudioStatusBar.tsx",
-              "symbol": "import { LayoutRight as SidebarRight, Server } from 'iconoir-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "805d08acac9051418b8614c7b915b7762ed6d5acd3bf75ad6dccee37938a85d0",
-              "kind": "import",
-              "resolved_target": "external:javascript:iconoir-react"
+              "resolved_target": "apps/local-server/src/library.ts"
             }
           ]
         }
       }
     ],
-    "removed_edges": [
-      {
-        "id": "edge:90a1bfbbf751dd97a712",
-        "from": "components/CatalogCardBackdrop.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/CatalogCardBackdrop.tsx",
-              "symbol": "import { IconDots } from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "2119beac9167e57c187d3275ceac91523e76a98eeda026df2947b50e4e0301d0",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:f1a7f00be4ddd9f5f4a5",
-        "from": "components/ConfirmationModal.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/ConfirmationModal.tsx",
-              "symbol": "import {\n  IconAlertTriangle as AlertTriangle,\n  IconRotate as RotateCcw,\n  IconShieldExclamation as ShieldAlert,\n  IconX as X,\n} from '@tabler/icons-react';",
-              "start_line": 4,
-              "end_line": 9,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "d0aa2eb9aea1db3105ceef14c21af46e24ca1cb6081e7f9da634e6da60a1000a",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:656d25e165ed84af331a",
-        "from": "components/DashboardModal.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/DashboardModal.tsx",
-              "symbol": "import {\n  IconX as X,\n  IconUser as User,\n  IconDownload as Download,\n  IconDatabase as Database,\n  IconStack as Layers,\n  IconDeviceDesktop as HardDrive,\n} from '@tabler/icons-react';",
-              "start_line": 4,
-              "end_line": 11,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "ec46d2446f1873818d968ba568f9e48e30b646373178aaa56d4f65a699cbf31d",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:beaad61338283440d1ea",
-        "from": "components/DebugPanel.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/DebugPanel.tsx",
-              "symbol": "import { IconBrain as BrainCircuit, IconX as X } from '@tabler/icons-react';",
-              "start_line": 3,
-              "end_line": 3,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "565b1b60223fe620f6559aff84863c95f9f2f6ed1cb3adcf2c5d0d5664fc9fbd",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:1b2fea0b9d3c8b7773c8",
-        "from": "components/DropZoneOverlay.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/DropZoneOverlay.tsx",
-              "symbol": "import { IconPaperclip as Paperclip } from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "d1d4e115b54592be5e8a0e865b238e955a2902a542e2b3b8dd14999f7d6787e3",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:2925c119089dcc729b23",
-        "from": "components/ErrorBoundary.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/ErrorBoundary.tsx",
-              "symbol": "import { IconAlertTriangle as AlertTriangle } from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "ae584c187de5861a6c6541a030309eb195d4997a9d3969c9240bd2dd7aa6b8cd",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:0123ce2a72f325afd466",
-        "from": "components/HeaderToolbar.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/HeaderToolbar.tsx",
-              "symbol": "import {\n  IconSparkles,\n  IconLibrary,\n  IconTrash as Trash2,\n  IconHelpCircle as CircleHelp,\n  IconActivity as Activity,\n  IconBriefcase as Briefcase,\n  IconMenu2 as Menu2,\n  IconMessage as MessageSquare,\n  IconSettings as Settings,\n  IconSun as Sun,\n  IconMoon as Moon,\n} from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 14,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "cc044b80634187563b1ca5dc93dcc258c41aef57978bf3c69f576d0c70377ef6",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:94312cd351e2f49f0820",
-        "from": "components/ImageCarousel.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/ImageCarousel.tsx",
-              "symbol": "import {\n  IconChevronLeft as ChevronLeft,\n  IconChevronRight as ChevronRight,\n  IconX as X,\n  IconDownload as Download,\n  IconCirclePlus as PlusCircle,\n  IconRefresh as RefreshCw,\n  IconTrash as Trash2,\n  IconMaximize as Maximize2,\n  IconMinimize as Minimize2,\n  IconClipboardList as ClipboardList,\n  IconHistory as History,\n  IconCheck as Check,\n  IconHeart as Heart,\n  IconLayoutBoardSplit as SplitSquareHorizontal,\n  IconPlus as Plus,\n  IconMinus as Minus,\n  IconCopy as Copy,\n} from '@tabler/icons-react';",
-              "start_line": 4,
-              "end_line": 22,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "892fbc480a815f1610ebd47606e9d18b7a5bb66e180edd2685e240117efcaa8c",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:fd99186f52db9148e7d8",
-        "from": "components/ImageEditorModal.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/ImageEditorModal.tsx",
-              "symbol": "import {\n  IconBrush as Brush,\n  IconSparkles as Sparkles,\n  IconTrash as Trash2,\n  IconArrowBackUp as Undo,\n  IconX as X,\n} from '@tabler/icons-react';",
-              "start_line": 3,
-              "end_line": 9,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "77a0a11f40360c4d6af118ef838174aa3867483acdfb7c28e3ce5500b12ff0a0",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:1a7075325cb99e73eaf3",
-        "from": "components/ImageGrid.tsx",
-        "to": "components/CatalogCardBackdrop.tsx",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/ImageGrid.tsx",
-              "symbol": "import { CatalogCardBackdrop } from './CatalogCardBackdrop';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "03be3bb04fc60a3f40d918f769ef95f7fa198057f1de9cf856e1182880e53c7a",
-              "kind": "import",
-              "resolved_target": "components/CatalogCardBackdrop.tsx"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:1c38a0be6b55cd4a43c3",
-        "from": "components/ImageGrid.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/ImageGrid.tsx",
-              "symbol": "import {\n  IconDownload as Download,\n  IconCirclePlus as PlusCircle,\n  IconRefresh as RefreshCw,\n  IconTrash as Trash2,\n  IconCheck as Check,\n  IconClipboardList as ClipboardList,\n  IconHistory as History,\n  IconHeart as Heart,\n  IconPhotoOff as ImageOff,\n  IconPhoto as Photo,\n  IconArrowsSort as ArrowUpDown,\n  IconLayoutCards as LayoutCards,\n  IconLayoutCollage as LayoutCollage,\n  IconLayoutGrid as LayoutGrid,\n  IconLayoutList as LayoutList,\n  IconSquareCheck as CheckSquare,\n  IconSquare as Square,\n} from '@tabler/icons-react';",
-              "start_line": 9,
-              "end_line": 27,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "03be3bb04fc60a3f40d918f769ef95f7fa198057f1de9cf856e1182880e53c7a",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:46d4d4f196a874825120",
-        "from": "components/JobInspectorDetail.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/JobInspectorDetail.tsx",
-              "symbol": "import {\n  IconActivity as Activity,\n  IconAlertCircle as AlertCircle,\n  IconBrain as BrainCircuit,\n  IconClock as Clock3,\n  IconEye as Eye,\n  IconFileText as FileText,\n  IconPhoto as ImageIcon,\n  IconStack3 as Layers3,\n  IconLink as Link2,\n  IconMessage as MessageSquare,\n  IconRotate as RotateCcw,\n  IconTool as Wrench,\n} from '@tabler/icons-react';",
-              "start_line": 3,
-              "end_line": 16,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "e8ca28437c25b01b184c9017a8ba0f9e66b8508a5ab506f40444a942e8cef3c9",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:14ef06abad0c490890ab",
-        "from": "components/KeyPopover.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/KeyPopover.tsx",
-              "symbol": "import {\n  IconKey as Key,\n  IconExternalLink as ExternalLink,\n  IconShieldCheck as ShieldCheck,\n  IconX as X,\n} from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 7,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "406966b09a1388cfd8391cf5644a06b279b5dd2b3cfabc01bf7f4030c515765b",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:773f33cb9cabc7a26164",
-        "from": "components/OnboardingModal.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/OnboardingModal.tsx",
-              "symbol": "import {\n  IconArrowRight as ArrowRight,\n  IconCircleCheck as CheckCircle2,\n  IconAlertCircle as CircleAlert,\n  IconCircleDashed as CircleDashed,\n  IconClipboard as Clipboard,\n  IconClipboardCheck as ClipboardCheck,\n  IconFolder as Folder,\n  IconPalette as Palette,\n  IconPhoto as ImageIcon,\n  IconPlayerPlay as Play,\n  IconRefresh as RefreshCw,\n  IconSparkles as Sparkles,\n  IconTerminal as Terminal,\n  IconX as X,\n} from '@tabler/icons-react';",
-              "start_line": 6,
-              "end_line": 21,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "b14c2ad231aaed04b569b5df8e6932739d5f5c44b10b32eab72d4dba10d21f2a",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:179b6a90fb0a002ff216",
-        "from": "components/ProviderBrandMark.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/ProviderBrandMark.tsx",
-              "symbol": "import { IconApi, IconFlask } from '@tabler/icons-react';",
-              "start_line": 1,
-              "end_line": 1,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "99961b7c2c9bdd164fb14a28ee9699189228342750ff35c7cafe71988253f78c",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:355e030eb78ad8dbf468",
-        "from": "components/QueuePanel.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/QueuePanel.tsx",
-              "symbol": "import {\n  IconAlertTriangle as AlertTriangle,\n  IconCircleCheck as CheckCircle2,\n  IconChevronLeft as ChevronLeft,\n  IconChevronRight as ChevronRight,\n  IconClock as Clock,\n  IconStack as Layers,\n  IconMaximize as Maximize2,\n  IconRotate as RotateCcw,\n  IconCircleX as XCircle,\n} from '@tabler/icons-react';",
-              "start_line": 3,
-              "end_line": 13,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "569207a1340779db99a2087d5ad45f8cd2251f84d9348b96375070e19e2dcd6e",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:aea43290b64269962219",
-        "from": "components/ReferenceTray.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/ReferenceTray.tsx",
-              "symbol": "import { IconPencil as Pencil, IconRefresh as Refresh, IconX as X } from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "bc19c2d462237afef9d0a68a0fc2a67b4335a4bf7d4579c97b34dc2075efa27f",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:5265cc2140e807b3a2a1",
-        "from": "components/SessionOverview.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/SessionOverview.tsx",
-              "symbol": "import {\n  IconActivity as Activity,\n  IconDatabase as Database,\n  IconStack3 as Layers3,\n  IconTerminal as Terminal,\n} from '@tabler/icons-react';",
-              "start_line": 3,
-              "end_line": 8,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "c13814c125a9f6fc78b7f678c2d76eee28845fe6c296cdabfaed00f3db88bbea",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:b0f0d81d812cbff1c764",
-        "from": "components/StudioChatPanel.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/StudioChatPanel.tsx",
-              "symbol": "import {\n  IconAlertTriangle as AlertTriangle,\n  IconRobot as Bot,\n  IconCircleCheck as CheckCircle2,\n  IconClock as Clock,\n  IconMessage as MessageSquare,\n  IconSend as Send,\n  IconUser as User,\n  IconX as X,\n} from '@tabler/icons-react';",
-              "start_line": 3,
-              "end_line": 12,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "13328f77e430cf53a1c7f2b9bb7649124f8cc62b99988cfea6c88dbb0cc65826",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:914c9758d015a377ee8e",
-        "from": "components/StudioSettingsModal.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/StudioSettingsModal.tsx",
-              "symbol": "import {\n  IconRefresh as RefreshCw,\n  IconDeviceFloppy as Save,\n  IconSettings as Settings,\n  IconX as X,\n} from '@tabler/icons-react';",
-              "start_line": 8,
-              "end_line": 13,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "40ec7eefada72bf2064087084518dd6907a7a464e030d8519505ccd93245809c",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:7dcdc3b256c4af9f6cc5",
-        "from": "components/Toast.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/Toast.tsx",
-              "symbol": "import {\n  IconX as X,\n  IconAlertCircle as AlertCircle,\n  IconCircleCheck as CheckCircle,\n  IconInfoCircle as Info,\n  IconAlertTriangle as AlertTriangle,\n} from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 8,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "c7b00076e96e0229da9635976884dc4ee4da7d6a6aa1e6b5ba1de82633c8a68a",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:47d9e843f946121bee91",
-        "from": "components/Toolbar.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/Toolbar.tsx",
-              "symbol": "import {\n  IconBan as Ban,\n  IconRobot as Bot,\n  IconBrain as BrainCircuit,\n  IconCheck as Check,\n  IconChevronDown as ChevronDown,\n  IconEdit as Edit3,\n  IconEraser as Eraser,\n  IconHash as Hash,\n  IconPhotoPlus as ImagePlus,\n  IconStack as Layers,\n  IconMaximize as Maximize,\n  IconDeviceDesktop as Monitor,\n  IconDots as MoreHorizontal,\n  IconCirclePlus as PlusCircle,\n  IconMinus as Minus,\n  IconPlus as Plus,\n  IconAspectRatio as Ratio,\n  IconRectangle as RectangleHorizontal,\n  IconRectangleVertical as RectangleVertical,\n  IconScan as Scan,\n  IconAdjustmentsHorizontal as SlidersHorizontal,\n  IconSend as Send,\n  IconShieldExclamation as ShieldAlert,\n  IconSquare as Square,\n  IconSparkles as Sparkles,\n  IconWand as Wand,\n  IconWand as Wand2,\n  IconX as X,\n  IconBolt as Zap,\n} from '@tabler/icons-react';",
-              "start_line": 9,
-              "end_line": 39,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "835d3b1547089bff5332bc27e22b102a30b19f34c36236436ae680a58c7027cf",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:c9ddd14039c298f5a2d4",
-        "from": "components/ToolbarLiveStatus.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/ToolbarLiveStatus.tsx",
-              "symbol": "import { IconSend as Send } from '@tabler/icons-react';",
-              "start_line": 1,
-              "end_line": 1,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "b6ebd5d8a070413d65aba2d001b47130fff6b8810ed005b64ce844ddba9307f3",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:1fa7763af3091d06d4ff",
-        "from": "components/TrashModal.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/TrashModal.tsx",
-              "symbol": "import {\n  IconTrash as Trash2,\n  IconRotate as RotateCcw,\n  IconX as X,\n  IconTrash as Trash,\n  IconAlertCircle as AlertCircle,\n} from '@tabler/icons-react';",
-              "start_line": 4,
-              "end_line": 10,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "ab01c14ffeab6c822b78fd262609add897bef2134ab9f8bce08562966d28e381",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:7e1eeddcbddd00f7a3b9",
-        "from": "components/create/CreatePromptExpandDialog.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/create/CreatePromptExpandDialog.tsx",
-              "symbol": "import { IconX as X } from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "875f9f143508fb44103c4b06a057287404dda745ce4946407655509242652954",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:75fccbce6e75679bd72d",
-        "from": "components/create/CreateWorkflowPicker.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/create/CreateWorkflowPicker.tsx",
-              "symbol": "import { IconChevronDown, IconSitemap } from '@tabler/icons-react';",
-              "start_line": 3,
-              "end_line": 3,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "3bebd943ece6398e99ee5e89ec60fb0629b4c39c21540347b643e0b92e26cb0c",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:1d0d82877f8066ea44d1",
-        "from": "components/header/ProviderQuickSwitch.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/header/ProviderQuickSwitch.tsx",
-              "symbol": "import { IconCheck as Check, IconChevronDown as ChevronDown } from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "2aef517c8843af22bacf2db4db36d4854a6ac21a9dcb423b43e55b06a322b726",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:c2200e683fd737a05ba6",
-        "from": "components/header/UsageStatusCard.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/header/UsageStatusCard.tsx",
-              "symbol": "import { IconGauge as Gauge, IconWifiOff as WifiOff } from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "cc1ddb79403483a9566dd93a0f7896f9d030af59b2f0300a2a25dddfbf2ad6c6",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:1531e7a8f2d0146d8e61",
-        "from": "components/header/WorkspaceStrip.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/header/WorkspaceStrip.tsx",
-              "symbol": "import {\n  IconClock as Clock,\n  IconDatabase as Database,\n  IconDotsVertical as DotsVertical,\n  IconFolder as Folder,\n  IconPhoto as Photo,\n  IconPlus as Plus,\n  IconTrash as Trash2,\n} from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 10,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "c18c2515e6e0ad551f0ebdd35638b62de494f423f6a7cbc54b96dd6308aa2527",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:054313a0f8ed7c24c1fe",
-        "from": "components/recipes/AnimationSequenceRecipe.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/AnimationSequenceRecipe.tsx",
-              "symbol": "import {\n  IconAlertTriangle as AlertTriangle,\n  IconCheck as Check,\n  IconDownload as Download,\n  IconGif as Gif,\n  IconPlayerPlay as Play,\n  IconRefresh as RefreshCw,\n  IconSparkles as Sparkles,\n} from '@tabler/icons-react';",
-              "start_line": 7,
-              "end_line": 15,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "2ba06cfe1b8b049a0a56f711e75f4a482dc449d3a0df0801052a34fa9beb12fe",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:cae782379a1ae1abe5c6",
-        "from": "components/recipes/CharacterLabRecipe.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/CharacterLabRecipe.tsx",
-              "symbol": "import {\n  IconCheck as Check,\n  IconChevronDown as ChevronDown,\n  IconFileText as FileText,\n  IconLock as Lock,\n  IconSearch as Search,\n  IconSparkles as Sparkles,\n  IconX as X,\n} from '@tabler/icons-react';",
-              "start_line": 11,
-              "end_line": 19,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "905f4fe62aa419966cfcdb84961cbe3e12a2d9bbff67cbdef2b8cd6d4ec5bb33",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:89be615b164361a82fef",
-        "from": "components/recipes/CharacterSheetRecipe.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/CharacterSheetRecipe.tsx",
-              "symbol": "import {\n  IconLayout as Layout,\n  IconPalette as Palette,\n  IconCamera as Camera,\n  IconUserScan as ScanFace,\n} from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 7,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "30d38bba2e1fec0b651902c0b594b1a569194a9bf1dae88711d0289477d34896",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:ba9ed59021c22db921e7",
-        "from": "components/recipes/CinematicRecipe.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/CinematicRecipe.tsx",
-              "symbol": "import {\n  IconCheck as Check,\n  IconChevronDown as ChevronDown,\n  IconMovie as Clapperboard,\n  IconVideo as Video,\n  IconAperture as Aperture,\n  IconMovie as Film,\n  IconX as X,\n  IconSun as Sun,\n  IconGrid3x3 as Grid3X3,\n  IconClock as Clock,\n  IconCloudRain as CloudRain,\n  IconTemplate as LayoutTemplate,\n  IconRectangle as RectangleHorizontal,\n  IconUpload as Upload,\n} from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 17,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "16d209ff59a5239ed9edb3e27156bd2e34352623cec01d8c69198759eb6a3cc1",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:4e30e6b79fd11423dc06",
-        "from": "components/recipes/CompactStyleSelector.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/CompactStyleSelector.tsx",
-              "symbol": "import {\n  IconCheck as Check,\n  IconChevronDown as ChevronDown,\n  IconChevronLeft as ChevronLeft,\n  IconChevronRight as ChevronRight,\n  IconChevronUp as ChevronUp,\n  IconEye as Eye,\n  IconFolder as Folder,\n  IconHeart as Heart,\n  IconLayoutGrid as LayoutGrid,\n  IconPlayerPause as Pause,\n  IconPlayerPlay as Play,\n  IconPlus as Plus,\n  IconSearch as Search,\n  IconX as X,\n} from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 17,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "e656959cd499ce2b56b92861c1b923dc5694fe883d817da222e40191635789be",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:e539051be7c30c042c5c",
-        "from": "components/recipes/NoStylePacksNotice.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/NoStylePacksNotice.tsx",
-              "symbol": "import { IconPalette as Palette } from '@tabler/icons-react';",
-              "start_line": 1,
-              "end_line": 1,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "6f836fb386b68a893d04f67090b607cb83084e8098be43bf81a07c60bc1544d6",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:df3b0d584971df8d801a",
-        "from": "components/recipes/RecipeDiscoveryList.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/RecipeDiscoveryList.tsx",
-              "symbol": "import { IconArrowRight } from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "87305dc172b8ec4644571b28f2385e51fb8ea3b9e5a187483bcca298f0dfb460",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:c921e66a487fd667ad46",
-        "from": "components/recipes/RecipeResultPreview.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/RecipeResultPreview.tsx",
-              "symbol": "import {\n  IconChevronLeft as ChevronLeft,\n  IconChevronRight as ChevronRight,\n  IconCopy as Copy,\n  IconDownload as Download,\n  IconHeart as Heart,\n  IconMinus as Minus,\n  IconPlus as Plus,\n  IconArrowsMaximize as OpenFull,\n  IconPaperclip as Paperclip,\n} from '@tabler/icons-react';",
-              "start_line": 3,
-              "end_line": 13,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "0d89d5ef8e3979687c0e65c9bf38f8843b1d503a2a01f6277accc3468138a146",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:c93717284dfdc086be74",
-        "from": "components/recipes/RecipeUI.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/RecipeUI.tsx",
-              "symbol": "import {\n  IconCheck as Check,\n  IconChevronDown as ChevronDown,\n  IconColorPicker as Pipette,\n} from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 6,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "a4b92b3068fa13e4eeb8b6bff91dea757d33b92761aea3356c65a08ae54bd2fa",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:58612620f513a49b7d19",
-        "from": "components/recipes/RemasterRecipe.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/RemasterRecipe.tsx",
-              "symbol": "import {\n  IconSun as Sun,\n  IconCamera as Camera,\n  IconPalette as Palette,\n  IconDeviceTv as MonitorPlay,\n  IconFingerprint as Fingerprint,\n  IconTypography as TextIcon,\n} from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 9,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "548636bd3cddbf86832b048394f389784782940af934bb4d255323763fca8603",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:7667feab76e3a3f706ae",
-        "from": "components/recipes/SpriteAtlasRecipe.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/SpriteAtlasRecipe.tsx",
-              "symbol": "import {\n  IconAlertTriangle as AlertTriangle,\n  IconCheck as Check,\n  IconChevronDown as ChevronDown,\n  IconClipboardList as ClipboardList,\n  IconFileImport as FileImport,\n  IconFileText as FileText,\n  IconFolder as Folder,\n  IconPackage as Package,\n  IconPlus as Plus,\n  IconRefresh as RefreshCw,\n  IconSearch as Search,\n} from '@tabler/icons-react';",
-              "start_line": 5,
-              "end_line": 17,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "a79c8a342fcc7fa2bcd957041f584f6ba92316ec60989afaa8b0c16cb0ce6997",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:4c85918f65ebc3c5307d",
-        "from": "components/recipes/SpritesheetRecipe.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/SpritesheetRecipe.tsx",
-              "symbol": "import {\n  IconGrid3x3 as Grid3X3,\n  IconPalette as Palette,\n  IconPaint as PaintBucket,\n  IconEye as Eye,\n  IconSeparatorHorizontal as SeparatorHorizontal,\n  IconHash as Hash,\n  IconLineScan as ScanLine,\n  IconEdit as Edit3,\n  IconX as X,\n  IconChevronLeft as ChevronLeft,\n} from '@tabler/icons-react';",
-              "start_line": 4,
-              "end_line": 15,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "442542e21d4b69f94f0b5cd51efa8b15f3ba8d9d6ae61c4278ceaed458cd7ea2",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:57d5e9bdac2ede4f3329",
-        "from": "components/recipes/StyleAdvancedControlsPanel.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/StyleAdvancedControlsPanel.tsx",
-              "symbol": "import { IconCheck as Check } from '@tabler/icons-react';",
-              "start_line": 1,
-              "end_line": 1,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "286dca2d73f4341b6158d8bcf7296bf85e2072764a44a5237ec58ba5fe0ddf1b",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:df0d994a62c1713458a0",
-        "from": "components/recipes/StyleBrowseSwitch.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/StyleBrowseSwitch.tsx",
-              "symbol": "import { IconCompass as Compass, IconLibrary as Library } from '@tabler/icons-react';",
-              "start_line": 1,
-              "end_line": 1,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "b71237f1775ecc89366e5088f6a96f5727d604795633db5ca852288844669869",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:183a2940a487a462771a",
-        "from": "components/recipes/StyleCategoryGlyph.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/StyleCategoryGlyph.tsx",
-              "symbol": "import {\n  IconArchive as Archive,\n  IconBolt as Bolt,\n  IconBox as Box,\n  IconBriefcase as Briefcase,\n  IconBuilding as Building,\n  IconCamera as Camera,\n  IconCpu as Cpu,\n  IconDeviceGamepad2 as Gamepad2,\n  IconDeviceTv as Tv,\n  IconFolder as Folder,\n  IconLeaf as Leaf,\n  IconMoonStars as MoonStars,\n  IconPencil as Pen,\n  IconPlayerPlay as Play,\n  IconShirt as Shirt,\n  IconSparkles as Sparkles,\n  IconStack as Layers,\n  IconSun as Sun,\n  IconAdjustmentsHorizontal as SlidersHorizontal,\n  IconUser as User,\n  IconWand as Wand2,\n} from '@tabler/icons-react';",
-              "start_line": 1,
-              "end_line": 23,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "6bed79dadb2ee937789937faca21d7ce8440efebf93d29d5ae1e545428cc7104",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:2c8a9034c1098728d945",
-        "from": "components/recipes/StyleCollectionsLandingSurface.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/StyleCollectionsLandingSurface.tsx",
-              "symbol": "import {\n  IconChevronLeft as ChevronLeft,\n  IconChevronRight as ChevronRight,\n  IconStack as Layers,\n} from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 6,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "f556dc17dc90627835b927bd7d18bbc611e78caeffe513ff87e9c4ccccfb2867",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:77ea8e1e1dfd8bcd1c6b",
-        "from": "components/recipes/StylePresetCardSurface.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/StylePresetCardSurface.tsx",
-              "symbol": "import {\n  IconCheck as Check,\n  IconChevronLeft as ChevronLeft,\n  IconChevronRight as ChevronRight,\n  IconCopy as Copy,\n  IconHeart as Heart,\n  IconPalette as Palette,\n  IconPlus as Plus,\n  IconInfoCircle as Eye,\n  IconTextPlus as TextPlus,\n  IconX as X,\n} from '@tabler/icons-react';",
-              "start_line": 3,
-              "end_line": 14,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "1757e68c88b84962ff45326617d8d7130d15271ee18296b5ee2b85fb5a243d87",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:638059a3a9a129e3cbb3",
-        "from": "components/recipes/StylePresetCatalogSearchSurface.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/StylePresetCatalogSearchSurface.tsx",
-              "symbol": "import {\n  IconCheck as Check,\n  IconChevronDown as ChevronDown,\n  IconSearch as Search,\n  IconX as X,\n  IconArrowRight as ArrowRight,\n  IconDatabase as Database,\n  IconSparkles as Sparkles,\n  IconInfoCircle as Info,\n  IconHeart as Heart,\n  IconCopy as Copy,\n  IconTextPlus as TextPlus,\n} from '@tabler/icons-react';",
-              "start_line": 3,
-              "end_line": 15,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "d18c4e9843a6abc9ef75b476b6863bf82c9ef76036a3664d802bff3750f6035b",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:6ca5913f703ddfdcc57f",
-        "from": "components/recipes/StyleRecipeNavigationPanel.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/StyleRecipeNavigationPanel.tsx",
-              "symbol": "import { IconChevronLeft as ChevronLeft } from '@tabler/icons-react';",
-              "start_line": 1,
-              "end_line": 1,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "21a445fe7c94f5f68daafac103e91c15c51d1cc2fca1c2dff883c26cb0c6fc81",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:92315beda9e624aa6b50",
-        "from": "components/recipes/StylesBrowser.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/StylesBrowser.tsx",
-              "symbol": "import {\n  IconArchive as Archive,\n  IconArrowsSort as ArrowUpDown,\n  IconBox as Box,\n  IconBriefcase as Briefcase,\n  IconCheck as Check,\n  IconChevronDown as ChevronDown,\n  IconChevronLeft as ChevronLeft,\n  IconChevronRight as ChevronRight,\n  IconCopy as Copy,\n  IconFilter as Filter,\n  IconFolders as Folders,\n  IconHeart as Heart,\n  IconLayoutGrid as LayoutGrid,\n  IconStack as Layers,\n  IconPencil as PenTool,\n  IconPlayerPlay as Play,\n  IconPlus as Plus,\n  IconSearch as Search,\n  IconAdjustmentsHorizontal as SlidersHorizontal,\n  IconSparkles as Sparkles,\n  IconWand as Wand2,\n  IconX as X,\n} from '@tabler/icons-react';",
-              "start_line": 6,
-              "end_line": 29,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "7d21f643c572a267d23d35e525c798e7bfcd2ab52a0c6bfe7d6bdf1854de8b08",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:4103c19b437b1005cfee",
-        "from": "components/recipes/TimelineRecipe.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/TimelineRecipe.tsx",
-              "symbol": "import {\n  IconClock as Clock,\n  IconPlayerTrackPrev as StepBack,\n  IconPlayerTrackNext as StepForward,\n  IconLock as Lock,\n  IconVideo as Video,\n  IconPlayerSkipForward as FastForward,\n  IconPlayerSkipBack as Rewind,\n  IconHourglass as Hourglass,\n  IconMovie as Film,\n  IconUpload as Upload,\n  IconStack as Layers,\n  IconActivity as Activity,\n  IconSun as Sun,\n} from '@tabler/icons-react';",
-              "start_line": 3,
-              "end_line": 17,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "c2879f9302e3a2394cfc62cbd2c65b7ffff49158be2b780b2a78bdb58be13b1c",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:60d7e1ec8a106b78d3c6",
-        "from": "components/recipes/UserStyleEditorSurface.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/UserStyleEditorSurface.tsx",
-              "symbol": "import {\n  IconCheck as Check,\n  IconCopy as Copy,\n  IconDeviceFloppy as Save,\n  IconPhoto as Photo,\n  IconSparkles as Sparkles,\n  IconTrash as Trash2,\n  IconUpload as Upload,\n  IconWand as Wand2,\n  IconX as X,\n} from '@tabler/icons-react';",
-              "start_line": 1,
-              "end_line": 11,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "a73ff42ea385428a07b0416855d095157d4d8323fb2763ea6f9bad6555aa0b9b",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:87e2bfdb7cfa4979156e",
-        "from": "components/recipes/styleNavigationPresentation.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/recipes/styleNavigationPresentation.tsx",
-              "symbol": "import {\n  IconBolt as Bolt,\n  IconBook as BookOpen,\n  IconBox as Box,\n  IconBuilding as Building,\n  IconCamera as Camera,\n  IconMovie as Clapperboard,\n  IconDeviceGamepad2 as Gamepad2,\n  IconHeart as Heart,\n  IconStack as Layers,\n  IconMoonStars as MoonStars,\n  IconPalette as Palette,\n  IconPencil as PenTool,\n  IconPlayerPlay as Play,\n  IconSearch as Search,\n  IconShirt as Shirt,\n  IconAdjustmentsHorizontal as SlidersHorizontal,\n  IconMoodPlus as SmilePlus,\n  IconSparkles as Sparkles,\n  IconStar as Star,\n  IconSword as Sword,\n  IconDeviceTv as Tv,\n  IconWand as Wand2,\n} from '@tabler/icons-react';",
-              "start_line": 1,
-              "end_line": 24,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "fc20b68ae84986f6d37c7ac6fb2d1cc6fcde63875b8dee886a0bf65a1ee5745c",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:5303f57b99c7fa55d261",
-        "from": "components/settings/SettingsExtensionsPanel.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/settings/SettingsExtensionsPanel.tsx",
-              "symbol": "import { IconRefresh as RefreshCw } from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "5a8c006de884e0146b707969931edae55393685fbcbdaf2d370570aa71f08c88",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:21d4d714b87372840e9b",
-        "from": "components/settings/SettingsFormPanel.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/settings/SettingsFormPanel.tsx",
-              "symbol": "import {\n  IconDatabase as Database,\n  IconFolderOpen as FolderOpen,\n  IconRotate as RotateCcw,\n  IconSettings as Settings,\n} from '@tabler/icons-react';",
-              "start_line": 4,
-              "end_line": 9,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "6235210df954ca6e5dad60a1f58cfd2921cdb02667adebf24dfa7a7778adceb1",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:2003ad87764382d2157d",
-        "from": "components/settings/SettingsMaintenancePanel.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/settings/SettingsMaintenancePanel.tsx",
-              "symbol": "import {\n  IconDatabase as Database,\n  IconPhoto as FileImage,\n  IconRefresh as RefreshCw,\n} from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 6,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "ada2057bb62d93bdbcc9ddde1a932f7fb04b54898b25d4e94f02a77ada21f421",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:8ef269e0fa5d5a414903",
-        "from": "components/settings/SettingsOutputSourcesPanel.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/settings/SettingsOutputSourcesPanel.tsx",
-              "symbol": "import {\n  IconPhoto as FileImage,\n  IconFolderPlus as FolderPlus,\n  IconUpload as Upload,\n} from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 6,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "b93c4966d4d5edf11f4e792647f69af21cee3bf322de2eb4ca563834e79797c2",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:dacfb36853fd065d829b",
-        "from": "components/settings/StylePackBrowser.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/settings/StylePackBrowser.tsx",
-              "symbol": "import { IconArrowLeft as ArrowLeft, IconPhoto as ImageIcon } from '@tabler/icons-react';",
-              "start_line": 1,
-              "end_line": 1,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "0e2e86e66d23af936ddeb026fb798b0473bf0ad86cabcda877622a17c9127c6a",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:985e2cef76eb621a64a7",
-        "from": "components/settings/SubscriptionAuthControls.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/settings/SubscriptionAuthControls.tsx",
-              "symbol": "import { IconCheck, IconCopy, IconExternalLink } from '@tabler/icons-react';",
-              "start_line": 1,
-              "end_line": 1,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "b6938d3bae19e91f389ea5ad54eccf6129f727c6b4e6074a2c5cd59b6f74c826",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      },
-      {
-        "id": "edge:a09660de79572c416533",
-        "from": "components/shell/StudioStatusBar.tsx",
-        "to": "external:javascript:@tabler/icons-react",
-        "type": "imports",
-        "type_only": false,
-        "evidence_count": 1,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "components/shell/StudioStatusBar.tsx",
-              "symbol": "import { IconLayoutSidebarRight as SidebarRight, IconServer as Server } from '@tabler/icons-react';",
-              "start_line": 2,
-              "end_line": 2,
-              "extractor": "tree-sitter-tsx",
-              "source_digest": "7fae74626d4b1c3cfdcf718621838440e3a58b4e265f55afde3c769a1b1663aa",
-              "kind": "import",
-              "resolved_target": "external:javascript:@tabler/icons-react"
-            }
-          ]
-        }
-      }
-    ],
+    "removed_edges": [],
     "boundary_changes": [],
     "new_cycles": [],
     "changed": true,
     "changed_node_ids": [
-      "components/CatalogCardBackdrop.tsx",
-      "components/ConfirmationModal.tsx",
-      "components/DashboardModal.tsx",
-      "components/DebugPanel.tsx",
-      "components/DropZoneOverlay.tsx",
-      "components/ErrorBoundary.tsx",
-      "components/HeaderToolbar.tsx",
-      "components/ImageCarousel.tsx",
-      "components/ImageEditorModal.tsx",
-      "components/ImageGrid.tsx",
-      "components/JobInspectorDetail.tsx",
-      "components/KeyPopover.tsx",
-      "components/OnboardingModal.tsx",
-      "components/ProviderBrandMark.tsx",
-      "components/QueuePanel.tsx",
-      "components/ReferenceTray.tsx",
-      "components/SessionOverview.tsx",
-      "components/StudioChatPanel.tsx",
-      "components/StudioSettingsModal.tsx",
-      "components/Toast.tsx",
-      "components/Toolbar.tsx",
-      "components/ToolbarLiveStatus.tsx",
-      "components/TrashModal.tsx",
-      "components/create/CreatePromptExpandDialog.tsx",
-      "components/create/CreateWorkflowPicker.tsx",
-      "components/header/ProviderQuickSwitch.tsx",
-      "components/header/UsageStatusCard.tsx",
-      "components/header/WorkspaceStrip.tsx",
-      "components/recipes/AnimationSequenceRecipe.tsx",
-      "components/recipes/CharacterLabRecipe.tsx",
-      "components/recipes/CharacterSheetRecipe.tsx",
-      "components/recipes/CinematicRecipe.tsx",
-      "components/recipes/CompactStyleSelector.tsx",
-      "components/recipes/NoStylePacksNotice.tsx",
-      "components/recipes/RecipeDiscoveryList.tsx",
-      "components/recipes/RecipeResultPreview.tsx",
-      "components/recipes/RecipeUI.tsx",
-      "components/recipes/RemasterRecipe.tsx",
-      "components/recipes/SpriteAtlasRecipe.tsx",
-      "components/recipes/SpritesheetRecipe.tsx",
-      "components/recipes/StyleAdvancedControlsPanel.tsx",
-      "components/recipes/StyleBrowseSwitch.tsx",
-      "components/recipes/StyleCategoryGlyph.tsx",
-      "components/recipes/StyleCollectionsLandingSurface.tsx",
-      "components/recipes/StylePresetCardSurface.tsx",
-      "components/recipes/StylePresetCatalogSearchSurface.tsx",
-      "components/recipes/StyleRecipeNavigationPanel.tsx",
-      "components/recipes/StylesBrowser.tsx",
-      "components/recipes/TimelineRecipe.tsx",
-      "components/recipes/UserStyleEditorSurface.tsx",
-      "components/recipes/styleNavigationPresentation.tsx",
-      "components/settings/SettingsExtensionsPanel.tsx",
-      "components/settings/SettingsFormPanel.tsx",
-      "components/settings/SettingsMaintenancePanel.tsx",
-      "components/settings/SettingsOutputSourcesPanel.tsx",
-      "components/settings/StylePackBrowser.tsx",
-      "components/settings/SubscriptionAuthControls.tsx",
-      "components/shell/StudioStatusBar.tsx",
-      "external:javascript:@tabler/icons-react",
-      "external:javascript:iconoir-react"
+      "apps/local-server/src/library.ts",
+      "apps/local-server/src/libraryAssetVariants.ts"
     ]
   },
-  "generation_id": "a76c7d1311617ec9ae2e36baaf7753efba056b216ea88adfc07cc16175d94d83"
+  "generation_id": "6c228567dd58d5283085d6dd771b3498176ca4b1a8df0eb8adef6c1aa0d1a328"
 }

@@ -40,6 +40,7 @@ export interface StudioSettingsFormState {
   outputFileNameTemplate: string;
   autoDetectOutputSources: boolean;
   notifyOnUpdates: boolean;
+  mcpAccess: EditableStudioSettings['mcpAccess'];
   commandCenterCompactMode: boolean;
   intentionalStylesV1: boolean;
   showWorkspaceHistoryInCarousel: boolean;
@@ -62,6 +63,7 @@ export function createInitialStudioSettingsFormState(): StudioSettingsFormState 
       createDefaultEditableStudioSettings().outputOrganization.fileNameTemplate,
     autoDetectOutputSources: true,
     notifyOnUpdates: false,
+    mcpAccess: 'read',
     commandCenterCompactMode: false,
     intentionalStylesV1: false,
     showWorkspaceHistoryInCarousel: true,
@@ -82,6 +84,7 @@ export function getStudioSettingsFormState(
     outputFileNameTemplate: settings.outputOrganization.fileNameTemplate,
     autoDetectOutputSources: settings.autoDetectOutputSources,
     notifyOnUpdates: settings.notifyOnUpdates,
+    mcpAccess: settings.mcpAccess,
     commandCenterCompactMode: settings.commandCenterCompactMode,
     intentionalStylesV1: settings.intentionalStylesV1,
     showWorkspaceHistoryInCarousel: settings.showWorkspaceHistoryInCarousel ?? true,
@@ -109,6 +112,7 @@ export function buildStudioSettingsPatch(
     },
     autoDetectOutputSources: formState.autoDetectOutputSources,
     notifyOnUpdates: formState.notifyOnUpdates,
+    mcpAccess: formState.mcpAccess,
     commandCenterCompactMode: formState.commandCenterCompactMode,
     intentionalStylesV1: formState.intentionalStylesV1,
     showWorkspaceHistoryInCarousel: formState.showWorkspaceHistoryInCarousel,

@@ -1,6 +1,6 @@
 # Image API quick reference
 
-This file is for the fallback CLI mode only. Use it when the user explicitly asks to use `scripts/image_gen.py` / CLI / API / model controls, or after the user explicitly confirms that a transparent-output request should use the `gpt-image-1.5` true-transparency fallback path.
+This file is for explicit CLI/API use and describes the bundled script's model assumptions. Verify current official API support before a live call. Native transparency in the built-in tool does not require this API path.
 
 These parameters describe the Image API and bundled CLI fallback surface. Do not assume they are normal arguments on the built-in `image_gen` tool.
 
@@ -73,9 +73,9 @@ Model-specific note for `input_fidelity`:
 
 ## Transparent backgrounds
 
-`gpt-image-2` does not currently support the Image API `background=transparent` parameter. The skill's default transparent-image path is built-in `image_gen` with a flat chroma-key background, followed by local alpha extraction with `python "${CODEX_HOME:-$HOME/.codex}/skills/.system/imagegen/scripts/remove_chroma_key.py"`.
+The bundled CLI rejects `background=transparent` for `gpt-image-2`. This script constraint does not describe the built-in tool, whose native transparency control is the default for direct transparent-image requests.
 
-Use CLI `gpt-image-1.5` with `background=transparent` and a transparent-capable output format such as `png` or `webp` only after the user explicitly confirms that fallback, unless they already requested `gpt-image-1.5`, `scripts/image_gen.py`, or CLI fallback. If the user asks for true/native transparency, the subject is too complex for clean chroma-key removal, or local background removal fails validation, explain the tradeoff and ask before switching.
+For an explicitly requested CLI call, verify current API support and use a supported model and alpha-capable format within the user's authority. A transparent request or a complex subject does not authorize switching to API billing.
 
 ## Output
 

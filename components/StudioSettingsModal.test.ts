@@ -20,8 +20,10 @@ describe('StudioSettingsModal provider defaults', () => {
       serviceTier: null,
     };
 
+    settings.mcpAccess = 'write';
     const patch = buildStudioSettingsPatch(getStudioSettingsFormState(settings));
 
+    expect(patch.mcpAccess).toBe('write');
     expect(patch.providerDefaults?.codex).toEqual(settings.providerDefaults.codex);
   });
 

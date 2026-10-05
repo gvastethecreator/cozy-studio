@@ -18,6 +18,7 @@ describe('studioSettings', () => {
       defaultOutputMode: 'studio_library',
       autoDetectOutputSources: true,
       notifyOnUpdates: false,
+      mcpAccess: 'read',
       commandCenterCompactMode: false,
       intentionalStylesV1: false,
       disabledWorkflowModules: [],
@@ -93,6 +94,7 @@ describe('studioSettings', () => {
         defaultProviderId: 'comfy',
         commandCenterCompactMode: true,
         notifyOnUpdates: true,
+        mcpAccess: 'write',
         showWorkspaceHistoryInCarousel: false,
         preferredOutputPath: 'D:/DEV/cozy-studio/outputs',
         outputOrganization: {
@@ -113,6 +115,11 @@ describe('studioSettings', () => {
     expect(settings.defaultProviderId).toBe('comfy');
     expect(settings.commandCenterCompactMode).toBe(true);
     expect(settings.notifyOnUpdates).toBe(true);
+    expect(settings.mcpAccess).toBe('write');
+    expect(mergeEditableStudioSettingsPatch(settings, { mcpAccess: 'invalid' }).mcpAccess).toBe(
+      'write',
+    );
+    expect(mergeEditableStudioSettingsPatch(settings, { mcpAccess: 'off' }).mcpAccess).toBe('off');
     expect(
       mergeEditableStudioSettingsPatch(settings, { notifyOnUpdates: 'false' }).notifyOnUpdates,
     ).toBe(true);

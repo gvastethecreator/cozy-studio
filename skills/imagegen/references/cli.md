@@ -1,6 +1,6 @@
 # CLI reference (`scripts/image_gen.py`)
 
-This file is for the fallback CLI mode only. Read it when the user explicitly asks to use `scripts/image_gen.py` / CLI / API / model controls, or after the user explicitly confirms that a transparent-output request should use the `gpt-image-1.5` true-transparency fallback path.
+This file is for explicit CLI/API use. A transparent-output request alone uses the built-in tool's native control. Model notes below describe the bundled script; verify current official API support before a live call.
 
 `generate-batch` is a CLI subcommand in this fallback path. It is not a top-level mode of the skill.
 The word `batch` in a user request is not CLI opt-in by itself.
@@ -15,11 +15,10 @@ Real API calls require **network access** + `OPENAI_API_KEY`. `--dry-run` does n
 
 ## Quick start (works from any repo)
 
-Set a stable path to the skill CLI (default `CODEX_HOME` is `~/.codex`):
+Resolve the installed directory containing this skill's SKILL.md, then set a task-scoped path to its bundled CLI:
 
 ```
-export CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
-export IMAGE_GEN="$CODEX_HOME/skills/.system/imagegen/scripts/image_gen.py"
+export IMAGE_GEN="<resolved-skill-root>/scripts/image_gen.py"
 ```
 
 Install dependencies into that environment with its package manager. In uv-managed environments, `uv pip install ...` remains the preferred path.
@@ -84,7 +83,7 @@ python "$IMAGE_GEN" edit \
 - Square images are typically fastest. Use `--size 1024x1024` for quick square drafts.
 - If the user asks for 4K-style output, use `--size 3840x2160` for landscape or `--size 2160x3840` for portrait.
 - Do not pass `--input-fidelity` with `gpt-image-2`; this model always uses high fidelity for image inputs.
-- Do not use `--background transparent` with `gpt-image-2`; the default transparent-image workflow uses built-in `image_gen` on a flat chroma-key background plus local removal. Use `gpt-image-1.5` only after the user explicitly confirms the true-transparent CLI fallback, unless they already requested `gpt-image-1.5`, `scripts/image_gen.py`, or CLI fallback.
+- The bundled script rejects `--background transparent` with `gpt-image-2`. For explicit CLI use, choose a supported model within the user's authority and verify current API support. Direct transparent-image requests use the built-in tool's native control when available.
 
 Popular `gpt-image-2` sizes:
 
@@ -249,7 +248,8 @@ Notes:
 
 ## See also
 
-- API parameter quick reference for fallback CLI mode: `references/image-api.md`
-- Prompt examples shared across both top-level modes: `references/sample-prompts.md`
-- Network/sandbox notes for fallback CLI mode: `references/codex-network.md`
-- Built-in-first transparent image workflow: `SKILL.md` and `$CODEX_HOME/skills/.system/imagegen/scripts/remove_chroma_key.py`
+- API parameter quick reference for explicit CLI mode: `image-api.md`
+- Prompt examples: `sample-prompts.md`
+- Network/sandbox notes for explicit CLI mode: `codex-network.md`
+- Built-in-first transparent image workflow: `../SKILL.md`
+- Explicit local chroma-key operations: `../scripts/remove_chroma_key.py`

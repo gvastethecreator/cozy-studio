@@ -288,6 +288,7 @@ export function resetDemoStore(
     defaultOutputMode: 'studio_library',
     autoDetectOutputSources: true,
     notifyOnUpdates: false,
+    mcpAccess: 'read',
     commandCenterCompactMode: false,
     intentionalStylesV1: false,
     disabledWorkflowModules: [],

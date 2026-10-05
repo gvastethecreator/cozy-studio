@@ -202,6 +202,7 @@ bun run tooling:logs:prune
 
 ## Documentation
 
+- [Agent tools (MCP)](./docs/agents/mcp.md)
 - [Agent rules](./AGENTS.md)
 - [Architecture](./docs/ARCHITECTURE.md)
 - [Dependencies](./docs/DEPENDENCIES.md)

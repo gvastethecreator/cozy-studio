@@ -3,16 +3,35 @@
   "tasks": [
     {
       "label": "▶️ Dev",
-      "type": "shell",
-      "command": "bun run dev",
+      "detail": "Start Studio UI and API at http://127.0.0.1:17222 (API: 17223).",
+      "type": "process",
+      "command": "bun",
+      "args": ["run", "dev"],
       "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": [],
-      "isBackground": true
+      "problemMatcher": {
+        "owner": "cozy-studio",
+        "pattern": {
+          "regexp": "^(.+):(\\d+):(\\d+): (.+)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "message": 4
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\[dev\\] Restarting Studio\\.\\.\\.$",
+          "endsPattern": "^Cozy Studio local-server listening on http://"
+        }
+      },
+      "isBackground": true,
+      "runOptions": { "instanceLimit": 1 },
+      "presentation": { "panel": "dedicated", "reveal": "always" }
     },
     {
       "label": "🧪 Test",
-      "type": "shell",
-      "command": "bun run test",
+      "type": "process",
+      "command": "bun",
+      "args": ["run", "test"],
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
       "group": {
@@ -22,23 +41,26 @@
     },
     {
       "label": "🧹 Check",
-      "type": "shell",
-      "command": "bun run check",
+      "type": "process",
+      "command": "bun",
+      "args": ["run", "check"],
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
       "group": "test"
     },
     {
       "label": "🎨 Format",
-      "type": "shell",
-      "command": "bun run fmt",
+      "type": "process",
+      "command": "bun",
+      "args": ["run", "fmt"],
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": []
     },
     {
       "label": "🏗️ Build",
-      "type": "shell",
-      "command": "bun run build",
+      "type": "process",
+      "command": "bun",
+      "args": ["run", "build"],
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
       "group": {
@@ -48,40 +70,89 @@
     },
     {
       "label": "🔌 Provider status",
-      "type": "shell",
-      "command": "bun run providers:preflight",
+      "type": "process",
+      "command": "bun",
+      "args": ["run", "providers:preflight"],
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": []
     },
     {
       "label": "🩺 Runtime",
-      "type": "shell",
-      "command": "bun run runtime:doctor",
+      "type": "process",
+      "command": "bun",
+      "args": ["run", "runtime:doctor"],
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": []
     },
     {
       "label": "🎨 Styles",
-      "type": "shell",
-      "command": "bun run styles:render:verify",
+      "detail": "Check Studio's style render budget. Use Style packs: Audit for curation records.",
+      "type": "process",
+      "command": "bun",
+      "args": ["run", "styles:render:verify"],
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
       "group": "test"
     },
     {
       "label": "🧾 Docs",
-      "type": "shell",
-      "command": "bun run docs:check",
+      "type": "process",
+      "command": "bun",
+      "args": ["run", "docs:check"],
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
       "group": "test"
     },
     {
       "label": "📜 Logs",
-      "type": "shell",
-      "command": "bun run tooling:logs",
+      "type": "process",
+      "command": "bun",
+      "args": ["run", "tooling:logs"],
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": []
+    },
+    {
+      "label": "Style packs: Admin",
+      "detail": "Review packs at http://127.0.0.1:17250. Requires the sibling cozy-styles-dev checkout; regeneration also needs Studio and ChatGPT sign-in.",
+      "type": "process",
+      "command": "bun",
+      "args": ["run", "admin"],
+      "options": { "cwd": "${workspaceFolder}/../cozy-styles-dev" },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "cozy-styles-admin",
+        "pattern": {
+          "regexp": "^(.+):(\\d+):(\\d+): (.+)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "message": 4
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\$ bun tools/admin/server\\.ts",
+          "endsPattern": "^\\[admin\\] http://127\\.0\\.0\\.1:\\d+\\s*$"
+        }
+      },
+      "runOptions": { "instanceLimit": 1 },
+      "presentation": { "panel": "dedicated", "reveal": "always" }
+    },
+    {
+      "label": "Style packs: Studio + admin",
+      "detail": "Start Studio, then the curation admin. Review at http://127.0.0.1:17250.",
+      "dependsOn": ["▶️ Dev", "Style packs: Admin"],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "Style packs: Audit",
+      "detail": "Check source curation records in cozy-styles-dev. This does not approve image quality.",
+      "type": "process",
+      "command": "bun",
+      "args": ["run", "tools/audit-style-curation.ts", "--verify"],
+      "options": { "cwd": "${workspaceFolder}/../cozy-styles-dev" },
+      "problemMatcher": [],
+      "group": "test"
     }
   ]
 }

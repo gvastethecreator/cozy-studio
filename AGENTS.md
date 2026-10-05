@@ -1,19 +1,14 @@
 # Cozy Studio agent rules
 
-This file is for agents that work in this repo.
+This file is for agents that work in this repo. Start with `git status --short` and preserve unrelated work. Read `CONTEXT.md` for domain terms and the relevant section of `docs/ARCHITECTURE.md` before changing a product boundary.
+
+For product-module changes, inspect `docs/codemap/codemap.lock` and use the affected section of `docs/codemap/codemap.md` for callers, tests, and flows. Docs and skill edits do not require map regeneration. GitHub Issues and Project `#8` are the task tracker; do not introduce a second `tasks.json` tracker.
 
 ## Setup
 
 If the user asks for setup, getting started, first run, or onboarding, or if the checkout is not initialized, follow `skills/cozy-studio-setup/SKILL.md` before ad hoc commands.
 
-1. Read this file, `README.md`, and `skills/cozy-studio-setup/SKILL.md`.
-2. Inspect repo and app-owned runtime state without printing secrets: `git status --short`, Codex Runtime Doctor, `.env.local` presence, Studio Library init, `/api/health`, and `/api/codex/session` when reachable.
-3. Run `bun install` only when missing or stale dependencies block setup.
-4. Run `bun run studio:init` when `.env.local`, the Studio Library, SQLite state, the default library, or the default workspace is missing.
-5. Start the local runtime with `bun run dev` when needed, then confirm the UI and backend are healthy.
-6. If ChatGPT auth is missing, stop. Ask the user to Sign in from Studio Settings. Do not run `codex login` unless the user explicitly wants the Codex app-server route.
-7. Do not block setup on an exact Bun or Codex release. Studio ChatGPT Sign in is enough for recommended image jobs. App-server support and Local Codex Session matter only for the Codex provider.
-8. Close with one validation pass and a short readiness summary.
+That skill owns initialization, provider-specific readiness, and runtime checks. A setup request authorizes the ordinary setup steps. Reuse a healthy running instance; preserve existing paths and data. Missing ChatGPT sign-in requires the user's action in Studio Settings, not a switch to the Codex provider.
 
 ## Image jobs
 
@@ -21,14 +16,15 @@ Use the ChatGPT provider after Studio Settings Sign in. Do not start `codex app-
 
 ## Commands
 
-Use Bun scripts. Select affected tests at integration; use the full gate for broad changes. Do not run an aggregate and its included checks twice.
+Use Bun scripts. `package.json` and `scripts/tooling-task.ts` define the commands; `docs/TOOLING.md` explains gate selection. Select affected checks at integration. Do not run an aggregate and its included checks twice.
 
 ```bash
 bun run test
 bun run check
 bun run build
 bun run validate:fast
-bun run validate:full
+bun run validate
+bun run validate:release
 ```
 
 For focused unit tests:
@@ -36,6 +32,8 @@ For focused unit tests:
 ```bash
 bun run test -- path/to/test.ts
 ```
+
+For docs and skills, run `bun run docs:check` and validate changed skill packages. `validate:fast` is a fixed unit subset plus server typecheck; it does not select tests from the diff. `validate:full` is an alias of the release gate.
 
 If `rg` fails on Windows in this checkout, use PowerShell `Get-ChildItem` and `Select-String`.
 
@@ -60,6 +58,12 @@ If `rg` fails on Windows in this checkout, use PowerShell `Get-ChildItem` and `S
 
 ## Agent skills
 
+Read [skill ownership and loading](docs/agents/skills.md) when selecting, updating, or installing a project skill. Keep contributor guidance portable; local ecosystem links must not replace the tracked skill sources.
+
+### Runtime tools
+
+For app queries, generation and cancellation through MCP, read `docs/agents/mcp.md`. Use the running backend and its Settings access mode.
+
 ### Issue tracker
 
 GitHub Issues and Project `#8` hold live state. `.scratch/` holds synchronized local mirrors. See `docs/agents/issue-tracker.md`.
@@ -78,12 +82,10 @@ Style packs, presets, cards and curation live in the private `cozy-styles-dev` r
 
 ## Closeout
 
-Do not claim completion without fresh command output. Minimum closeout for broad changes:
+Do not claim completion without fresh command output. For broad product changes, run the main gate once:
 
 ```bash
-bun run test
-bun run check
-bun run build
+bun run validate
 ```
 
-If one gate cannot run, report the exact command, the failure or blocker, and the risk.
+It includes tests, check, and build. For bounded changes, use the affected checks above. Report changed files, evidence, skipped checks and reasons, and remaining limits. If a gate cannot run, report the exact command, the failure or blocker, and the risk. Commits require consent after diff review; push, branch changes, worktrees, and publication require explicit authority.

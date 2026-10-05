@@ -1,3 +1,4 @@
+import { createMcpRoutes } from './mcpRoutes';
 import { randomUUID } from 'node:crypto';
 import { Hono } from 'hono';
 import { getCodexWsUrl, getEnvLocalPath, getSettings, hasEnvLocalFile } from './config';
@@ -616,6 +617,14 @@ export async function createStudioApp(
       readLibraryContext,
       readLibraryDir: () => getDefaultLibrary().path,
       publishEvent,
+    }),
+  );
+
+  app.route(
+    '/api/mcp',
+    createMcpRoutes({
+      request: async (path, init) => app.request(path, init),
+      readSettings: () => readEditableStudioSettings(settingsStorage),
     }),
   );
 

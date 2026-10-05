@@ -1,6 +1,6 @@
 ---
 name: cozy-studio-setup
-description: Set up a local Cozy Studio checkout end to end from the welcome-screen handoff prompt.
+description: 'Cozy Studio setup and onboarding. Use for first run or a welcome-screen setup handoff.'
 ---
 
 # Cozy Studio Setup
@@ -36,7 +36,7 @@ The product loop is detect, consent, mutate, stream, re-validate. One primary CT
    Never silent-install Codex. Run `codex login` only when the user explicitly wants the
    Codex app-server route.
 4. Studio Library or Bootstrap Configuration missing: in-app Setup, or
-   `bun run studio:onboard --setup`, after explicit consent.
+   `bun run studio:onboard --setup`. A setup request authorizes these ordinary setup steps; reuse that consent.
 5. Codex provider selected, and Codex Product Runtime is not ready: start app-server
    through the local backend. Leave app-server stopped when ChatGPT HTTP is the selected
    image route.
@@ -48,8 +48,8 @@ row, never a Studio installer.
 Default Studio Library is `Library` inside the private Cozy Studio app-data folder
 (`%LOCALAPPDATA%\Cozy Studio` on Windows). Existing `STUDIO_LIBRARY_DIR` is kept. Do not
 auto-migrate an older library. Preferred Output Path is not the generate destination.
-New generations go to Pictures/Cozy Studio, or the images folder chosen in onboarding,
-named `{date}_{style}_{prompt}`.
+New generations go to Pictures/Cozy Studio, or the images folder chosen in onboarding.
+The current naming template and an example are in `README.md` and Settings, Output; preserve the configured template.
 
 ## Safety
 
@@ -85,7 +85,8 @@ For UI onboarding changes, also read:
 1. Inspect current state.
    - `git status --short`
    - Bun can run repo scripts. Collect tool metadata only when it helps diagnosis.
-   - Codex Runtime Doctor status, selected executable, and app-server support. Collect CLI metadata only when it helps diagnosis.
+   - Check existing processes and configured ports before starting services. Reuse a healthy instance.
+   - For an explicitly requested Codex provider: Codex Runtime Doctor, selected executable, and app-server support. These do not block ChatGPT HTTP setup.
    - make sure that `.env.local` exists without printing secret values
    - inspect `package.json` scripts
 
@@ -93,7 +94,7 @@ For UI onboarding changes, also read:
    - Run `bun install` only when dependencies are missing or stale enough to
      block scripts. Never silent-install Bun or Codex CLI.
    - Prefer `bun run studio:onboard --setup` (or in-app Setup) when the probe says
-     library or Bootstrap Configuration is missing. Mutations need consent.
+     library or Bootstrap Configuration is missing and setup is authorized.
    - Run `bun run studio:init` when `.env.local`, Studio Library folders,
      SQLite state, default library, or default workspace are missing after that.
    - Keep existing `.env.local` values unless they are invalid. If editing is
@@ -103,15 +104,16 @@ For UI onboarding changes, also read:
    - Start with `bun run dev` for full local stack when possible.
    - Use `bun run dev:server` and `bun run dev:ui` separately only when that
      makes diagnosis clearer.
-   - Check `GET /api/health` and `/api/codex/session`.
+   - Check `GET /api/health` and `/api/onboarding/probe`, and open the UI. Default ports are UI `17222` and API `17223`; read configured overrides without printing secrets.
+   - Check `/api/codex/session` only for an explicitly requested Codex provider.
    - Use `/api/app-server/start` or the UI button to start `codex app-server`
-     when backend health says the backend is reachable but app-server is down.
+     only for an explicitly requested Codex provider when backend health says app-server is down. Leave it stopped for ChatGPT HTTP.
    - If ChatGPT auth is missing, stop and ask the user to Sign in from Studio Settings, then select the ChatGPT provider. Do not run `codex login` or start app-server unless the user explicitly wants the Codex route. Do not fake readiness.
 
 4. Diagnose failures.
-   - For missing Codex CLI, report PATH/install issue and exact failed command.
-   - Do not block on an exact Bun or Codex release when app readiness,
-     supported scripts, app-server support, and Local Codex Session are healthy.
+   - For missing Codex CLI on the requested Codex route, report the PATH/install issue and exact failed command.
+   - Do not block on an exact Bun or Codex release when app readiness
+     and supported scripts are healthy. App-server support and Local Codex Session apply only to the Codex route.
    - For occupied ports, identify conflicting ports from `.env.local` and
      suggest safe alternative values.
    - For Studio Library failures, fix missing folders via `bun run studio:init`
@@ -120,9 +122,8 @@ For UI onboarding changes, also read:
      and source names, never values.
 
 5. Close out once.
-   - `bun run test`
-   - `bun run check`
-   - `bun run build`
+   - For setup without source edits, report fresh health, onboarding, sign-in state, and UI evidence. Generating an image spends provider usage and is not a setup probe.
+   - For source edits, select the affected checks from `AGENTS.md`; broad product changes use `bun run validate` once.
    - For frontend onboarding changes, run visual verification in browser before
      claiming done.
 
@@ -133,5 +134,5 @@ End with:
 - changed files
 - setup actions performed
 - commands run and pass or fail result
-- current readiness summary from `/api/health` and `/api/codex/session` when reachable
+- current readiness summary from `/api/health` and `/api/onboarding/probe`; include `/api/codex/session` only for the requested Codex route
 - any remaining user-only actions, such as Studio Settings Sign in. Mention interactive `codex login` only when the Codex app-server route was requested.

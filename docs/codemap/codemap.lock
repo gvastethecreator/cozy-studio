@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
-  "source_commit": "ffa3176d6a05fd4eab45f20e5efe09b58e1916b9",
+  "source_commit": "5aad164005e8e504091c47a38ad1575d7ecf10c7",
   "working_tree_dirty": true,
-  "generated_at": "2026-10-03T10:12:19Z",
-  "generation_id": "46729e76802b29d25f26fd7c2a8302776d44a9fa607fad12ee69f2df56eb9abf",
+  "generated_at": "2026-10-05T07:50:24Z",
+  "generation_id": "aca7cc643b52cfbcb1fd42ad316f2f6a7f51b25844c971f76f698c30aaf1dab1",
   "analysis": {
     "version": "syntax-1",
     "digest": "f254907343def68e42baabf08b179db9817a145bc24eaad26add0adf05d75581"
@@ -138,8 +138,8 @@
         "path": "apps/local-server/src/appFactory.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "6fd87bbe84018613583231e7be0625a05a6675d8982940e61394bfcbc2c37fcb",
-        "size": 25243
+        "digest": "bd31eb5ec6e04688e272c0aeddf47cdd0c08a1664d7f531445e3b4a3645b37a3",
+        "size": 25488
       },
       {
         "path": "apps/local-server/src/assetLogRoutes.test.ts",
@@ -980,6 +980,20 @@
         "state": "present",
         "digest": "c952e33550d523059a65d826d0de145e7c9f51440ab8bf88450288ec3bfe7921",
         "size": 2085
+      },
+      {
+        "path": "apps/local-server/src/mcpRoutes.test.ts",
+        "origin": "untracked",
+        "state": "present",
+        "digest": "1eebfb2ca600e274bc2b5db358290a820991226f6ccaf1ec3e103f17ca771eaf",
+        "size": 2984
+      },
+      {
+        "path": "apps/local-server/src/mcpRoutes.ts",
+        "origin": "untracked",
+        "state": "present",
+        "digest": "fe1d241b91fad050894bdd9a4084567403a062b508495c56f5ff06f78a7f3e58",
+        "size": 5871
       },
       {
         "path": "apps/local-server/src/metadataEmbedder.test.ts",
@@ -2238,8 +2252,8 @@
         "path": "components/StudioSettingsModal.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "33bcfc084845ebf1138f54d62ddfea6a46fa1e607421409b133aca29f7008908",
-        "size": 3147
+        "digest": "cfa7f47337d77c1b4f562d3d1bf019cc59d5d0f2bf995d6e4ebe18508463e689",
+        "size": 3224
       },
       {
         "path": "components/StudioSettingsModal.tsx",
@@ -3183,8 +3197,8 @@
         "path": "components/settings/SettingsGeneralPanel.tsx",
         "origin": "tracked",
         "state": "present",
-        "digest": "c35240cd6623ba836549f2c4f0a9b770d83f3ab900f3ac2edc1c12129c83d59a",
-        "size": 2887
+        "digest": "3a91872093474635ee9ef2a0e6817d2b66d6a1413e05f3ab928723ad9756e15f",
+        "size": 3698
       },
       {
         "path": "components/settings/SettingsMaintenancePanel.tsx",
@@ -5164,8 +5178,8 @@
         "path": "lib/studioSettingsForm.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "3405fe43835c387023fab6acd6686d1e2f0a3fcd477d4252a144f5f8b95a8f72",
-        "size": 4829
+        "digest": "467af6f6d5c9d344564a501b28e5557d62b7d6fa31a0eb7c28c940b2c42d003e",
+        "size": 4973
       },
       {
         "path": "lib/studioViewportRouteSurfaces.tsx",
@@ -5325,8 +5339,8 @@
         "path": "package.json",
         "origin": "tracked",
         "state": "present",
-        "digest": "bccccc051d16065ab8f54ae84e11efc55ebafa69d6ad326278e6b80f787253df",
-        "size": 7465
+        "digest": "edc3e9c5a512320d778104a8cf23d36e884cd368f274141ba10c6f7d84f49a0c",
+        "size": 7572
       },
       {
         "path": "packages/shared/src/animationSequenceContracts.test.ts",
@@ -5644,6 +5658,13 @@
         "size": 2180
       },
       {
+        "path": "packages/shared/src/studioMcp.ts",
+        "origin": "untracked",
+        "state": "present",
+        "digest": "2631684935338448d09994f3de205fa07b9044abf71de81b6f3c1a6f4f3f1064",
+        "size": 4112
+      },
+      {
         "path": "packages/shared/src/studioReadinessContracts.ts",
         "origin": "tracked",
         "state": "present",
@@ -5654,15 +5675,15 @@
         "path": "packages/shared/src/studioSettings.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "33d4a50890c1875943c69c2c87b85a79d592f4b8cf6e5589f4415a51d0592444",
-        "size": 6008
+        "digest": "0556e2c708713fbd4e4cd34092be3e09baa7a768e03d59137cc2e05bbc0fdd3b",
+        "size": 6326
       },
       {
         "path": "packages/shared/src/studioSettings.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "2d84034c0cb82ef62bdcc235d155dbef95e7e5373d6968cdd7b8ddd112d9e4fc",
-        "size": 13210
+        "digest": "ae824f9338e39a3cb8a860be21c43249c18a573c771e28254a3e68d39afdde94",
+        "size": 13554
       },
       {
         "path": "packages/shared/src/styles/intentional-v1/canonical.ts",
@@ -5871,8 +5892,8 @@
         "path": "review/demo-store.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "475881777d10af43ceca8eff8af2e02ee835df02e22abd0fe708138567d505e9",
-        "size": 26718
+        "digest": "d7d73b7356acd5184571a0ab0d7e0b94881e423fe9f9fa143fdfe34eb0d5ca45",
+        "size": 26741
       },
       {
         "path": "review/entry.tsx",
@@ -6365,6 +6386,13 @@
         "size": 3214
       },
       {
+        "path": "scripts/studio-mcp.ts",
+        "origin": "untracked",
+        "state": "present",
+        "digest": "05508148bec2fdca6fff44f11168ae4943c33e87f0125c3e8fd46b1f565ba619",
+        "size": 2334
+      },
+      {
         "path": "scripts/studio-onboard.test.ts",
         "origin": "tracked",
         "state": "present",
@@ -6690,15 +6718,15 @@
         "path": "skills/cozy-studio-setup/SKILL.md",
         "origin": "tracked",
         "state": "present",
-        "digest": "dfc649f8019146340d9eae62ff31666ed210373438f3594e5be90b1f2aa33568",
-        "size": 6121
+        "digest": "f6e9fc021804f0aba75ee948622b8b61a21588421a62719871d3ab1750f4df80",
+        "size": 6985
       },
       {
         "path": "skills/imagegen/SKILL.md",
         "origin": "tracked",
         "state": "present",
-        "digest": "699028a52a1f693095fcc1e3f16cc2a904239f7119aea4c88fef284b4f9d3597",
-        "size": 27037
+        "digest": "c67ceeb5678f986d0ec4cf93eef3fcda9c139fdd12bff7e4e20d1363c5850519",
+        "size": 5774
       },
       {
         "path": "skills/imagegen/scripts/image_gen.py",
@@ -6718,8 +6746,8 @@
         "path": "skills/sprite-atlas-builder/SKILL.md",
         "origin": "tracked",
         "state": "present",
-        "digest": "75b1252378f70039765ef0eded2e5db3695ac5bff7d2940f1d64553beb54d114",
-        "size": 965
+        "digest": "3b8a30bc28fb8b892e539f4e60d57216519107e93301b3b030437f5830a74843",
+        "size": 1484
       },
       {
         "path": "tsconfig.base.json",
@@ -6869,12 +6897,12 @@
         "size": 710
       }
     ],
-    "digest": "fbb26a41565c37efe058886c3a32562150843935d6980202bac0ac1a75fb6955"
+    "digest": "082bb646445a3b4bd292ba06dfb2ae8442df4b3cab9d1c0c75cb8d1cb94631dc"
   },
-  "source_digest": "a46a8a5fbe2e2c7280ef3698e005c503ac15145aa37deb3d6f9502b03fcafd4f",
+  "source_digest": "ddda62655e56e00c75d35a8a1ed922d2b464658d41c81ee3f42a54b50f9a9799",
   "artifact_hashes": {
-    "codemap.json": "bf595f4a918b10ccdec6f366755e52892d7126c4f94a107ce4b931eaf9bb8554",
-    "codemap.md": "1a4b4c58171ff1014c7ab9c4e6431a6c21bca8744068ed227841dfae9e4ab9b2",
-    "codemap.html": "7a32fe7ecdec2a58364fb758b318bb2301fa0b7986c567afd3e3c1140352bec2"
+    "codemap.json": "a3973745ff2453f6443cf53de1a2fb1849bb410b623b7964aa571abc550c129b",
+    "codemap.md": "75866c5f34b72d83b6b3dea272a04118e63c7d79e43faa756bc1248fd0a72e0e",
+    "codemap.html": "a64d567d155a0a84ca836806a5ec1aa01614f44a50f55f6642c4318c579fa6fd"
   }
 }

@@ -5,6 +5,8 @@ import { normalizeDisabledWorkflowModules, type WorkflowModuleId } from './workf
 
 const EDITABLE_STUDIO_SETTINGS_VERSION = 'editable-studio-settings/v2' as const;
 
+export type StudioMcpAccess = 'off' | 'read' | 'write';
+
 export type StudioOutputMode = 'studio_library' | 'external_source';
 export type StudioOutputSubfolderToken =
   | 'workspace'
@@ -35,6 +37,7 @@ export interface EditableStudioSettings {
   defaultOutputMode: StudioOutputMode;
   autoDetectOutputSources: boolean;
   notifyOnUpdates: boolean;
+  mcpAccess: StudioMcpAccess;
   commandCenterCompactMode: boolean;
   intentionalStylesV1: boolean;
   /** Optional workflow modules the user turned off (ADR 0011). */
@@ -59,6 +62,7 @@ export interface EditableStudioSettingsPatch {
   defaultOutputMode?: StudioOutputMode;
   autoDetectOutputSources?: boolean;
   notifyOnUpdates?: boolean;
+  mcpAccess?: StudioMcpAccess;
   commandCenterCompactMode?: boolean;
   intentionalStylesV1?: boolean;
   disabledWorkflowModules?: WorkflowModuleId[];
@@ -179,6 +183,7 @@ export function createDefaultEditableStudioSettings(): EditableStudioSettings {
     defaultOutputMode: 'studio_library',
     autoDetectOutputSources: true,
     notifyOnUpdates: false,
+    mcpAccess: 'read',
     commandCenterCompactMode: false,
     intentionalStylesV1: false,
     disabledWorkflowModules: [],
@@ -235,6 +240,10 @@ export function sanitizeEditableStudioSettingsPatch(value: unknown): EditableStu
   if (typeof value.autoDetectOutputSources === 'boolean') {
     patch.autoDetectOutputSources = value.autoDetectOutputSources;
   }
+  if (value.mcpAccess === 'off' || value.mcpAccess === 'read' || value.mcpAccess === 'write') {
+    patch.mcpAccess = value.mcpAccess;
+  }
+
   if (typeof value.notifyOnUpdates === 'boolean') {
     patch.notifyOnUpdates = value.notifyOnUpdates;
   }
@@ -339,6 +348,7 @@ export function mergeEditableStudioSettingsPatch(
     defaultProviderId: patch.defaultProviderId ?? current.defaultProviderId,
     defaultOutputMode: patch.defaultOutputMode ?? current.defaultOutputMode,
     autoDetectOutputSources: patch.autoDetectOutputSources ?? current.autoDetectOutputSources,
+    mcpAccess: patch.mcpAccess ?? current.mcpAccess ?? 'read',
     notifyOnUpdates: patch.notifyOnUpdates ?? current.notifyOnUpdates ?? false,
     commandCenterCompactMode: patch.commandCenterCompactMode ?? current.commandCenterCompactMode,
     intentionalStylesV1: patch.intentionalStylesV1 ?? current.intentionalStylesV1,

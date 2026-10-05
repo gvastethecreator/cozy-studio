@@ -19,6 +19,30 @@ export function SettingsGeneralPanel({
       <h3 className="studio-dialog-title">Make Studio yours</h3>
       <label className="settings-row">
         <span>
+          <strong>Agent access (MCP)</strong>
+          <small>
+            Let local agents query Studio, generate images and cancel jobs. Generation uses your
+            provider account.
+          </small>
+        </span>
+        <select
+          className="studio-field"
+          aria-label="Agent access (MCP)"
+          value={value.mcpAccess}
+          onChange={(event) =>
+            onChange((current) => ({
+              ...current,
+              mcpAccess: event.target.value as StudioSettingsFormState['mcpAccess'],
+            }))
+          }
+        >
+          <option value="off">Off</option>
+          <option value="read">Read only</option>
+          <option value="write">Generate and cancel</option>
+        </select>
+      </label>
+      <label className="settings-row">
+        <span>
           <strong>Notify me about updates</strong>
           <small>
             Check for new commits on main at startup and every hour while Studio is open.

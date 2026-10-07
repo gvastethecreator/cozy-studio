@@ -21,7 +21,7 @@ Use one validation level per integration. Each broader gate includes the narrowe
 | `bun run validate:release`       | Release gate                                 |
 | `bun run validate:full`          | Compatibility alias of the release gate      |
 | `bun run typecheck:environments` | Web, server, shared, and script boundaries   |
-| `bun run doctor`                 | `bunx react-doctor@0.9.13`                   |
+| `bun run doctor`                 | `bunx react-doctor@0.9.17`                   |
 | `bun run docs:check`             | Broken local doc links                       |
 | `bun run repo:hygiene:verify`    | Reject tracked secrets, DBs, and scratch     |
 | `bun run repo:assets:audit`      | Core budget and optional pack hashes         |
@@ -45,6 +45,8 @@ bun install --frozen-lockfile
 ```
 
 Review the direct dependency diff and every changed upstream release before you accept the new lock. Use top-level overrides only for a real transitive security or compatibility gap. Bun does not support nested overrides.
+
+Effect remains pinned to `4.0.0`: `4.0.2` loses the unconfirmed Comfy cancellation error when its fiber is interrupted. The existing `comfyExecutor.test.ts` cancellation case reproduces the regression and passes on `4.0.0`. Require that case to pass before upgrading Effect. The landing overrides transitive `sharp` to `0.35.5` until Miniflare updates its vulnerable exact pin.
 
 ## CI
 

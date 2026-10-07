@@ -5,6 +5,7 @@ export interface ServeWithPortFallbackOptions {
   hostname?: string;
   port?: number;
   maxPortAttempts?: number;
+  maxRequestBodySize?: number;
   serveFn?: (options: any) => Server<any>;
   onPortConflict?: (attemptedPort: number, nextPort: number) => void;
   fetch: (req: Request, server: any) => Response | Promise<Response>;

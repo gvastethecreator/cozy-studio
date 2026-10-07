@@ -6,6 +6,7 @@ import { log } from './logger';
 import { serveWithPortFallback } from './portUtils';
 import { beginSignalShutdown, shutdownStudioServer } from './serverShutdown';
 import { STUDIO_RESTART_EXIT_CODE } from '../../../packages/shared/src/repositoryUpdates';
+import { LOCAL_EXTENSION_BODY_LIMIT } from './localExtensionInstall';
 
 export { createStudioApp } from './appFactory';
 
@@ -28,6 +29,7 @@ if (import.meta.main) {
   const { server, port: boundPort } = serveWithPortFallback({
     hostname,
     port: configuredPort,
+    maxRequestBodySize: LOCAL_EXTENSION_BODY_LIMIT,
     onPortConflict(attemptedPort, nextPort) {
       if (process.env.STUDIO_MANAGED_RESTART === '1') {
         throw new Error(

@@ -49,23 +49,30 @@ async function extractZip(zip: JSZip, targetDir: string) {
   }
 }
 
+// ponytail: global write queue protects parent/layer swaps; use per-extension queues if throughput matters.
+let installWriteQueue = Promise.resolve();
+
 /** Extracts into a staging folder, then swaps it in; the previous folder survives any failure. */
-async function replaceFolder(finalDir: string, fill: (stageDir: string) => Promise<void>) {
-  const stageDir = `${finalDir}.stage-${process.pid}`;
-  const previousDir = `${finalDir}.previous-${process.pid}`;
-  await rm(stageDir, { recursive: true, force: true });
-  try {
-    await mkdir(stageDir, { recursive: true });
-    await fill(stageDir);
-    await mkdir(path.dirname(finalDir), { recursive: true });
-    if (existsSync(finalDir)) await rename(finalDir, previousDir);
-    await rename(stageDir, finalDir);
-  } catch (error) {
+function replaceFolder(finalDir: string, fill: (stageDir: string) => Promise<void>) {
+  const result = installWriteQueue.then(async () => {
+    const stageDir = `${finalDir}.stage-${process.pid}`;
+    const previousDir = `${finalDir}.previous-${process.pid}`;
     await rm(stageDir, { recursive: true, force: true });
-    if (!existsSync(finalDir) && existsSync(previousDir)) await rename(previousDir, finalDir);
-    throw error;
-  }
-  await rm(previousDir, { recursive: true, force: true });
+    try {
+      await mkdir(stageDir, { recursive: true });
+      await fill(stageDir);
+      await mkdir(path.dirname(finalDir), { recursive: true });
+      if (existsSync(finalDir)) await rename(finalDir, previousDir);
+      await rename(stageDir, finalDir);
+    } catch (error) {
+      await rm(stageDir, { recursive: true, force: true });
+      if (!existsSync(finalDir) && existsSync(previousDir)) await rename(previousDir, finalDir);
+      throw error;
+    }
+    await rm(previousDir, { recursive: true, force: true });
+  });
+  installWriteQueue = result.catch(() => undefined);
+  return result;
 }
 
 /**

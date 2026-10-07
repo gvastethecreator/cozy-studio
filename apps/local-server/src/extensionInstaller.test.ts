@@ -54,6 +54,34 @@ describe('installExtensionArchive', () => {
     expect(JSON.parse(pack)).toEqual({ version: '1.1.0' });
   });
 
+  it('serializes concurrent replacements and continues after a failed install', async () => {
+    installDir = await mkdtemp(path.join(tmpdir(), 'cozy-install-'));
+    await installExtensionArchive({ ...(await release('1.0.0')), installDir });
+    const releases = await Promise.all([
+      release('1.1.0'),
+      release('1.2.0', (zip) => zip.file('../outside.txt', 'x')),
+      release('1.3.0'),
+    ]);
+    const results = await Promise.allSettled(
+      releases.map((item) => installExtensionArchive({ ...item, installDir })),
+    );
+    expect(results.map((result) => result.status)).toEqual(['fulfilled', 'rejected', 'fulfilled']);
+    expect(results[1]).toMatchObject({ reason: { message: expect.stringContaining('escapes') } });
+
+    const root = path.join(installDir, 'cozy.pack-14');
+    const installed = JSON.parse(await readFile(path.join(root, 'extension.json'), 'utf8'));
+    expect(['1.1.0', '1.3.0']).toContain(installed.version);
+    expect(JSON.parse(await readFile(path.join(root, 'pack.json'), 'utf8'))).toEqual({
+      version: installed.version,
+    });
+    expect(existsSync(path.join(installDir, 'outside.txt'))).toBe(false);
+
+    await installExtensionArchive({ ...(await release('1.4.0')), installDir });
+    expect(JSON.parse(await readFile(path.join(root, 'pack.json'), 'utf8'))).toEqual({
+      version: '1.4.0',
+    });
+  });
+
   it('keeps the installed version when a release is tampered with or escapes its folder', async () => {
     installDir = await mkdtemp(path.join(tmpdir(), 'cozy-install-'));
     await installExtensionArchive({ ...(await release('1.0.0')), installDir });

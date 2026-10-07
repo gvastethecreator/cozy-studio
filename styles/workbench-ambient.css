@@ -146,9 +146,11 @@ Full text: third-party/ambientcss/LICENSE
           var(--amb-light-hue) var(--amb-light-saturation) 0% /
             calc(
               var(--_amb-sh-gate) *
-                ((var(--amb-key-light-intensity) - var(--amb-fill-light-intensity)) * 0.13 +
-                  var(--amb-elevation) * -0.077 + 0.368 - var(--_amb-body-gate) *
-                  max(0, 1 - var(--amb-elevation)) * 0.14)
+                (
+                  (var(--amb-key-light-intensity) - var(--amb-fill-light-intensity)) * 0.13 +
+                    var(--amb-elevation) * -0.077 + 0.368 - var(--_amb-body-gate) *
+                    max(0, 1 - var(--amb-elevation)) * 0.14
+                )
             )
         )
         calc(
@@ -199,8 +201,10 @@ Full text: third-party/ambientcss/LICENSE
           var(--amb-light-hue) var(--amb-light-saturation) 100% /
             calc(
               var(--amb-chamfer) * max(0, min(var(--amb-thickness), 1)) *
-                (var(--amb-key-light-intensity) * 1.57 + var(--amb-fill-light-intensity) * 0.85 -
-                  1.03)
+                (
+                  var(--amb-key-light-intensity) * 1.57 + var(--amb-fill-light-intensity) * 0.85 -
+                    1.03
+                )
             )
         ),
       inset calc(var(--amb-light-x) * var(--_amb-chamfer-w) * 1px)
@@ -218,8 +222,10 @@ Full text: third-party/ambientcss/LICENSE
           var(--amb-light-hue) var(--amb-light-saturation) 100% /
             calc(
               var(--amb-fillet) * max(0, min(var(--amb-thickness), 1)) *
-                (var(--amb-key-light-intensity) * 1.44 + var(--amb-fill-light-intensity) * 0.85 -
-                  0.99)
+                (
+                  var(--amb-key-light-intensity) * 1.44 + var(--amb-fill-light-intensity) * 0.85 -
+                    0.99
+                )
             )
         ),
       inset calc(var(--amb-light-x) * var(--_amb-fillet-w) * 1.4px)

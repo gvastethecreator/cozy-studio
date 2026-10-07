@@ -32,7 +32,7 @@ export default defineConfig({
               // Shell code shared by the entry and lazy surfaces. Keeping it in one chunk keeps
               // the entry small however the lazy recipe graph changes.
               name: 'shell-shared',
-              test: /[\\/](?:node_modules[\\/](?:tailwind-merge|clsx)[\\/]|lib[\\/](?:utils|gsapMotion)\.tsx?|contexts[\\/](?:GlobalContext|ToastUiContext|toastStore|RuntimeLogContext|runtimeLogStore)\.tsx?|hooks[\\/]useTheme\.ts|components[\\/]CozyMascot\.tsx)(?:\?.*)?$/,
+              test: /[\\/](?:node_modules[\\/](?:tailwind-merge|clsx)[\\/]|lib[\\/](?:utils|gsapMotion|imagePanZoom)\.tsx?|contexts[\\/](?:GlobalContext|ToastUiContext|toastStore|RuntimeLogContext|runtimeLogStore)\.tsx?|hooks[\\/](?:useTheme|useImagePresentation)\.ts|components[\\/]CozyMascot\.tsx)(?:\?.*)?$/,
             },
             {
               name: 'styles-browser-support',

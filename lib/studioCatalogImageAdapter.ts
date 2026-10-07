@@ -57,6 +57,7 @@ export function materializeCatalogEntryImage(
     preview: sourceAvailable ? preview : thumbnail,
     width: entry.width,
     height: entry.height,
+    fileSizeBytes: entry.fileSizeBytes,
     batchId,
     createdAt,
     isFavorite: entry.isFavorite,

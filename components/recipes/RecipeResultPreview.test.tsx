@@ -10,6 +10,10 @@ const { openConversion } = vi.hoisted(() => ({ openConversion: vi.fn() }));
 vi.mock('../../contexts/ImageConversionContext', () => ({
   useImageConversion: () => openConversion,
 }));
+// Loading and interrupted swaps are covered at the shared presentation hook seam.
+vi.mock('../../hooks/useImagePresentation', () => ({
+  useImagePresentation: (value: unknown, src: string) => ({ value, src }),
+}));
 
 import { MODELS } from '../../constants';
 import { RecipeResultPreview } from './RecipeResultPreview';
@@ -19,6 +23,7 @@ afterEach(() => {
   cleanup();
   openConversion.mockClear();
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 const IMAGE: GeneratedImageWithConfig = {
@@ -48,6 +53,58 @@ const IMAGE_TWO: GeneratedImageWithConfig = {
 };
 
 describe('RecipeResultPreview', () => {
+  it('loads the original and measures fit separately from one image pixel per CSS pixel', () => {
+    vi.useFakeTimers();
+    let resize!: () => void;
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: () => void) {
+          resize = callback;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    render(
+      <RecipeResultPreview
+        variant="stage"
+        images={[{ ...IMAGE, src: IMAGE.thumbnail!, sourceUrl: '/library/original.png' }]}
+      />,
+    );
+    const image = screen.getByRole('img', { name: 'Generated result' });
+    const canvas = screen.getByRole('group', { name: 'Image canvas' });
+    Object.defineProperties(image, {
+      naturalWidth: { configurable: true, value: 2048 },
+      naturalHeight: { configurable: true, value: 2048 },
+    });
+    Object.defineProperties(canvas, {
+      clientWidth: { configurable: true, value: 1024 },
+      clientHeight: { configurable: true, value: 512 },
+    });
+    fireEvent.load(image);
+    expect(image.getAttribute('src')).toBe('/library/original.png');
+    expect(image.style.width).toBe('2048px');
+    expect(image.style.height).toBe('2048px');
+    expect(image.style.transform).toContain('scale(0.25)');
+    expect(screen.getByRole('button', { name: 'Reset zoom to 100%' }).textContent).toBe('25%');
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Reset zoom to 100%' }));
+      vi.advanceTimersByTime(500);
+    });
+    expect(image.style.transform).toContain('scale(1)');
+    expect(screen.getByRole('button', { name: 'Reset zoom to 100%' }).textContent).toBe('100%');
+    Object.defineProperty(canvas, 'clientHeight', { configurable: true, value: 1024 });
+    act(resize);
+    expect(image.style.transform).toContain('scale(1)');
+    expect(screen.getByRole('button', { name: 'Reset zoom to 100%' }).textContent).toBe('100%');
+    fireEvent.click(screen.getByRole('button', { name: 'Fit image' }));
+    expect(image.style.transform).toContain('scale(0.5)');
+    expect(screen.getByRole('button', { name: 'Reset zoom to 100%' }).textContent).toBe('50%');
+    Object.defineProperty(canvas, 'clientHeight', { configurable: true, value: 512 });
+    act(resize);
+    expect(screen.getByRole('button', { name: 'Reset zoom to 100%' }).textContent).toBe('25%');
+  });
   it('keeps zoom working after StrictMode cleanup and resets when switching images', () => {
     vi.useFakeTimers();
     render(
@@ -89,7 +146,10 @@ describe('RecipeResultPreview', () => {
     expect(screen.getByRole('img', { name: 'Reference image' }).style.transform).toContain(
       'scale(1.25)',
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Reset zoom to 100%' }));
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Reset zoom to 100%' }));
+      vi.advanceTimersByTime(500);
+    });
     expect(screen.getByRole('img', { name: 'Reference image' }).style.transform).toContain(
       'scale(1)',
     );
@@ -163,7 +223,7 @@ describe('RecipeResultPreview', () => {
 
     expect(screen.getByRole('button', { name: 'View result 2' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Next result' })).toBeNull();
-    const canvas = screen.getByRole('img', { name: 'Generated result' }).parentElement;
+    const canvas = screen.getByRole('group', { name: 'Image canvas' });
     expect(canvas).toBeTruthy();
     vi.spyOn(canvas as HTMLElement, 'getBoundingClientRect').mockReturnValue({
       x: 0,

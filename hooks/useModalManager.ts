@@ -2,13 +2,13 @@ import { useState, useCallback, useRef } from 'react';
 // react-doctor-disable-next-line react-doctor/no-flush-sync
 import { flushSync } from 'react-dom';
 import type { GeneratedImageWithConfig, RecipeId } from '../types';
+import { prefersReducedMotion } from '../lib/motionPreference';
 import { isGlobalTransitioning, setIsGlobalTransitioning } from '../utils/transitionUtils';
 
 export const useModalManager = (activeRecipe: RecipeId = null) => {
   const [modalImage, setModalImage] = useState<GeneratedImageWithConfig | null>(null);
   const [activeCarouselId, setActiveCarouselId] = useState<string | null>(null);
   const [transitioningImageId, setTransitioningImageId] = useState<string | null>(null);
-  const [isViewTransitioning, setIsViewTransitioning] = useState(false);
   const isTransitioningRef = useRef(false);
 
   const openModal = useCallback((image: GeneratedImageWithConfig) => {
@@ -21,6 +21,7 @@ export const useModalManager = (activeRecipe: RecipeId = null) => {
     };
 
     if (
+      prefersReducedMotion() ||
       isGlobalTransitioning ||
       isTransitioningRef.current ||
       !document.startViewTransition ||
@@ -32,7 +33,6 @@ export const useModalManager = (activeRecipe: RecipeId = null) => {
 
     isTransitioningRef.current = true;
     setIsGlobalTransitioning(true);
-    setIsViewTransitioning(true);
     document.documentElement.dataset.transitionType = 'open-modal';
 
     // Set the transitioning ID *before* the transition starts to apply the view-transition-name CSS
@@ -53,7 +53,6 @@ export const useModalManager = (activeRecipe: RecipeId = null) => {
     void transition.finished.finally(() => {
       isTransitioningRef.current = false;
       setIsGlobalTransitioning(false);
-      setIsViewTransitioning(false);
       document.documentElement.removeAttribute('data-transition-type');
       setTransitioningImageId(null);
     });
@@ -71,14 +70,14 @@ export const useModalManager = (activeRecipe: RecipeId = null) => {
       );
     }
 
-    const update = () => {
+    const update = (animate = false) => {
       setModalImage(null);
-      // We keep transitioningImageId momentarily to allow the exit transition
-      setTransitioningImageId(activeCarouselId);
+      setTransitioningImageId(animate ? activeCarouselId : null);
       setActiveCarouselId(null);
     };
 
     if (
+      prefersReducedMotion() ||
       isGlobalTransitioning ||
       isTransitioningRef.current ||
       !document.startViewTransition ||
@@ -90,13 +89,12 @@ export const useModalManager = (activeRecipe: RecipeId = null) => {
 
     isTransitioningRef.current = true;
     setIsGlobalTransitioning(true);
-    setIsViewTransitioning(true);
     document.documentElement.dataset.transitionType = 'close-modal';
 
     // react-doctor-disable-next-line react-doctor/no-document-start-view-transition
     const transition = document.startViewTransition(() => {
       // react-doctor-disable-next-line react-doctor/no-flush-sync
-      flushSync(update);
+      flushSync(() => update(true));
     });
 
     transition.ready.catch(() => {});
@@ -105,9 +103,7 @@ export const useModalManager = (activeRecipe: RecipeId = null) => {
     void transition.finished.finally(() => {
       isTransitioningRef.current = false;
       setIsGlobalTransitioning(false);
-      setIsViewTransitioning(false);
       setTransitioningImageId(null);
-      setActiveCarouselId(null);
       document.documentElement.removeAttribute('data-transition-type');
     });
   }, [modalImage, activeCarouselId, activeRecipe]);

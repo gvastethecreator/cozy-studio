@@ -43,7 +43,7 @@ function catalogImage(overrides: Partial<CatalogImage> = {}): CatalogImage {
 describe('studioCatalogImageAdapter', () => {
   it('materializes one Catalog Entry image without a browser batch lookup', () => {
     const image = materializeCatalogEntryImage({
-      ...catalogImage({ isFavorite: true }),
+      ...catalogImage({ isFavorite: true, fileSizeBytes: 123456 }),
       providerId: 'grok',
     });
 
@@ -55,6 +55,7 @@ describe('studioCatalogImageAdapter', () => {
         isFavorite: true,
         providerId: 'grok',
         mimeType: 'image/png',
+        fileSizeBytes: 123456,
       }),
     );
   });

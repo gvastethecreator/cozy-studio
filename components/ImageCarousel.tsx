@@ -21,26 +21,27 @@ import {
   Minus,
   Copy,
   MediaImage as Photo,
+  SidebarCollapse,
 } from 'iconoir-react';
-import { AnimatePresence, MotionDiv, type Variants } from '../lib/gsapMotion';
 import type { GeneratedImageWithConfig, ImageGenerationConfig } from '../types';
 import ActionButton from './ui/ActionButton';
 import { RecipeWorkbenchContext } from './recipes/RecipeWorkbenchContext';
-import Logo from './Logo';
+import { CarouselImageDetails } from './CarouselImageDetails';
 import { copyImageToClipboard, downloadImage, generateSmartFilename } from '../utils/fileUtils';
-import { finishCarouselSlideState } from '../lib/imageCarouselState';
 import {
   buildCarouselThumbnailWindow,
   type CarouselThumbnailWindowItem,
 } from '../lib/imageCarouselThumbnails';
 
 import { TopToolbar } from './ui/TopToolbar';
-import { BottomToolbar } from './ui/BottomToolbar';
 import { resolveStudioCarouselDisplaySrc } from '../lib/studioCarouselImage';
 import { useLatestRef } from '../hooks/useLatestRef';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { useHorizontalDragScroll } from '../hooks/useHorizontalDragScroll';
-import { formatCarouselPromptPreview, formatCarouselSourceLabel } from '../lib/grokImagineUiPolicy';
+import { writeCatalogImageDrag } from '../lib/catalogImageDrag';
+import { useImagePanZoom } from '../lib/imagePanZoom';
+import { useImagePresentation } from '../hooks/useImagePresentation';
+import { prefersReducedMotion } from '../lib/motionPreference';
 
 interface ImageCarouselProps {
   activeImage: GeneratedImageWithConfig | null;
@@ -56,470 +57,131 @@ interface ImageCarouselProps {
   transitionName?: string;
 }
 
-const lerp = (start: number, end: number, factor: number) => start + (end - start) * factor;
-
-function resolveCarouselImageDimensions(image: GeneratedImageWithConfig) {
-  if (image.width && image.height) {
-    return { width: image.width, height: image.height };
-  }
-
-  const [ratioWidth, ratioHeight] = image.config.aspectRatio
-    ? image.config.aspectRatio.split(':').map((part) => Number(part))
-    : [1, 1];
-  if (ratioWidth > 0 && ratioHeight > 0) {
-    const base = 1024;
-    return {
-      width: Math.round(base * (ratioWidth / Math.max(ratioWidth, ratioHeight))),
-      height: Math.round(base * (ratioHeight / Math.max(ratioWidth, ratioHeight))),
-    };
-  }
-
-  return { width: 1024, height: 1024 };
-}
-
 const CarouselImageItem: React.FC<{
-  image: GeneratedImageWithConfig;
+  src: string;
+  previousSrc?: string;
+  onTransitionEnd: () => void;
   transitionName?: string;
-  isActive: boolean;
-  isSliding: boolean;
+  failed: boolean;
   isComparing: boolean;
   controlsTarget: HTMLElement | null;
-}> = React.memo(({ image, transitionName, isActive, isSliding, isComparing, controlsTarget }) => {
-  const [uiScale, setUiScale] = useState(1);
-  const [background, setBackground] = useState('dark');
+}> = React.memo(
+  ({ src, previousSrc, onTransitionEnd, transitionName, failed, isComparing, controlsTarget }) => {
+    const [background, setBackground] = useState('dark');
+    const panZoom = useImagePanZoom(true, src);
 
-  const imgRef = useRef<HTMLImageElement>(null);
-  const [failedDisplaySrc, setFailedDisplaySrc] = useState<string | null>(null);
-  const target = useRef({ x: 0, y: 0, scale: 1 });
-  const current = useRef({ x: 0, y: 0, scale: 1 });
-  const dragStart = useRef({ x: 0, y: 0 });
-  const isDragging = useRef(false);
-  const rafId = useRef<number | null>(null);
-
-  const displaySrc = resolveStudioCarouselDisplaySrc({ image, isComparing });
-  const imageDimensions = resolveCarouselImageDimensions(image);
-
-  // Calculate aspect ratio for the style to ensure the image has a size before loading
-  const aspectRatioStyle = image.config.aspectRatio
-    ? image.config.aspectRatio.replace(':', '/')
-    : '1/1';
-
-  const animate = useCallback(() => {
-    if (!isActive) return;
-    const LERP_FACTOR = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 1 : 0.32;
-
-    current.current.scale = lerp(current.current.scale, target.current.scale, LERP_FACTOR);
-    current.current.x = lerp(current.current.x, target.current.x, LERP_FACTOR);
-    current.current.y = lerp(current.current.y, target.current.y, LERP_FACTOR);
-
-    if (imgRef.current) {
-      imgRef.current.style.transform = `translate3d(${current.current.x}px, ${current.current.y}px, 0) scale(${current.current.scale})`;
-    }
-
-    const isStillMoving =
-      Math.abs(target.current.scale - current.current.scale) > 0.0005 ||
-      Math.abs(target.current.x - current.current.x) > 0.05 ||
-      Math.abs(target.current.y - current.current.y) > 0.05;
-
-    if (isStillMoving) {
-      rafId.current = requestAnimationFrame(animate);
-    } else {
-      rafId.current = null;
-    }
-
-    if (Math.abs(current.current.scale - 1) > 0.02) setUiScale(current.current.scale);
-    else setUiScale(1);
-  }, [isActive]);
-
-  const startAnimation = useCallback(() => {
-    if (!rafId.current && isActive) rafId.current = requestAnimationFrame(animate);
-  }, [animate, isActive]);
-
-  const handleWheel = (e: React.WheelEvent) => {
-    if (!isActive || isSliding) return;
-    const newScale = Math.min(
-      Math.max(target.current.scale + (e.deltaY < 0 ? 1 : -1) * 0.25 * target.current.scale, 1),
-      15,
-    );
-    target.current.scale = newScale;
-    if (newScale === 1) {
-      target.current.x = 0;
-      target.current.y = 0;
-    }
-    startAnimation();
-  };
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (!isActive || isSliding || target.current.scale <= 1) return;
-    isDragging.current = true;
-    dragStart.current = { x: e.clientX - target.current.x, y: e.clientY - target.current.y };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isActive || isSliding || !isDragging.current) return;
-    target.current.x = e.clientX - dragStart.current.x;
-    target.current.y = e.clientY - dragStart.current.y;
-    startAnimation();
-  };
-
-  const finishPointerDrag = (e: React.PointerEvent<HTMLDivElement>) => {
-    isDragging.current = false;
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-  };
-
-  const updateZoom = (nextScale: number) => {
-    const clampedScale = Math.min(Math.max(nextScale, 1), 15);
-    target.current.scale = clampedScale;
-    if (clampedScale === 1) {
-      target.current.x = 0;
-      target.current.y = 0;
-    }
-    startAnimation();
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (!isActive || isSliding) return;
-
-    if (event.key === '+' || event.key === '=') {
-      event.preventDefault();
-      updateZoom(target.current.scale * 1.25);
-      return;
-    }
-
-    if (event.key === '-' || event.key === '_') {
-      event.preventDefault();
-      updateZoom(target.current.scale / 1.25);
-      return;
-    }
-
-    if (event.key === '0' || event.key === 'Escape') {
-      event.preventDefault();
-      target.current = { x: 0, y: 0, scale: 1 };
-      startAnimation();
-      return;
-    }
-
-    if (target.current.scale <= 1) return;
-    const panStep = event.shiftKey ? 80 : 32;
-    if (event.key === 'ArrowLeft') {
-      event.preventDefault();
-      target.current.x += panStep;
-    } else if (event.key === 'ArrowRight') {
-      event.preventDefault();
-      target.current.x -= panStep;
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      target.current.y += panStep;
-    } else if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      target.current.y -= panStep;
-    } else {
-      return;
-    }
-    startAnimation();
-  };
-
-  return (
-    <div
-      className="size-full flex items-center justify-center relative overflow-hidden touch-none select-none"
-      data-viewer-background={background}
-      role="group"
-      tabIndex={isActive ? 0 : -1}
-      aria-label="Image pan and zoom area. Use plus and minus to zoom, arrows to pan, zero to reset."
-      onWheel={handleWheel}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={finishPointerDrag}
-      onPointerCancel={finishPointerDrag}
-      onLostPointerCapture={finishPointerDrag}
-      onKeyDown={handleKeyDown}
-      onDoubleClick={() => {
-        if (isSliding) return;
-        target.current =
-          target.current.scale > 1.1 ? { x: 0, y: 0, scale: 1 } : { x: 0, y: 0, scale: 3.5 };
-        startAnimation();
-      }}
-    >
-      {isActive &&
-        controlsTarget &&
-        createPortal(
-          <>
-            <div
-              role="group"
-              aria-label="Canvas background"
-              className="carousel-background-controls"
-              onPointerDown={(event) => event.stopPropagation()}
-              onDoubleClick={(event) => event.stopPropagation()}
-            >
-              {['dark', 'light', 'checkered'].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-label={`${value[0].toUpperCase() + value.slice(1)} background`}
-                  aria-pressed={background === value}
-                  data-viewer-background={value}
-                  onClick={() => setBackground(value)}
-                />
-              ))}
-            </div>
-            <div
-              role="group"
-              aria-label="Zoom controls"
-              className="carousel-zoom-controls"
-              onPointerDown={(event) => event.stopPropagation()}
-              onDoubleClick={(event) => event.stopPropagation()}
-            >
-              <ActionButton
-                icon={<Minus width={16} height={16} />}
-                label="Zoom out"
-                onClick={() => updateZoom(target.current.scale / 1.25)}
-              />
-              <button
-                type="button"
-                className="carousel-zoom-level"
-                aria-label="Reset zoom to 100%"
-                data-tooltip="Reset zoom to 100%"
-                onClick={() => updateZoom(1)}
-              >
-                {Math.round(uiScale * 100)}%
-              </button>
-              <ActionButton
-                icon={<Plus width={16} height={16} />}
-                label="Zoom in"
-                onClick={() => updateZoom(target.current.scale * 1.25)}
-              />
-            </div>
-          </>,
-          controlsTarget,
-        )}
-      <img
-        ref={imgRef}
-        src={displaySrc}
-        alt=""
-        width={imageDimensions.width}
-        height={imageDimensions.height}
-        draggable={false}
-        onError={() => setFailedDisplaySrc(displaySrc)}
-        onLoad={() => setFailedDisplaySrc(null)}
-        className={`max-w-[94%] max-h-[90%] object-contain shadow-[0_2px_12px_#0002]`}
-        style={{
-          // Only apply view transition if NOT sliding and NOT comparing, to avoid glitches
-          viewTransitionName:
-            !isSliding && isActive && !isComparing ? transitionName || 'master-canvas' : 'none',
-          aspectRatio: aspectRatioStyle,
+    return (
+      <div
+        ref={panZoom.viewportRef}
+        className="size-full flex items-center justify-center relative overflow-hidden touch-none select-none"
+        data-viewer-background={background}
+        role="group"
+        tabIndex={0}
+        aria-label="Image pan and zoom area. Use plus and minus to zoom, arrows to pan, zero to fit."
+        {...panZoom.viewportProps}
+        onDoubleClick={() => {
+          if (Math.abs(panZoom.scale - panZoom.fitScale) > 0.01) panZoom.fit();
+          else panZoom.actualSize();
         }}
-      />
-
-      {failedDisplaySrc === displaySrc && (
-        <div
-          role="alert"
-          className="pointer-events-none absolute bottom-24 left-1/2 z-20 -translate-x-1/2 rounded-full border border-amber-300/2 bg-amber-500/10 px-3 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-warning)] "
-        >
-          {isComparing ? 'Reference image unavailable.' : 'Original image unavailable.'}
-        </div>
-      )}
-
-      {isComparing && (
-        <div className="absolute top-12 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-accent-500 text-black rounded-[var(--wb-radius)] text-[length:var(--wbp-label)] font-semibold tracking-normal shadow-xl animate-in fade-in zoom-in-95 z-30">
-          Original Reference
-        </div>
-      )}
-
-      {isActive && uiScale > 1.01 && (
-        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 px-6 py-2.5 bg-black/90 backdrop-blur-3xl rounded-full text-[length:var(--wbp-label)] font-semibold text-accent-400 tracking-normal shadow-2xl z-20 pointer-events-none animate-in fade-in zoom-in-95">
-          ZOOM: {Math.round(uiScale * 100)}%
-        </div>
-      )}
-    </div>
-  );
-});
-
-// Optimized Slide Transition
-const variants: Variants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? '100%' : '-100%',
-    opacity: 0,
-    scale: 0.95,
-    zIndex: 1,
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-    scale: 1,
-    zIndex: 1,
-    transition: {
-      x: { type: 'tween', ease: [0.19, 1, 0.22, 1], duration: 0.35 },
-      opacity: { duration: 0.2 },
-      scale: { duration: 0.35, ease: [0.19, 1, 0.22, 1] },
-    },
-  },
-  exit: (direction: number) => ({
-    x: direction < 0 ? '100%' : '-100%',
-    opacity: 0,
-    scale: 0.95,
-    zIndex: 0,
-    transition: {
-      x: { type: 'tween', ease: [0.19, 1, 0.22, 1], duration: 0.35 },
-      opacity: { duration: 0.2 },
-    },
-  }),
-};
-
-interface CarouselBottomBarProps {
-  currentImage: GeneratedImageWithConfig;
-  hasReference: boolean;
-  copiedPrompt: boolean;
-  isComparing: boolean;
-  onCompareStart: () => void;
-  onCompareEnd: () => void;
-  onCopyPrompt: () => void;
-  onDownload: () => void;
-  onToggleFavorite: (id: string) => void;
-  onLoadConfig: (config: ImageGenerationConfig) => void;
-  onAddToContext: (img: GeneratedImageWithConfig) => void;
-  onRegenerate: (config: ImageGenerationConfig) => void;
-  onDelete: (id: string) => void;
-}
-
-function CarouselBottomBar({
-  currentImage,
-  hasReference,
-  copiedPrompt,
-  isComparing,
-  onCompareStart,
-  onCompareEnd,
-  onCopyPrompt,
-  onDownload,
-  onToggleFavorite,
-  onLoadConfig,
-  onAddToContext,
-  onRegenerate,
-  onDelete,
-}: CarouselBottomBarProps) {
-  return (
-    <BottomToolbar className="absolute bottom-0 left-0 right-0 z-50 flex w-full min-h-17 items-center border-t border-[color:var(--wb-line)] bg-[color:color-mix(in_srgb,var(--wba-bg)_72%,#000)] px-6 py-3 backdrop-blur-sm">
-      <div className="mx-auto flex w-full max-w-480 flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-        <details className="flex-1 min-w-0 w-full">
-          <summary className="cursor-pointer text-sm text-[color:var(--wb-ink)]">
-            Image details
-          </summary>
-          <p className="mt-3 whitespace-pre-wrap max-h-40 overflow-auto text-[12px] font-medium text-[color:var(--wb-ink)] tracking-tight leading-relaxed">
-            {currentImage.config.prompt}
-          </p>
-          <div className="flex gap-4 mt-2">
-            <span className="text-[length:var(--wbp-label)] font-semibold text-accent-500/70 tracking-normal">
-              {formatCarouselSourceLabel({
-                model: currentImage.config.model,
-                prompt: currentImage.config.prompt,
-              })}
-            </span>
-            <span className="text-[length:var(--wbp-label)] font-semibold text-[color:var(--wb-dim)] tracking-normal">
-              {currentImage.config.aspectRatio} OUTPUT
-            </span>
-          </div>
-        </details>
-
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-start md:justify-end">
-          {hasReference && (
-            <div className="flex items-center gap-1.5 rounded-[var(--wb-radius)] bg-white/3 p-1">
-              <button
-                type="button"
-                aria-label="Compare with original"
-                onKeyDown={(event) => {
-                  if (event.key === ' ' || event.key === 'Enter') {
-                    event.preventDefault();
-                    onCompareStart();
-                  }
-                }}
-                onKeyUp={(event) => {
-                  if (event.key === ' ' || event.key === 'Enter') onCompareEnd();
-                }}
-                onBlur={onCompareEnd}
-                onPointerDown={onCompareStart}
-                onPointerUp={onCompareEnd}
-                onPointerLeave={onCompareEnd}
-                className={`relative flex items-center justify-center rounded-[var(--wb-radius)] p-2 outline-none transition-[background-color,color,box-shadow,transform] duration-300 group active:scale-95 cursor-pointer ${isComparing ? 'bg-accent-500 text-[color:var(--wb-ink)] shadow-lg' : 'text-[color:var(--wb-muted)] hover:text-[color:var(--wb-ink)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)]'}`}
-                data-tooltip="Hold to Compare with Original"
+      >
+        {controlsTarget &&
+          createPortal(
+            <>
+              <div
+                role="group"
+                aria-label="Canvas background"
+                className="carousel-background-controls"
+                onPointerDown={(event) => event.stopPropagation()}
+                onDoubleClick={(event) => event.stopPropagation()}
               >
-                <SplitSquareHorizontal width={16} height={16} />
-                <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal ml-2 hidden lg:inline">
-                  Compare
-                </span>
-              </button>
-            </div>
-          )}
-
-          <div className="flex shrink-0 items-center gap-1 rounded-[var(--wb-radius)] bg-white/3 p-1">
-            <ActionButton
-              onClick={() => onToggleFavorite(currentImage.id)}
-              icon={
-                <Heart
-                  width={16}
-                  height={16}
-                  fill={currentImage?.isFavorite ? 'currentColor' : 'none'}
+                {['dark', 'light', 'checkered'].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-label={`${value[0].toUpperCase() + value.slice(1)} background`}
+                    aria-pressed={background === value}
+                    data-viewer-background={value}
+                    onClick={() => setBackground(value)}
+                  />
+                ))}
+              </div>
+              <div
+                role="group"
+                aria-label="Zoom controls"
+                className="carousel-zoom-controls"
+                onPointerDown={(event) => event.stopPropagation()}
+                onDoubleClick={(event) => event.stopPropagation()}
+              >
+                <ActionButton
+                  icon={<Minus width={16} height={16} />}
+                  label="Zoom out"
+                  onClick={panZoom.zoomOut}
                 />
-              }
-              label={currentImage?.isFavorite ? 'Unpin from top' : 'Pin to top'}
-              isActive={currentImage?.isFavorite}
-            />
-            <ActionButton
-              onClick={onCopyPrompt}
-              icon={
-                copiedPrompt ? (
-                  <Check width={16} height={16} className="text-green-500" />
-                ) : (
-                  <ClipboardList width={16} height={16} />
-                )
-              }
-              label="Copy Prompt"
-            />
-            <ActionButton
-              onClick={() => onLoadConfig(currentImage.config)}
-              icon={<History width={16} height={16} />}
-              label="Reuse settings"
-            />
-          </div>
-
-          <div className="relative flex shrink-0 items-center gap-1 rounded-[var(--wb-radius)] bg-white/3 p-1">
-            <ActionButton
-              onClick={() => onAddToContext(currentImage)}
-              icon={<PlusCircle width={16} height={16} />}
-              label="Use as reference"
-            />
-            <div className="relative">
-              <ActionButton
-                onClick={onDownload}
-                icon={<Download width={16} height={16} />}
-                label="Download"
+                <button
+                  type="button"
+                  className="carousel-zoom-level"
+                  aria-label="Reset zoom to 100%"
+                  data-tooltip="Reset zoom to 100%"
+                  onClick={panZoom.actualSize}
+                >
+                  {Math.round(panZoom.scale * 100)}%
+                </button>
+                <button
+                  type="button"
+                  className="carousel-zoom-level"
+                  aria-label="Fit image"
+                  data-tooltip="Fit image"
+                  onClick={panZoom.fit}
+                >
+                  Fit
+                </button>
+                <ActionButton
+                  icon={<Plus width={16} height={16} />}
+                  label="Zoom in"
+                  onClick={panZoom.zoomIn}
+                />
+              </div>
+            </>,
+            controlsTarget,
+          )}
+        {[previousSrc, src]
+          .filter((source): source is string => Boolean(source))
+          .map((source) => (
+            <div
+              key={source}
+              aria-hidden={source !== src || undefined}
+              onTransitionEnd={source === src ? onTransitionEnd : undefined}
+              className={`image-presentation-layer ${source === src ? 'image-swap-enter' : 'image-swap-previous'}`}
+            >
+              <img
+                ref={source === src ? panZoom.contentRef : undefined}
+                src={source}
+                alt=""
+                draggable={false}
+                onLoad={source === src ? panZoom.onImageLoad : undefined}
+                hidden={source === src && failed}
+                className="object-contain shadow-[0_2px_12px_#0002]"
+                style={{
+                  viewTransitionName:
+                    source === src && !isComparing ? transitionName || 'master-canvas' : 'none',
+                }}
               />
             </div>
-          </div>
+          ))}
 
-          <div className="flex shrink-0 items-center gap-1 rounded-[var(--wb-radius)] bg-white/3 p-1">
-            <ActionButton
-              onClick={() => onRegenerate(currentImage.config)}
-              icon={<RefreshCw width={16} height={16} />}
-              label="Generate variation"
-              variant="primary"
-            />
-            <ActionButton
-              onClick={() => onDelete(currentImage.id)}
-              icon={<Trash2 width={16} height={16} />}
-              label="Move to trash"
-              variant="danger"
-            />
+        {failed && (
+          <div
+            role="alert"
+            className="pointer-events-none absolute bottom-24 left-1/2 z-20 -translate-x-1/2 rounded-full border border-amber-300/2 bg-amber-500/10 px-3 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-warning)]"
+          >
+            {isComparing ? 'Reference image unavailable.' : 'Original image unavailable.'}
           </div>
-        </div>
+        )}
       </div>
-    </BottomToolbar>
-  );
-}
-
+    );
+  },
+);
 interface CarouselTopBarProps {
-  context: string;
   actions: React.ReactNode;
   setControlsTarget: (element: HTMLDivElement | null) => void;
   activeIndex: number;
@@ -528,15 +190,13 @@ interface CarouselTopBarProps {
   error: boolean;
   onRetry: () => void;
   isFullscreen: boolean;
-  navScrollRef: React.RefObject<HTMLDivElement | null>;
+  detailsOpen: boolean;
+  onToggleDetails: () => void;
   onClose: () => void;
-  onJumpTo: (index: number) => void;
   onToggleFullscreen: () => void;
-  thumbnailWindow: CarouselThumbnailWindowItem<GeneratedImageWithConfig>[];
 }
 
 function CarouselTopBar({
-  context,
   actions,
   setControlsTarget,
   activeIndex,
@@ -545,100 +205,125 @@ function CarouselTopBar({
   error,
   onRetry,
   isFullscreen,
-  navScrollRef,
+  detailsOpen,
+  onToggleDetails,
   onClose,
-  onJumpTo,
   onToggleFullscreen,
-  thumbnailWindow,
 }: CarouselTopBarProps) {
-  const thumbnailDrag = useHorizontalDragScroll(navScrollRef);
   return (
-    <TopToolbar className="carousel-top-toolbar absolute top-0 left-0 right-0 w-full bg-[color:var(--wb-panel)] flex flex-col px-3 z-50 border-b border-[color:var(--wb-line)]">
-      <div className="mx-auto flex w-full max-w-480 items-center justify-between gap-2">
-        <Logo />
-        <div
-          ref={navScrollRef}
-          className="min-w-0 flex-1 flex items-center gap-1.5 overflow-x-auto custom-scrollbar py-1 snap-x justify-center"
-          {...thumbnailDrag}
+    <TopToolbar
+      className="carousel-top-toolbar"
+      role="toolbar"
+      aria-label="Selected image actions and view"
+    >
+      <div className="carousel-image-actions">{actions}</div>
+      <span className="carousel-count" role="status">
+        {activeIndex + 1} / {total}
+        {loading ? ' · Loading…' : ''}
+      </span>
+      {error && (
+        <button type="button" onClick={onRetry} aria-label="Retry loading history">
+          Retry
+        </button>
+      )}
+      <div className="carousel-view-tools" ref={setControlsTarget} />
+      <div className="carousel-window-actions">
+        <button
+          type="button"
+          onClick={onToggleDetails}
+          aria-label={detailsOpen ? 'Hide image details' : 'Show image details'}
+          data-tooltip={detailsOpen ? 'Hide image details' : 'Show image details'}
+          aria-expanded={detailsOpen}
+          aria-controls="carousel-image-details"
+          className="studio-icon-action studio-ghost-control"
         >
-          {thumbnailWindow.map(({ item: img, index: idx }) => (
-            <button
-              type="button"
-              key={img.id}
-              data-carousel-index={idx}
-              aria-label={`Open image ${idx + 1} of ${total}`}
-              onClick={() => onJumpTo(idx)}
-              className={`relative size-8 shrink-0 rounded-[var(--wb-radius)] overflow-hidden border snap-center cursor-pointer transition-[border-color,box-shadow,opacity,transform] duration-300
-                            ${
-                              idx === activeIndex
-                                ? 'scale-110 shadow-[0_0_20px_rgba(var(--accent-500),0.4)] border-accent-500/2 opacity-100'
-                                : 'opacity-30 hover:opacity-80 border-transparent hover:scale-105'
-                            }
-                        `}
-            >
-              <img
-                src={img.thumbnail || img.src}
-                alt=""
-                width={40}
-                height={40}
-                className="size-full object-cover"
-                loading="lazy"
-                decoding="async"
-              />
-              {img.isFavorite && (
-                <div className="absolute top-1 right-1">
-                  <Heart width={8} height={8} className="text-accent-400 fill-accent-400" />
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <span className="carousel-count" role="status">
-            {activeIndex + 1} / {total}
-            {loading ? ' · Loading…' : ''}
-          </span>
-          {error && (
-            <button type="button" onClick={onRetry} aria-label="Retry loading history">
-              Retry
-            </button>
+          <SidebarCollapse width={16} height={16} />
+        </button>
+        <button
+          type="button"
+          onClick={onToggleFullscreen}
+          aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          data-tooltip={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          className="min-h-8 min-w-8 rounded-[var(--wb-radius)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] p-1.5 text-[color:var(--wb-muted)] transition-[background-color,color,transform] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)] cursor-pointer"
+        >
+          {isFullscreen ? (
+            <Minimize2 width={15} height={15} />
+          ) : (
+            <Maximize2 width={15} height={15} />
           )}
-          <button
-            type="button"
-            onClick={onToggleFullscreen}
-            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-            data-tooltip={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-            className="min-h-8 min-w-8 rounded-[var(--wb-radius)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] p-1.5 text-[color:var(--wb-muted)] transition-[background-color,color,transform] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)] cursor-pointer"
-          >
-            {isFullscreen ? (
-              <Minimize2 width={15} height={15} />
-            ) : (
-              <Maximize2 width={15} height={15} />
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close image carousel"
-            data-tooltip="Close"
-            className="min-h-8 min-w-8 rounded-[var(--wb-radius)] bg-[color:var(--wb-panel)] p-1.5 text-[color:var(--wb-ink)] shadow-xl transition-[background-color,color,transform] hover:bg-red-500/20 hover:text-red-500 cursor-pointer"
-          >
-            <X width={15} height={15} />
-          </button>
-        </div>
-      </div>
-      <div
-        className="carousel-viewer-controls"
-        role="toolbar"
-        aria-label="Selected image actions and view"
-      >
-        <span className="carousel-image-context" data-tooltip={context}>
-          {context}
-        </span>
-        <div className="carousel-image-actions">{actions}</div>
-        <div className="carousel-view-tools" ref={setControlsTarget} />
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close image carousel"
+          data-tooltip="Close"
+          className="min-h-8 min-w-8 rounded-[var(--wb-radius)] bg-[color:var(--wb-panel)] p-1.5 text-[color:var(--wb-ink)] shadow-xl transition-[background-color,color,transform] hover:bg-red-500/20 hover:text-red-500 cursor-pointer"
+        >
+          <X width={15} height={15} />
+        </button>
       </div>
     </TopToolbar>
+  );
+}
+
+function CarouselFilmstrip({
+  navScrollRef,
+  thumbnailWindow,
+  activeIndex,
+  total,
+  onJumpTo,
+}: {
+  navScrollRef: React.RefObject<HTMLDivElement | null>;
+  thumbnailWindow: CarouselThumbnailWindowItem<GeneratedImageWithConfig>[];
+  activeIndex: number;
+  total: number;
+  onJumpTo: (index: number) => void;
+}) {
+  const thumbnailDrag = useHorizontalDragScroll(navScrollRef);
+  return (
+    <div
+      ref={navScrollRef}
+      aria-label="Image thumbnails"
+      role="toolbar"
+      className="carousel-filmstrip custom-scrollbar"
+      {...thumbnailDrag}
+    >
+      {thumbnailWindow.map(({ item: img, index: idx }) => (
+        <button
+          type="button"
+          key={img.id}
+          data-carousel-index={idx}
+          draggable
+          onDragStart={(event) => writeCatalogImageDrag(event, img.id)}
+          aria-label={`Open image ${idx + 1} of ${total}`}
+          aria-pressed={idx === activeIndex}
+          onClick={() => onJumpTo(idx)}
+          className={`carousel-thumbnail relative shrink-0 rounded-[var(--wb-radius)] overflow-hidden border snap-center cursor-pointer transition-[border-color,box-shadow,opacity] duration-150
+                            ${
+                              idx === activeIndex
+                                ? 'ring-2 ring-[var(--wb-accent)] border-transparent opacity-100'
+                                : 'opacity-60 hover:opacity-100 border-transparent'
+                            }
+                        `}
+        >
+          <img
+            src={img.thumbnail || img.src}
+            draggable={false}
+            alt=""
+            width={40}
+            height={40}
+            className="size-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+          {img.isFavorite && (
+            <div className="absolute top-1 right-1">
+              <Heart width={8} height={8} className="text-accent-400 fill-accent-400" />
+            </div>
+          )}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -675,30 +360,26 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
       void history.loadMore();
   }, [history, activeIndex, allImages.length]);
 
-  const prevActiveImageIdRef = useRef(activeImage?.id);
   const lastSetIndexRef = useRef(activeIndex);
 
   React.useLayoutEffect(() => {
     if (!allImages.some((image) => image.id === activeImage?.id)) return;
-    prevActiveImageIdRef.current = activeImage?.id;
     lastSetIndexRef.current = activeIndex;
   }, [activeImage?.id, activeIndex, allImages]);
 
   const [carouselState, setCarouselState] = useState({
-    direction: 0,
-    isSliding: false,
     isFullscreen: false,
     copiedPrompt: false,
     isComparing: false,
+    detailsOpen: true,
   });
-  const { direction, isSliding, isFullscreen, copiedPrompt, isComparing } = carouselState;
+  const { isFullscreen, copiedPrompt, isComparing, detailsOpen } = carouselState;
   const timeoutRef = useRef<number | null>(null);
 
   React.useEffect(() => {
-    const timeout = timeoutRef.current;
     return () => {
-      if (timeout) {
-        clearTimeout(timeout);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
     };
   }, []);
@@ -748,25 +429,17 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
 
   const handleJumpTo = useCallback(
     (index: number) => {
-      if (index === lastSetIndexRef.current || isSliding || index < 0 || index >= allImages.length)
-        return;
+      if (index === lastSetIndexRef.current || index < 0 || index >= allImages.length) return;
       setCarouselState((prev) => ({
         ...prev,
-        direction: index > lastSetIndexRef.current ? 1 : -1,
-        isSliding: true,
+        copiedPrompt: false,
         isComparing: false,
       }));
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       lastSetIndexRef.current = index;
       onActiveImageChange(allImages[index].id);
-
-      if (navScrollRef.current) {
-        const btn = navScrollRef.current.querySelector(
-          `[data-carousel-index="${index}"]`,
-        ) as HTMLElement | null;
-        if (btn) btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-      }
     },
-    [isSliding, allImages, onActiveImageChange],
+    [allImages, onActiveImageChange],
   );
 
   const handleNext = useCallback(() => {
@@ -780,10 +453,6 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
     const prevIndex = (lastSetIndexRef.current - 1 + allImages.length) % allImages.length;
     handleJumpTo(prevIndex);
   }, [allImages.length, handleJumpTo]);
-
-  const handleSlideAnimationComplete = useCallback(() => {
-    setCarouselState(finishCarouselSlideState);
-  }, []);
 
   const handleNextRef = useLatestRef(handleNext);
   const handlePrevRef = useLatestRef(handlePrev);
@@ -800,10 +469,13 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
         target?.closest('input, textarea, select, [contenteditable="true"]')
       )
         return;
-      if (e.key === 'ArrowRight') handleNextRef.current();
-      if (e.key === 'ArrowLeft') handlePrevRef.current();
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (e.key === 'ArrowRight') handleNextRef.current();
+        else handlePrevRef.current();
+      }
       if (e.key === 'Escape' && !document.fullscreenElement) onCloseRef.current();
-      if (e.code === 'Space' && !e.repeat)
+      if (e.code === 'Space' && !e.repeat && !target?.closest('button'))
         setCarouselState((prev) => ({ ...prev, isComparing: true }));
     };
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -817,8 +489,38 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
     };
   }, [handleNextRef, handlePrevRef, onCloseRef, containerRef]);
 
-  const currentImage =
+  const requestedImage =
     activeIndex >= 0 && activeIndex < allImages.length ? allImages[activeIndex] : activeImage;
+  const presentation = useImagePresentation(
+    { image: requestedImage, isComparing },
+    requestedImage
+      ? resolveStudioCarouselDisplaySrc({ image: requestedImage, isComparing })
+      : undefined,
+    history?.scopeKey,
+  );
+  const currentImage = presentation.value.image;
+  const displayedIndex = currentImage
+    ? allImages.findIndex((image) => image.id === currentImage.id)
+    : activeIndex;
+  useEffect(() => {
+    const strip = navScrollRef.current;
+    const scrollActive = (behavior: ScrollBehavior) =>
+      strip?.querySelector(`[data-carousel-index="${activeIndex}"]`)?.scrollIntoView({
+        behavior,
+        block: 'nearest',
+        inline: 'center',
+      });
+    scrollActive(prefersReducedMotion() ? 'instant' : 'smooth');
+    if (!strip || typeof ResizeObserver === 'undefined') return;
+    let width = strip.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (strip.clientWidth === width) return;
+      width = strip.clientWidth;
+      scrollActive('instant');
+    });
+    observer.observe(strip);
+    return () => observer.disconnect();
+  }, [activeIndex]);
   const thumbnailWindow = useMemo(
     () => buildCarouselThumbnailWindow(allImages, activeIndex),
     [activeIndex, allImages],
@@ -839,9 +541,9 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
         currentImage.mimeType,
         currentImage.localPath,
       );
-      downloadImage(currentImage.src, smartName);
-    } catch (e) {
-      // Download failed
+      downloadImage(currentImage.sourceUrl ?? currentImage.src, smartName);
+    } catch {
+      addToast('Could not download image.', 'error');
     } finally {
       isProcessingDownloadRef.current = false;
     }
@@ -853,12 +555,16 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
 
   const handleCopyPrompt = () => {
     if (!currentImage || copiedPrompt) return;
-    void navigator.clipboard.writeText(currentImage.config.prompt || '');
-    setCarouselState((prev) => ({ ...prev, copiedPrompt: true }));
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = window.setTimeout(
-      () => setCarouselState((prev) => ({ ...prev, copiedPrompt: false })),
-      2000,
+    void navigator.clipboard.writeText(currentImage.config.prompt || '').then(
+      () => {
+        setCarouselState((prev) => ({ ...prev, copiedPrompt: true }));
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        timeoutRef.current = window.setTimeout(
+          () => setCarouselState((prev) => ({ ...prev, copiedPrompt: false })),
+          2000,
+        );
+      },
+      () => addToast('Could not copy prompt.', 'error'),
     );
   };
 
@@ -883,11 +589,13 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
       aria-modal="true"
       aria-label="Image viewer"
       tabIndex={-1}
-      className="carousel-viewer fixed inset-0 z-100 flex flex-col studio-scrim overflow-hidden pb-12"
+      className="carousel-viewer fixed inset-0 z-100 flex flex-col studio-scrim overflow-hidden"
+      data-image-transition={Boolean(presentation.previousSrc)}
+      data-details-open={detailsOpen}
+      aria-busy={presentation.pending}
       style={{ viewTransitionName: 'modal-backdrop' }}
     >
       <CarouselTopBar
-        context={currentImage.config.prompt || 'Generated image'}
         setControlsTarget={setControlsTarget}
         actions={
           <>
@@ -895,7 +603,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
               icon={<Copy width={16} height={16} />}
               label="Copy image"
               onClick={() => {
-                void copyImageToClipboard(currentImage.src).then(
+                void copyImageToClipboard(currentImage.sourceUrl ?? currentImage.src).then(
                   () => addToast('Image copied', 'success'),
                   () => addToast('Could not copy image', 'error'),
                 );
@@ -926,7 +634,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
             />
           </>
         }
-        activeIndex={activeIndex}
+        activeIndex={Math.max(0, displayedIndex)}
         total={history?.total ?? allImages.length}
         loading={history?.isLoading ?? false}
         error={Boolean(history?.error)}
@@ -934,92 +642,145 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
           void history?.refresh().catch(() => undefined);
         }}
         isFullscreen={isFullscreen}
-        navScrollRef={navScrollRef}
+        detailsOpen={detailsOpen}
+        onToggleDetails={() =>
+          setCarouselState((prev) => ({ ...prev, detailsOpen: !prev.detailsOpen }))
+        }
         onClose={onClose}
-        onJumpTo={handleJumpTo}
         onToggleFullscreen={handleToggleFullscreen}
-        thumbnailWindow={thumbnailWindow}
       />
 
-      <section className="flex-1 relative overflow-hidden flex items-center justify-center">
-        {allImages.length > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePrev();
-              }}
-              disabled={isSliding}
-              aria-label="Previous image"
-              className="studio-ghost-control absolute left-4 z-50 size-10 bg-[color:var(--wb-panel)] disabled:opacity-0 group cursor-pointer"
-            >
-              <ChevronLeft
-                width={40}
-                height={40}
-                className="group-hover:-translate-x-1 transition-transform"
-              />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleNext();
-              }}
-              disabled={isSliding}
-              aria-label="Next image"
-              className="studio-ghost-control absolute right-4 z-50 size-10 bg-[color:var(--wb-panel)] disabled:opacity-0 group cursor-pointer"
-            >
-              <ChevronRight
-                width={40}
-                height={40}
-                className="group-hover:translate-x-1 transition-transform"
-              />
-            </button>
-          </>
-        )}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          {/* initial={false} ensures the first render doesn't slide, allowing view transition to work */}
-          <AnimatePresence initial={false} custom={direction}>
-            <MotionDiv
-              key={currentImage.id}
-              custom={direction}
-              variants={variants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              onAnimationComplete={handleSlideAnimationComplete}
-              className={`absolute inset-0 size-full flex items-center justify-center pointer-events-auto ${isSliding ? 'will-change-transform' : ''}`}
-            >
-              <CarouselImageItem
-                controlsTarget={controlsTarget}
-                key={`${currentImage.id}:${isComparing ? 'compare' : 'result'}`}
-                image={currentImage}
-                transitionName={transitionName}
-                isActive={true}
-                isSliding={isSliding}
-                isComparing={isComparing}
-              />
-            </MotionDiv>
-          </AnimatePresence>
+      <div className="carousel-body">
+        <div className="carousel-canvas-column">
+          <section
+            aria-label="Full image preview"
+            className="flex-1 min-h-0 relative overflow-hidden flex items-center justify-center"
+          >
+            {allImages.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePrev();
+                  }}
+                  aria-label="Previous image"
+                  className="studio-ghost-control absolute left-4 z-50 size-10 bg-[color:var(--wb-panel)] group cursor-pointer"
+                >
+                  <ChevronLeft
+                    width={40}
+                    height={40}
+                    className="group-hover:-translate-x-1 transition-transform"
+                  />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNext();
+                  }}
+                  aria-label="Next image"
+                  className="studio-ghost-control absolute right-4 z-50 size-10 bg-[color:var(--wb-panel)] group cursor-pointer"
+                >
+                  <ChevronRight
+                    width={40}
+                    height={40}
+                    className="group-hover:translate-x-1 transition-transform"
+                  />
+                </button>
+              </>
+            )}
+            <CarouselImageItem
+              controlsTarget={controlsTarget}
+              src={presentation.src!}
+              previousSrc={presentation.previousSrc}
+              onTransitionEnd={presentation.finishTransition}
+              transitionName={transitionName}
+              failed={presentation.failed}
+              isComparing={presentation.value.isComparing}
+            />
+          </section>
+
+          <CarouselFilmstrip
+            navScrollRef={navScrollRef}
+            thumbnailWindow={thumbnailWindow}
+            activeIndex={activeIndex}
+            total={history?.total ?? allImages.length}
+            onJumpTo={handleJumpTo}
+          />
         </div>
-      </section>
+        <CarouselImageDetails
+          hidden={!detailsOpen}
+          image={
+            presentation.width && !presentation.value.isComparing
+              ? { ...currentImage, width: presentation.width, height: presentation.height }
+              : currentImage
+          }
+        >
+          <div className="carousel-detail-actions">
+            <button
+              type="button"
+              aria-label="Compare with original"
+              disabled={!hasReference}
+              aria-pressed={isComparing}
+              onKeyDown={(event) => {
+                if (event.key === ' ' || event.key === 'Enter') {
+                  event.preventDefault();
+                  setCarouselState((prev) => ({ ...prev, isComparing: true }));
+                }
+              }}
+              onKeyUp={(event) => {
+                if (event.key === ' ' || event.key === 'Enter')
+                  setCarouselState((prev) => ({ ...prev, isComparing: false }));
+              }}
+              onBlur={() => setCarouselState((prev) => ({ ...prev, isComparing: false }))}
+              onPointerDown={() => setCarouselState((prev) => ({ ...prev, isComparing: true }))}
+              onPointerUp={() => setCarouselState((prev) => ({ ...prev, isComparing: false }))}
+              onPointerLeave={() => setCarouselState((prev) => ({ ...prev, isComparing: false }))}
+              className={`studio-icon-action studio-ghost-control ${isComparing ? 'is-active' : ''}`}
+              data-tooltip="Hold to Compare with Original"
+            >
+              <SplitSquareHorizontal width={16} height={16} />
+            </button>
 
-      <CarouselBottomBar
-        currentImage={currentImage}
-        hasReference={!!hasReference}
-        copiedPrompt={copiedPrompt}
-        isComparing={isComparing}
-        onCompareStart={() => setCarouselState((prev) => ({ ...prev, isComparing: true }))}
-        onCompareEnd={() => setCarouselState((prev) => ({ ...prev, isComparing: false }))}
-        onCopyPrompt={handleCopyPrompt}
-        onDownload={handleDownloadClick}
-        onToggleFavorite={onToggleFavorite}
-        onLoadConfig={onLoadConfig}
-        onAddToContext={onAddToContext}
-        onRegenerate={onRegenerate}
-        onDelete={onDelete}
-      />
+            <ActionButton
+              onClick={() => onLoadConfig(currentImage.config)}
+              icon={<History width={16} height={16} />}
+              label="Reuse settings"
+            />
+            <ActionButton
+              onClick={() => onRegenerate(currentImage.config)}
+              icon={<RefreshCw width={16} height={16} />}
+              label="Generate variation"
+              variant="primary"
+            />
+            <ActionButton
+              onClick={() => onDelete(currentImage.id)}
+              icon={<Trash2 width={16} height={16} />}
+              label="Move to trash"
+              variant="danger"
+            />
+          </div>
+        </CarouselImageDetails>
+      </div>
+      <footer className="carousel-prompt-bar" aria-label="Image prompt">
+        <span className="text-xs text-[var(--wb-muted)]">Prompt</span>
+        <p key={currentImage.config.prompt} className="image-metadata-enter">
+          {currentImage.config.prompt || 'No prompt saved.'}
+        </p>
+        <ActionButton
+          onClick={handleCopyPrompt}
+          icon={
+            copiedPrompt ? (
+              <Check width={16} height={16} />
+            ) : (
+              <ClipboardList width={16} height={16} />
+            )
+          }
+          label="Copy prompt"
+          disabled={!currentImage.config.prompt}
+        />
+      </footer>
     </div>
   );
 };

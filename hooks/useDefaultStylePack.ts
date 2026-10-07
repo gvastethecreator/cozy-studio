@@ -10,6 +10,8 @@ import {
  */
 export function useDefaultStylePack(enabled: boolean) {
   const [state, setState] = useState<DefaultStylePackState | null>(null);
+  // The returned cleanup cancels pending polls and clears their timeout; disabled installs none.
+  // react-doctor-disable-next-line react-doctor/effect-needs-cleanup
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;

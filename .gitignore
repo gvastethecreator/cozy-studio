@@ -145,6 +145,7 @@ landing/dist-local/
 landing/dist-astro/
 landing/.astro/
 landing/.cache/
+landing/.wrangler/
 landing/public/
 landing/src/studio/generated/
 # The page engine keeps Pretext's generated bidi table as a vendored copy.

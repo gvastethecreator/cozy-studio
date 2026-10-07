@@ -94,14 +94,15 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
-            Storage Maintenance
+            Storage maintenance
           </h3>
           <p className="mt-1 text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-dim)]">
-            Audit, Compact, Backfill, Prune
+            Inspect storage before planning repairs.
           </p>
         </div>
         <button
           type="button"
+          aria-label="Audit storage"
           onClick={() => void refreshAudit()}
           disabled={isLoadingAudit}
           className="flex h-9 items-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] disabled:opacity-40"
@@ -111,7 +112,7 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
           ) : (
             <RefreshCw width={13} height={13} />
           )}
-          Audit
+          Audit storage
         </button>
       </div>
 
@@ -127,7 +128,7 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
           </div>
           <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
             <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]">
-              Inline Payloads
+              Inline data
             </div>
             <div className="mt-1 font-mono text-xs font-bold text-[color:var(--wb-ink)]">
               {formatBytes(inlineBytes)}
@@ -135,7 +136,7 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
           </div>
           <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
             <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]">
-              Missing Thumbs
+              Missing thumbnails
             </div>
             <div className="mt-1 font-mono text-xs font-bold text-[color:var(--wb-ink)]">
               {audit.catalog.missingThumbnails}
@@ -143,7 +144,7 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
           </div>
           <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
             <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]">
-              Tooling Logs
+              Diagnostic logs
             </div>
             <div className="mt-1 font-mono text-xs font-bold text-[color:var(--wb-ink)]">
               {audit.directories.toolingLogs?.formattedBytes ?? '0 B'}
@@ -152,7 +153,7 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
         </div>
       ) : (
         <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3 text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-dim)]">
-          Run audit to load current storage metrics.
+          Audit storage to see usage and suggested repairs.
         </div>
       )}
 
@@ -160,21 +161,21 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
         <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
           <div className="mb-3 flex items-center gap-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
             <Database width={14} height={14} className="text-[color:var(--wb-muted)]" />
-            Payloads
+            Database cleanup
           </div>
           <p className="mb-3 text-xs text-[color:var(--wb-muted)]">
-            Preview the affected rows with Plan before applying changes.
+            Remove redundant inline data; keep original images.
           </p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              aria-label="Plan storage compaction"
+              aria-label="Plan database cleanup"
               onClick={() => void compactStorage()}
               disabled={isCompactRunning}
               className="flex h-8 items-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] disabled:opacity-40"
             >
               {isCompactRunning ? <LoaderCircle size={13} className="animate-spin" /> : null}
-              Plan
+              Preview cleanup
             </button>
             <button
               type="button"
@@ -193,17 +194,18 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
             Thumbnails
           </div>
           <p className="mb-3 text-xs text-[color:var(--wb-muted)]">
-            Preview the affected rows with Plan before applying changes.
+            Create previews for images without thumbnails.
           </p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
+              aria-label="Plan missing thumbnails"
               onClick={() => void backfillThumbnails({ limit: 1000 })}
               disabled={isThumbnailRunning}
               className="flex h-8 items-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] disabled:opacity-40"
             >
               {isThumbnailRunning ? <LoaderCircle size={13} className="animate-spin" /> : null}
-              Plan
+              Preview repair
             </button>
             <button
               type="button"
@@ -223,7 +225,7 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
         <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
           <div className="mb-3 flex items-center gap-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
             <RefreshCw width={14} height={14} className="text-[color:var(--wb-muted)]" />
-            Tooling Logs
+            Diagnostic logs
           </div>
           <button
             type="button"
@@ -236,11 +238,12 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
                 },
               })
             }
+            aria-label="Prune diagnostic logs"
             disabled={isPruneRunning}
             className="flex h-8 items-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] disabled:opacity-40"
           >
             {isPruneRunning ? <LoaderCircle size={13} className="animate-spin" /> : null}
-            Prune
+            Remove old logs
           </button>
         </div>
       </div>

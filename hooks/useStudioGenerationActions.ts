@@ -18,28 +18,6 @@ type GenerateOptions = {
   onJobCreated?: (job: StudioJob) => void;
 };
 
-const QUALITY_NOTES_HEADING = 'Quality notes:';
-const QUALITY_NOTE =
-  'Preserve the requested subject, composition, lighting, material detail, and aspect ratio.';
-
-/**
- * Add one bullet under a heading block in the prompt. No model is called.
- * Returns the prompt unchanged when the bullet is already there.
- */
-export function addPromptNote(prompt: string, heading: string, note: string) {
-  const lines = prompt.trim().split('\n');
-  const bullet = `- ${note.trim()}`;
-  const headingIndex = lines.indexOf(heading);
-  if (headingIndex < 0) return [prompt.trim(), '', heading, bullet].join('\n').trim();
-  let end = headingIndex + 1;
-  while (end < lines.length && lines[end]!.startsWith('- ')) {
-    if (lines[end] === bullet) return prompt.trim();
-    end += 1;
-  }
-  lines.splice(end, 0, bullet);
-  return lines.join('\n');
-}
-
 function cloneGenerationAttachments(attachments: Attachment[]): Attachment[] {
   return attachments.map((attachment) => ({ ...attachment }));
 }
@@ -102,7 +80,7 @@ interface UseStudioGenerationActionsProps {
 }
 
 /**
- * Own the Studio's generation-facing actions: enqueue, prompt refinement,
+ * Own the Studio's generation-facing actions: enqueue,
  * image editing and recipe restore.
  */
 export function useStudioGenerationActions({
@@ -110,7 +88,6 @@ export function useStudioGenerationActions({
   activeWorkspaceId,
   setGenerationConfig,
   setRecipeDraft,
-  updateGenerationConfig,
   executeEdit,
   executeGeneration,
   addToast,
@@ -127,7 +104,6 @@ export function useStudioGenerationActions({
   grokDiagnostics,
   activeRecipe,
 }: UseStudioGenerationActionsProps) {
-  const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
   const [isEditingImage, setIsEditingImage] = useState(false);
   const handleGenerate = useCallback(
     (
@@ -195,31 +171,6 @@ export function useStudioGenerationActions({
     ],
   );
 
-  const handleEnhancePrompt = useCallback(async () => {
-    if (isEnhancingPrompt) return;
-    setIsEnhancingPrompt(true);
-
-    try {
-      const currentPrompt = (generationConfigRef.current.prompt ?? '').trim();
-      if (!currentPrompt) {
-        addToast('Type a prompt before adding quality notes', 'info');
-        return;
-      }
-
-      const nextPrompt = addPromptNote(currentPrompt, QUALITY_NOTES_HEADING, QUALITY_NOTE);
-      if (nextPrompt === currentPrompt) {
-        addToast('Quality notes are already in the prompt', 'info');
-        return;
-      }
-      updateGenerationConfig('prompt', nextPrompt);
-      addToast('Quality notes added to the prompt', 'success');
-    } catch (error) {
-      addToast(error instanceof Error ? error.message : 'Could not add quality notes', 'error');
-    } finally {
-      setIsEnhancingPrompt(false);
-    }
-  }, [addToast, generationConfigRef, isEnhancingPrompt, updateGenerationConfig]);
-
   const handleExecuteEdit = useCallback(
     async (original: Attachment, mask: string, prompt: string) => {
       const grokBlock = resolveGrokImagineGenerateBlock({
@@ -285,15 +236,12 @@ export function useStudioGenerationActions({
       attachments: [],
       recipeParams: null,
     });
-    setIsEnhancingPrompt(false);
     setIsEditingImage(false);
   }, [setGenerationConfig]);
 
   return {
-    isEnhancingPrompt,
     isEditingImage,
     handleGenerate,
-    handleEnhancePrompt,
     handleExecuteEdit,
     handleLoadRecipe,
     resetGenerationUi,

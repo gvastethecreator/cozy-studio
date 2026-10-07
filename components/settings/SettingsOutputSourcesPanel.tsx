@@ -99,10 +99,10 @@ export function SettingsOutputSourcesPanel({
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
-            External Output Sources
+            Import sources
           </h3>
           <p className="mt-1 text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-dim)]">
-            Detect, Register, Import Copy
+            Register a folder, then copy selected images into the library.
           </p>
         </div>
         {isLoadingOutputSources ? (
@@ -133,7 +133,7 @@ export function SettingsOutputSourcesPanel({
                   <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-success)] ">
                     {source.label}
                   </div>
-                  <div className="truncate font-mono text-[length:var(--wbp-label)] text-[color:var(--wb-success)] ">
+                  <div className="break-all font-mono text-[length:var(--wbp-label)] text-[color:var(--wb-success)] ">
                     {source.path}
                   </div>
                 </div>
@@ -222,7 +222,7 @@ export function SettingsOutputSourcesPanel({
                           aria-label={`Select ${file.relativePath}`}
                           className="size-3.5 accent-emerald-400"
                         />
-                        <span className="truncate font-mono text-[length:var(--wbp-label)] text-[color:var(--wb-ink)]">
+                        <span className="break-all font-mono text-[length:var(--wbp-label)] text-[color:var(--wb-ink)]">
                           {file.relativePath}
                         </span>
                       </span>
@@ -247,7 +247,7 @@ export function SettingsOutputSourcesPanel({
                 <span>{candidate.label}</span>
                 <span className="text-[color:var(--wb-dim)]">{candidate.status}</span>
               </div>
-              <div className="truncate font-mono text-[length:var(--wbp-label)] text-[color:var(--wb-muted)]">
+              <div className="break-all font-mono text-[length:var(--wbp-label)] text-[color:var(--wb-muted)]">
                 {candidate.path}
               </div>
             </div>

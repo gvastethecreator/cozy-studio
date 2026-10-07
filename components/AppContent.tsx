@@ -163,6 +163,8 @@ export const AppContent: React.FC = () => {
           data-workbench={isRecipe ? 'recipe' : isCreate ? 'create' : 'library'}
           data-workbench-tab={isWorkspace ? workspaceTab : undefined}
           data-jobs-open={shell.headerToolbar.props.isQueueOpen ? 'true' : undefined}
+          data-tools-side={shell.root.toolsPanelSide}
+          data-jobs-side={shell.root.jobsPanelSide}
           className="studio-workbench relative z-10 flex w-full flex-1 min-h-0 overflow-hidden appearance-none border-none p-0 m-0 bg-transparent"
           onPointerDownCapture={shell.root.onMainClick}
         >
@@ -206,7 +208,7 @@ export const AppContent: React.FC = () => {
 
         {shell.headerToolbar.isVisible ? (
           <StudioStatusBar
-            usage={shell.headerToolbar.props.usage}
+            providerUsage={shell.headerToolbar.providerUsage}
             commandCenter={shell.headerToolbar.props.commandCenter}
             imageHistory={isWorkspace ? shell.history : undefined}
             isQueueOpen={shell.headerToolbar.props.isQueueOpen}

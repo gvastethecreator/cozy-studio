@@ -21,16 +21,26 @@ describe('StudioSettingsModal provider defaults', () => {
     };
 
     settings.mcpAccess = 'write';
+    settings.clearReviewJobsOnStartup = true;
+    settings.toolsPanelSide = 'right';
+    settings.jobsPanelSide = 'left';
+    settings.defaultStyleIntensity = 0.4;
+    settings.defaultStyleReferenceMode = 'reinterpret';
     const patch = buildStudioSettingsPatch(getStudioSettingsFormState(settings));
 
     expect(patch.mcpAccess).toBe('write');
+    expect(patch.toolsPanelSide).toBe('right');
+    expect(patch.jobsPanelSide).toBe('left');
+    expect(patch.clearReviewJobsOnStartup).toBe(true);
+    expect(patch.defaultStyleIntensity).toBe(0.4);
+    expect(patch.defaultStyleReferenceMode).toBe('reinterpret');
     expect(patch.providerDefaults?.codex).toEqual(settings.providerDefaults.codex);
   });
 
   it('labels preferredOutputPath as an external scan folder, not generate destination', () => {
     expect(EXTERNAL_SCAN_PATH_LABEL).toBe('External folder to scan');
-    expect(EXTERNAL_SCAN_PATH_HELP).toContain('External Output Sources');
-    expect(EXTERNAL_SCAN_PATH_HELP).toContain('Studio Library');
+    expect(EXTERNAL_SCAN_PATH_HELP).toContain('import');
+    expect(EXTERNAL_SCAN_PATH_HELP).toContain('does not change where new images are saved');
     expect(EXTERNAL_SCAN_PATH_LABEL.toLowerCase()).not.toContain('preferred output');
 
     const settingsSource = [
@@ -51,7 +61,7 @@ describe('StudioSettingsModal provider defaults', () => {
     expect(settingsSource).not.toMatch(/bg-zinc-950/);
     expect(
       readFileSync(path.join(import.meta.dirname, '..', 'lib', 'studioSettingsDomains.ts'), 'utf8'),
-    ).toContain("label: 'Providers & accounts'");
+    ).toContain("label: 'Accounts & models'");
   });
 
   it('keeps a flat default output preset alongside date provider model and recipe', () => {

@@ -23,12 +23,11 @@ export const OUTPUT_SUBFOLDER_PRESETS: {
   { label: 'Recipe / Date', value: ['recipe', 'date'] },
   { label: 'Workflow / Date', value: ['workflow', 'date'] },
   { label: 'Provider / Workflow', value: ['provider', 'workflow'] },
-  { label: 'No Subfolders', value: [] },
 ];
 
 export const EXTERNAL_SCAN_PATH_LABEL = 'External folder to scan';
 export const EXTERNAL_SCAN_PATH_HELP =
-  'Used to discover External Output Sources. Generated files use the output directory selected in Output. SQLite stays in the Studio Library.';
+  'Find images to import. This does not change where new images are saved.';
 
 export interface StudioSettingsFormState {
   preferredWorkflow: PreferredWorkflow;
@@ -40,6 +39,11 @@ export interface StudioSettingsFormState {
   outputFileNameTemplate: string;
   autoDetectOutputSources: boolean;
   notifyOnUpdates: boolean;
+  clearReviewJobsOnStartup: boolean;
+  toolsPanelSide: EditableStudioSettings['toolsPanelSide'];
+  jobsPanelSide: EditableStudioSettings['jobsPanelSide'];
+  defaultStyleIntensity: number;
+  defaultStyleReferenceMode: EditableStudioSettings['defaultStyleReferenceMode'];
   mcpAccess: EditableStudioSettings['mcpAccess'];
   commandCenterCompactMode: boolean;
   intentionalStylesV1: boolean;
@@ -63,6 +67,11 @@ export function createInitialStudioSettingsFormState(): StudioSettingsFormState 
       createDefaultEditableStudioSettings().outputOrganization.fileNameTemplate,
     autoDetectOutputSources: true,
     notifyOnUpdates: false,
+    clearReviewJobsOnStartup: false,
+    toolsPanelSide: 'left',
+    jobsPanelSide: 'right',
+    defaultStyleIntensity: 0.75,
+    defaultStyleReferenceMode: 'preserve',
     mcpAccess: 'read',
     commandCenterCompactMode: false,
     intentionalStylesV1: false,
@@ -84,6 +93,11 @@ export function getStudioSettingsFormState(
     outputFileNameTemplate: settings.outputOrganization.fileNameTemplate,
     autoDetectOutputSources: settings.autoDetectOutputSources,
     notifyOnUpdates: settings.notifyOnUpdates,
+    clearReviewJobsOnStartup: settings.clearReviewJobsOnStartup,
+    toolsPanelSide: settings.toolsPanelSide,
+    jobsPanelSide: settings.jobsPanelSide,
+    defaultStyleIntensity: settings.defaultStyleIntensity,
+    defaultStyleReferenceMode: settings.defaultStyleReferenceMode,
     mcpAccess: settings.mcpAccess,
     commandCenterCompactMode: settings.commandCenterCompactMode,
     intentionalStylesV1: settings.intentionalStylesV1,
@@ -112,6 +126,11 @@ export function buildStudioSettingsPatch(
     },
     autoDetectOutputSources: formState.autoDetectOutputSources,
     notifyOnUpdates: formState.notifyOnUpdates,
+    clearReviewJobsOnStartup: formState.clearReviewJobsOnStartup,
+    toolsPanelSide: formState.toolsPanelSide,
+    jobsPanelSide: formState.jobsPanelSide,
+    defaultStyleIntensity: formState.defaultStyleIntensity,
+    defaultStyleReferenceMode: formState.defaultStyleReferenceMode,
     mcpAccess: formState.mcpAccess,
     commandCenterCompactMode: formState.commandCenterCompactMode,
     intentionalStylesV1: formState.intentionalStylesV1,

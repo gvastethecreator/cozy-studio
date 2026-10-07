@@ -1,13 +1,12 @@
 import { CozyMascot } from './CozyMascot';
-import { WORKFLOW_CATEGORIES } from '../packages/shared/src/workflowCatalog';
 
 export function StudioHelpGuide() {
   return (
-    <section className="studio-help-guide" aria-label="Getting started with Studio">
+    <section className="studio-help-guide" aria-label="Getting started with Studio" tabIndex={-1}>
       <div className="studio-help-intro">
         <CozyMascot state="welcome" />
         <div>
-          <h3 className="text-xl font-semibold">A little help from Cozy</h3>
+          <h3 className="text-xl font-semibold">Getting started</h3>
           <p className="studio-muted">From an idea to a result you can find again.</p>
         </div>
       </div>
@@ -15,9 +14,8 @@ export function StudioHelpGuide() {
         <li>
           <strong>1. Choose a workflow</strong>
           <p>
-            Use Default for a prompt or an edit. Character keeps a shared source with separate
-            settings for each task. Camera &amp; Story guides viewpoints and neighboring frames;
-            Animation prepares a frame sequence.
+            Use Default for a new image or edit. Choose a specialized workflow for characters,
+            camera views or sequences.
           </p>
         </li>
         <li>
@@ -30,22 +28,18 @@ export function StudioHelpGuide() {
         <li>
           <strong>3. Set the output</strong>
           <p>
-            Maintain background follows your source image or text description, including requested
-            scene changes. Remove background requests transparent PNG. Native alpha works with
-            supported GPT Image models. GIF exports have binary transparency; PNG keeps soft edges.
+            Choose size and background. Remove background requests transparency when supported. PNG
+            keeps soft edges; GIF transparency is binary.
           </p>
         </li>
         <li>
           <strong>4. Find and reuse results</strong>
           <p>
             Open workspace history or the library. Restore a result’s settings to continue. Settings
-            → Output shows where new files go and how they are named.
+            → Files &amp; naming shows where new files go and how they are named.
           </p>
         </li>
       </ol>
-      <p className="studio-muted text-xs">
-        Workflow groups: {WORKFLOW_CATEGORIES.map((category) => category.label).join(' · ')}
-      </p>
     </section>
   );
 }

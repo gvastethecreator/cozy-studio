@@ -24,8 +24,6 @@ interface GenerationToolbarActions {
   onGenerate: ToolbarProps['onGenerate'];
   isGenerating: ToolbarProps['isGenerating'];
   generationStartTime: ToolbarProps['generationStartTime'];
-  isEnhancingPrompt: ToolbarProps['isEnhancingPrompt'];
-  onEnhancePrompt: ToolbarProps['onEnhancePrompt'];
 }
 
 interface GenerationToolbarUiContext {
@@ -105,8 +103,6 @@ export function buildGenerationToolbarProps({
     codexModelCatalog: config.codexModelCatalog,
     isLoadingCodexModelCatalog: config.isLoadingCodexModelCatalog,
     codexModelCatalogError: config.codexModelCatalogError,
-    isEnhancingPrompt: actions.isEnhancingPrompt,
-    onEnhancePrompt: actions.onEnhancePrompt,
     setPreviewRatio: ui.setPreviewRatio,
     setIsInteracting: ui.setIsInteracting,
     onOpenEditor: (attachment) => editor.openEditor(attachment, editor.openEditorRoute),

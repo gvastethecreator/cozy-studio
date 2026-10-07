@@ -1,16 +1,14 @@
+import { buildStylePromptText } from './stylePromptText';
 import {
-  Check,
   Copy,
   FloppyDisk as Save,
-  MediaImage as Photo,
   Sparks as Sparkles,
   Trash as Trash2,
   Upload,
-  MagicWand as Wand2,
   Xmark as X,
 } from 'iconoir-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useLatestRef } from '../../hooks/useLatestRef';
+import { useDialogFocus } from '../../hooks/useDialogFocus';
 import type {
   CodexStyleReferenceImage,
   UserStyleDraftAction,
@@ -72,8 +70,6 @@ const DRAFT_FIELD_SWITCHES: Array<{ id: UserStyleDraftFieldId; label: string }> 
   ...USER_STYLE_DNA_FIELDS.map((field) => ({ id: field.key, label: field.label })),
   { id: 'avoidRules', label: 'Avoid' },
 ];
-
-type UserStyleAuthoringMode = 'manual' | 'codex_assist';
 
 type ReferenceImageItem = CodexStyleReferenceImage & {
   id: string;
@@ -154,9 +150,7 @@ const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
 }) => {
   const [draft, setDraft] = useState<UserStylePresetDraft>(initialDraft);
   const [source, setSource] = useState<UserStylePresetSource | null>(initialSource);
-  const [authoringMode, setAuthoringMode] = useState<UserStyleAuthoringMode>(
-    initialSource?.kind === 'codex_assist' ? 'codex_assist' : 'manual',
-  );
+  const [section, setSection] = useState<'basics' | 'dna' | 'references' | 'assistant'>('basics');
   const [referenceImages, setReferenceImages] = useState<ReferenceImageItem[]>([]);
   const [disabledDraftFields, setDisabledDraftFields] = useState<UserStyleDraftFieldId[]>([]);
   const [tagsText, setTagsText] = useState(() => initialDraft.tags.join(', '));
@@ -168,55 +162,7 @@ const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
   const [isAssisting, setIsAssisting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const referenceImageUrlsRef = useRef<string[]>([]);
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const closeRef = useLatestRef(onClose);
-  useEffect(() => {
-    const previousFocus = document.activeElement;
-    const dialog = dialogRef.current;
-    dialog?.querySelector<HTMLButtonElement>('[aria-label="Close style editor"]')?.focus();
-    const handleKey = (event: KeyboardEvent) => {
-      if (!dialog) return;
-      const focusedModal = document.activeElement?.closest('[aria-modal="true"]');
-      if (focusedModal && focusedModal !== dialog) return;
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        event.stopPropagation();
-        closeRef.current();
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const controls = Array.from(
-        dialog.querySelectorAll<HTMLElement>(
-          'button, input, select, textarea, a[href], [tabindex]',
-        ),
-      ).filter(
-        (element) =>
-          element.tabIndex >= 0 &&
-          !element.matches(':disabled') &&
-          element.getClientRects().length > 0,
-      );
-      const first = controls[0];
-      const last = controls[controls.length - 1];
-      if (!first) {
-        event.preventDefault();
-        dialog.focus();
-        return;
-      }
-      const outside = !dialog.contains(document.activeElement);
-      if (event.shiftKey && (document.activeElement === first || outside)) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && (document.activeElement === last || outside)) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener('keydown', handleKey, true);
-    return () => {
-      document.removeEventListener('keydown', handleKey, true);
-      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus();
-    };
-  }, [closeRef]);
+  const dialogRef = useDialogFocus(true, onClose, undefined, '[aria-label="Close style editor"]');
 
   useEffect(
     () => () => {
@@ -237,7 +183,6 @@ const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
   );
 
   const canSave = normalizedDraft.name.trim().length > 0 && !isSaving;
-  const sourceKind = source?.kind ?? 'manual';
   const includedReferenceImages = useMemo(
     () => referenceImages.flatMap((image) => (image.included ? [stripReferenceImage(image)] : [])),
     [referenceImages],
@@ -250,50 +195,6 @@ const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
     () => new Set<UserStyleDraftFieldId>(disabledDraftFields),
     [disabledDraftFields],
   );
-  const workflowSteps = useMemo(
-    () => [
-      {
-        label: 'Source',
-        state: referenceImages.length > 0 ? 'complete' : 'idle',
-        detail:
-          referenceImages.length > 0
-            ? `${includedReferenceImages.length}/${referenceImages.length} refs`
-            : sourceKind.replace(/_/g, ' '),
-      },
-      {
-        label: 'Draft',
-        state: isAssisting ? 'active' : normalizedDraft.name.trim() ? 'complete' : 'idle',
-        detail: isAssisting ? 'working' : normalizedDraft.category || 'empty',
-      },
-      {
-        label: 'Review',
-        state: disabledDraftFields.length > 0 || assistWarnings.length > 0 ? 'active' : 'idle',
-        detail:
-          disabledDraftFields.length > 0
-            ? `${disabledDraftFields.length} locked`
-            : assistWarnings.length > 0
-              ? `${assistWarnings.length} notes`
-              : 'ready',
-      },
-      {
-        label: 'Save',
-        state: canSave ? 'complete' : 'idle',
-        detail: canSave ? 'enabled' : 'blocked',
-      },
-    ],
-    [
-      assistWarnings.length,
-      canSave,
-      disabledDraftFields.length,
-      includedReferenceImages.length,
-      isAssisting,
-      normalizedDraft.category,
-      normalizedDraft.name,
-      referenceImages.length,
-      sourceKind,
-    ],
-  );
-
   const updateDraft = <K extends keyof UserStylePresetDraft>(
     key: K,
     value: UserStylePresetDraft[K],
@@ -461,7 +362,6 @@ const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
           disabledDraftFields,
         },
       });
-      setAuthoringMode('codex_assist');
     } catch (assistError) {
       setError(getErrorMessage(assistError));
     } finally {
@@ -514,6 +414,20 @@ const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
     }
   };
 
+  const previewPrompt = buildStylePromptText({
+    id: 'draft',
+    name: normalizedDraft.name,
+    category: normalizedDraft.category,
+    style: normalizedDraft.visualDna,
+  });
+  const sections = ['basics', 'dna', 'references', 'assistant'] as const;
+  const sectionLabels = {
+    basics: 'Identity',
+    dna: 'Visual DNA',
+    references: 'References',
+    assistant: 'Assistant',
+  };
+
   return (
     <div
       data-user-style-editor
@@ -522,428 +436,314 @@ const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
       aria-modal="true"
       aria-label="Style editor"
       tabIndex={-1}
-      className="studio-style-editor absolute inset-0 z-50 flex items-center justify-center bg-[color:color-mix(in_srgb,var(--wba-bg)_72%,#000)] p-2 text-[color:var(--wb-ink)] backdrop-blur-md sm:p-4"
+      className="studio-style-editor absolute inset-0 z-50 flex flex-col bg-[color:var(--wb-panel)] text-[color:var(--wb-ink)]"
     >
-      <div className="flex h-full max-h-[calc(100vh-4.5rem)] w-full max-w-[1180px] flex-col overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] shadow-[0_24px_80px_rgba(0,0,0,0.72)]">
-        <div className="flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-[color:var(--wb-line)] bg-[color:var(--wb-panel)]/98 px-4 sm:px-5">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-              <Sparkles width={13} height={13} />
-              <span>{mode === 'edit' ? 'Edit Style' : 'Style Editor'}</span>
-              <span className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-white/8 px-1.5 py-0.5 text-[length:var(--wbp-label)] text-[color:var(--wb-ink)]">
-                {sourceKind.replace(/_/g, ' ')}
-              </span>
-            </div>
-            <h2 className="mt-1 truncate text-base font-semibold tracking-tight text-[color:var(--wb-ink)]">
-              {normalizedDraft.name}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex size-9 shrink-0 items-center justify-center rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-white/7 text-[color:var(--wb-ink)] transition-colors hover:bg-white/12 hover:text-[color:var(--wb-ink)]"
-            aria-label="Close style editor"
-          >
-            <X width={16} height={16} />
-          </button>
+      <header className="user-style-header">
+        <div>
+          <p>{mode === 'edit' ? 'Custom style' : 'New custom style'}</p>
+          <h2>{draft.name || 'Untitled style'}</h2>
         </div>
-
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-hidden bg-[color:var(--wb-panel)]/95 p-3 lg:grid-cols-[minmax(0,1fr)_360px] lg:p-4">
-          <section className="min-h-0 min-w-0 overflow-y-auto rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)]/88 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] custom-scrollbar">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1.5">
-                <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                  Name
-                </span>
+        <button type="button" aria-label="Close style editor" onClick={onClose}>
+          <X width={18} height={18} />
+        </button>
+      </header>
+      <div className="user-style-workspace">
+        <nav
+          className="user-style-navigation"
+          role="tablist"
+          aria-label="Style editor sections"
+          aria-orientation="vertical"
+        >
+          {sections.map((id) => (
+            <button
+              key={id}
+              id={`style-editor-tab-${id}`}
+              type="button"
+              role="tab"
+              aria-selected={section === id}
+              aria-controls={`style-editor-${id}`}
+              tabIndex={section === id ? 0 : -1}
+              onClick={() => setSection(id)}
+              onKeyDown={(event) => {
+                if (
+                  !['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(
+                    event.key,
+                  )
+                )
+                  return;
+                event.preventDefault();
+                const next =
+                  event.key === 'Home'
+                    ? sections[0]
+                    : event.key === 'End'
+                      ? sections[3]
+                      : sections[
+                          (sections.indexOf(id) +
+                            (event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : 3)) %
+                            4
+                        ];
+                setSection(next);
+                document.getElementById(`style-editor-tab-${next}`)?.focus();
+              }}
+            >
+              {sectionLabels[id]}
+            </button>
+          ))}
+        </nav>
+        <section
+          className="user-style-form"
+          role="tabpanel"
+          id={`style-editor-${section}`}
+          aria-labelledby={`style-editor-tab-${section}`}
+        >
+          {section === 'basics' && (
+            <>
+              <h3>Give your style an identity</h3>
+              <label>
+                Name
                 <input
                   value={draft.name}
                   onChange={(event) => updateDraft('name', event.target.value)}
-                  className="h-10 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] px-3 text-sm font-bold text-[color:var(--wb-ink)] outline-none transition-colors focus:border-accent-400/2"
+                  maxLength={160}
                 />
               </label>
-              <label className="grid gap-1.5">
-                <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                  Category
-                </span>
+              <label>
+                Category
                 <input
                   value={draft.category}
                   onChange={(event) => updateDraft('category', event.target.value)}
-                  className="h-10 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] px-3 text-sm font-bold text-[color:var(--wb-ink)] outline-none transition-colors focus:border-accent-400/2"
                 />
               </label>
-            </div>
-
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1.5">
-                <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                  Tags
-                </span>
+              <label>
+                Tags
                 <input
                   value={tagsText}
                   onChange={(event) => setTagsText(event.target.value)}
-                  className="h-10 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] px-3 text-xs font-bold text-[color:var(--wb-ink)] outline-none transition-colors focus:border-accent-400/2"
+                  placeholder="Separate tags with commas"
                 />
               </label>
-              <div className="grid gap-1.5">
-                <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                  Tasks
-                </span>
-                <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-1">
-                  {USER_STYLE_SUPPORTED_TASKS.map((task) => {
-                    const active = draft.supportedTasks.includes(task);
-                    return (
-                      <button
-                        key={task}
-                        type="button"
-                        onClick={() => toggleTask(task)}
-                        aria-pressed={active}
-                        className={`flex h-7 items-center gap-1 rounded-[var(--wb-radius)] border px-2 text-[length:var(--wbp-label)] font-semibold tracking-normal transition-colors ${
-                          active
-                            ? 'border-accent-400/2 bg-accent-500/15 text-accent-100'
-                            : 'border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] text-[color:var(--wb-muted)] hover:text-[color:var(--wb-ink)]'
-                        }`}
-                      >
-                        {active && <Check width={10} height={10} />}
-                        {taskLabel(task)}
-                      </button>
-                    );
-                  })}
+              <label>
+                Creative brief
+                <textarea
+                  value={draft.visualDna.creative_brief ?? ''}
+                  onChange={(event) => updateVisualDna('creative_brief', event.target.value)}
+                  rows={4}
+                />
+              </label>
+              <fieldset>
+                <legend>Use this style for</legend>
+                <div className="user-style-chip-list">
+                  {USER_STYLE_SUPPORTED_TASKS.map((task) => (
+                    <button
+                      key={task}
+                      type="button"
+                      aria-pressed={draft.supportedTasks.includes(task)}
+                      onClick={() => toggleTask(task)}
+                    >
+                      {taskLabel(task)}
+                    </button>
+                  ))}
                 </div>
-              </div>
-            </div>
-
-            <label className="mt-3 grid gap-1.5">
-              <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                Creative Brief
-              </span>
-              <textarea
-                aria-label="Style assistant instructions"
-                value={draft.visualDna.creative_brief ?? ''}
-                onChange={(event) => updateVisualDna('creative_brief', event.target.value)}
-                rows={3}
-                className="resize-none rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] px-3 py-2 text-xs font-medium leading-relaxed text-[color:var(--wb-ink)] outline-none transition-colors focus:border-accent-400/2"
-              />
-            </label>
-
-            <div className="mt-3 grid gap-3 xl:grid-cols-2">
-              {USER_STYLE_DNA_FIELDS.map((field) => (
-                <label key={field.key} className="grid gap-1.5">
-                  <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
+              </fieldset>
+            </>
+          )}
+          {section === 'dna' && (
+            <>
+              <h3>Define the visual language</h3>
+              <div className="user-style-dna-fields">
+                {USER_STYLE_DNA_FIELDS.map((field) => (
+                  <label key={field.key}>
                     {field.label}
-                  </span>
-                  <textarea
-                    value={draft.visualDna[field.key] ?? ''}
-                    onChange={(event) => updateVisualDna(field.key, event.target.value)}
-                    rows={4}
-                    className="resize-none rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] px-3 py-2 text-xs font-medium leading-relaxed text-[color:var(--wb-ink)] outline-none transition-colors focus:border-accent-400/2"
-                  />
-                </label>
-              ))}
-            </div>
-
-            <label className="mt-3 grid gap-1.5">
-              <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
+                    <textarea
+                      value={draft.visualDna[field.key] ?? ''}
+                      onChange={(event) => updateVisualDna(field.key, event.target.value)}
+                      rows={3}
+                    />
+                  </label>
+                ))}
+              </div>
+              <label>
                 Avoid
-              </span>
-              <textarea
-                value={avoidRulesText}
-                onChange={(event) => setAvoidRulesText(event.target.value)}
-                rows={3}
-                className="resize-none rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] px-3 py-2 text-xs font-medium leading-relaxed text-[color:var(--wb-ink)] outline-none transition-colors focus:border-accent-400/2"
-              />
-            </label>
-          </section>
-
-          <aside className="min-h-0 min-w-0 overflow-y-auto rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)]/92 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] custom-scrollbar">
-            <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)]/70 p-3">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                  <Sparkles width={13} height={13} />
-                  Source
-                </div>
-                <span className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-2 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                  {authoringMode === 'codex_assist' ? 'Codex' : 'Manual'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-1.5">
-                {[
-                  { id: 'manual' as const, label: 'Manual' },
-                  { id: 'codex_assist' as const, label: 'Codex' },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setAuthoringMode(item.id)}
-                    aria-pressed={authoringMode === item.id}
-                    className={`h-8 rounded-[var(--wb-radius)] border px-2 text-[length:var(--wbp-label)] font-semibold tracking-normal transition-colors ${
-                      authoringMode === item.id
-                        ? 'border-sky-300/2 bg-sky-500/15 text-[color:var(--wb-info)] '
-                        : 'border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] text-[color:var(--wb-muted)] hover:text-[color:var(--wb-ink)]'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-3 grid gap-1.5">
-                {workflowSteps.map((step) => (
-                  <div
-                    key={step.label}
-                    className={`grid grid-cols-[72px_minmax(0,1fr)] items-center gap-2 rounded-[var(--wb-radius)] border px-2 py-1.5 ${
-                      step.state === 'complete'
-                        ? 'border-emerald-400/2 bg-emerald-500/8 text-[color:var(--wb-success)] '
-                        : step.state === 'active'
-                          ? 'border-sky-400/2 bg-sky-500/8 text-[color:var(--wb-info)] '
-                          : 'border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_4%,transparent)] text-[color:var(--wb-muted)]'
-                    }`}
-                  >
-                    <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal">
-                      {step.label}
-                    </span>
-                    <span className="truncate text-right font-mono text-[length:var(--wbp-label)]">
-                      {step.detail}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)]/70 p-3">
-              <div className="mb-3 flex items-center gap-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                <Photo width={13} height={13} />
-                References
-              </div>
-
-              <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-[var(--wb-radius)] border border-dashed border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] px-3 py-4 text-center transition-colors hover:border-sky-300/2 hover:bg-sky-500/8">
+                <textarea
+                  value={avoidRulesText}
+                  onChange={(event) => setAvoidRulesText(event.target.value)}
+                  rows={3}
+                />
+              </label>
+            </>
+          )}
+          {section === 'references' && (
+            <>
+              <h3>Collect visual references</h3>
+              <label className="user-style-upload">
+                <Upload width={24} height={24} />
+                Add reference images
                 <input
                   type="file"
                   accept="image/*"
                   multiple
-                  className="sr-only"
+                  aria-label="Add style reference images"
                   onChange={(event) => {
-                    handleReferenceFiles(event.currentTarget.files);
-                    event.currentTarget.value = '';
+                    handleReferenceFiles(event.target.files);
+                    event.target.value = '';
                   }}
                 />
-                <Upload width={18} height={18} className="text-[color:var(--wb-info)] " />
-                <span className="mt-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
-                  Add Images
-                </span>
-                <span className="mt-1 text-[length:var(--wbp-label)] font-medium leading-relaxed text-[color:var(--wb-muted)]">
-                  {referenceImages.length}/{MAX_REFERENCE_IMAGES} references
-                </span>
               </label>
-
-              {referenceImages.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {referenceImages.map((image) => (
-                    <div
-                      key={image.id}
-                      className={`rounded-[var(--wb-radius)] border p-2 ${
-                        image.included
-                          ? 'border-[color:var(--wb-line)] bg-white/[0.045]'
-                          : 'border-[color:var(--wb-line)] bg-white/[0.02] opacity-60'
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <img
-                          src={image.previewUrl}
-                          alt=""
-                          className="h-14 w-14 shrink-0 rounded-[var(--wb-radius)] object-cover"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-[length:var(--wbp-label)] font-semibold text-[color:var(--wb-ink)]">
-                            {image.name}
-                          </div>
-                          <div className="mt-0.5 truncate font-mono text-[length:var(--wbp-label)] text-[color:var(--wb-muted)]">
-                            {image.mimeType || 'image'} {formatFileSize(image.sizeBytes)}
-                          </div>
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateReferenceImage(image.id, { included: !image.included })
-                              }
-                              aria-pressed={image.included}
-                              className={`h-6 rounded-[var(--wb-radius)] border px-2 text-[length:var(--wbp-label)] font-semibold tracking-normal transition-colors ${
-                                image.included
-                                  ? 'border-emerald-400/2 bg-emerald-500/12 text-[color:var(--wb-success)] '
-                                  : 'border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] text-[color:var(--wb-muted)]'
-                              }`}
-                            >
-                              {image.included ? 'On' : 'Off'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateReferenceImage(image.id, {
-                                  role:
-                                    image.role === 'avoid_reference'
-                                      ? 'style_reference'
-                                      : 'avoid_reference',
-                                })
-                              }
-                              className="h-6 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)] transition-colors hover:text-[color:var(--wb-ink)]"
-                            >
-                              {image.role === 'avoid_reference' ? 'Avoid' : 'Style'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveReferenceImage(image.id)}
-                              className="h-6 rounded-[var(--wb-radius)] border border-red-400/14 bg-red-500/8 px-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-danger)]  transition-colors hover:bg-red-500/14"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      <label className="mt-2 grid gap-1">
-                        <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                          Reference notes
-                        </span>
-                        <input
-                          value={image.notes ?? ''}
-                          onChange={(event) =>
-                            updateReferenceImage(image.id, { notes: event.target.value })
-                          }
-                          placeholder={`Notes for ${image.name}`}
-                          className="h-8 w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] px-2 text-[length:var(--wbp-label)] font-medium text-[color:var(--wb-ink)] outline-none transition-colors placeholder:text-[color:var(--wb-dim)] focus:border-sky-300/2"
-                        />
-                      </label>
+              <p>
+                {includedReferenceImages.length} of {MAX_REFERENCE_IMAGES} references included
+              </p>
+              <div className="user-style-reference-grid">
+                {referenceImages.map((image) => (
+                  <article key={image.id}>
+                    <img src={image.previewUrl} alt={image.name} />
+                    <p>
+                      {image.name} · {formatFileSize(image.sizeBytes)}
+                    </p>
+                    <div className="user-style-chip-list">
+                      <button
+                        type="button"
+                        aria-pressed={image.included}
+                        onClick={() =>
+                          updateReferenceImage(image.id, { included: !image.included })
+                        }
+                      >
+                        {image.included ? 'Included' : 'Excluded'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateReferenceImage(image.id, {
+                            role:
+                              image.role === 'avoid_reference'
+                                ? 'style_reference'
+                                : 'avoid_reference',
+                          })
+                        }
+                      >
+                        {image.role === 'avoid_reference' ? 'Avoid' : 'Style reference'}
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${image.name}`}
+                        onClick={() => handleRemoveReferenceImage(image.id)}
+                      >
+                        <X width={14} height={14} />
+                      </button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="mt-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)]/70 p-3">
-              <div className="mb-3 flex items-center gap-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                <Check width={13} height={13} />
-                Apply
+                    <label>
+                      Reference notes
+                      <input
+                        value={image.notes ?? ''}
+                        onChange={(event) =>
+                          updateReferenceImage(image.id, { notes: event.target.value })
+                        }
+                      />
+                    </label>
+                  </article>
+                ))}
               </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {DRAFT_FIELD_SWITCHES.map((field) => {
-                  const enabled = !disabledDraftFieldSet.has(field.id);
-                  return (
+            </>
+          )}
+          {section === 'assistant' && (
+            <>
+              <h3>Develop your style</h3>
+              <label>
+                Action
+                <select
+                  value={assistAction}
+                  onChange={(event) => setAssistAction(event.target.value as UserStyleDraftAction)}
+                >
+                  {DRAFT_ACTIONS.map((action) => (
+                    <option key={action.id} value={action.id}>
+                      {action.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Instructions
+                <textarea
+                  aria-label="Style assistant instructions"
+                  value={assistPrompt}
+                  onChange={(event) => setAssistPrompt(event.target.value)}
+                  rows={6}
+                  placeholder="Describe the visual language you want to create or improve."
+                />
+              </label>
+              <details>
+                <summary>Fields the assistant can change</summary>
+                <div className="user-style-chip-list">
+                  {DRAFT_FIELD_SWITCHES.map((field) => (
                     <button
                       key={field.id}
                       type="button"
+                      aria-pressed={!disabledDraftFieldSet.has(field.id)}
                       onClick={() => toggleDraftField(field.id)}
-                      aria-pressed={enabled}
-                      className={`flex h-8 items-center justify-between gap-2 rounded-[var(--wb-radius)] border px-2 text-[length:var(--wbp-label)] font-semibold tracking-normal transition-colors ${
-                        enabled
-                          ? 'border-emerald-400/2 bg-emerald-500/8 text-[color:var(--wb-success)] '
-                          : 'border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_4%,transparent)] text-[color:var(--wb-dim)]'
-                      }`}
                     >
-                      <span className="truncate">{field.label}</span>
-                      {enabled && <Check width={10} height={10} />}
+                      {field.label}
                     </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="mt-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)]/70 p-3">
-              <div className="mb-3 flex items-center gap-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                <Wand2 width={13} height={13} />
-                Assist
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {DRAFT_ACTIONS.map((action) => (
-                  <button
-                    key={action.id}
-                    type="button"
-                    onClick={() => setAssistAction(action.id)}
-                    aria-pressed={assistAction === action.id}
-                    className={`h-8 rounded-[var(--wb-radius)] border px-2 text-[length:var(--wbp-label)] font-semibold tracking-normal transition-colors ${
-                      assistAction === action.id
-                        ? 'border-accent-400/2 bg-accent-500/15 text-accent-100'
-                        : 'border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] text-[color:var(--wb-muted)] hover:text-[color:var(--wb-ink)]'
-                    }`}
-                  >
-                    {action.label}
-                  </button>
-                ))}
-              </div>
-              <textarea
-                aria-label="Style assistant instructions"
-                value={assistPrompt}
-                onChange={(event) => setAssistPrompt(event.target.value)}
-                rows={8}
-                className="mt-3 w-full resize-none rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] px-3 py-2 text-xs font-medium leading-relaxed text-[color:var(--wb-ink)] outline-none transition-colors focus:border-accent-400/2"
-              />
+                  ))}
+                </div>
+              </details>
               <button
                 type="button"
+                className="studio-primary-control"
                 onClick={handleAssist}
-                disabled={isAssisting}
-                className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-[var(--wb-radius)] border border-accent-400/2 bg-accent-500/18 px-4 text-[length:var(--wbp-label)] font-semibold tracking-normal text-accent-100 transition-colors hover:bg-accent-500/25 disabled:opacity-45"
+                disabled={isAssisting || isSaving}
               >
-                <Sparkles width={14} height={14} />
-                {isAssisting ? 'Working' : 'Assist'}
+                <Sparkles width={16} height={16} />
+                {isAssisting ? 'Working…' : 'Apply assistant draft'}
               </button>
-            </div>
-
-            {assistWarnings.length > 0 && (
-              <div className="mt-3 space-y-2">
-                {assistWarnings.map((warning) => (
-                  <div
-                    key={warning}
-                    className="rounded-[var(--wb-radius)] border border-amber-400/2 bg-amber-500/8 px-3 py-2 text-[length:var(--wbp-label)] font-medium leading-relaxed text-[color:var(--wb-warning)] "
-                  >
-                    {warning}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {error && (
-              <div className="mt-3 rounded-[var(--wb-radius)] border border-red-400/20 bg-red-500/10 px-3 py-2 text-[length:var(--wbp-label)] font-bold leading-relaxed text-[color:var(--wb-danger)] ">
-                {error}
-              </div>
-            )}
-          </aside>
-        </div>
-
-        <div className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-2 border-t border-[color:var(--wb-line)] bg-[color:var(--wb-panel)]/98 px-4 py-2 sm:px-5">
-          <div className="flex items-center gap-2">
-            {mode === 'edit' && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleDuplicate}
-                  disabled={isSaving}
-                  className="flex h-9 items-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)] disabled:opacity-45"
-                >
-                  <Copy width={14} height={14} />
-                  Duplicate
-                </button>
-                <button
-                  type="button"
-                  onClick={handleArchive}
-                  disabled={isSaving}
-                  className="flex h-9 items-center gap-2 rounded-[var(--wb-radius)] border border-red-400/15 bg-red-500/8 px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-danger)]  transition-colors hover:bg-red-500/14 disabled:opacity-45"
-                >
-                  <Trash2 width={14} height={14} />
-                  Archive
-                </button>
-              </>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!canSave}
-            className="studio-primary-control h-10 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <Save width={15} height={15} />
-            {isSaving ? 'Saving' : 'Save Style'}
-          </button>
-        </div>
+            </>
+          )}
+        </section>
+        <aside className="user-style-preview" aria-label="Style draft preview">
+          <h3>Prompt preview</h3>
+          <p>{normalizedDraft.category || 'Uncategorized'}</p>
+          <pre>{previewPrompt}</pre>
+          {normalizedDraft.avoidRules.length > 0 && (
+            <>
+              <h4>Avoid</h4>
+              <p>{normalizedDraft.avoidRules.join(', ')}</p>
+            </>
+          )}
+          {assistWarnings.map((warning) => (
+            <p key={warning} className="text-[color:var(--wb-warning)]">
+              {warning}
+            </p>
+          ))}
+        </aside>
       </div>
+      <footer className="user-style-footer">
+        <div className="user-style-chip-list">
+          {mode === 'edit' && (
+            <>
+              <button type="button" onClick={handleDuplicate} disabled={isSaving || isAssisting}>
+                <Copy width={14} height={14} />
+                Duplicate
+              </button>
+              <button type="button" onClick={handleArchive} disabled={isSaving || isAssisting}>
+                <Trash2 width={14} height={14} />
+                Archive
+              </button>
+            </>
+          )}
+        </div>
+        {error && (
+          <p role="alert" className="text-[color:var(--wb-danger)]">
+            {error}
+          </p>
+        )}
+        <button
+          type="button"
+          className="studio-primary-control"
+          onClick={handleSave}
+          disabled={!canSave || isAssisting}
+        >
+          <Save width={16} height={16} />
+          {isSaving ? 'Saving…' : 'Save style'}
+        </button>
+      </footer>
     </div>
   );
 };

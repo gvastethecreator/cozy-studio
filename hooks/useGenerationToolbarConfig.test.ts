@@ -34,8 +34,6 @@ describe('buildGenerationToolbarProps', () => {
         onGenerate: () => calls.push('generate'),
         isGenerating: false,
         generationStartTime: null,
-        isEnhancingPrompt: false,
-        onEnhancePrompt: () => calls.push('enhancePrompt'),
       },
       ui: {
         setPreviewRatio: (ratio) => calls.push(`preview:${ratio ?? 'none'}`),

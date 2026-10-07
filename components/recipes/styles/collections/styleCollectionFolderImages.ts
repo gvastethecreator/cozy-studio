@@ -2,7 +2,7 @@ import { styleCategoryImageKey } from '../../../../lib/recipeAssetKeys';
 import { getStyleThumbnailCatalog } from '../../../../lib/styleThumbnailCatalog';
 import type { StyleCollection, StyleCollectionEntry } from './styleCollectionTypes';
 
-export const STYLE_FOLDER_FILE_LIMIT = 5;
+export const STYLE_FOLDER_FILE_LIMIT = 2;
 
 export interface StyleFolderFile {
   id: string;
@@ -106,16 +106,16 @@ export function getStyleFolderImages({
     src: candidate.src,
     label: candidate.label,
   }));
-  const sourceFiles = getSourcePackThumbnailFiles(sourcePackIds, seedId, thumbnailCatalog);
-  const selectedFiles =
-    candidateFiles.length > 0
-      ? candidateFiles.slice(0, STYLE_FOLDER_FILE_LIMIT + 1)
-      : (sourceFiles.length > 0 ? sourceFiles : [fallbackFile])
-          .sort(
-            (first, second) =>
-              stableStyleFolderRank(seedId, first.id) - stableStyleFolderRank(seedId, second.id),
-          )
-          .slice(0, STYLE_FOLDER_FILE_LIMIT + 1);
+  let selectedFiles: StyleFolderFile[] = candidateFiles.slice(0, STYLE_FOLDER_FILE_LIMIT + 1);
+  if (!selectedFiles.length) {
+    const sourceFiles = getSourcePackThumbnailFiles(sourcePackIds, seedId, thumbnailCatalog);
+    selectedFiles = (sourceFiles.length > 0 ? sourceFiles : [fallbackFile])
+      .sort(
+        (first, second) =>
+          stableStyleFolderRank(seedId, first.id) - stableStyleFolderRank(seedId, second.id),
+      )
+      .slice(0, STYLE_FOLDER_FILE_LIMIT + 1);
+  }
 
   while (selectedFiles.length < STYLE_FOLDER_FILE_LIMIT + 1) {
     selectedFiles.push({
@@ -139,7 +139,8 @@ export function getStyleCollectionFolderImageCandidates(
   const seen = new Set<string>();
 
   const addCandidate = (candidate: StyleFolderImageCandidate | null) => {
-    if (!candidate || seen.has(candidate.id)) return;
+    if (!candidate || seen.has(candidate.id) || candidates.length >= STYLE_FOLDER_FILE_LIMIT + 1)
+      return;
     seen.add(candidate.id);
     candidates.push(candidate);
   };
@@ -162,6 +163,7 @@ export function getStyleCollectionFolderImageCandidates(
   };
 
   const addPack = (packId: string) => {
+    if (candidates.length >= STYLE_FOLDER_FILE_LIMIT + 1) return;
     for (const file of getSourcePackThumbnailFiles([packId], collection.id, thumbnailCatalog).sort(
       (first, second) =>
         stableStyleFolderRank(packId, first.id) - stableStyleFolderRank(packId, second.id),
@@ -171,6 +173,7 @@ export function getStyleCollectionFolderImageCandidates(
   };
 
   const visitEntry = (entry: StyleCollectionEntry) => {
+    if (candidates.length >= STYLE_FOLDER_FILE_LIMIT + 1) return;
     if (entry.includeMode === 'exclude') return;
 
     if (entry.kind === 'manual_group') {

@@ -1,10 +1,25 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+const workspaceState = vi.hoisted(() => ({ activeWorkspaceId: 'workspace-a' }));
+
 vi.mock('../contexts/GlobalContext', () => ({
   useToastUi: () => ({ addToast: vi.fn() }),
+  useWorkspaceState: () => workspaceState,
+}));
+
+vi.mock('../services/studio-api/catalog', () => ({
+  getCatalogImageDetail: vi.fn(async (id) => ({
+    id,
+    publicUrl: '/library/source.png',
+    filePath: 'X:/library/source.png',
+    sourceExists: true,
+    createdAt: '2026-10-07T00:00:00Z',
+    width: 1024,
+    height: 1024,
+  })),
 }));
 
 vi.mock('./ui/DemandMountedGsapDropdown', () => ({
@@ -27,11 +42,15 @@ vi.mock('./ui/DemandMountedGsapDropdown', () => ({
 }));
 
 import { MODELS } from '../constants';
+import { getCatalogImageDetail } from '../services/studio-api/catalog';
 import type { StudioCommandCenterProjection } from '../lib/commandCenterProjection';
 import type { ImageGenerationConfig } from '../types';
 import { Toolbar, type ToolbarProps } from './Toolbar';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  workspaceState.activeWorkspaceId = 'workspace-a';
+});
 
 const commandCenter: StudioCommandCenterProjection = {
   compactMode: false,
@@ -99,8 +118,6 @@ function renderToolbar(overrides: Partial<ToolbarProps> = {}) {
     onFileSelect: vi.fn(),
     onFilesDrop: vi.fn(),
     onRemoveAttachment: vi.fn(),
-    isEnhancingPrompt: false,
-    onEnhancePrompt: vi.fn(),
     setPreviewRatio: vi.fn(),
     setIsInteracting: vi.fn(),
     onOpenEditor: vi.fn(),
@@ -301,9 +318,9 @@ describe('Toolbar composer chrome', () => {
     expect(screen.getByText('Model')).toBeTruthy();
     expect(screen.getByText('5.4 Codex')).toBeTruthy();
     expect(screen.queryByRole('group', { name: 'Landscape' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Advanced settings' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Toggle negative prompt' })).toBeTruthy();
     expect(screen.queryByRole('textbox', { name: 'Negative prompt' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Expand prompt editor' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Expand prompt editor' })).toBeNull();
     expect(screen.getByText('Drop an image or paste it into the prompt.')).toBeTruthy();
     expect(container.querySelector('.create-footer-meta')).toBeTruthy();
     expect(container.querySelector('.create-shortcut-hint')).toBeTruthy();
@@ -313,41 +330,67 @@ describe('Toolbar composer chrome', () => {
     );
   });
 
-  it('reveals negative prompt inside advanced settings', () => {
-    renderToolbar();
-    fireEvent.click(screen.getByRole('button', { name: 'Advanced settings' }));
-    expect(screen.getByRole('textbox', { name: 'Negative prompt' })).toBeTruthy();
-    expect(screen.getByText('Optional')).toBeTruthy();
-  });
-
-  it('expands the prompt editor and saves the draft', () => {
+  it('toggles a single-row negative prompt and keeps its value', () => {
     const updateConfig = vi.fn();
     renderToolbar({ updateConfig });
-    fireEvent.click(screen.getByRole('button', { name: 'Expand prompt editor' }));
-    const editor = screen.getByRole('textbox', { name: 'Full prompt' });
-    fireEvent.change(editor, { target: { value: 'A brass lantern' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save prompt' }));
-    expect(updateConfig).toHaveBeenCalledWith('prompt', 'A brass lantern');
-    expect(screen.queryByRole('dialog', { name: 'Edit prompt' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle negative prompt' }));
+    const input = screen.getByRole('textbox', { name: 'Negative prompt' });
+    expect(input.tagName).toBe('INPUT');
+    fireEvent.change(input, { target: { value: 'Blurry' } });
+    expect(updateConfig).toHaveBeenCalledWith('negativePrompt', 'Blurry');
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle negative prompt' }));
+    expect(screen.queryByRole('textbox', { name: 'Negative prompt' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add refine notes' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add quality notes' })).toBeNull();
   });
 
-  it('adds each prompt note once, without provider names', () => {
+  it('resolves a dragged original source only while its workspace remains active', async () => {
     const updateConfig = vi.fn();
-    renderToolbar({ updateConfig });
-    const addRefineNote = (note: string) => {
-      fireEvent.click(screen.getByRole('button', { name: 'Add refine notes' }));
-      fireEvent.change(screen.getByRole('textbox', { name: 'Refine note' }), {
-        target: { value: note },
-      });
-      fireEvent.click(screen.getByRole('button', { name: 'Add refine note' }));
+    const view = renderToolbar({ updateConfig });
+    const dropEvent = {
+      dataTransfer: {
+        types: ['application/x-cozy-catalog-image'],
+        files: [],
+        getData: () => 'image-42',
+      },
     };
-    addRefineNote('Warmer light');
-    addRefineNote('Warmer light');
-    addRefineNote('Sharper eyes');
-    expect(updateConfig).toHaveBeenLastCalledWith(
-      'prompt',
-      'A lantern\n\nRefine notes:\n- Warmer light\n- Sharper eyes',
+    fireEvent.drop(view.container.querySelector('[data-composer-input]')!, dropEvent);
+    await waitFor(() =>
+      expect(updateConfig).toHaveBeenCalledWith('attachments', [
+        expect.objectContaining({
+          localPath: 'X:/library/source.png',
+          sourceUrl: expect.stringContaining('/library/source.png'),
+        }),
+      ]),
     );
+
+    updateConfig.mockClear();
+    const resolveEntry = vi.mocked(getCatalogImageDetail).getMockImplementation()!;
+    let resolveDrop!: () => void;
+    const pendingDrop = new Promise<void>((resolve) => {
+      resolveDrop = resolve;
+    });
+    vi.mocked(getCatalogImageDetail).mockImplementationOnce(async (id) => {
+      await pendingDrop;
+      return resolveEntry(id);
+    });
+    fireEvent.drop(view.container.querySelector('[data-composer-input]')!, dropEvent);
+    workspaceState.activeWorkspaceId = 'workspace-b';
+    view.rerender(
+      <Toolbar
+        {...view.props}
+        generationConfig={config({
+          attachments: [
+            { id: 'workspace-b-source', name: 'other.png', dataUrl: '/other.png', strength: 1 },
+          ],
+        })}
+      />,
+    );
+    await act(async () => {
+      resolveDrop();
+      await pendingDrop;
+    });
+    expect(updateConfig).not.toHaveBeenCalled();
   });
 
   it('can remove a reference thumbnail from the Create rail', () => {
@@ -388,8 +431,8 @@ describe('Toolbar composer chrome', () => {
       true,
     );
     expect(screen.queryByRole('button', { name: 'Analyze references' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Add refine notes' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Add quality notes' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Add refine notes' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add quality notes' })).toBeNull();
     expect(updateConfig).toHaveBeenCalledWith('batchCount', 1);
   });
 

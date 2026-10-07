@@ -142,17 +142,12 @@ function WorkflowModulesSection({ onChanged }: { onChanged: () => void }) {
   };
 
   return (
-    <section
-      className="grid gap-2 border-t border-[color:var(--wb-line)] pt-4"
-      aria-label="Workflow modules"
-    >
-      <div>
-        <h3 className="text-sm font-semibold">Workflow modules</h3>
-        <p className="mt-1 text-xs studio-muted">
-          Create and Styles are always on. A module you turn off disappears from navigation, loads
-          no code and accepts no new jobs. Its jobs and images stay in your library.
-        </p>
-      </div>
+    <details className="settings-disclosure">
+      <summary aria-label="Workflow modules">Workflow modules</summary>
+      <p className="text-xs studio-muted">
+        Hide workflows you don’t use. Existing jobs and images stay in the library. Create and
+        Styles are always on.
+      </p>
       {error ? (
         <p role="alert" className="text-xs text-[color:var(--wb-danger)]">
           {error}
@@ -177,7 +172,7 @@ function WorkflowModulesSection({ onChanged }: { onChanged: () => void }) {
           />
         </label>
       ))}
-    </section>
+    </details>
   );
 }
 

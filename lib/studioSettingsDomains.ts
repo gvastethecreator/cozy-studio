@@ -1,12 +1,12 @@
 export const STUDIO_SETTINGS_DOMAIN_TABS = [
-  { id: 'general', label: 'General' },
-  { id: 'appearance', label: 'Appearance' },
-  { id: 'providers', label: 'Providers & accounts' },
+  { id: 'general', label: 'Creation & startup' },
+  { id: 'appearance', label: 'Appearance & layout' },
+  { id: 'providers', label: 'Accounts & models' },
+  { id: 'output', label: 'Files & naming' },
   { id: 'library', label: 'Library & imports' },
-  { id: 'output', label: 'Output' },
-  { id: 'extensions', label: 'Extensions' },
-  { id: 'maintenance', label: 'Maintenance' },
-  { id: 'help', label: 'Help' },
+  { id: 'extensions', label: 'Styles & workflows' },
+  { id: 'maintenance', label: 'Advanced & maintenance' },
+  { id: 'help', label: 'Help & updates' },
 ] as const;
 
 export type StudioSettingsDomainId = (typeof STUDIO_SETTINGS_DOMAIN_TABS)[number]['id'];

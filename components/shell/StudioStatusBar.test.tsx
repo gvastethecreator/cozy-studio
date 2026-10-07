@@ -13,7 +13,9 @@ const usage: StudioUsageSummary = {
   meta: 'ChatGPT Pro',
   tooltip: 'Available usage for ChatGPT Pro',
   unitLabel: 'credits',
-  limits: [],
+  limits: [
+    { id: 'secondary', label: 'Weekly', availablePercent: 55, usedPercent: 45, resetLabel: null },
+  ],
   tone: 'available',
   isLoading: false,
 };
@@ -64,8 +66,34 @@ describe('StudioStatusBar', () => {
     const onToggleQueue = vi.fn();
     render(
       <StudioStatusBar
-        usage={usage}
-        commandCenter={commandCenter}
+        providerUsage={{
+          codex: usage,
+          chatgpt: {
+            ...usage,
+            limits: [
+              {
+                id: 'primary',
+                label: 'Weekly',
+                availablePercent: 91,
+                usedPercent: 9,
+                resetLabel: null,
+              },
+            ],
+          },
+        }}
+        commandCenter={{
+          ...commandCenter,
+          providerOptions: [
+            ...commandCenter.providerOptions,
+            { ...commandCenter.provider, id: 'chatgpt', shortLabel: 'ChatGPT' },
+            {
+              ...commandCenter.provider,
+              id: 'google',
+              shortLabel: 'Google',
+              status: 'not_configured',
+            },
+          ],
+        }}
         isQueueOpen={false}
         onToggleQueue={onToggleQueue}
         onOpenDashboard={vi.fn()}
@@ -76,7 +104,11 @@ describe('StudioStatusBar', () => {
     expect(screen.getByRole('contentinfo', { name: 'Studio status' })).toBeTruthy();
     expect(screen.getByRole('list', { name: 'Provider status' })).toBeTruthy();
     expect(screen.getByLabelText('Codex: Ready')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Usage status' })).toBeTruthy();
+    expect(screen.getByLabelText('Codex: Ready').textContent).toContain('55%');
+    expect(screen.getByLabelText('ChatGPT: Ready').textContent).toContain('91%');
+    expect(screen.queryByLabelText('Google: Ready')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Open runtime status: Ready' }).textContent).toBe('');
+    expect(screen.getByRole('button', { name: 'Codex weekly usage status' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Open runtime status: Ready' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /open jobs/i }));
     expect(onToggleQueue).toHaveBeenCalled();
@@ -87,7 +119,7 @@ describe('StudioStatusBar', () => {
     const refresh = vi.fn().mockResolvedValue(undefined);
     render(
       <StudioStatusBar
-        usage={usage}
+        providerUsage={{ codex: usage }}
         commandCenter={commandCenter}
         imageHistory={{
           total: 6094,

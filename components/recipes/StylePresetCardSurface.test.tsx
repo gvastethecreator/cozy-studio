@@ -29,11 +29,12 @@ const PRESET: StyleRuntimePreset = {
 };
 
 describe('StylePresetCard', () => {
-  it('shows the active image label while cycling provider variants', () => {
+  it('opens details without changing the mix and preserves prompt actions', () => {
     const onApply = vi.fn();
+    const onInspect = vi.fn();
     const onUsePrompt = vi.fn();
     const onCopy = vi.fn();
-    const { container } = render(
+    render(
       <StylePresetCard
         preset={PRESET}
         packId="pack_09"
@@ -57,6 +58,7 @@ describe('StylePresetCard', () => {
         }}
         FadeImageComponent={(props) => <img {...props} />}
         onApply={onApply}
+        onInspect={onInspect}
         onCopy={onCopy}
         onUsePrompt={onUsePrompt}
         onToggleFavorite={() => {}}
@@ -73,18 +75,14 @@ describe('StylePresetCard', () => {
     expect(onUsePrompt).toHaveBeenCalledExactlyOnceWith(PRESET);
     expect(onApply).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'Information about Polished Glass' }));
-    expect(screen.getByText('Card', { selector: '[data-style-active-image-label]' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Next image for Polished Glass' }));
-    expect(screen.getByText('Grok', { selector: '[data-style-active-image-label]' })).toBeTruthy();
-    expect(container.querySelector('[data-style-image-label="Grok"]')).toBeTruthy();
-    expect((screen.getAllByAltText('Polished Glass')[0] as HTMLImageElement).src).toContain(
-      '/style-grok.webp',
-    );
+    expect(onInspect).toHaveBeenCalledExactlyOnceWith(PRESET);
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect(onApply).toHaveBeenCalledTimes(1);
   });
 
   it('keeps preview available but disables adding when all five slots are occupied', () => {
     const onApply = vi.fn();
+    const onInspect = vi.fn();
 
     render(
       <StylePresetCard
@@ -111,6 +109,7 @@ describe('StylePresetCard', () => {
         }}
         FadeImageComponent={(props) => <img {...props} />}
         onApply={onApply}
+        onInspect={onInspect}
         onCopy={() => {}}
         onToggleFavorite={() => {}}
         onHoverPreviewChange={() => {}}
@@ -127,7 +126,7 @@ describe('StylePresetCard', () => {
     }
     expect(onApply).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Preview style Polished Glass' }));
-    expect(screen.getByRole('dialog', { name: 'Information about Polished Glass' })).toBeTruthy();
+    expect(onInspect).toHaveBeenCalledExactlyOnceWith(PRESET);
     expect(onApply).not.toHaveBeenCalled();
   });
 });

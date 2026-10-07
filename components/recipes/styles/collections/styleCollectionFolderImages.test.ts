@@ -59,6 +59,7 @@ describe('style collection folder images', () => {
     });
     const srcs = [images.cover, ...images.files].map((file) => file.src);
 
+    expect(srcs).toHaveLength(3);
     expect(images.cover).toMatchObject({ id: 'preset:SPGOOD-001', src: '/good-featured.webp' });
     expect(srcs).toContain('/good-category.webp');
     expect(srcs).toContain('/good-preset.webp');

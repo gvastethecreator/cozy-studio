@@ -6,7 +6,7 @@ import type {
   Attachment,
   RecipeId,
 } from '../types';
-import type { GenerationProviderId } from '../packages/shared/src';
+import type { EditableStudioSettings, GenerationProviderId } from '../packages/shared/src';
 import type { RecipeAliasId } from '../lib/recipeAliases';
 import { LazySurfaceFallback } from './ui/LazySurfaceFallback';
 import { findWorkflowModuleForRecipe } from '../packages/shared/src/workflowModules';
@@ -51,6 +51,8 @@ interface RecipeRouterProps {
   activeProviderId?: GenerationProviderId;
   grokCanExecute?: boolean;
   intentionalStylesV1?: boolean;
+  defaultStyleIntensity?: number;
+  defaultStyleReferenceMode?: EditableStudioSettings['defaultStyleReferenceMode'];
 }
 
 export const RecipeRouter: React.FC<RecipeRouterProps> = ({
@@ -69,6 +71,8 @@ export const RecipeRouter: React.FC<RecipeRouterProps> = ({
   activeProviderId = 'codex',
   grokCanExecute = false,
   intentionalStylesV1 = false,
+  defaultStyleIntensity,
+  defaultStyleReferenceMode,
 }) => {
   // A turned-off workflow module never loads its code; say how to turn it back on.
   if (!isRecipeEnabled(activeRecipe)) {
@@ -135,6 +139,8 @@ export const RecipeRouter: React.FC<RecipeRouterProps> = ({
             activeProviderId={activeProviderId}
             grokCanExecute={grokCanExecute}
             intentionalStylesV1={intentionalStylesV1}
+            defaultStyleIntensity={defaultStyleIntensity}
+            defaultStyleReferenceMode={defaultStyleReferenceMode}
             onSelectImage={openModal}
           />
         )}

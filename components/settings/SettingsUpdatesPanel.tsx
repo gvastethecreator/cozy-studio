@@ -77,7 +77,7 @@ export function SettingsUpdatesPanel({ hasUnsavedChanges }: { hasUnsavedChanges:
   }
 
   return (
-    <section className="settings-form-stack mt-6" aria-label="Studio updates">
+    <section className="settings-form-stack" aria-label="Studio updates">
       <h3 className="studio-dialog-title">Studio updates</h3>
       <p className="studio-muted text-sm" role="status">
         {updating
@@ -90,7 +90,7 @@ export function SettingsUpdatesPanel({ hasUnsavedChanges }: { hasUnsavedChanges:
               ? `${status.behind} new commit${status.behind === 1 ? '' : 's'} available on main.`
               : status?.checkedAt && !status.error
                 ? 'Studio is up to date with main.'
-                : 'Check for new commits on main.'}
+                : 'Check for Studio updates.'}
       </p>
       {status?.currentCommit && (
         <p className="studio-muted text-xs">
@@ -114,6 +114,7 @@ export function SettingsUpdatesPanel({ hasUnsavedChanges }: { hasUnsavedChanges:
           type="button"
           className="studio-ghost-control px-4 disabled:opacity-60"
           disabled={busy || updating || status?.phase === 'checking'}
+          aria-label="Check for updates"
           onClick={() => void check()}
         >
           Check for updates

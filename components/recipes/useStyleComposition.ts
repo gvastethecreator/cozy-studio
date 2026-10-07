@@ -13,6 +13,7 @@ import {
   STYLE_LAYER_FIELD_DEFINITIONS,
   type StyleLayerAvoidRulesMode,
   type StyleLayerFieldId,
+  type StyleReferenceMode,
 } from './styleLayerComposer';
 import * as Intentional from '../../packages/shared/src/styles/intentional-v1';
 
@@ -31,6 +32,8 @@ interface StyleCompositionInput {
   generationBlocked: boolean;
   maxSlots: number;
   intentionalStylesV1?: boolean;
+  defaultStyleIntensity?: number;
+  defaultStyleReferenceMode?: StyleReferenceMode;
 }
 
 /** Owns selected layers and their provider-independent recipe output. */
@@ -42,6 +45,8 @@ export function useStyleComposition({
   generationBlocked,
   maxSlots,
   intentionalStylesV1 = false,
+  defaultStyleIntensity = DEFAULT_SELECTED_STYLE_STRENGTH,
+  defaultStyleReferenceMode,
 }: StyleCompositionInput) {
   const [selectedStyles, setSelectedStyles] = useState<SelectedStyleSlot[]>([]);
   const [intentionalMode, setIntentionalMode] = useState<Intentional.Mode>(() => {
@@ -50,13 +55,18 @@ export function useStyleComposition({
     if (saved === 'generate' || saved === 'preserve' || saved === 'reinterpret') {
       return intentionalStylesV1 || saved !== 'generate' ? saved : 'preserve';
     }
-    return intentionalStylesV1 ? 'generate' : 'preserve';
+    return defaultStyleReferenceMode ?? (intentionalStylesV1 ? 'generate' : 'preserve');
   });
   useEffect(() => {
     if (!intentionalStylesV1 && intentionalMode === 'generate') setIntentionalMode('preserve');
   }, [intentionalMode, intentionalStylesV1]);
   const [compileIssues, setCompileIssues] = useState<Intentional.Issue[]>([]);
   const didRestoreSelection = useRef(false);
+  useEffect(() => {
+    if (selectedStyles.length > 0 || !defaultStyleReferenceMode) return;
+    if (config.recipeParams?.intentionalMode || config.recipeParams?.styleReferenceMode) return;
+    setIntentionalMode(defaultStyleReferenceMode);
+  }, [config.recipeParams, defaultStyleReferenceMode, selectedStyles.length]);
   useEffect(() => {
     if (didRestoreSelection.current) return;
     if (selectedStyles.length > 0) {
@@ -127,7 +137,7 @@ export function useStyleComposition({
             preset,
             packId: presetPackId,
             packName,
-            strength: DEFAULT_SELECTED_STYLE_STRENGTH,
+            strength: clampStyleStrength(defaultStyleIntensity),
             enabled: true,
             fieldControls: createDefaultStyleLayerFieldControls(),
             avoidRulesMode: 'merge',
@@ -135,7 +145,7 @@ export function useStyleComposition({
         ];
       });
     },
-    [maxSlots],
+    [defaultStyleIntensity, maxSlots],
   );
   const selectedStyleLayers = useMemo(
     () => selectedStyles.map(createSelectedStyleLayer),
@@ -164,10 +174,19 @@ export function useStyleComposition({
     updateConfig('recipeId', registeredStyleGenerationPlan ? 'styles' : null);
     updateConfig('recipeParams', {
       ...registeredStyleGenerationPlan?.recipeParams,
+      ...(registeredStyleGenerationPlan
+        ? { styleReferenceMode: intentionalMode === 'generate' ? 'preserve' : intentionalMode }
+        : {}),
       selectedStyles: registeredStyleGenerationPlan?.recipeParams.selectedStyles ?? [],
       selectedStyleDraft: selectedStyles,
     });
-  }, [intentionalStylesV1, registeredStyleGenerationPlan, selectedStyles, updateConfig]);
+  }, [
+    intentionalMode,
+    intentionalStylesV1,
+    registeredStyleGenerationPlan,
+    selectedStyles,
+    updateConfig,
+  ]);
 
   useEffect(() => {
     if (!intentionalStylesV1) return;

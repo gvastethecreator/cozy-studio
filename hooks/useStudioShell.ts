@@ -55,6 +55,7 @@ import { materializeCatalogEntryImageWithConfig } from '../lib/studioCatalogImag
 import { resolveStudioCarouselImage } from '../lib/studioCarouselImage';
 import type { LogEntry } from '../types';
 import type { CodexExecutionTransport } from '../packages/shared/src/codexExecutionContract';
+import type { EditableStudioSettings } from '../packages/shared/src/studioSettings';
 
 const EMPTY_RUNTIME_LOGS: LogEntry[] = [];
 
@@ -62,6 +63,8 @@ export interface StudioShellController {
   history: ReturnType<typeof useStudioCatalogController>['historyCatalog'];
   historySelection: { id: string | null; setId: (id: string) => void };
   root: {
+    toolsPanelSide: EditableStudioSettings['toolsPanelSide'];
+    jobsPanelSide: EditableStudioSettings['jobsPanelSide'];
     onDragOver: ReturnType<typeof useImageInputSurface>['handleDragOver'];
     onDragLeave: ReturnType<typeof useImageInputSurface>['handleDragLeave'];
     onDrop: ReturnType<typeof useImageInputSurface>['handleDrop'];
@@ -71,6 +74,7 @@ export interface StudioShellController {
   headerToolbar: {
     isVisible: boolean;
     props: HeaderToolbarProps;
+    providerUsage: ReturnType<typeof useStudioRuntime>['status']['diagnostics']['providerUsage'];
   };
   support: {
     isOpen: boolean;
@@ -189,7 +193,9 @@ export function useStudioShell(): StudioShellController {
   // Browser session logs are empty here so log-list updates never invalidate the shell.
   // Overlays that display logs subscribe to the log-list context and merge client-side.
   const { clearedAt: jobsListClearedAt, attentionClearedAt: jobsAttentionClearedAt } =
-    useStudioJobsListClearedAt();
+    useStudioJobsListClearedAt(
+      studioSettings.data.settingsDomain.settings?.clearReviewJobsOnStartup,
+    );
   const studioRuntime = useStudioRuntime({
     logs: EMPTY_RUNTIME_LOGS,
     log,
@@ -299,47 +305,40 @@ export function useStudioShell(): StudioShellController {
     viewState.editor.setIsOpen(false);
     viewState.editor.setImage(null);
   }, [viewState.editor.setImage, viewState.editor.setIsOpen]);
-  const {
-    isEnhancingPrompt,
-    isEditingImage,
-    handleGenerate,
-    handleEnhancePrompt,
-    handleExecuteEdit,
-    handleLoadRecipe,
-    resetGenerationUi,
-  } = useStudioGenerationActions({
-    generationConfigRef: config.generationConfigRef,
-    activeWorkspaceId,
-    setGenerationConfig: config.setGenerationConfig,
-    setRecipeDraft: config.setRecipeDraft,
-    updateGenerationConfig: config.updateGenerationConfig,
-    executeEdit: pipeline.executeEdit,
-    executeGeneration: pipeline.executeGeneration,
-    addToast,
-    closeModal: handleCloseModal,
-    closeOverlay,
-    isModalOpen: modal.isModalOpen,
-    onRecipeSelection: handleRecipeSelection,
-    onViewChange: handleViewChange,
-    onEditSettled,
-    activeProviderId: studioSettings.data.settingsDomain.settings?.defaultProviderId ?? 'chatgpt',
-    defaultCodexTransport: codexDefaultTransport,
-    activeRecipe: recipe.activeRecipe,
-    grokCanExecute: resolveGrokCanExecute({
-      canExecute: studioSettings.data.providerDomain.capabilities?.providers.find(
+  const { isEditingImage, handleGenerate, handleExecuteEdit, handleLoadRecipe, resetGenerationUi } =
+    useStudioGenerationActions({
+      generationConfigRef: config.generationConfigRef,
+      activeWorkspaceId,
+      setGenerationConfig: config.setGenerationConfig,
+      setRecipeDraft: config.setRecipeDraft,
+      updateGenerationConfig: config.updateGenerationConfig,
+      executeEdit: pipeline.executeEdit,
+      executeGeneration: pipeline.executeGeneration,
+      addToast,
+      closeModal: handleCloseModal,
+      closeOverlay,
+      isModalOpen: modal.isModalOpen,
+      onRecipeSelection: handleRecipeSelection,
+      onViewChange: handleViewChange,
+      onEditSettled,
+      activeProviderId: studioSettings.data.settingsDomain.settings?.defaultProviderId ?? 'chatgpt',
+      defaultCodexTransport: codexDefaultTransport,
+      activeRecipe: recipe.activeRecipe,
+      grokCanExecute: resolveGrokCanExecute({
+        canExecute: studioSettings.data.providerDomain.capabilities?.providers.find(
+          (provider) => provider.providerId === 'grok',
+        )?.canExecute,
+        canAttemptExecution: studioSettings.data.providerDomain.runtimePreflight?.providers.find(
+          (provider) => provider.providerId === 'grok',
+        )?.canAttemptExecution,
+      }),
+      grokStatus: studioSettings.data.providerDomain.capabilities?.providers.find(
         (provider) => provider.providerId === 'grok',
-      )?.canExecute,
-      canAttemptExecution: studioSettings.data.providerDomain.runtimePreflight?.providers.find(
+      )?.status,
+      grokDiagnostics: studioSettings.data.providerDomain.runtimePreflight?.providers.find(
         (provider) => provider.providerId === 'grok',
-      )?.canAttemptExecution,
-    }),
-    grokStatus: studioSettings.data.providerDomain.capabilities?.providers.find(
-      (provider) => provider.providerId === 'grok',
-    )?.status,
-    grokDiagnostics: studioSettings.data.providerDomain.runtimePreflight?.providers.find(
-      (provider) => provider.providerId === 'grok',
-    )?.diagnostics,
-  });
+      )?.diagnostics,
+    });
 
   const { isResettingStudio, resetStudio } = useStudioReset({
     addToast,
@@ -639,6 +638,9 @@ export function useStudioShell(): StudioShellController {
       intentionalStylesV1: Boolean(
         studioSettings.data.settingsDomain.settings?.intentionalStylesV1,
       ),
+      defaultStyleIntensity: studioSettings.data.settingsDomain.settings?.defaultStyleIntensity,
+      defaultStyleReferenceMode:
+        studioSettings.data.settingsDomain.settings?.defaultStyleReferenceMode,
     }),
     [
       activeWorkspaceId,
@@ -650,6 +652,8 @@ export function useStudioShell(): StudioShellController {
       studioSettings.data.providerDomain.capabilities,
       studioSettings.data.providerDomain.runtimePreflight,
       studioSettings.data.settingsDomain.settings?.intentionalStylesV1,
+      studioSettings.data.settingsDomain.settings?.defaultStyleIntensity,
+      studioSettings.data.settingsDomain.settings?.defaultStyleReferenceMode,
     ],
   );
 
@@ -760,8 +764,6 @@ export function useStudioShell(): StudioShellController {
         onGenerate: handleGenerate,
         isGenerating: pipeline.isGenerating,
         generationStartTime: pipeline.generationStartTime,
-        isEnhancingPrompt,
-        onEnhancePrompt: handleEnhancePrompt,
       },
       ui: {
         setPreviewRatio: viewState.preview.setRatio,
@@ -815,8 +817,6 @@ export function useStudioShell(): StudioShellController {
       handleGenerate,
       pipeline.isGenerating,
       pipeline.generationStartTime,
-      isEnhancingPrompt,
-      handleEnhancePrompt,
       viewState.preview.setRatio,
       ui.setIsInteractingWithToolbar,
       ui.isKeyPopoverOpen,
@@ -979,6 +979,8 @@ export function useStudioShell(): StudioShellController {
       history: historyCatalog,
       historySelection: { id: historySelectedId, setId: selectHistoryImage },
       root: {
+        toolsPanelSide: studioSettings.data.settingsDomain.settings?.toolsPanelSide ?? 'left',
+        jobsPanelSide: studioSettings.data.settingsDomain.settings?.jobsPanelSide ?? 'right',
         onDragOver: handleDragOver,
         onDragLeave: handleDragLeave,
         onDrop: handleDrop,
@@ -988,6 +990,7 @@ export function useStudioShell(): StudioShellController {
       headerToolbar: {
         isVisible: !isUiChromeSuppressed,
         props: headerToolbarProps,
+        providerUsage: studioRuntime.status.diagnostics.providerUsage,
       },
       support: {
         isOpen: isSupportOpen,
@@ -1012,6 +1015,8 @@ export function useStudioShell(): StudioShellController {
       onMainClick,
       isUiChromeSuppressed,
       headerToolbarProps,
+      studioRuntime.status.diagnostics.providerUsage,
+      studioSettings.data.settingsDomain.settings,
       isSupportOpen,
       viewportController,
       overlayController,

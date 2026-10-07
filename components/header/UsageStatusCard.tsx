@@ -8,6 +8,8 @@ interface UsageStatusCardProps {
   onOpenDashboard: () => void;
   className?: string;
   popoverPlacement?: 'bottom' | 'top';
+  providerLabel?: string;
+  weeklyOnly?: boolean;
 }
 
 function getUsageBarClass(availablePercent: number) {
@@ -26,6 +28,8 @@ export function UsageStatusCard({
   onOpenDashboard,
   className,
   popoverPlacement = 'bottom',
+  providerLabel = 'Codex',
+  weeklyOnly = false,
 }: UsageStatusCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -48,7 +52,9 @@ export function UsageStatusCard({
       document.removeEventListener('pointerdown', pointerdown);
     };
   }, [isOpen]);
-  const visibleLimits = usage.limits.slice(0, 2);
+  const visibleLimits = weeklyOnly
+    ? usage.limits.filter((limit) => /weekly/i.test(limit.label)).slice(0, 1)
+    : usage.limits.slice(0, 2);
   const usageToneClasses =
     usage.tone === 'offline'
       ? 'border-rose-500/2 bg-rose-500/8 text-[color:var(--wb-danger)]'
@@ -74,7 +80,7 @@ export function UsageStatusCard({
           onClick={() => setIsOpen(!isOpen)}
           aria-expanded={isOpen}
           className={`studio-hit-target flex items-center gap-1.5 rounded-[var(--wb-radius)] border px-2 text-left transition-[color,background-color,border-color,opacity,transform] hover:border-accent-400/2 hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] cursor-pointer ${popoverPlacement === 'top' ? 'h-7' : 'h-8'} ${usageToneClasses}`}
-          aria-label="Usage status"
+          aria-label={weeklyOnly ? `${providerLabel} weekly usage status` : 'Usage status'}
         >
           <div className="flex size-5 shrink-0 items-center justify-center rounded-[var(--wb-radius)] bg-[color:var(--wb-well)] text-inherit">
             {usage.tone === 'offline' ? (
@@ -109,13 +115,15 @@ export function UsageStatusCard({
           ) : (
             <div className="min-w-0">
               <p className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                Codex Usage
+                {weeklyOnly ? 'Weekly' : `${providerLabel} Usage`}
               </p>
               <div className="flex items-center gap-2 leading-none">
                 <span className="max-w-28 truncate text-[11px] font-semibold tabular-nums text-[color:var(--wb-ink)]">
-                  {usage.value}
+                  {weeklyOnly && !usage.isLoading && usage.tone !== 'offline'
+                    ? 'Unavailable'
+                    : usage.value}
                 </span>
-                {!usage.isLoading && usage.unitLabel && (
+                {!weeklyOnly && !usage.isLoading && usage.unitLabel && (
                   <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
                     {usage.unitLabel}
                   </span>
@@ -128,11 +136,11 @@ export function UsageStatusCard({
       {isOpen && (
         <div
           role="region"
-          aria-label="Account usage"
+          aria-label={`${providerLabel} account usage`}
           className={`absolute right-0 z-[100] w-80 rounded-[var(--wb-radius)] border border-[color:var(--wb-border)] bg-[color:var(--wb-panel)] p-4 shadow-xl ${popoverPlacement === 'top' ? 'bottom-9' : 'top-11'}`}
         >
           <div className="flex items-center justify-between">
-            <strong>Account usage</strong>
+            <strong>{providerLabel} account usage</strong>
             <button type="button" aria-label="Close usage" onClick={() => setIsOpen(false)}>
               Close
             </button>

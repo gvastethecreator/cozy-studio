@@ -1,10 +1,13 @@
+import { useLatestRef } from '../hooks/useLatestRef';
+import { CATALOG_IMAGE_DRAG_TYPE } from '../lib/catalogImageDrag';
+import { getCatalogImageDetail } from '../services/studio-api/catalog';
+import { materializeCatalogEntryImage } from '../lib/studioCatalogImageAdapter';
+import { buildGeneratedImageContextAttachment } from '../hooks/useGenerationConfig';
 import { CozyLoader as Loader2, CozyLoader } from './CozyMascot';
-import { AnimatePresence } from '../lib/gsapMotion';
 import {
   getGenerationRequirement,
   getGenerationOutputSummary,
 } from '../packages/shared/src/generationRequirements';
-import { CreatePromptExpandDialog } from './create/CreatePromptExpandDialog';
 import { ReferenceTray } from './ReferenceTray';
 import {
   Prohibition as Ban,
@@ -12,12 +15,10 @@ import {
   Brain as BrainCircuit,
   Check,
   NavArrowDown as ChevronDown,
-  EditPencil as Edit3,
   Erase as Eraser,
   Hashtag as Hash,
   MediaImagePlus as ImagePlus,
   MultiplePages as Layers,
-  Expand as Maximize,
   Computer as Monitor,
   MoreHoriz as MoreHorizontal,
   PlusCircle,
@@ -26,7 +27,6 @@ import {
   Crop as Ratio,
   Square as RectangleHorizontal,
   ControlSlider as SlidersHorizontal,
-  SendDiagonal as Send,
   ShieldAlert,
   Square,
   Sparks as Sparkles,
@@ -49,7 +49,6 @@ import {
   resolveProviderSupportsTransparentBackground,
 } from '../lib/composerProviderProjection';
 import { resolveGenerationBackground } from '../lib/generationBackground';
-import { addPromptNote } from '../hooks/useStudioGenerationActions';
 import { getActiveRecipeIndicator } from '../lib/activeRecipeIndicator';
 import type {
   CodexModel,
@@ -94,8 +93,6 @@ export interface ToolbarProps {
   onFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onFilesDrop: (files: File[], replaceId?: string) => void;
   onRemoveAttachment: (id: string) => void;
-  isEnhancingPrompt: boolean;
-  onEnhancePrompt: () => void;
   setPreviewRatio: (ratio: AspectRatio | null) => void;
   setIsInteracting: (isInteracting: boolean) => void;
   onOpenEditor: (attachment: Attachment) => void;
@@ -149,7 +146,7 @@ function formatGenerationProviderLabel(providerId: GenerationProviderId) {
   return GENERATION_PROVIDER_LABELS[providerId] ?? providerId;
 }
 
-import { useToastUi } from '../contexts/GlobalContext';
+import { useToastUi, useWorkspaceState } from '../contexts/GlobalContext';
 
 export const Toolbar: React.FC<ToolbarProps> = React.memo(
   ({
@@ -161,8 +158,6 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
     onFileSelect,
     onFilesDrop,
     onRemoveAttachment,
-    isEnhancingPrompt,
-    onEnhancePrompt,
     setPreviewRatio,
     setIsInteracting,
     onOpenEditor,
@@ -191,6 +186,7 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
     layout = 'dock',
   }) => {
     const { addToast } = useToastUi();
+    const { activeWorkspaceId } = useWorkspaceState();
     const containerRef = useRef<HTMLDivElement>(null);
     const toolScrollRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -198,12 +194,10 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
     }, [interactionScope, layout]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const negativeButtonRef = useRef<HTMLButtonElement>(null);
-    const refineButtonRef = useRef<HTMLButtonElement>(null);
     const aspectRatioButtonRef = useRef<HTMLButtonElement>(null);
     const sizeButtonRef = useRef<HTMLButtonElement>(null);
     const batchButtonRef = useRef<HTMLButtonElement>(null);
-    const negativeInputRef = useRef<HTMLTextAreaElement>(null);
+    const negativeInputRef = useRef<HTMLInputElement>(null);
     const executionButtonRef = useRef<HTMLButtonElement>(null);
 
     const [localPrompt, setLocalPrompt] = useState(generationConfig.prompt || '');
@@ -220,14 +214,7 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
 
     // Logic AI Popover States
     const [isNegativeOpen, setIsNegativeOpen] = useState(false);
-    const [isRefineOpen, setIsRefineOpen] = useState(false);
-    const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
-    const [isPromptExpanded, setIsPromptExpanded] = useState(false);
-    const [expandedPrompt, setExpandedPrompt] = useState('');
     const [composerDragDepth, setComposerDragDepth] = useState(0);
-
-    const [magicInstruction, setMagicInstruction] = useState('');
-    const [isRefactoring, setIsRefactoring] = useState(false);
 
     const selectedCodexTransport =
       activeProviderId === 'chatgpt' ? 'subscription_http' : 'codex_app_server';
@@ -296,7 +283,7 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
       selectedExecutionModel?.displayName,
     );
 
-    const isScrambling = isEnhancingPrompt || isRefactoring;
+    const isScrambling = false;
 
     const handleSelectExecutionModel = useCallback(
       (model: CodexModel) => {
@@ -365,7 +352,6 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
         if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
           closeAllMenus();
           setIsNegativeOpen(false);
-          setIsRefineOpen(false);
           setIsMobileControlsOpen(false);
         }
       };
@@ -457,7 +443,6 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
 
       closeAllMenus();
       setIsNegativeOpen(false);
-      setIsRefineOpen(false);
       setIsMobileControlsOpen(false);
     }, [
       localPrompt,
@@ -481,30 +466,6 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
         handleTriggerGenerate();
       }
     };
-
-    const handleMagicEdit = async () => {
-      if (!magicInstruction.trim() || isRefactoring) return;
-      setIsRefactoring(true);
-      try {
-        const newPrompt = addPromptNote(localPrompt, 'Refine notes:', magicInstruction);
-        setLocalPrompt(newPrompt);
-        updateConfig('prompt', newPrompt);
-        setMagicInstruction('');
-        setIsRefineOpen(false);
-      } catch (e) {
-        addToast(e instanceof Error ? e.message : 'Could not add the refine note', 'error');
-      } finally {
-        setIsRefactoring(false);
-      }
-    };
-
-    const saveExpandedPrompt = useCallback(() => {
-      const next = expandedPrompt.slice(0, 12000);
-      setLocalPrompt(next);
-      lastPushedPromptRef.current = next;
-      updateConfig('prompt', next);
-      setIsPromptExpanded(false);
-    }, [expandedPrompt, updateConfig]);
 
     useEffect(() => {
       if (layout !== 'rail') return;
@@ -564,18 +525,105 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
       typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.userAgent)
         ? '⌘ ↵'
         : 'Ctrl ↵';
+    const dropInFlight = useRef(false);
+    const attachmentsRef = useLatestRef(generationConfig.attachments);
+    const dropScope = useMemo(
+      () => ({ activeWorkspaceId, interactionScope }),
+      [activeWorkspaceId, interactionScope],
+    );
+    const dropScopeRef = useLatestRef<typeof dropScope | null>(dropScope);
+    useEffect(
+      () => () => {
+        dropScopeRef.current = null;
+      },
+      [dropScopeRef],
+    );
     const acceptRailImageDrop = useCallback(
-      (event: React.DragEvent) => {
+      async (event: React.DragEvent) => {
         event.preventDefault();
         event.stopPropagation();
-        const files = Array.from(event.dataTransfer.files as any as Iterable<File>).filter((file) =>
+        const imageId = event.dataTransfer.getData(CATALOG_IMAGE_DRAG_TYPE).trim();
+        if (imageId) {
+          if (
+            imageId.length > 512 ||
+            dropInFlight.current ||
+            generationConfig.attachments.length >= maxAttachments
+          )
+            return;
+          dropInFlight.current = true;
+          const pendingScope = dropScopeRef.current;
+          try {
+            const entry = await getCatalogImageDetail(imageId);
+            if (dropScopeRef.current !== pendingScope) return;
+            if (entry.sourceExists === false) throw new Error('The original image is unavailable.');
+            const attachment = buildGeneratedImageContextAttachment(
+              materializeCatalogEntryImage(entry),
+            );
+            updateConfig(
+              'attachments',
+              [...attachmentsRef.current, attachment].slice(0, maxAttachments),
+            );
+          } catch (error) {
+            if (dropScopeRef.current !== pendingScope) return;
+            addToast(
+              error instanceof Error ? error.message : 'Could not add this image as a source.',
+              'error',
+            );
+          } finally {
+            dropInFlight.current = false;
+          }
+          return;
+        }
+        const files = Array.from(event.dataTransfer.files).filter((file) =>
           file.type.startsWith('image/'),
         );
-        if (files.length === 0) return;
-        onFilesDrop(files);
+        if (files.length) onFilesDrop(files);
       },
-      [onFilesDrop],
+      [
+        onFilesDrop,
+        generationConfig.attachments,
+        maxAttachments,
+        updateConfig,
+        addToast,
+        attachmentsRef,
+        dropScopeRef,
+      ],
     );
+
+    const negativePromptButton = showCodexPromptTools ? (
+      <Tooltip content="Negative prompt">
+        <button
+          type="button"
+          className={`create-icon-button ${isNegativeOpen || generationConfig.negativePrompt ? 'is-active' : ''}`}
+          aria-label="Toggle negative prompt"
+          aria-expanded={isNegativeOpen}
+          aria-controls="create-negative-input"
+          onClick={() => {
+            setIsNegativeOpen(!isNegativeOpen);
+            if (!isNegativeOpen) requestAnimationFrame(() => negativeInputRef.current?.focus());
+          }}
+        >
+          <Ban width={15} height={15} aria-hidden="true" />
+        </button>
+      </Tooltip>
+    ) : null;
+    const negativePromptField =
+      showCodexPromptTools && isNegativeOpen ? (
+        <input
+          ref={negativeInputRef}
+          id="create-negative-input"
+          aria-label="Negative prompt"
+          type="text"
+          className="studio-input mt-1 w-full"
+          style={{ height: 30, minHeight: 30 }}
+          value={generationConfig.negativePrompt || ''}
+          onChange={(event) => updateConfig('negativePrompt', event.target.value)}
+          placeholder="Exclude: blurry, low quality, distortion…"
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setIsNegativeOpen(false);
+          }}
+        />
+      ) : null;
 
     const fileInput = (
       <input
@@ -635,16 +683,7 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
             onFilesDrop(files);
           }
         }}
-        onDrop={(e) => {
-          const files = Array.from(e.dataTransfer.files as any as Iterable<File>).filter((f) =>
-            f.type.startsWith('image/'),
-          );
-          if (files.length > 0) {
-            e.preventDefault();
-            e.stopPropagation();
-            onFilesDrop(files);
-          }
-        }}
+        onDrop={acceptRailImageDrop}
         onDragOver={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -731,19 +770,29 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
                     <div
                       className={`create-composer ${composerDragDepth > 0 ? 'is-dragover' : ''}`}
                       onDragEnter={(event) => {
-                        if (!event.dataTransfer?.types.includes('Files')) return;
+                        if (
+                          !event.dataTransfer?.types.some(
+                            (type) => type === 'Files' || type === CATALOG_IMAGE_DRAG_TYPE,
+                          )
+                        )
+                          return;
                         event.preventDefault();
                         setComposerDragDepth((depth) => depth + 1);
                       }}
                       onDragOver={(event) => {
-                        if (!event.dataTransfer?.types.includes('Files')) return;
+                        if (
+                          !event.dataTransfer?.types.some(
+                            (type) => type === 'Files' || type === CATALOG_IMAGE_DRAG_TYPE,
+                          )
+                        )
+                          return;
                         event.preventDefault();
                         event.dataTransfer.dropEffect = 'copy';
                       }}
                       onDragLeave={() => setComposerDragDepth((depth) => Math.max(0, depth - 1))}
                       onDrop={(event) => {
                         setComposerDragDepth(0);
-                        acceptRailImageDrop(event);
+                        void acceptRailImageDrop(event);
                       }}
                     >
                       <div className="create-reference-area">
@@ -791,117 +840,35 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
                   <section className="create-prompt-section" aria-label="Prompt">
                     <div className="create-section-header">
                       <label htmlFor="create-prompt-input">Prompt</label>
-                      <div className="create-prompt-tools">
-                        <div className="relative">
-                          <Tooltip content="Add refine notes">
-                            <button
-                              ref={refineButtonRef}
-                              type="button"
-                              onClick={() => {
-                                setIsRefineOpen(!isRefineOpen);
-                                setIsNegativeOpen(false);
-                              }}
-                              aria-label="Add refine notes"
-                              aria-haspopup="dialog"
-                              aria-expanded={isRefineOpen}
-                              className={`create-icon-button ${isRefineOpen ? 'is-active' : ''}`}
-                            >
-                              <Edit3 width={16} height={16} />
-                            </button>
-                          </Tooltip>
-                          <DemandMountedGsapDropdown
-                            portal
-                            data-toolbar-popup
-                            open={isRefineOpen}
-                            onOpenChange={setIsRefineOpen}
-                            triggerRef={refineButtonRef}
-                            placement="bottom-right"
-                            role="dialog"
-                            aria-label="Refine notes"
-                            className="studio-mobile-popover z-[100] w-72 p-3"
-                          >
-                            <label
-                              htmlFor="rail-magic-edit-input"
-                              className="mb-2 block text-[length:var(--wbp-label)] font-bold tracking-normal text-zinc-500"
-                            >
-                              Refine note
-                            </label>
-                            <div className="flex gap-2">
-                              <input
-                                id="rail-magic-edit-input"
-                                type="text"
-                                value={magicInstruction}
-                                onChange={(e) => setMagicInstruction(e.target.value)}
-                                placeholder="e.g. Make it cyberpunk style..."
-                                autoComplete="off"
-                                onKeyDown={(e) => e.key === 'Enter' && handleMagicEdit()}
-                                aria-label="Refine note"
-                                className="h-10 flex-1 rounded-[var(--wb-radius)] border border-white/2 bg-black/40 px-3 text-xs text-zinc-300 outline-none transition-colors placeholder-zinc-700 focus:border-accent-500/2"
-                              />
-                              <button
-                                type="button"
-                                onClick={handleMagicEdit}
-                                disabled={isRefactoring}
-                                aria-label="Add refine note"
-                                className="flex size-10 touch-manipulation items-center justify-center rounded-[var(--wb-radius)] border border-accent-400/2 bg-accent-600 text-white transition-colors hover:bg-accent-500"
-                              >
-                                {isRefactoring ? (
-                                  <CozyLoader size={18} />
-                                ) : (
-                                  <Send width={12} height={12} />
-                                )}
-                              </button>
-                            </div>
-                          </DemandMountedGsapDropdown>
-                        </div>
-                        <Tooltip content="Add quality notes">
-                          <button
-                            type="button"
-                            onClick={onEnhancePrompt}
-                            disabled={isEnhancingPrompt}
-                            aria-label="Add quality notes"
-                            className={`create-icon-button ${isEnhancingPrompt ? 'is-active' : ''}`}
-                          >
-                            {isEnhancingPrompt ? (
-                              <CozyLoader size={18} />
-                            ) : (
-                              <Wand2 width={16} height={16} />
-                            )}
-                          </button>
-                        </Tooltip>
-                        <Tooltip content="Expand editor">
-                          <button
-                            type="button"
-                            className="create-icon-button"
-                            aria-label="Expand prompt editor"
-                            onClick={() => {
-                              setExpandedPrompt(localPrompt);
-                              setIsPromptExpanded(true);
-                              setIsRefineOpen(false);
-                            }}
-                          >
-                            <Maximize width={16} height={16} />
-                          </button>
-                        </Tooltip>
-                      </div>
+                      <div className="create-prompt-tools">{negativePromptButton}</div>
                     </div>
                     <div
                       data-composer-input
                       className={`create-composer ${composerDragDepth > 0 ? 'is-dragover' : ''} ${shouldShowQuickStartError ? 'quick-start-error-frame' : ''}`}
                       onDragEnter={(event) => {
-                        if (!event.dataTransfer?.types.includes('Files')) return;
+                        if (
+                          !event.dataTransfer?.types.some(
+                            (type) => type === 'Files' || type === CATALOG_IMAGE_DRAG_TYPE,
+                          )
+                        )
+                          return;
                         event.preventDefault();
                         setComposerDragDepth((depth) => depth + 1);
                       }}
                       onDragOver={(event) => {
-                        if (!event.dataTransfer?.types.includes('Files')) return;
+                        if (
+                          !event.dataTransfer?.types.some(
+                            (type) => type === 'Files' || type === CATALOG_IMAGE_DRAG_TYPE,
+                          )
+                        )
+                          return;
                         event.preventDefault();
                         event.dataTransfer.dropEffect = 'copy';
                       }}
                       onDragLeave={() => setComposerDragDepth((depth) => Math.max(0, depth - 1))}
                       onDrop={(event) => {
                         setComposerDragDepth(0);
-                        acceptRailImageDrop(event);
+                        void acceptRailImageDrop(event);
                       }}
                     >
                       {showQuickStartErrorText ? (
@@ -913,6 +880,7 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
                       {promptField}
                       {!sourceFirst ? referenceField : null}
                     </div>
+                    {negativePromptField}
                     {shouldShowQuickStartError ? (
                       <p id="generation-requirement" className="create-prompt-error" role="status">
                         {requirement?.message ?? 'Add a prompt or image.'}
@@ -1140,59 +1108,6 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
                       </div>
                     </div>
                   </div>
-
-                  {showCodexPromptTools ? (
-                    <div className="create-advanced-section">
-                      <button
-                        type="button"
-                        className="create-advanced-toggle"
-                        aria-expanded={isAdvancedOpen}
-                        aria-controls="create-advanced-body"
-                        aria-label="Advanced settings"
-                        onClick={() => {
-                          const next = !isAdvancedOpen;
-                          setIsAdvancedOpen(next);
-                          if (next) {
-                            requestAnimationFrame(() =>
-                              negativeInputRef.current?.focus({ preventScroll: false }),
-                            );
-                          }
-                        }}
-                      >
-                        <SlidersHorizontal width={15} height={15} aria-hidden="true" />
-                        <span>Advanced</span>
-                        <span className="create-advanced-meta">
-                          {generationConfig.negativePrompt?.trim() ? '1 active' : 'Optional'}
-                        </span>
-                        <ChevronDown width={13} height={13} aria-hidden="true" />
-                      </button>
-                      <AnimatePresence>
-                        {isAdvancedOpen ? (
-                          <div
-                            data-motion-panel
-                            className="create-advanced-body"
-                            id="create-advanced-body"
-                          >
-                            <label className="create-field-label" htmlFor="create-negative-input">
-                              Negative prompt
-                            </label>
-                            <textarea
-                              ref={negativeInputRef}
-                              id="create-negative-input"
-                              className="create-negative-input"
-                              value={generationConfig.negativePrompt || ''}
-                              onChange={(event) =>
-                                updateConfig('negativePrompt', event.target.value)
-                              }
-                              placeholder="Blurry, low quality, distortion..."
-                              spellCheck={false}
-                              aria-label="Negative prompt"
-                            />
-                          </div>
-                        ) : null}
-                      </AnimatePresence>
-                    </div>
-                  ) : null}
                 </>
               )}
             </div>
@@ -1273,145 +1188,10 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
                       : 'hidden'
                   }`}
                 >
-                  {/* 1. NEGATIVE (Exclude) */}
-                  <div className="relative">
-                    <Tooltip content="Negative Prompt (Exclude)">
-                      <button
-                        ref={negativeButtonRef}
-                        type="button"
-                        onClick={() => {
-                          setIsNegativeOpen(!isNegativeOpen);
-                          setIsRefineOpen(false);
-                        }}
-                        aria-label="Open negative prompt"
-                        aria-haspopup="dialog"
-                        aria-expanded={isNegativeOpen}
-                        className={`${iconBtnClass} ${isNegativeOpen || generationConfig.negativePrompt ? 'text-[color:var(--wb-danger)]' : ''}`}
-                      >
-                        <Ban width={15} height={15} />
-                        {generationConfig.negativePrompt && (
-                          <div className="absolute top-1 right-1 size-1.5 bg-red-500 rounded-full" />
-                        )}
-                      </button>
-                    </Tooltip>
-                    <DemandMountedGsapDropdown
-                      portal
-                      data-toolbar-popup
-                      open={isNegativeOpen}
-                      onOpenChange={setIsNegativeOpen}
-                      triggerRef={negativeButtonRef}
-                      placement="top-right"
-                      role="dialog"
-                      aria-label="Negative prompt"
-                      className="studio-mobile-popover absolute bottom-full right-0 z-[100] mb-3 w-64 p-3"
-                    >
-                      <label
-                        htmlFor="negative-prompt-input"
-                        className="text-[length:var(--wbp-label)] font-bold text-zinc-500 tracking-normal block mb-2"
-                      >
-                        Exclude from Image
-                      </label>
-                      <input
-                        id="negative-prompt-input"
-                        type="text"
-                        value={generationConfig.negativePrompt || ''}
-                        onChange={(e) => updateConfig('negativePrompt', e.target.value)}
-                        placeholder="Blurry, low quality, distortion..."
-                        autoComplete="off"
-                        ref={(el) => el?.focus()}
-                        aria-label="Negative prompt"
-                        className="h-10 w-full rounded-[var(--wb-radius)] border border-white/2 bg-black/40 px-3 text-xs text-zinc-300 outline-none transition-colors placeholder-zinc-700 focus:border-red-500/30"
-                      />
-                    </DemandMountedGsapDropdown>
-                  </div>
-
-                  {!isContextOnly ? (
-                    <>
-                      {/* 2. Refine notes */}
-                      <div className="relative">
-                        <Tooltip content="Add refine notes">
-                          <button
-                            ref={refineButtonRef}
-                            type="button"
-                            onClick={() => {
-                              setIsRefineOpen(!isRefineOpen);
-                              setIsNegativeOpen(false);
-                            }}
-                            aria-label="Add refine notes"
-                            aria-haspopup="dialog"
-                            aria-expanded={isRefineOpen}
-                            className={`${iconBtnClass} ${isRefineOpen ? activeIconBtnClass : ''}`}
-                          >
-                            <Edit3 width={15} height={15} />
-                          </button>
-                        </Tooltip>
-                        <DemandMountedGsapDropdown
-                          portal
-                          data-toolbar-popup
-                          open={isRefineOpen}
-                          onOpenChange={setIsRefineOpen}
-                          triggerRef={refineButtonRef}
-                          placement="top-right"
-                          role="dialog"
-                          aria-label="Refine notes"
-                          className="studio-mobile-popover absolute bottom-full right-0 z-[100] mb-3 w-72 p-3"
-                        >
-                          <label
-                            htmlFor="magic-edit-input"
-                            className="text-[length:var(--wbp-label)] font-bold text-zinc-500 tracking-normal block mb-2"
-                          >
-                            Refine note
-                          </label>
-                          <div className="flex gap-2">
-                            <input
-                              id="magic-edit-input"
-                              type="text"
-                              value={magicInstruction}
-                              onChange={(e) => setMagicInstruction(e.target.value)}
-                              placeholder="e.g. Make it cyberpunk style..."
-                              autoComplete="off"
-                              ref={(el) => el?.focus()}
-                              onKeyDown={(e) => e.key === 'Enter' && handleMagicEdit()}
-                              aria-label="Refine note"
-                              className="h-10 flex-1 rounded-[var(--wb-radius)] border border-white/2 bg-black/40 px-3 text-xs text-zinc-300 outline-none transition-colors placeholder-zinc-700 focus:border-accent-500/2"
-                            />
-                            <button
-                              type="button"
-                              onClick={handleMagicEdit}
-                              disabled={isRefactoring}
-                              aria-label="Add refine note"
-                              className="flex size-10 touch-manipulation items-center justify-center rounded-[var(--wb-radius)] border border-accent-400/2 bg-accent-600 text-white transition-colors hover:bg-accent-500"
-                            >
-                              {isRefactoring ? (
-                                <CozyLoader size={18} />
-                              ) : (
-                                <Send width={12} height={12} />
-                              )}
-                            </button>
-                          </div>
-                        </DemandMountedGsapDropdown>
-                      </div>
-
-                      {/* 3. Quality notes */}
-                      <Tooltip content="Add quality notes">
-                        <button
-                          type="button"
-                          onClick={onEnhancePrompt}
-                          disabled={isEnhancingPrompt}
-                          aria-label="Add quality notes"
-                          className={`${iconBtnClass} ${isEnhancingPrompt ? 'text-accent-400' : ''}`}
-                        >
-                          {isEnhancingPrompt ? (
-                            <CozyLoader size={18} />
-                          ) : (
-                            <Wand2 width={15} height={15} />
-                          )}
-                        </button>
-                      </Tooltip>
-                    </>
-                  ) : null}
+                  {negativePromptButton}
                 </div>
               </div>
+              {negativePromptField}
             </div>
           )}
 
@@ -1429,7 +1209,6 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
                 onClick={() => {
                   closeAllMenus();
                   setIsNegativeOpen(false);
-                  setIsRefineOpen(false);
                   setIsMobileControlsOpen(true);
                 }}
                 aria-label={
@@ -1480,75 +1259,6 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
                   <X width={14} height={14} />
                 </button>
               </div>
-
-              {showCodexPromptTools && !isContextOnly && !isRail ? (
-                <div className="grid gap-2 rounded-[var(--wb-radius)] border border-white/2 bg-white/[0.03] p-2 sm:hidden">
-                  <div className="grid gap-1.5">
-                    <label
-                      htmlFor="mobile-negative-prompt-input"
-                      className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-zinc-500"
-                    >
-                      Negative
-                    </label>
-                    <input
-                      id="mobile-negative-prompt-input"
-                      type="text"
-                      value={generationConfig.negativePrompt || ''}
-                      onChange={(e) => updateConfig('negativePrompt', e.target.value)}
-                      placeholder="Blurry, low quality, distortion..."
-                      autoComplete="off"
-                      aria-label="Negative prompt"
-                      className="h-10 rounded-[var(--wb-radius)] border border-white/2 bg-black/40 px-3 text-[11px] text-zinc-300 outline-none transition-colors placeholder-zinc-700 focus:border-red-500/30"
-                    />
-                  </div>
-                  <div className="grid gap-1.5">
-                    <label
-                      htmlFor="mobile-magic-edit-input"
-                      className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-zinc-500"
-                    >
-                      Refine
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        id="mobile-magic-edit-input"
-                        type="text"
-                        value={magicInstruction}
-                        onChange={(e) => setMagicInstruction(e.target.value)}
-                        placeholder="Make it sharper, warmer, cinematic..."
-                        autoComplete="off"
-                        onKeyDown={(e) => e.key === 'Enter' && handleMagicEdit()}
-                        aria-label="Refine note"
-                        className="h-10 min-w-0 flex-1 rounded-[var(--wb-radius)] border border-white/2 bg-black/40 px-3 text-[11px] text-zinc-300 outline-none transition-colors placeholder-zinc-700 focus:border-accent-500/2"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleMagicEdit}
-                        disabled={isRefactoring}
-                        aria-label="Add refine note"
-                        className="flex size-10 items-center justify-center rounded-[var(--wb-radius)] border border-accent-400/2 bg-accent-600 text-white transition-colors hover:bg-accent-500 disabled:opacity-50"
-                      >
-                        {isRefactoring ? <CozyLoader size={18} /> : <Send width={12} height={12} />}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <button
-                      type="button"
-                      onClick={onEnhancePrompt}
-                      disabled={isEnhancingPrompt}
-                      aria-label="Add quality notes"
-                      className="flex h-10 items-center justify-center gap-2 rounded-[var(--wb-radius)] border border-white/2 bg-white/5 text-[length:var(--wbp-label)] font-semibold leading-none tracking-normal text-zinc-300 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
-                    >
-                      {isEnhancingPrompt ? (
-                        <CozyLoader size={18} />
-                      ) : (
-                        <Wand2 width={14} height={14} />
-                      )}
-                      Quality notes
-                    </button>
-                  </div>
-                </div>
-              ) : null}
 
               <div className="grid grid-cols-2 gap-2 sm:contents">
                 {!isRail && (
@@ -2086,18 +1796,6 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo(
             </p>
           ) : null}
         </div>
-
-        <AnimatePresence>
-          {isRail && isPromptExpanded && (
-            <CreatePromptExpandDialog
-              isOpen={isRail && isPromptExpanded}
-              value={expandedPrompt}
-              onChange={setExpandedPrompt}
-              onClose={() => setIsPromptExpanded(false)}
-              onSave={saveExpandedPrompt}
-            />
-          )}
-        </AnimatePresence>
 
         {/* Key Selector Popover (External) */}
         <KeyPopover

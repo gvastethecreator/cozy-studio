@@ -117,6 +117,18 @@ export function SettingsProvidersPanel({
         </fieldset>
       </div>
 
+      <details className="settings-provider-defaults">
+        <summary aria-label="Model and execution settings">
+          Model and execution settings <span>{providerBrandChipLabel(defaultProviderId)}</span>
+        </summary>
+        <ProviderExecutionDefaultsFields
+          value={selectedProviderDefaults}
+          onChange={updateSelectedProviderDefaults}
+          availableModels={preflightByProvider.get(defaultProviderId)?.availableModels}
+          providerDefaultModel={preflightByProvider.get(defaultProviderId)?.defaultModel}
+        />
+      </details>
+
       {providerCapabilities ? (
         <div className="settings-provider-section">
           <div>
@@ -196,12 +208,13 @@ export function SettingsProvidersPanel({
                     ) : null}
                     <details className="settings-provider-details">
                       <summary>Connection details</summary>
-                      <p>{provider.detail}</p>
-                      {provider.providerId === 'google' ? (
-                        <p>Uses your Google Cloud project for billing and quota.</p>
-                      ) : null}
+                      {provider.canExecute ? <p>{provider.detail}</p> : null}
                       {preflight?.diagnostics.length ? (
-                        <p>{preflight.diagnostics.join(' ')}</p>
+                        <p>
+                          {preflight.diagnostics
+                            .filter((detail) => detail !== provider.detail)
+                            .join(' ')}
+                        </p>
                       ) : null}
                     </details>
                   </div>
@@ -214,17 +227,6 @@ export function SettingsProvidersPanel({
           Provider status loads with Studio Settings.
         </p>
       )}
-      <details className="settings-provider-defaults">
-        <summary>
-          Generation defaults <span>{providerBrandChipLabel(defaultProviderId)}</span>
-        </summary>
-        <ProviderExecutionDefaultsFields
-          value={selectedProviderDefaults}
-          onChange={updateSelectedProviderDefaults}
-          availableModels={preflightByProvider.get(defaultProviderId)?.availableModels}
-          providerDefaultModel={preflightByProvider.get(defaultProviderId)?.defaultModel}
-        />
-      </details>
     </>
   );
 }

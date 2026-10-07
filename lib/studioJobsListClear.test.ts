@@ -1,5 +1,7 @@
 /** @vitest-environment jsdom */
+import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
+import { useStudioJobsListClearedAt } from '../hooks/useStudioJobsListClearedAt';
 
 import {
   STUDIO_JOBS_ATTENTION_CLEARED_AT_KEY,
@@ -13,11 +15,33 @@ import {
 } from './studioJobsListClear';
 
 afterEach(() => {
+  cleanup();
   window.localStorage.removeItem(STUDIO_JOBS_LIST_CLEARED_AT_KEY);
   window.localStorage.removeItem(STUDIO_JOBS_ATTENTION_CLEARED_AT_KEY);
 });
 
 describe('studioJobsListClear', () => {
+  it('applies the initial startup preference once, after settings arrive, without clearing current-session jobs', () => {
+    const { result, rerender } = renderHook(
+      ({ enabled }: { enabled: boolean | undefined }) => useStudioJobsListClearedAt(enabled),
+      { initialProps: { enabled: undefined as boolean | undefined } },
+    );
+    expect(result.current.attentionClearedAt).toBe(0);
+    rerender({ enabled: true });
+    const cutoff = result.current.attentionClearedAt;
+    expect(cutoff).toBeGreaterThan(0);
+    expect(
+      isStudioJobVisibleAfterAttentionClear(
+        'needs_review',
+        new Date(cutoff + 1).toISOString(),
+        cutoff,
+      ),
+    ).toBe(true);
+    act(() => result.current.showAttentionJobs());
+    rerender({ enabled: false });
+    rerender({ enabled: true });
+    expect(readStudioJobsAttentionClearedAt()).toBe(0);
+  });
   it('hides jobs created at or before the clear time', () => {
     expect(isStudioJobVisibleAfterListClear('2026-07-18T00:00:00.000Z', 0)).toBe(true);
     const clearedAt = Date.parse('2026-07-18T12:00:00.000Z');

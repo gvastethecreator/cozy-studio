@@ -114,18 +114,35 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = ({
   }, [isOpen]);
   const { preferences, savedPreferences, previewPreferences, commitPreferences } = useTheme();
   const [search, setSearch] = useState('');
-  const searchItems = [
+  const searchItems: {
+    domain: StudioSettingsDomainId;
+    label: string;
+    description: string;
+    target: string;
+  }[] = [
     {
       domain: 'general',
-      label: 'Studio updates',
-      description: 'Notify, update repository and restart',
-      target: 'Notify me about updates',
+      label: 'Startup workflow',
+      description: 'Choose what opens first',
+      target: 'Startup workflow',
     },
     {
       domain: 'general',
-      label: 'Preferred workflow',
-      description: 'Startup and new workspaces',
-      target: 'Preferred workflow',
+      label: 'Default style intensity',
+      description: 'Strength of newly added styles',
+      target: 'Default style intensity',
+    },
+    {
+      domain: 'general',
+      label: 'Default style reference mode',
+      description: 'Preserve or reinterpret references',
+      target: 'Default style reference mode',
+    },
+    {
+      domain: 'general',
+      label: 'Detailed style instructions',
+      description: 'Experimental style compiler',
+      target: 'Detailed style instructions',
     },
     {
       domain: 'appearance',
@@ -136,64 +153,179 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = ({
     {
       domain: 'appearance',
       label: 'Accent color',
-      description: 'Palette and mascot color',
+      description: 'Workspace colors',
       target: 'Accent: Apricot',
     },
     {
       domain: 'appearance',
-      label: 'Motion preference',
-      description: 'System or reduced animation',
+      label: 'Motion',
+      description: 'Animation and reduced movement',
       target: 'Motion preference',
     },
     {
+      domain: 'appearance',
+      label: 'Tools panel position',
+      description: 'Left or right side',
+      target: 'Tools panel position',
+    },
+    {
+      domain: 'appearance',
+      label: 'Jobs panel position',
+      description: 'Left or right side',
+      target: 'Jobs panel position',
+    },
+    {
+      domain: 'appearance',
+      label: 'Compact workspace controls',
+      description: 'Control density',
+      target: 'Compact workspace controls',
+    },
+    {
+      domain: 'appearance',
+      label: 'Show all workspace results',
+      description: 'Carousel history across workflows',
+      target: 'Show all workspace results',
+    },
+    {
+      domain: 'appearance',
+      label: 'Clear review list on startup',
+      description: 'Hide past review and failed jobs',
+      target: 'Clear review list on startup',
+    },
+    {
       domain: 'providers',
-      label: 'Providers & accounts',
-      description: 'Models, sign in and execution defaults',
+      label: 'Accounts and sign in',
+      description: 'Provider connections and setup',
       target: '',
     },
     {
-      domain: 'library',
-      label: 'Library & imports',
-      description: 'Discover external images and import sources',
-      target: 'External folder to scan',
+      domain: 'providers',
+      label: 'Default provider',
+      description: 'Choose who generates your images',
+      target: '',
+    },
+    {
+      domain: 'providers',
+      label: 'Models and execution',
+      description: 'Generation defaults and quality',
+      target: 'Model and execution settings',
     },
     {
       domain: 'output',
       label: 'Output directory',
-      description: 'Registered folder for new images',
+      description: 'Where new images are saved',
       target: 'Output directory',
     },
     {
       domain: 'output',
       label: 'Folder structure',
-      description: 'Workspace, date, workflow and provider',
+      description: 'Organize files by workspace, date or workflow',
       target: 'Output folder preset',
     },
     {
       domain: 'output',
+      label: 'Filename preset',
+      description: 'Choose how images are named',
+      target: 'Filename preset',
+    },
+    {
+      domain: 'output',
       label: 'File name template',
-      description: 'Naming tokens and example path',
+      description: 'Custom naming tokens',
       target: 'File name template',
     },
     {
-      domain: 'extensions',
-      label: 'Style extensions',
-      description: 'Install and update style packs',
+      domain: 'library',
+      label: 'External folder to scan',
+      description: 'Find images to import',
+      target: 'External folder to scan',
+    },
+    {
+      domain: 'library',
+      label: 'Discover external images',
+      description: 'Automatic import discovery',
+      target: 'Discover external images',
+    },
+    {
+      domain: 'library',
+      label: 'Import sources',
+      description: 'Register a folder or import images',
       target: '',
     },
     {
-      domain: 'maintenance',
-      label: 'Maintenance',
-      description: 'Storage and thumbnails',
+      domain: 'library',
+      label: 'Export workspace metadata',
+      description: 'Legacy settings snapshot without images',
+      target: 'Export workspace metadata',
+    },
+    {
+      domain: 'extensions',
+      label: 'Style packs',
+      description: 'Installed styles and downloads',
       target: '',
+    },
+    {
+      domain: 'extensions',
+      label: 'Workflow modules',
+      description: 'Enable or disable workflows',
+      target: 'Workflow modules',
+    },
+    {
+      domain: 'maintenance',
+      label: 'Agent access (MCP)',
+      description: 'Local agent permissions and automation',
+      target: 'Agent access (MCP)',
+    },
+    {
+      domain: 'maintenance',
+      label: 'Storage audit',
+      description: 'Inspect library storage',
+      target: 'Audit storage',
+    },
+    {
+      domain: 'maintenance',
+      label: 'Database cleanup',
+      description: 'Plan storage compaction',
+      target: 'Plan database cleanup',
+    },
+    {
+      domain: 'maintenance',
+      label: 'Missing thumbnails',
+      description: 'Preview thumbnail repair',
+      target: 'Plan missing thumbnails',
+    },
+    {
+      domain: 'maintenance',
+      label: 'Diagnostic logs',
+      description: 'Remove old tooling logs',
+      target: 'Prune diagnostic logs',
+    },
+    {
+      domain: 'maintenance',
+      label: 'Rebuild Library',
+      description: 'Repair the library index',
+      target: 'Rebuild Library',
+    },
+    {
+      domain: 'help',
+      label: 'Update notifications',
+      description: 'Check for new versions automatically',
+      target: 'Notify me about updates',
+    },
+    {
+      domain: 'help',
+      label: 'Studio updates',
+      description: 'Check, update or restart Studio',
+      target: 'Check for updates',
     },
     {
       domain: 'help',
       label: 'Getting started',
       description: 'Workflows, references and results',
-      target: '',
+      target: 'Getting started with Studio',
     },
   ];
+  const query = search.trim().toLowerCase();
   useEffect(() => {
     if (!isOpen) previewPreferences(null);
   }, [isOpen, previewPreferences]);
@@ -211,6 +343,26 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = ({
     undefined,
     '[aria-label="Close settings"]',
   );
+
+  const searchTarget = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    if (searchTarget.current === null) return;
+    const target = searchTarget.current;
+    searchTarget.current = null;
+    const panel = dialogRef.current?.querySelector<HTMLElement>('.studio-settings-content');
+    const control = target
+      ? panel?.querySelector<HTMLElement>(`[aria-label="${target}"]`)
+      : panel?.querySelector<HTMLElement>('button, input, select');
+    for (
+      let ancestor = control?.parentElement;
+      ancestor && ancestor !== panel;
+      ancestor = ancestor.parentElement
+    ) {
+      if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
+    }
+    (control ?? panel)?.focus();
+    control?.scrollIntoView({ block: 'nearest' });
+  }, [activeDomain, search, dialogRef]);
 
   const [savedForm, setSavedForm] = useState(createInitialStudioSettingsFormState);
   const savedFormRef = useRef(savedForm);
@@ -319,26 +471,16 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = ({
           {search.trim() && (
             <div className="settings-search-results" aria-label="Settings search results">
               {searchItems
-                .filter((item) =>
-                  `${item.label} ${item.description}`.toLowerCase().includes(search.toLowerCase()),
-                )
+                .filter((item) => `${item.label} ${item.description}`.toLowerCase().includes(query))
                 .map((item) => (
                   <button
                     key={item.label}
                     type="button"
                     className="studio-menu-item"
                     onClick={() => {
-                      setActiveDomain(item.domain as StudioSettingsDomainId);
+                      setActiveDomain(item.domain);
                       setSearch('');
-                      requestAnimationFrame(() => {
-                        const panel = dialogRef.current?.querySelector<HTMLElement>(
-                          '.studio-settings-content',
-                        );
-                        const control = item.target
-                          ? panel?.querySelector<HTMLElement>(`[aria-label="${item.target}"]`)
-                          : panel?.querySelector<HTMLElement>('button, input, select');
-                        (control ?? panel)?.focus();
-                      });
+                      searchTarget.current = item.target;
                     }}
                   >
                     <strong>{item.label}</strong>
@@ -346,7 +488,7 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = ({
                   </button>
                 ))}
               {!searchItems.some((item) =>
-                `${item.label} ${item.description}`.toLowerCase().includes(search.toLowerCase()),
+                `${item.label} ${item.description}`.toLowerCase().includes(query),
               ) && <p role="status">No settings match this search.</p>}
             </div>
           )}
@@ -400,10 +542,33 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = ({
             {activeDomain === 'general' && (
               <fieldset disabled={isSaving || !settings}>
                 <SettingsGeneralPanel value={formState} onChange={setFormState} />
-                <SettingsUpdatesPanel hasUnsavedChanges={hasChanges} />
               </fieldset>
             )}
-            {activeDomain === 'help' && <StudioHelpGuide />}
+            {activeDomain === 'help' && (
+              <div className="settings-form-stack">
+                <fieldset disabled={isSaving || !settings}>
+                  <label className="settings-row">
+                    <span>
+                      <strong>Notify me about updates</strong>
+                      <small>Check at startup and hourly.</small>
+                    </span>
+                    <input
+                      type="checkbox"
+                      aria-label="Notify me about updates"
+                      checked={formState.notifyOnUpdates}
+                      onChange={(event) =>
+                        setFormState((current) => ({
+                          ...current,
+                          notifyOnUpdates: event.target.checked,
+                        }))
+                      }
+                    />
+                  </label>
+                </fieldset>
+                <SettingsUpdatesPanel hasUnsavedChanges={hasChanges} />
+                <StudioHelpGuide />
+              </div>
+            )}
             {activeDomain === 'appearance' ||
             activeDomain === 'library' ||
             activeDomain === 'providers' ||
@@ -413,14 +578,11 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = ({
                   <SettingsFormPanel
                     domain={activeDomain}
                     formState={formState}
-                    fileNameError={fileNameError}
                     onFormChange={setFormState}
                     libraryDir={libraryDir}
                     providerOptions={providerOptions}
                     providerCapabilities={providerCapabilities}
                     providerRuntimePreflight={providerRuntimePreflight}
-                    onResetStudio={onResetStudio}
-                    isResettingStudio={isResettingStudio}
                   />
                 </fieldset>
                 {activeDomain === 'library' ? (
@@ -439,24 +601,69 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = ({
               </div>
             ) : null}
             {activeDomain === 'library' && (
-              <section className="studio-list-row mt-4 p-4">
-                <h3 className="text-sm font-semibold">Export workspace metadata</h3>
+              <details className="settings-disclosure mt-4">
+                <summary>Export workspace metadata</summary>
                 <p className="my-2 text-xs studio-muted">
-                  Legacy snapshot of workspace settings. This does not include image files or
-                  replace a library backup.
+                  Exports settings only. Image files are not included; this is not a library backup.
                 </p>
                 <button
                   type="button"
                   className="studio-ghost-control px-3"
+                  aria-label="Export workspace metadata"
                   onClick={onExportLegacyWorkspaceSnapshot}
                 >
                   Export legacy snapshot
                 </button>
-              </section>
+              </details>
             )}
             {activeDomain === 'extensions' ? <SettingsExtensionsPanel /> : null}
             {activeDomain === 'maintenance' ? (
-              <SettingsMaintenancePanel maintenance={maintenance} />
+              <div className="settings-form-stack">
+                <fieldset className="settings-group" disabled={isSaving || !settings}>
+                  <h3>Local agents</h3>
+                  <label className="settings-row">
+                    <span>
+                      <strong>Agent access (MCP)</strong>
+                      <small>
+                        Read only lets agents inspect Studio. Generate and cancel also uses your
+                        provider account.
+                      </small>
+                    </span>
+                    <select
+                      className="studio-field"
+                      aria-label="Agent access (MCP)"
+                      value={formState.mcpAccess}
+                      onChange={(event) =>
+                        setFormState((current) => ({
+                          ...current,
+                          mcpAccess: event.target.value as StudioSettingsFormState['mcpAccess'],
+                        }))
+                      }
+                    >
+                      <option value="off">Off</option>
+                      <option value="read">Read only</option>
+                      <option value="write">Generate and cancel</option>
+                    </select>
+                  </label>
+                </fieldset>
+                <SettingsMaintenancePanel maintenance={maintenance} />
+                <details className="settings-disclosure">
+                  <summary>Repair library</summary>
+                  <p className="studio-muted text-sm mb-3">
+                    Rebuild the library index from saved files. Review the confirmation before
+                    continuing.
+                  </p>
+                  <button
+                    type="button"
+                    className="studio-ghost-control px-3"
+                    aria-label="Rebuild Library"
+                    disabled={isResettingStudio || isSaving}
+                    onClick={() => void onResetStudio()}
+                  >
+                    {isResettingStudio ? 'Rebuilding…' : 'Rebuild Library'}
+                  </button>
+                </details>
+              </div>
             ) : null}
           </div>
         </div>

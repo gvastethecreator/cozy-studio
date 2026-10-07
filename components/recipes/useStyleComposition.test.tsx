@@ -6,6 +6,7 @@ import { DEFAULT_GENERATION_CONFIG } from '../../constants';
 import type { ImageGenerationConfig } from '../../types';
 import { getGenerationRequirement } from '../../packages/shared/src/generationRequirements';
 import { useStyleComposition } from './useStyleComposition';
+import type { EditableStudioSettings } from '../../packages/shared/src';
 import type { StyleRuntimePreset } from './styles/runtimeTypes';
 
 afterEach(cleanup);
@@ -27,11 +28,18 @@ const preset: StyleRuntimePreset = {
   },
 };
 
-function useComposer(intentionalStylesV1 = false) {
+function useComposer(
+  intentionalStylesV1 = false,
+  defaults: Partial<
+    Pick<EditableStudioSettings, 'defaultStyleIntensity' | 'defaultStyleReferenceMode'>
+  > = {},
+  recipeParams?: ImageGenerationConfig['recipeParams'],
+) {
   const [config, setConfig] = useState<ImageGenerationConfig>({
     ...DEFAULT_GENERATION_CONFIG,
     prompt: 'A lantern',
     attachments: [],
+    recipeParams,
   });
   const updateConfig = useCallback(
     <K extends keyof ImageGenerationConfig>(key: K, value: ImageGenerationConfig[K]) =>
@@ -46,11 +54,30 @@ function useComposer(intentionalStylesV1 = false) {
     generationBlocked: false,
     maxSlots: 4,
     intentionalStylesV1,
+    ...defaults,
   });
   return { config, ...composition };
 }
 
 describe('optional Default styles', () => {
+  it('uses preferences for new layers and keeps saved intensity and reference mode', () => {
+    const { result } = renderHook(() =>
+      useComposer(false, { defaultStyleIntensity: 0.4, defaultStyleReferenceMode: 'reinterpret' }),
+    );
+    expect(result.current.intentionalMode).toBe('reinterpret');
+    act(() => result.current.toggleStyle(preset, 'test-pack', 'Test pack'));
+    expect(result.current.selectedStyles[0]?.strength).toBe(0.4);
+    const saved = result.current.config.recipeParams;
+    const restored = renderHook(() =>
+      useComposer(
+        false,
+        { defaultStyleIntensity: 0.9, defaultStyleReferenceMode: 'preserve' },
+        saved,
+      ),
+    );
+    expect(restored.result.current.intentionalMode).toBe('reinterpret');
+    expect(restored.result.current.selectedStyles[0]?.strength).toBe(0.4);
+  });
   it.each([false, true])('allows a prompt without a style (intentional: %s)', (intentional) => {
     const { result } = renderHook(() => useComposer(intentional));
     expect(result.current.config.recipeId).toBeNull();

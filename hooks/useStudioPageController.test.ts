@@ -208,10 +208,8 @@ describe('buildStudioPageController', () => {
         toolbarArgs: {
           actions: {
             onGenerate: () => {},
-            onEnhancePrompt: () => {},
             isGenerating: false,
             generationStartTime: null,
-            isEnhancingPrompt: false,
           },
           ui: {
             setPreviewRatio: () => {},

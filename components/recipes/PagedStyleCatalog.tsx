@@ -10,6 +10,13 @@ import type {
 } from './stylePresetManifests';
 import type { StyleRuntimePack, StyleRuntimePreset } from './styles/runtimeTypes';
 import type { StyleBrowserSortOrder } from './styleBrowserRenderPlan';
+import {
+  createStyleGridMetrics,
+  createStyleGridVirtualWindow,
+  STYLE_GRID_CARD_GAP_PX,
+  STYLE_GRID_DEFAULT_VIEWPORT_HEIGHT_PX,
+  STYLE_GRID_GROUP_HEADER_HEIGHT_PX,
+} from './styleGridVirtualization';
 
 export function PagedStyleCatalog({
   query,
@@ -40,12 +47,42 @@ export function PagedStyleCatalog({
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [viewport, setViewport] = useState({
+    top: 0,
+    height: STYLE_GRID_DEFAULT_VIEWPORT_HEIGHT_PX,
+    width: 0,
+  });
   useEffect(() => {
     const element = scrollRef.current;
     if (!element) return;
-    const observer = new ResizeObserver(([entry]) => onWidthChange(entry.contentRect.width));
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const width = Math.max(0, element.clientWidth - 24);
+      const next = {
+        top: element.scrollTop,
+        height: element.clientHeight || STYLE_GRID_DEFAULT_VIEWPORT_HEIGHT_PX,
+        width,
+      };
+      setViewport((current) =>
+        current.top === next.top && current.height === next.height && current.width === next.width
+          ? current
+          : next,
+      );
+      onWidthChange(width);
+    };
+    const scheduleUpdate = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    const observer = new ResizeObserver(update);
     observer.observe(element);
-    return () => observer.disconnect();
+    element.addEventListener('scroll', scheduleUpdate, { passive: true });
+    return () => {
+      observer.disconnect();
+      element.removeEventListener('scroll', scheduleUpdate);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, [onWidthChange]);
   useEffect(() => {
     let cancelled = false;
@@ -89,9 +126,62 @@ export function PagedStyleCatalog({
     }
     return entries;
   }, [extraIndex, favorites, favoritesOnly, index, query, sortOrder]);
-  const unloadedPackKey = [...new Set(results.map((entry) => entry.packId))]
-    .filter((id) => !loadedPacks[id])
-    .join('|');
+  const layout = useMemo(() => {
+    const groups = new Map<string, StylePresetCatalogSearchIndexEntry[]>();
+    for (const entry of results) {
+      const key = grouped ? `${entry.packName} / ${entry.categoryName}` : '';
+      const entries = groups.get(key);
+      if (entries) entries.push(entry);
+      else groups.set(key, [entry]);
+    }
+    let height = 0;
+    const sections = [...groups].map(([name, entries]) => {
+      const metrics = createStyleGridMetrics({
+        presetCount: entries.length,
+        gridColumns: columns,
+        containerWidth: viewport.width,
+      });
+      const headerHeight = name ? STYLE_GRID_GROUP_HEADER_HEIGHT_PX : 0;
+      const top = height;
+      height += headerHeight + metrics.totalHeight + STYLE_GRID_CARD_GAP_PX;
+      return { name, entries, top, headerHeight, metrics };
+    });
+    return { sections, height };
+  }, [results, grouped, columns, viewport.width]);
+  const visibleSections = useMemo(() => {
+    const top = Math.max(0, viewport.top - 12);
+    const bottom = top + viewport.height;
+    return layout.sections
+      .filter((section) => {
+        const overscan = section.metrics.rowHeight * 2;
+        return (
+          section.top <= bottom + overscan &&
+          section.top + section.headerHeight + section.metrics.totalHeight >= top - overscan
+        );
+      })
+      .map((section) => ({
+        ...section,
+        window: createStyleGridVirtualWindow({
+          presetCount: section.entries.length,
+          gridColumns: columns,
+          containerWidth: viewport.width,
+          viewportTop: top - section.top - section.headerHeight,
+          viewportBottom: bottom - section.top - section.headerHeight,
+          overscanRows: 2,
+          targetPresetCount: 0,
+        }),
+      }));
+  }, [layout, viewport, columns]);
+  const visibleEntries = visibleSections.flatMap((section) =>
+    section.entries.slice(section.window.startIndex, section.window.endIndex),
+  );
+  const visiblePackIds = [...new Set(visibleEntries.map((entry) => entry.packId))];
+  const presetById = new Map(
+    visiblePackIds.flatMap((id) =>
+      (loadedPacks[id]?.presets ?? []).map((preset) => [preset.id, preset] as const),
+    ),
+  );
+  const unloadedPackKey = visiblePackIds.filter((id) => !loadedPacks[id]).join('|');
   useEffect(() => {
     if (!unloadedPackKey) return;
     let cancelled = false;
@@ -105,12 +195,8 @@ export function PagedStyleCatalog({
   }, [unloadedPackKey, loadPacks, attempt]);
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
-  }, [query, sortOrder, favoritesOnly]);
-  const groups = new Map<string, StylePresetCatalogSearchIndexEntry[]>();
-  for (const entry of results) {
-    const key = grouped ? `${entry.packName} / ${entry.categoryName}` : '';
-    groups.set(key, [...(groups.get(key) ?? []), entry]);
-  }
+    setViewport((current) => (current.top ? { ...current, top: 0 } : current));
+  }, [query, sortOrder, favoritesOnly, grouped]);
   return (
     <div className="paged-style-catalog">
       <div
@@ -127,36 +213,46 @@ export function PagedStyleCatalog({
         ) : !results.length ? (
           <p>No styles found matching criteria.</p>
         ) : null}
-        {[...groups].map(([name, entries]) => (
-          <section key={name}>
-            {name && (
-              <h3>
-                {entries[0]
-                  ? `${entries[0].packName} / ${getStyleCategoryDisplayName(entries[0].packId, entries[0].categoryName)}`
-                  : name}
-              </h3>
-            )}
-            <div
-              className="paged-style-grid"
-              style={{ gridTemplateColumns: `repeat(${Math.max(1, columns)}, minmax(0, 1fr))` }}
-            >
-              {entries.map((entry) => {
-                const preset = loadedPacks[entry.packId]?.presets.find(
-                  (candidate) => candidate.id === entry.id,
-                );
-                return preset ? (
-                  renderCard(preset)
-                ) : (
-                  <div
-                    key={entry.id}
-                    className="style-card-loading"
-                    aria-label={`Loading ${entry.name}`}
-                  />
-                );
-              })}
-            </div>
-          </section>
-        ))}
+        <div style={{ position: 'relative', height: layout.height }}>
+          {visibleSections.map(({ name, entries, top, headerHeight, window }) => (
+            <section key={name} style={{ position: 'absolute', top, width: '100%' }}>
+              {name && (
+                <h3
+                  style={{ margin: 0, height: headerHeight, display: 'flex', alignItems: 'center' }}
+                >
+                  {entries[0]
+                    ? `${entries[0].packName} / ${getStyleCategoryDisplayName(entries[0].packId, entries[0].categoryName)}`
+                    : name}
+                </h3>
+              )}
+              <div style={{ position: 'relative', height: window.totalHeight }}>
+                <div
+                  className="paged-style-grid"
+                  style={{
+                    gridTemplateColumns: `repeat(${Math.max(1, columns)}, minmax(0, 1fr))`,
+                    position: 'absolute',
+                    top: window.topSpacerHeight,
+                    width: '100%',
+                    gap: STYLE_GRID_CARD_GAP_PX,
+                  }}
+                >
+                  {entries.slice(window.startIndex, window.endIndex).map((entry) => {
+                    const preset = presetById.get(entry.id);
+                    return preset ? (
+                      renderCard(preset)
+                    ) : (
+                      <div
+                        key={entry.id}
+                        className="style-card-loading"
+                        aria-label={`Loading ${entry.name}`}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+          ))}
+        </div>
       </div>
     </div>
   );

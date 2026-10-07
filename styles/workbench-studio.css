@@ -436,7 +436,7 @@
 }
 .studio-settings-layout {
   display: grid;
-  grid-template-columns: 190px minmax(0, 1fr);
+  grid-template-columns: 216px minmax(0, 1fr);
   flex: 1;
   min-height: 0;
 }
@@ -508,13 +508,45 @@
   gap: 20px;
   min-width: 0;
 }
+.settings-group {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.settings-group > h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--wb-ink);
+}
+.settings-group > h3:not(:first-child) {
+  margin-top: 12px;
+}
+.settings-disclosure {
+  min-width: 0;
+  padding: 12px 0;
+  border-top: 1px solid var(--wb-line);
+}
+.settings-disclosure > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--wb-ink);
+}
+.settings-disclosure[open] > summary {
+  margin-bottom: 16px;
+}
+.settings-path {
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  color: var(--wb-muted);
+}
 .settings-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(180px, 45%);
-  gap: 20px;
+  gap: 16px;
   align-items: center;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--wb-line);
+  padding: 8px 0;
 }
 .settings-row strong,
 .settings-row small {
@@ -533,6 +565,12 @@
 .settings-row :is(input, select) {
   width: 100%;
   min-width: 0;
+}
+.settings-row input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  justify-self: end;
+  accent-color: var(--wb-accent);
 }
 .settings-accent-picker legend {
   margin-bottom: 12px;

@@ -1,20 +1,7 @@
 import { CatalogCardBackdrop } from '../CatalogCardBackdrop';
-import { AnimatePresence } from '../../lib/gsapMotion';
-import {
-  Check,
-  NavArrowLeft as ChevronLeft,
-  NavArrowRight as ChevronRight,
-  Copy,
-  Heart,
-  Palette,
-  Plus,
-  InfoCircle as Eye,
-  TextBox as TextPlus,
-  Xmark as X,
-} from 'iconoir-react';
+import { Check, Copy, Heart, Palette, InfoCircle as Eye, TextBox as TextPlus } from 'iconoir-react';
 import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { resolveStyleFullCardUrl } from '../../lib/styleThumbnailCatalog';
 import type { GeneratedImageWithConfig } from '../../types';
 import {
   resolveStylePresetCardImages,
@@ -63,6 +50,7 @@ export interface StylePresetCardProps {
   visualState: StylePresetVisualState | undefined;
   active: boolean;
   previewOnClick?: boolean;
+  onInspect: (preset: StyleRuntimePreset) => void;
   selectionDisabled?: boolean;
   copied: boolean;
   favorite: boolean;
@@ -73,13 +61,6 @@ export interface StylePresetCardProps {
   onCopy: (e: React.MouseEvent, preset: StyleRuntimePreset) => void;
   onToggleFavorite: (presetId: string) => void;
   onHoverPreviewChange: (preview: StyleCardHoverPreview | null) => void;
-}
-
-function describePreviewValue(value: unknown): string | null {
-  if (typeof value === 'string') return value;
-  if (Array.isArray(value)) return value.join(', ');
-  if (typeof value === 'number') return String(value);
-  return null;
 }
 
 function resolveStyleCardImageDiagnostics({
@@ -160,6 +141,7 @@ export const StylePresetCard = React.memo(function StylePresetCard({
   visualState,
   active,
   previewOnClick = false,
+  onInspect,
   selectionDisabled = false,
   copied,
   favorite,
@@ -172,14 +154,6 @@ export const StylePresetCard = React.memo(function StylePresetCard({
 }: StylePresetCardProps) {
   const [imageIndex, setImageIndex] = useState(0);
   const isHoveredRef = useRef(false);
-  const previewDialogRef = useRef<HTMLDialogElement>(null);
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewZoomed, setPreviewZoomed] = useState(false);
-
-  useLayoutEffect(() => {
-    if (previewOpen) previewDialogRef.current?.showModal();
-  }, [previewOpen]);
-
   const resultImages = visualState?.resultImages ?? EMPTY_IMAGES;
   const cardImages = useMemo(
     () =>
@@ -196,7 +170,6 @@ export const StylePresetCard = React.memo(function StylePresetCard({
       visualState?.previewImage,
     ],
   );
-  const hasMultipleImages = cardImages.length > 1;
   const activeCardImage = cardImages[imageIndex] ?? cardImages[0] ?? null;
   const presetDisplayName = getStyleRuntimePresetDisplayName(preset);
   const imageDiagnostics = resolveStyleCardImageDiagnostics({
@@ -226,18 +199,6 @@ export const StylePresetCard = React.memo(function StylePresetCard({
       applyHoverPreview(cardImages[nextIndex]?.src || visualState?.exampleImageSrc || null);
     },
     [applyHoverPreview, cardImages, visualState?.exampleImageSrc],
-  );
-
-  const handleCycle = useCallback(
-    (delta: number) => {
-      if (!hasMultipleImages) return;
-      const next = (imageIndex + delta + cardImages.length) % cardImages.length;
-      setImageIndex(next);
-      if (isHoveredRef.current) {
-        queueMicrotask(() => syncHoverPreview(next));
-      }
-    },
-    [cardImages.length, hasMultipleImages, imageIndex, syncHoverPreview],
   );
 
   return (
@@ -277,7 +238,7 @@ export const StylePresetCard = React.memo(function StylePresetCard({
             selectionDisabled={selectionDisabled}
             FadeImageComponent={FadeImageComponent}
             onApply={onApply}
-            onPreview={previewOnClick ? () => setPreviewOpen(true) : undefined}
+            onPreview={previewOnClick ? () => onInspect(preset) : undefined}
           />
         </div>
 
@@ -311,7 +272,7 @@ export const StylePresetCard = React.memo(function StylePresetCard({
               aria-label={`Information about ${presetDisplayName}`}
               onClick={(event) => {
                 event.stopPropagation();
-                setPreviewOpen(true);
+                onInspect(preset);
               }}
             >
               <Eye width={16} height={16} />
@@ -338,122 +299,6 @@ export const StylePresetCard = React.memo(function StylePresetCard({
           </div>
         </CatalogCardBackdrop>
       </div>
-      <AnimatePresence>
-        {previewOpen ? (
-          <dialog
-            ref={previewDialogRef}
-            className="style-detail-dialog"
-            aria-label={`Information about ${presetDisplayName}`}
-            data-zoomed={previewZoomed ? 'true' : 'false'}
-            onClose={() => {
-              setPreviewOpen(false);
-              setPreviewZoomed(false);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') event.stopPropagation();
-              if (event.key !== 'Tab') return;
-              const controls = Array.from(
-                event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), summary'),
-              );
-              const first = controls[0];
-              const last = controls.at(-1);
-              if (
-                event.shiftKey ? document.activeElement === first : document.activeElement === last
-              ) {
-                event.preventDefault();
-                (event.shiftKey ? last : first)?.focus();
-              }
-            }}
-          >
-            <header>
-              <h2>{presetDisplayName}</h2>
-              <button
-                type="button"
-                aria-label="Close style preview"
-                onClick={() => previewDialogRef.current?.close()}
-              >
-                <X width={16} height={16} />
-              </button>
-            </header>
-            {activeCardImage ? (
-              <button
-                type="button"
-                className="style-detail-zoom"
-                aria-pressed={previewZoomed}
-                aria-label={previewZoomed ? 'Fit card to the dialog' : 'View card at full size'}
-                onClick={() => setPreviewZoomed((zoomed) => !zoomed)}
-              >
-                <img
-                  className="style-detail-image"
-                  src={resolveStyleFullCardUrl(activeCardImage.src) ?? activeCardImage.src}
-                  alt={presetDisplayName}
-                />
-              </button>
-            ) : (
-              <p>No preview available</p>
-            )}
-            {hasMultipleImages && (
-              <div className="style-detail-variants">
-                <button
-                  type="button"
-                  aria-label={`Previous image for ${presetDisplayName}`}
-                  onClick={() => handleCycle(-1)}
-                >
-                  <ChevronLeft width={16} height={16} />
-                </button>
-                <span role="status" data-style-active-image-label={activeCardImage?.label}>
-                  {activeCardImage?.label}
-                </span>
-                <button
-                  type="button"
-                  aria-label={`Next image for ${presetDisplayName}`}
-                  onClick={() => handleCycle(1)}
-                >
-                  <ChevronRight width={16} height={16} />
-                </button>
-              </div>
-            )}
-            <div className="style-detail-copy">
-              <p>
-                {sourceProvenance
-                  ? `${sourceProvenance.sourcePackName} / ${sourceProvenance.sourceCategory}`
-                  : `${visualState?.presetPackName ?? 'Styles'} / ${preset.category ?? 'General'}`}
-              </p>
-              <p>{preset.style.aesthetic}</p>
-              <details>
-                <summary>Style prompt</summary>
-                <dl>
-                  {Object.entries(preset.style).map(([key, value]) => {
-                    const description = describePreviewValue(value);
-                    return description ? (
-                      <div key={key}>
-                        <dt>{key.replace(/_/g, ' ')}</dt>
-                        <dd>{description}</dd>
-                      </div>
-                    ) : null;
-                  })}
-                </dl>
-              </details>
-            </div>
-            <footer>
-              <button type="button" onClick={(event) => onCopy(event, preset)}>
-                {copied ? <Check width={14} height={14} /> : <Copy width={14} height={14} />} Copy
-                prompt
-              </button>
-              <button
-                type="button"
-                className="style-detail-apply"
-                aria-pressed={active}
-                disabled={selectionDisabled}
-                onClick={() => onApply(preset)}
-              >
-                {active ? <Check width={14} height={14} /> : <Plus width={14} height={14} />}
-                {active ? 'Remove from mix' : 'Add to mix'}
-              </button>
-            </footer>
-          </dialog>
-        ) : null}
-      </AnimatePresence>
     </>
   );
 });

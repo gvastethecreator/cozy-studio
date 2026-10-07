@@ -4,6 +4,30 @@ import fullSvg from '../assets/brand/cozy.svg?raw';
 import compactSvg from '../assets/brand/cozy-compact.svg?raw';
 import { MOTION_CHANGE_EVENT, prefersReducedMotion } from '../lib/motionPreference';
 
+export function CozyStatusCup({ healthy }: { healthy: boolean }) {
+  return (
+    <svg width="24" height="20" viewBox="0 0 28 23" fill="none" aria-hidden="true">
+      <path d="M21 5h2a4 4 0 0 1 0 8h-2" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="M2 4h19v9a8 8 0 0 1-8 8h-3a8 8 0 0 1-8-8Z"
+        fill="currentColor"
+        fillOpacity=".18"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <ellipse cx="11.5" cy="4" rx="9.5" ry="2" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="7.5" cy="11" r="1.2" fill="currentColor" />
+      <circle cx="15.5" cy="11" r="1.2" fill="currentColor" />
+      <path
+        d={healthy ? 'M8 15Q11.5 19 15 15' : 'M8 17Q11.5 13 15 17'}
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function CozyMascot({
   size = 160,
   compact = false,

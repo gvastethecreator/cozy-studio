@@ -6,7 +6,7 @@ import type {
   RecipeId,
 } from '../types';
 import type { RecipeAliasId } from '../lib/recipeAliases';
-import type { GenerationProviderId } from '../packages/shared/src';
+import type { EditableStudioSettings, GenerationProviderId } from '../packages/shared/src';
 import { RecipeRouter } from './RecipeRouter';
 
 export interface RecipePageProps {
@@ -36,6 +36,8 @@ export interface RecipePageProps {
   activeProviderId?: GenerationProviderId;
   grokCanExecute?: boolean;
   intentionalStylesV1?: boolean;
+  defaultStyleIntensity?: number;
+  defaultStyleReferenceMode?: EditableStudioSettings['defaultStyleReferenceMode'];
 }
 
 export type RecipePageRuntimeProps = Omit<

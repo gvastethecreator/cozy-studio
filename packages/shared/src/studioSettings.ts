@@ -37,6 +37,11 @@ export interface EditableStudioSettings {
   defaultOutputMode: StudioOutputMode;
   autoDetectOutputSources: boolean;
   notifyOnUpdates: boolean;
+  clearReviewJobsOnStartup: boolean;
+  toolsPanelSide: 'left' | 'right';
+  jobsPanelSide: 'left' | 'right';
+  defaultStyleIntensity: number;
+  defaultStyleReferenceMode: 'preserve' | 'reinterpret';
   mcpAccess: StudioMcpAccess;
   commandCenterCompactMode: boolean;
   intentionalStylesV1: boolean;
@@ -62,6 +67,11 @@ export interface EditableStudioSettingsPatch {
   defaultOutputMode?: StudioOutputMode;
   autoDetectOutputSources?: boolean;
   notifyOnUpdates?: boolean;
+  clearReviewJobsOnStartup?: boolean;
+  toolsPanelSide?: 'left' | 'right';
+  jobsPanelSide?: 'left' | 'right';
+  defaultStyleIntensity?: number;
+  defaultStyleReferenceMode?: 'preserve' | 'reinterpret';
   mcpAccess?: StudioMcpAccess;
   commandCenterCompactMode?: boolean;
   intentionalStylesV1?: boolean;
@@ -183,6 +193,11 @@ export function createDefaultEditableStudioSettings(): EditableStudioSettings {
     defaultOutputMode: 'studio_library',
     autoDetectOutputSources: true,
     notifyOnUpdates: false,
+    clearReviewJobsOnStartup: false,
+    toolsPanelSide: 'left',
+    jobsPanelSide: 'right',
+    defaultStyleIntensity: 0.75,
+    defaultStyleReferenceMode: 'preserve',
     mcpAccess: 'read',
     commandCenterCompactMode: false,
     intentionalStylesV1: false,
@@ -211,6 +226,10 @@ export function sanitizeEditableStudioSettingsPatch(value: unknown): EditableStu
   if (!isRecord(value)) return {};
 
   const patch: EditableStudioSettingsPatch = {};
+  if (value.toolsPanelSide === 'left' || value.toolsPanelSide === 'right')
+    patch.toolsPanelSide = value.toolsPanelSide;
+  if (value.jobsPanelSide === 'left' || value.jobsPanelSide === 'right')
+    patch.jobsPanelSide = value.jobsPanelSide;
   if (isPreferredWorkflow(value.preferredWorkflow))
     patch.preferredWorkflow = value.preferredWorkflow;
   if (
@@ -246,6 +265,24 @@ export function sanitizeEditableStudioSettingsPatch(value: unknown): EditableStu
 
   if (typeof value.notifyOnUpdates === 'boolean') {
     patch.notifyOnUpdates = value.notifyOnUpdates;
+  }
+  if (typeof value.clearReviewJobsOnStartup === 'boolean') {
+    patch.clearReviewJobsOnStartup = value.clearReviewJobsOnStartup;
+  }
+  if (
+    typeof value.defaultStyleIntensity === 'number' &&
+    Number.isFinite(value.defaultStyleIntensity)
+  ) {
+    patch.defaultStyleIntensity = Math.max(
+      0.1,
+      Math.min(1, Number(value.defaultStyleIntensity.toFixed(2))),
+    );
+  }
+  if (
+    value.defaultStyleReferenceMode === 'preserve' ||
+    value.defaultStyleReferenceMode === 'reinterpret'
+  ) {
+    patch.defaultStyleReferenceMode = value.defaultStyleReferenceMode;
   }
   if (typeof value.commandCenterCompactMode === 'boolean') {
     patch.commandCenterCompactMode = value.commandCenterCompactMode;
@@ -350,6 +387,13 @@ export function mergeEditableStudioSettingsPatch(
     autoDetectOutputSources: patch.autoDetectOutputSources ?? current.autoDetectOutputSources,
     mcpAccess: patch.mcpAccess ?? current.mcpAccess ?? 'read',
     notifyOnUpdates: patch.notifyOnUpdates ?? current.notifyOnUpdates ?? false,
+    clearReviewJobsOnStartup:
+      patch.clearReviewJobsOnStartup ?? current.clearReviewJobsOnStartup ?? false,
+    toolsPanelSide: patch.toolsPanelSide ?? current.toolsPanelSide ?? 'left',
+    jobsPanelSide: patch.jobsPanelSide ?? current.jobsPanelSide ?? 'right',
+    defaultStyleIntensity: patch.defaultStyleIntensity ?? current.defaultStyleIntensity ?? 0.75,
+    defaultStyleReferenceMode:
+      patch.defaultStyleReferenceMode ?? current.defaultStyleReferenceMode ?? 'preserve',
     commandCenterCompactMode: patch.commandCenterCompactMode ?? current.commandCenterCompactMode,
     intentionalStylesV1: patch.intentionalStylesV1 ?? current.intentionalStylesV1,
     disabledWorkflowModules: patch.disabledWorkflowModules ?? current.disabledWorkflowModules ?? [],

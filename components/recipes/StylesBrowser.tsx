@@ -1,5 +1,4 @@
 import { getStyleCategoryDisplayName } from './styles/collections/categoryDisplayNames';
-import { PagedStyleCatalog } from './PagedStyleCatalog';
 import { runtimeLogger } from '../../utils/runtimeLogger';
 import { AnimatePresence } from '../../lib/gsapMotion';
 import { useWorkspaceState } from '../../contexts/GlobalContext';
@@ -41,7 +40,7 @@ import { hasStylePresetIdentity } from '../../lib/recipeIdentity';
 import { StyleCategoryGlyph } from './StyleCategoryGlyph';
 import { resolveStyleCategoryIdentity } from './styleCategoryIdentity';
 import type { Attachment, GeneratedImageWithConfig, ImageGenerationConfig } from '../../types';
-import type { GenerationProviderId } from '../../packages/shared/src';
+import type { EditableStudioSettings, GenerationProviderId } from '../../packages/shared/src';
 import { resolveGrokImagineGenerateBlock } from '../../lib/grokImagineUiPolicy';
 import { useStyleRuntimePacks } from '../../hooks/useStyleRuntimePacks';
 import { DemandMountedGsapDropdown } from '../ui/DemandMountedGsapDropdown';
@@ -120,6 +119,8 @@ import type {
   StylePresetVisualState,
 } from './StylePresetCardSurface';
 
+const StyleDetailPreview = React.lazy(() => import('./StyleDetailPreview'));
+
 const TcgComponentStudio = React.lazy(() =>
   import('./styles/TcgComponentStudio').then((module) => ({ default: module.TcgComponentStudio })),
 );
@@ -143,6 +144,8 @@ export interface StylesBrowserProps {
   activeProviderId?: GenerationProviderId;
   grokCanExecute?: boolean;
   intentionalStylesV1?: boolean;
+  defaultStyleIntensity?: number;
+  defaultStyleReferenceMode?: EditableStudioSettings['defaultStyleReferenceMode'];
 }
 
 const FAVORITES_PACK_ID = 'favorites';
@@ -212,6 +215,10 @@ const StylePresetCatalogSearchSurface = React.lazy(() =>
   import('./StylePresetCatalogSearchSurface').then((module) => ({
     default: module.StylePresetCatalogSearchSurface,
   })),
+);
+
+const PagedStyleCatalog = React.lazy(() =>
+  import('./PagedStyleCatalog').then((module) => ({ default: module.PagedStyleCatalog })),
 );
 
 const StyleAdvancedControlsPanel = React.lazy(() =>
@@ -666,6 +673,8 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
   activeProviderId = 'codex',
   grokCanExecute = false,
   intentionalStylesV1 = false,
+  defaultStyleIntensity,
+  defaultStyleReferenceMode,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [tcgCatalogView, setTcgCatalogView] = useState<'visual' | 'components'>('visual');
@@ -703,6 +712,8 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
     generationBlocked: Boolean(grokGenerateBlock),
     maxSlots: MAX_SELECTED_STYLE_SLOTS,
     intentionalStylesV1,
+    defaultStyleIntensity,
+    defaultStyleReferenceMode,
   });
   const {
     selectedStyles,
@@ -806,6 +817,11 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
   const [stylePanelVisibility, setStylePanelVisibility] = useLocalStorage<
     Partial<StylePanelVisibility>
   >('styles-panel-visibility', DEFAULT_STYLE_PANEL_VISIBILITY);
+  const [inspectedStyle, setInspectedStyle] = useState<{
+    preset: StyleRuntimePreset;
+    packId: string;
+  } | null>(null);
+  const inspectTriggerRef = useRef<HTMLElement | null>(null);
   const [explorerOpen, setExplorerOpen] = useState(
     () => readStyleTabIdFromRouteHash(window.location.hash, styleTabRouteOptions()) !== null,
   );
@@ -860,6 +876,13 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
 
   const userStyles = useUserStyleLibrary({
     onReconciled: (style, archived) => {
+      setInspectedStyle((current) =>
+        current?.preset.id === style.id
+          ? archived
+            ? null
+            : { ...current, preset: userStylePresetToRuntimePreset(style) }
+          : current,
+      );
       if (archived) {
         removeSelectedStyle(style.id);
         setInteractionState((prev) => ({
@@ -925,8 +948,11 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
   }, [advancedOpen]);
 
   useEffect(() => {
+    if (explorerOpen) catalogRootRef.current?.focus({ preventScroll: true });
+  }, [explorerOpen]);
+
+  useEffect(() => {
     if (!explorerOpen) return;
-    catalogRootRef.current?.focus({ preventScroll: true });
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.defaultPrevented) return;
       if (userStyleEditorSession) return;
@@ -1638,6 +1664,12 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
           visualState={eagerPresetVisualStateById.get(preset.id) ?? getPresetVisualState(preset)}
           active={selectedStyleIds.has(preset.id)}
           previewOnClick={catalogExpanded}
+          onInspect={() => {
+            inspectTriggerRef.current =
+              document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            setInspectedStyle({ preset, packId: presetPackId });
+            setInteractionState((prev) => ({ ...prev, activePresetId: preset.id }));
+          }}
           selectionDisabled={
             selectedStyles.length >= MAX_SELECTED_STYLE_SLOTS && !selectedStyleIds.has(preset.id)
           }
@@ -1788,9 +1820,55 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
   const previousStyleTab = styleTabNavigationItems[currentStyleTabIndex - 1] ?? null;
   const nextStyleTab = styleTabNavigationItems[currentStyleTabIndex + 1] ?? null;
 
+  const styleDetail = inspectedStyle ? (
+    <React.Suspense fallback={<LazySurfaceFallback label="Loading style details" />}>
+      <StyleDetailPreview
+        preset={inspectedStyle.preset}
+        visualState={getPresetVisualState(inspectedStyle.preset)}
+        selected={selectedStyleIds.has(inspectedStyle.preset.id)}
+        selectionDisabled={
+          selectedStyles.length >= MAX_SELECTED_STYLE_SLOTS &&
+          !selectedStyleIds.has(inspectedStyle.preset.id)
+        }
+        copied={copiedStyleId === inspectedStyle.preset.id}
+        onApply={() => handleApplyStyleRef.current(inspectedStyle.preset, inspectedStyle.packId)}
+        onCopy={(event) => handleCopyStylePrompt(event, inspectedStyle.preset)}
+        onUsePrompt={() =>
+          void handleUseStylePrompt(inspectedStyle.preset).catch(() =>
+            setPromptNotice('Could not load this style prompt. Please try again.'),
+          )
+        }
+        onEdit={
+          inspectedStyle.packId === USER_STYLE_PACK_ID
+            ? () => void userStyles.open({ kind: 'edit', styleId: inspectedStyle.preset.id })
+            : undefined
+        }
+        onClone={() =>
+          void userStyles.open({
+            kind: 'clone',
+            preset: inspectedStyle.preset,
+            packId: inspectedStyle.packId,
+            packName: getPackNameForId(inspectedStyle.packId),
+          })
+        }
+        onClose={() => {
+          setInspectedStyle(null);
+          requestAnimationFrame(
+            () => inspectTriggerRef.current?.isConnected && inspectTriggerRef.current.focus(),
+          );
+        }}
+      />
+    </React.Suspense>
+  ) : (
+    <div className="style-explorer-empty">
+      <h2>Explore styles</h2>
+      <p>Select a card to see its examples, visual DNA and prompt.</p>
+    </div>
+  );
+
   return (
     <RecipeLayout isGenerating={isGenerating} className="styles-workbench flex size-full">
-      <RecipeResults />
+      {explorerOpen && !catalogExpanded && inspectedStyle ? styleDetail : <RecipeResults />}
       <input
         type="file"
         ref={fileInputRef}
@@ -1879,36 +1957,6 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
                       Close
                     </button>
                     <div className="styles-catalog-tabs vt-recipe-tabs vt-style-tabs">
-                      <div className="styles-catalog-tab-stepper">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            previousStyleTab && navigateToStyleTab(previousStyleTab.id)
-                          }
-                          disabled={!previousStyleTab}
-                          data-style-tab-previous
-                          aria-label="Previous category"
-                          data-tooltip={
-                            previousStyleTab
-                              ? `Previous: ${previousStyleTab.label}`
-                              : 'No previous category'
-                          }
-                        >
-                          <ChevronLeft width={15} height={15} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => nextStyleTab && navigateToStyleTab(nextStyleTab.id)}
-                          disabled={!nextStyleTab}
-                          data-style-tab-next
-                          aria-label="Next category"
-                          data-tooltip={
-                            nextStyleTab ? `Next: ${nextStyleTab.label}` : 'No next category'
-                          }
-                        >
-                          <ChevronRight width={15} height={15} />
-                        </button>
-                      </div>
                       <div className="styles-catalog-tab-group">
                         <button
                           type="button"
@@ -2026,21 +2074,59 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
                     >
                       <div className="hidden lg:block" aria-hidden="true" />
                       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                        <label className="styles-catalog-map-select">
-                          <select
-                            aria-label="Browse collections and categories"
-                            value={currentStyleTabId}
-                            onChange={(event) => navigateToStyleTab(event.target.value)}
+                        <div className="styles-category-navigation">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              previousStyleTab && navigateToStyleTab(previousStyleTab.id)
+                            }
+                            disabled={!previousStyleTab}
+                            data-style-tab-previous
+                            aria-label="Previous category"
+                            data-tooltip={
+                              previousStyleTab
+                                ? `Previous: ${previousStyleTab.label}`
+                                : 'No previous category'
+                            }
                           >
-                            {styleTabNavigationItems.map((item) => (
-                              <option key={item.id} value={item.id}>
-                                {item.label}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
+                            <ChevronLeft width={15} height={15} />
+                          </button>
+                          <label className="styles-catalog-map-select">
+                            <select
+                              aria-label="Browse collections and categories"
+                              value={currentStyleTabId}
+                              onChange={(event) => navigateToStyleTab(event.target.value)}
+                            >
+                              {styleTabNavigationItems.map((item) => (
+                                <option key={item.id} value={item.id}>
+                                  {item.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => nextStyleTab && navigateToStyleTab(nextStyleTab.id)}
+                            disabled={!nextStyleTab}
+                            data-style-tab-next
+                            aria-label="Next category"
+                            data-tooltip={
+                              nextStyleTab ? `Next: ${nextStyleTab.label}` : 'No next category'
+                            }
+                          >
+                            <ChevronRight width={15} height={15} />
+                          </button>
+                        </div>
                         {/* Search & Filter Toolbar */}
                         <div className="vt-style-actionbar flex min-h-9 shrink-0 flex-wrap items-center gap-1.5 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] p-1">
+                          <button
+                            type="button"
+                            onClick={handleCreateUserStyle}
+                            className="studio-ghost-control style-catalog-control"
+                            data-style-create-user-style
+                          >
+                            <Plus width={15} height={15} /> New style
+                          </button>
                           <div className="relative">
                             <button
                               ref={manageStylesButtonRef}
@@ -2064,22 +2150,6 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
                               aria-label="Manage styles"
                               className="grid w-44 gap-1 p-2"
                             >
-                              <button
-                                type="button"
-                                role="menuitem"
-                                data-dropdown-item
-                                onClick={() => {
-                                  setIsManageStylesOpen(false);
-                                  handleCreateUserStyle();
-                                }}
-                                data-style-create-user-style
-                                className="studio-ghost-control style-catalog-control style-catalog-menu-action"
-                                data-tooltip="Create Style"
-                              >
-                                <Plus width={15} height={15} />
-                                <span className="inline">Create</span>
-                              </button>
-
                               <button
                                 type="button"
                                 role="menuitem"
@@ -2289,22 +2359,24 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
                             />
                           </div>
                         ) : null}
-                        <PagedStyleCatalog
-                          query={searchQuery}
-                          sortOrder={sortOrder}
-                          favorites={favorites}
-                          favoritesOnly={showFavoritesOnly || currentPackId === FAVORITES_PACK_ID}
-                          extraIndex={userSearchIndex}
-                          loadedPacks={{
-                            ...loadedStylePacksById,
-                            [USER_STYLE_PACK_ID]: userStylePack,
-                          }}
-                          loadPacks={loadStyleRuntimePacks}
-                          renderCard={renderPresetCard}
-                          columns={gridColumns}
-                          onWidthChange={setStyleScrollWidth}
-                          grouped={activeStyleViewMode === 'grouped'}
-                        />
+                        <React.Suspense fallback={<LazySurfaceFallback label="Loading styles" />}>
+                          <PagedStyleCatalog
+                            query={searchQuery}
+                            sortOrder={sortOrder}
+                            favorites={favorites}
+                            favoritesOnly={showFavoritesOnly || currentPackId === FAVORITES_PACK_ID}
+                            extraIndex={userSearchIndex}
+                            loadedPacks={{
+                              ...loadedStylePacksById,
+                              [USER_STYLE_PACK_ID]: userStylePack,
+                            }}
+                            loadPacks={loadStyleRuntimePacks}
+                            renderCard={renderPresetCard}
+                            columns={gridColumns}
+                            onWidthChange={setStyleScrollWidth}
+                            grouped={activeStyleViewMode === 'grouped'}
+                          />
+                        </React.Suspense>
                       </div>
                     ) : (
                       <div
@@ -2557,6 +2629,7 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
                   </React.Suspense>
                 )}
               </div>
+              {catalogExpanded ? <div className="style-explorer-detail">{styleDetail}</div> : null}
             </div>
           ) : null}
         </AnimatePresence>

@@ -127,7 +127,7 @@ const HeaderToolbarFn: React.FC<HeaderToolbarProps> = ({
 
   return (
     <TopToolbar className="studio-toolbar-shell studio-bar w-full min-h-10 flex items-center px-2 py-1 z-40 shrink-0">
-      <div className="relative z-50 flex w-full items-center gap-1 sm:gap-2">
+      <div className="relative z-50 grid w-full grid-cols-[1fr_auto_1fr] items-center gap-1 sm:gap-2">
         <div className="flex min-w-0 flex-nowrap items-center gap-1 sm:gap-1.5 lg:gap-2">
           <Logo isGenerating={isGenerating} />
           <nav className="flex min-w-0 items-center gap-1" aria-label="Studio navigation">
@@ -140,23 +140,6 @@ const HeaderToolbarFn: React.FC<HeaderToolbarProps> = ({
             >
               <Sparks width={16} height={16} aria-hidden="true" /> Create
             </button>
-            <CreateWorkflowPicker
-              selectedId={
-                isRecipeView && activeRecipe !== 'styles'
-                  ? (activeRecipeAliasId ?? activeRecipe)
-                  : 'default'
-              }
-              selectedLabel={
-                isRecipeView && activeRecipe !== 'styles' && activeRecipeData
-                  ? activeRecipeData.name
-                  : 'Default'
-              }
-              onSelectRecipe={onSelectRecipe}
-              onSelectDefault={() => {
-                if (isRecipeView) onCloseRecipe();
-                else if (currentView === 'studio') onViewChange('recipes');
-              }}
-            />
             <button
               type="button"
               className="studio-nav-tab studio-control"
@@ -167,6 +150,26 @@ const HeaderToolbarFn: React.FC<HeaderToolbarProps> = ({
               <BookStack width={16} height={16} aria-hidden="true" /> Library
             </button>
           </nav>
+        </div>
+
+        <div className="flex min-w-0 justify-center">
+          <CreateWorkflowPicker
+            selectedId={
+              isRecipeView && activeRecipe !== 'styles'
+                ? (activeRecipeAliasId ?? activeRecipe)
+                : 'default'
+            }
+            selectedLabel={
+              isRecipeView && activeRecipe !== 'styles' && activeRecipeData
+                ? activeRecipeData.name
+                : 'Default'
+            }
+            onSelectRecipe={onSelectRecipe}
+            onSelectDefault={() => {
+              if (isRecipeView) onCloseRecipe();
+              else if (currentView === 'studio') onViewChange('recipes');
+            }}
+          />
         </div>
 
         <div className="ml-auto flex shrink-0 items-center justify-end gap-1">

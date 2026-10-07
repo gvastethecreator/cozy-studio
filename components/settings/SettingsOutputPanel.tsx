@@ -1,4 +1,4 @@
-import { useMemo, type Dispatch, type SetStateAction } from 'react';
+import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import {
   OUTPUT_FOLDER_TOKENS,
   OUTPUT_NAME_TOKENS,
@@ -35,6 +35,8 @@ export function SettingsOutputPanel({
   libraryDir: string | null;
 }) {
   const exampleDate = useMemo(() => new Date(), []);
+  const [customFolders, setCustomFolders] = useState(false);
+  const [customName, setCustomName] = useState(false);
   const levels = value.outputSubfolderPreset.split('/').filter(Boolean);
   const setLevels = (next: string[]) =>
     onChange((current) => ({ ...current, outputSubfolderPreset: next.join('/') }));
@@ -66,10 +68,7 @@ export function SettingsOutputPanel({
       <label className="settings-row">
         <span>
           <strong>Output directory</strong>
-          <small>
-            Save registers this destination for new images and exports. Existing files stay where
-            they are.
-          </small>
+          <small>For new images and exports. Existing files stay in place.</small>
         </span>
         <input
           className="studio-field"
@@ -84,13 +83,13 @@ export function SettingsOutputPanel({
       <label className="settings-row">
         <span>
           <strong>Folder structure</strong>
-          <small>Choose a preset or arrange folder levels below.</small>
         </span>
         <select
           className="studio-field"
           aria-label="Output folder preset"
-          value={preset}
+          value={customFolders ? 'custom' : preset}
           onChange={(event) => {
+            setCustomFolders(event.target.value === 'custom');
             if (event.target.value !== 'custom')
               setLevels(event.target.value.split('/').filter(Boolean));
           }}
@@ -103,65 +102,71 @@ export function SettingsOutputPanel({
           <option value="custom">Custom order</option>
         </select>
       </label>
-      <div className="settings-folder-levels" aria-label="Folder levels">
-        {levels.map((level, index) => (
-          <div key={index}>
-            <select
-              className="studio-field"
-              aria-label={`Folder level ${index + 1}`}
-              value={level}
-              onChange={(event) =>
-                setLevels(
-                  levels.map((item, position) => (position === index ? event.target.value : item)),
-                )
-              }
-            >
-              {OUTPUT_FOLDER_TOKENS.filter(
-                (token) => token === level || !levels.includes(token),
-              ).map((token) => (
-                <option key={token} value={token}>
-                  {token}
-                </option>
-              ))}
-            </select>
+      <details className="settings-disclosure" open={customFolders || preset === 'custom'}>
+        <summary>Customize folders</summary>
+        <div className="settings-folder-levels" aria-label="Folder levels">
+          {levels.map((level, index) => (
+            <div key={index}>
+              <select
+                className="studio-field"
+                aria-label={`Folder level ${index + 1}`}
+                value={level}
+                onChange={(event) =>
+                  setLevels(
+                    levels.map((item, position) =>
+                      position === index ? event.target.value : item,
+                    ),
+                  )
+                }
+              >
+                {OUTPUT_FOLDER_TOKENS.filter(
+                  (token) => token === level || !levels.includes(token),
+                ).map((token) => (
+                  <option key={token} value={token}>
+                    {token}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="studio-ghost-control"
+                aria-label={`Remove folder level ${index + 1}`}
+                onClick={() => setLevels(levels.filter((_, position) => position !== index))}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+          {levels.length < OUTPUT_FOLDER_TOKENS.length && (
             <button
               type="button"
               className="studio-ghost-control"
-              aria-label={`Remove folder level ${index + 1}`}
-              onClick={() => setLevels(levels.filter((_, position) => position !== index))}
+              onClick={() =>
+                setLevels([
+                  ...levels,
+                  OUTPUT_FOLDER_TOKENS.find((token) => !levels.includes(token))!,
+                ])
+              }
             >
-              Remove
+              Add folder level
             </button>
-          </div>
-        ))}
-        {levels.length < OUTPUT_FOLDER_TOKENS.length && (
-          <button
-            type="button"
-            className="studio-ghost-control"
-            onClick={() =>
-              setLevels([...levels, OUTPUT_FOLDER_TOKENS.find((token) => !levels.includes(token))!])
-            }
-          >
-            Add folder level
-          </button>
-        )}
-      </div>
+          )}
+        </div>
+      </details>
       <label className="settings-row">
         <span>
           <strong>Filename preset</strong>
-          <small>
-            UTC date, time and a padded generation number keep names in generation order.
-          </small>
         </span>
         <select
           className="studio-field"
           aria-label="Filename preset"
           value={
-            NAME_PRESETS.some((item) => item.value === value.outputFileNameTemplate)
+            !customName && NAME_PRESETS.some((item) => item.value === value.outputFileNameTemplate)
               ? value.outputFileNameTemplate
               : 'custom'
           }
           onChange={(event) => {
+            setCustomName(event.target.value === 'custom');
             if (event.target.value !== 'custom')
               onChange((current) => ({ ...current, outputFileNameTemplate: event.target.value }));
           }}
@@ -174,25 +179,35 @@ export function SettingsOutputPanel({
           <option value="custom">Custom template</option>
         </select>
       </label>
-      <label className="settings-row">
-        <span>
-          <strong>File name template</strong>
-          <small>The actual image extension is added automatically.</small>
-        </span>
-        <input
-          className="studio-field"
-          aria-label="File name template"
-          aria-invalid={Boolean(error)}
-          aria-describedby="output-filename-help"
-          value={value.outputFileNameTemplate}
-          onChange={(event) =>
-            onChange((current) => ({ ...current, outputFileNameTemplate: event.target.value }))
-          }
-        />
-      </label>
-      <p id="output-filename-help" className="studio-muted text-xs">
-        Tokens: {OUTPUT_NAME_TOKENS.map((token) => `{${token}}`).join(', ')}
-      </p>
+      <details
+        className="settings-disclosure"
+        open={
+          customName ||
+          Boolean(error) ||
+          !NAME_PRESETS.some((item) => item.value === value.outputFileNameTemplate)
+        }
+      >
+        <summary>Customize filenames</summary>
+        <label className="settings-row">
+          <span>
+            <strong>File name template</strong>
+            <small>The actual image extension is added automatically.</small>
+          </span>
+          <input
+            className="studio-field"
+            aria-label="File name template"
+            aria-invalid={Boolean(error)}
+            aria-describedby="output-filename-help"
+            value={value.outputFileNameTemplate}
+            onChange={(event) =>
+              onChange((current) => ({ ...current, outputFileNameTemplate: event.target.value }))
+            }
+          />
+        </label>
+        <p id="output-filename-help" className="studio-muted text-xs">
+          Tokens: {OUTPUT_NAME_TOKENS.map((token) => `{${token}}`).join(', ')}
+        </p>
+      </details>
       {error ? (
         <p role="alert" className="text-sm text-[color:var(--wb-danger)]">
           {error}
@@ -203,10 +218,7 @@ export function SettingsOutputPanel({
           <output>
             {root.replaceAll('\\', '/')}/{relative}
           </output>
-          <small>
-            Generation numbers continue across days and restarts. Running jobs keep their captured
-            filename template.
-          </small>
+          <small>Running jobs keep their current naming settings.</small>
         </div>
       )}
     </section>

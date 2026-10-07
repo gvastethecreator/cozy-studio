@@ -18,6 +18,11 @@ describe('studioSettings', () => {
       defaultOutputMode: 'studio_library',
       autoDetectOutputSources: true,
       notifyOnUpdates: false,
+      clearReviewJobsOnStartup: false,
+      toolsPanelSide: 'left',
+      jobsPanelSide: 'right',
+      defaultStyleIntensity: 0.75,
+      defaultStyleReferenceMode: 'preserve',
       mcpAccess: 'read',
       commandCenterCompactMode: false,
       intentionalStylesV1: false,
@@ -65,6 +70,8 @@ describe('studioSettings', () => {
     const patch = sanitizeEditableStudioSettingsPatch({
       defaultProviderId: 'fal',
       apiKey: 'must-not-persist',
+      toolsPanelSide: 'invalid',
+      jobsPanelSide: null,
       disabledWorkflowModules: ['timeline', 'not-a-module', 'remaster', 'timeline'],
       providerDefaults: {
         fal: {
@@ -94,6 +101,11 @@ describe('studioSettings', () => {
         defaultProviderId: 'comfy',
         commandCenterCompactMode: true,
         notifyOnUpdates: true,
+        clearReviewJobsOnStartup: true,
+        toolsPanelSide: 'right',
+        jobsPanelSide: 'left',
+        defaultStyleIntensity: 0.4,
+        defaultStyleReferenceMode: 'reinterpret',
         mcpAccess: 'write',
         showWorkspaceHistoryInCarousel: false,
         preferredOutputPath: 'D:/DEV/cozy-studio/outputs',
@@ -115,6 +127,31 @@ describe('studioSettings', () => {
     expect(settings.defaultProviderId).toBe('comfy');
     expect(settings.commandCenterCompactMode).toBe(true);
     expect(settings.notifyOnUpdates).toBe(true);
+    expect(settings.clearReviewJobsOnStartup).toBe(true);
+    expect(normalizeEditableStudioSettings(settings).toolsPanelSide).toBe('right');
+    expect(normalizeEditableStudioSettings(settings).jobsPanelSide).toBe('left');
+    expect(
+      mergeEditableStudioSettingsPatch(settings, {
+        toolsPanelSide: 'invalid',
+        jobsPanelSide: null,
+      }),
+    ).toMatchObject({ toolsPanelSide: 'right', jobsPanelSide: 'left' });
+    expect(settings.defaultStyleIntensity).toBe(0.4);
+    expect(settings.defaultStyleReferenceMode).toBe('reinterpret');
+    expect(
+      mergeEditableStudioSettingsPatch(settings, { defaultStyleIntensity: 2 })
+        .defaultStyleIntensity,
+    ).toBe(1);
+    expect(
+      mergeEditableStudioSettingsPatch(settings, {
+        defaultStyleIntensity: Number.NaN,
+        defaultStyleReferenceMode: 'invalid',
+      }).defaultStyleIntensity,
+    ).toBe(0.4);
+    expect(
+      mergeEditableStudioSettingsPatch(settings, { defaultStyleIntensity: -2 })
+        .defaultStyleIntensity,
+    ).toBe(0.1);
     expect(settings.mcpAccess).toBe('write');
     expect(mergeEditableStudioSettingsPatch(settings, { mcpAccess: 'invalid' }).mcpAccess).toBe(
       'write',

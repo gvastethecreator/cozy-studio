@@ -4,7 +4,7 @@ import {
   NavArrowRight as ChevronRight,
   MultiplePages as Layers,
 } from 'iconoir-react';
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   STYLE_COLLECTION_FAMILIES,
   STYLE_COLLECTIONS,
@@ -13,7 +13,6 @@ import type { StyleCollection } from './styles/collections/styleCollectionTypes'
 import {
   getStyleCollectionFolderImageCandidates,
   getStyleFolderImages,
-  STYLE_FOLDER_FILE_LIMIT,
   type StyleFolderImageCandidate,
 } from './styles/collections/styleCollectionFolderImages';
 import { getStyleLandingFolder } from '../../lib/installedStylePacks';
@@ -26,32 +25,11 @@ import { STYLE_RUNTIME_PACK_SUMMARIES } from './stylesData';
 import { resolveStyleRuntimePackLoadRequest } from './styleRuntimePackRequirements';
 import { STYLE_PACKS_TAB_ID } from './styleTabRouting';
 import { USER_STYLE_PACK_ID } from './userStyleRuntimeAdapter';
-import {
-  COLLECTION_FAMILY_THEMES,
-  PACK_THEMES,
-  getPackIcon,
-  getStyleCollectionIcon,
-  getStyleCollectionTheme,
-} from './styleNavigationPresentation';
-import type { StyleTheme } from './StyleRecipeNavigationPanel';
+import { getPackIcon, getStyleCollectionIcon } from './styleNavigationPresentation';
 import { NoStylePacksNotice } from './NoStylePacksNotice';
 
 const FAVORITES_PACK_ID = 'favorites';
-const STYLE_FOLDER_EASE = 'power3.out';
-const STYLE_FOLDER_SCATTER_X = [-34, 32, -12, 25, -24] as const;
-const STYLE_FOLDER_SCATTER_Y = [-52, -66, -78, -59, -72] as const;
-const STYLE_FOLDER_SCATTER_ROTATE = [-7, 8, -4, 5, -6] as const;
 const STYLE_NAVIGATION_PREVIEW_DELAY_MS = 150;
-
-type StyleFolderGsap = typeof import('../../lib/motionRuntime').default;
-type StyleFolderTimeline = ReturnType<StyleFolderGsap['timeline']>;
-
-let styleFolderGsapPromise: Promise<StyleFolderGsap> | null = null;
-
-function loadStyleFolderGsap() {
-  styleFolderGsapPromise ??= import('../../lib/motionRuntime').then((module) => module.default);
-  return styleFolderGsapPromise;
-}
 
 const VISIBLE_STYLE_COLLECTIONS = STYLE_COLLECTIONS.filter(
   (collection) => collection.entries.length > 0 && collection.id !== 'my_styles',
@@ -81,10 +59,7 @@ interface StyleFolderCardProps {
   eyebrow: string;
   sourcePackIds: string[];
   imageCandidates?: StyleFolderImageCandidate[];
-  icon: React.ReactNode;
-  theme: StyleTheme;
   index: number;
-  tabId: string;
   tabHash: string;
   dataAttributes: Record<string, string>;
   isHighlighted: boolean;
@@ -99,7 +74,6 @@ interface StyleNavigationItem {
   caption: string;
   countLabel: string;
   tabId: string;
-  theme: StyleTheme;
   icon: React.ReactNode;
   kind: 'collection' | 'source';
 }
@@ -108,18 +82,6 @@ interface StyleNavigationSection {
   id: string;
   title: string;
   items: StyleNavigationItem[];
-}
-
-function getStyleCollectionTitleClassName(title: string) {
-  if (title.length > 33) return 'text-[length:var(--wbp-label)]';
-  if (title.length > 25) return 'text-[11px]';
-  if (title.length > 17) return 'text-xs';
-  return 'text-sm';
-}
-
-function shouldReduceMotion() {
-  if (typeof window === 'undefined') return true;
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 function StyleFolderCard({
@@ -132,195 +94,46 @@ function StyleFolderCard({
   eyebrow,
   sourcePackIds,
   imageCandidates,
-  icon,
-  theme,
   index,
-  tabId: _tabId,
   tabHash,
   dataAttributes,
   isHighlighted,
   onOpen,
   onPrefetch,
 }: StyleFolderCardProps) {
-  const rootRef = useRef<HTMLButtonElement | null>(null);
-  const coverRef = useRef<HTMLDivElement | null>(null);
-  const fileRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const gsapRef = useRef<StyleFolderGsap | null>(null);
-  const timelineRef = useRef<StyleFolderTimeline | null>(null);
-  const isOpenRef = useRef(false);
-  const folderImages = useMemo(
+  const { cover, files } = useMemo(
     () => getStyleFolderImages({ seedId: id, sourcePackIds, imageCandidates }),
     [id, sourcePackIds, imageCandidates],
   );
-  const [filesMounted, setFilesMounted] = useState(
-    () => Boolean(folderImages.cover.src) || folderImages.files.some((file) => Boolean(file.src)),
-  );
-
-  useEffect(() => {
-    if (folderImages.cover.src || folderImages.files.some((file) => Boolean(file.src))) {
-      setFilesMounted(true);
-    }
-  }, [folderImages]);
-  const { cover, files } = folderImages;
-  const coverImage = cover.src;
-  const getFileNodes = useCallback(
-    () => fileRefs.current.slice(0, files.length).filter((node): node is HTMLDivElement => !!node),
-    [files.length],
-  );
-
-  const stopFolderAnimation = useCallback(() => {
-    const root = rootRef.current;
-    const coverNode = coverRef.current;
-    const fileNodes = getFileNodes();
-
-    timelineRef.current?.kill();
-    timelineRef.current = null;
-    gsapRef.current?.killTweensOf([root, coverNode, ...fileNodes].filter(Boolean));
-    gsapRef.current?.set([root, coverNode, ...fileNodes].filter(Boolean), {
-      willChange: 'auto',
-    });
-  }, [getFileNodes]);
-
-  const animateFolder = useCallback(
-    async (nextOpen: boolean) => {
-      const root = rootRef.current;
-      const coverNode = coverRef.current;
-      const fileNodes = getFileNodes();
-      if (shouldReduceMotion()) return;
-      if (!root || !coverNode || fileNodes.length === 0) return;
-      if (isOpenRef.current === nextOpen) return;
-
-      const gsap = await loadStyleFolderGsap();
-      if (!rootRef.current) return;
-      gsapRef.current = gsap;
-
-      isOpenRef.current = nextOpen;
-      root.dataset.stylePackFolderOpen = nextOpen ? 'true' : 'false';
-      stopFolderAnimation();
-
-      const animatedNodes = [root, coverNode, ...fileNodes];
-      const timeline = gsap.timeline({
-        defaults: { overwrite: 'auto' },
-        onStart: () => gsap.set(animatedNodes, { willChange: 'transform, opacity' }),
-        onComplete: () => gsap.set(animatedNodes, { willChange: 'auto' }),
-      });
-      timeline.to(
-        root,
-        {
-          y: nextOpen ? -3 : 0,
-          duration: nextOpen ? 0.34 : 0.28,
-          ease: STYLE_FOLDER_EASE,
-        },
-        0,
-      );
-      timeline.to(
-        coverNode,
-        {
-          y: nextOpen ? 5 : 0,
-          rotation: nextOpen ? -0.8 : 0,
-          scale: nextOpen ? 0.985 : 1,
-          duration: nextOpen ? 0.42 : 0.3,
-          ease: STYLE_FOLDER_EASE,
-        },
-        0,
-      );
-
-      fileNodes.forEach((node, fileIndex) => {
-        timeline.to(
-          node,
-          {
-            x: nextOpen ? STYLE_FOLDER_SCATTER_X[fileIndex % STYLE_FOLDER_SCATTER_X.length] : 0,
-            y: nextOpen
-              ? STYLE_FOLDER_SCATTER_Y[fileIndex % STYLE_FOLDER_SCATTER_Y.length]
-              : fileIndex * -4,
-            rotation: nextOpen
-              ? STYLE_FOLDER_SCATTER_ROTATE[fileIndex % STYLE_FOLDER_SCATTER_ROTATE.length]
-              : 0,
-            scale: nextOpen ? 1 : 0.94 + fileIndex * 0.012,
-            zIndex: nextOpen ? 14 + fileIndex : 8 + fileIndex,
-            duration: nextOpen ? 0.46 : 0.32,
-            ease: STYLE_FOLDER_EASE,
-          },
-          nextOpen ? fileIndex * 0.035 : (STYLE_FOLDER_FILE_LIMIT - fileIndex - 1) * 0.016,
-        );
-      });
-
-      timelineRef.current = timeline;
-    },
-    [getFileNodes, stopFolderAnimation],
-  );
-
-  const handleOpen = useCallback(() => {
-    if (!filesMounted) setFilesMounted(true);
-    onOpen();
-  }, [filesMounted, onOpen]);
-
-  const handleFolderEnter = useCallback(() => {
-    if (!filesMounted) setFilesMounted(true);
-    onPrefetch?.();
-    void animateFolder(true);
-  }, [animateFolder, filesMounted, onPrefetch]);
-
-  useEffect(() => {
-    if (isHighlighted && !filesMounted) setFilesMounted(true);
-  }, [filesMounted, isHighlighted]);
-
-  useLayoutEffect(() => {
-    const root = rootRef.current;
-    const coverNode = coverRef.current;
-    const fileNodes = getFileNodes();
-    if (!root || !coverNode || fileNodes.length === 0) return undefined;
-
-    root.dataset.stylePackFolderOpen = 'false';
-    isOpenRef.current = false;
-
-    return () => {
-      timelineRef.current?.kill();
-      gsapRef.current?.killTweensOf([root, coverNode, ...fileNodes]);
-    };
-  }, [files.length, getFileNodes]);
-
   return (
     <button
       type="button"
-      ref={rootRef}
-      data-style-pack-folder-open="false"
       data-style-folder-target={targetId}
       data-style-folder-highlighted={isHighlighted ? 'true' : 'false'}
       data-style-tab-url={`#${tabHash}`}
       aria-label={`Open ${title}`}
-      onClick={handleOpen}
-      onPointerEnter={handleFolderEnter}
-      onPointerLeave={() => void animateFolder(false)}
-      onFocus={handleFolderEnter}
-      onBlur={() => void animateFolder(false)}
-      className={`catalog-art-card style-folder-enter group relative z-0 block aspect-[3/4] w-full cursor-pointer overflow-visible rounded-[var(--wb-radius)] text-left outline-none transition-[filter] duration-200 hover:z-20 focus-visible:z-20 focus-visible:ring-2 focus-visible:ring-white/35 ${
+      onClick={onOpen}
+      onPointerEnter={onPrefetch}
+      onFocus={onPrefetch}
+      className={`style-folder-card catalog-art-card style-folder-enter group relative z-0 block aspect-[3/4] w-full cursor-pointer overflow-visible rounded-[var(--wb-radius)] text-left outline-none hover:z-20 focus-visible:z-20 focus-visible:ring-2 focus-visible:ring-white/35 ${
         isHighlighted ? 'z-30 brightness-[1.08]' : ''
       }`}
       style={
-        {
-          perspective: '1200px',
-          '--style-folder-enter-delay': `${Math.min(0.42, index * 0.026)}s`,
-        } as React.CSSProperties
+        { '--style-folder-enter-delay': `${Math.min(0.42, index * 0.026)}s` } as React.CSSProperties
       }
       {...dataAttributes}
     >
       {isHighlighted && (
         <span className="pointer-events-none absolute -inset-2 z-[70] rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_22px_55px_rgba(255,255,255,0.10)]" />
       )}
-      <div className="absolute inset-0 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]" />
-
-      {files.map((file, fileIndex) => (
+      {files.map((file) => (
         <div
           key={file.id}
-          ref={(node) => {
-            fileRefs.current[fileIndex] = node;
-          }}
           data-style-pack-folder-file={file.id}
           aria-hidden="true"
-          className="absolute inset-x-4 bottom-11 top-8 overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] shadow-[0_18px_34px_rgba(0,0,0,0.38)]"
+          className="absolute inset-x-3 top-3 aspect-[3/4] overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] shadow-[0_12px_24px_rgba(0,0,0,0.3)]"
         >
-          {filesMounted && file.src ? (
+          {file.src ? (
             <img
               src={file.src}
               alt=""
@@ -330,76 +143,55 @@ function StyleFolderCard({
               decoding="async"
               className="size-full object-cover"
             />
-          ) : filesMounted ? (
-            <div
-              className={`flex size-full items-center justify-center bg-[color:var(--wb-panel)] ${theme.text}`}
-            >
-              {icon}
-            </div>
           ) : (
-            <div className="size-full bg-[color:var(--wb-panel)]" />
+            <div className="flex size-full items-center justify-center p-3 text-xs text-[color:var(--wb-muted)]">
+              {file.label}
+            </div>
           )}
-          <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-white/10" />
-          <div
-            className={`absolute left-2 top-2 flex size-6 items-center justify-center rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-black/42 ${theme.text} backdrop-blur`}
-          >
-            {icon}
-          </div>
         </div>
       ))}
-
       <div
-        ref={coverRef}
         data-style-pack-folder-cover={id}
-        className="absolute inset-0 overflow-visible rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] shadow-[0_18px_42px_rgba(0,0,0,0.38)]"
-        style={{ transformOrigin: 'center bottom' }}
+        className="absolute inset-0 z-10 overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] shadow-[0_18px_42px_rgba(0,0,0,0.38)]"
       >
-        <div className="absolute inset-0 overflow-hidden rounded-[var(--wb-radius)]">
-          <div className="absolute inset-0 bg-[color:var(--wb-panel)]">
-            {coverImage ? (
-              <img
-                src={coverImage}
-                alt=""
-                width={420}
-                height={560}
-                loading="lazy"
-                decoding="async"
-                className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.025]"
-              />
-            ) : (
-              <div className={`flex size-full items-center justify-center ${theme.text}`}>
-                {icon}
-              </div>
-            )}
-            <div className={`absolute inset-x-0 top-0 h-1 ${theme.bg}`} />
+        {cover.src ? (
+          <img
+            src={cover.src}
+            alt=""
+            width={420}
+            height={560}
+            loading="lazy"
+            decoding="async"
+            className="size-full object-cover"
+          />
+        ) : (
+          <div className="flex size-full items-center justify-center p-3 text-xs text-[color:var(--wb-muted)]">
+            {title}
           </div>
-
-          <span
-            data-style-pack-count={id}
-            aria-label={countAriaLabel}
-            className="absolute right-2 top-2 rounded-[var(--wb-radius)] bg-[color:var(--wb-panel)] px-2 py-1 text-xs"
-          >
-            {countLabel}
-          </span>
-          <CatalogCardBackdrop
-            interactive={false}
-            label={title}
-            title={
-              <span data-style-pack-card-title={id} className="flex min-w-0 items-center gap-1.5">
-                <span className={theme.text}>{icon}</span>
-                <span className="truncate">{title}</span>
-              </span>
-            }
-          >
-            <span className="sr-only">{eyebrow}</span>
-            <p>{description}</p>
-          </CatalogCardBackdrop>
-        </div>
+        )}
+        <span
+          data-style-pack-count={id}
+          aria-label={countAriaLabel}
+          className="absolute right-2 top-2 rounded-[var(--wb-radius)] bg-[color:var(--wb-panel)] px-2 py-1 text-xs"
+        >
+          {countLabel}
+        </span>
+        <CatalogCardBackdrop
+          interactive={false}
+          label={title}
+          title={
+            <span data-style-pack-card-title={id} className="block min-w-0 truncate">
+              {title}
+            </span>
+          }
+        >
+          <span className="sr-only">{eyebrow}</span>
+          <p>{description}</p>
+        </CatalogCardBackdrop>
       </div>
     </button>
   );
 }
-
 function formatLandingFolderLabel(key: string) {
   const rawName = key.includes('__') ? key.slice(key.indexOf('__') + 2) : key;
   return (
@@ -484,7 +276,6 @@ function StyleCollectionCard({
   getStyleTabHash: (tabId: string) => string;
   thumbnailRevision: number;
 }) {
-  const theme = getStyleCollectionTheme(collection);
   const imageCandidates = useMemo(() => {
     const landingImages = getLandingFolderImageCandidates(collection.id);
     return landingImages.length > 0
@@ -503,10 +294,7 @@ function StyleCollectionCard({
       eyebrow={familyLabel}
       sourcePackIds={collection.sourcePackIds}
       imageCandidates={imageCandidates}
-      icon={getStyleCollectionIcon(collection.icon)}
-      theme={theme}
       index={index}
-      tabId={tabId}
       tabHash={getStyleTabHash(tabId)}
       dataAttributes={{ 'data-style-collection-card': collection.id }}
       isHighlighted={isHighlighted}
@@ -535,7 +323,6 @@ function SourcePackCard({
   onPrefetch?: () => void;
   thumbnailRevision: number;
 }) {
-  const theme = PACK_THEMES[pack.id] ?? PACK_THEMES.pack_01;
   const title = pack.cardTitle ?? pack.name;
   const imageCandidates = useMemo(
     () => getLandingFolderImageCandidates(pack.id),
@@ -553,10 +340,7 @@ function SourcePackCard({
       eyebrow="Source pack"
       sourcePackIds={[pack.id]}
       imageCandidates={imageCandidates}
-      icon={getPackIcon(pack.id)}
-      theme={theme}
       index={index}
-      tabId={pack.id}
       tabHash={getStyleTabHash(pack.id)}
       dataAttributes={{ 'data-style-pack-card': pack.id }}
       isHighlighted={isHighlighted}
@@ -607,7 +391,6 @@ function StyleFolderPlaceholder({
   targetId,
   title,
   tabHash,
-  theme,
   dataAttributes,
   isHighlighted,
   onOpen,
@@ -615,7 +398,6 @@ function StyleFolderPlaceholder({
   targetId: string;
   title: string;
   tabHash: string;
-  theme: StyleTheme;
   dataAttributes: Record<string, string>;
   isHighlighted: boolean;
   onOpen: () => void;
@@ -635,7 +417,6 @@ function StyleFolderPlaceholder({
       }`}
       {...dataAttributes}
     >
-      <span className={`absolute inset-x-0 top-0 h-1 ${theme.bg}`} />
       <span className="absolute inset-x-3 bottom-3 truncate text-xs font-semibold text-[color:var(--wb-muted)]">
         {title}
       </span>
@@ -668,7 +449,6 @@ function StyleCollectionFamilySection({
     (collection) => activeTargetId === `collection:${collection.id}`,
   );
   const { sectionRef, isMounted } = useDemandMountedSection(scrollRootRef, forceMount);
-  const familyTheme = COLLECTION_FAMILY_THEMES[family.id] ?? PACK_THEMES.pack_01;
 
   return (
     <section
@@ -678,7 +458,6 @@ function StyleCollectionFamilySection({
       className="min-w-0"
     >
       <div className="mb-2 flex items-center gap-2">
-        <div className={`h-4 w-1 rounded-[var(--wb-radius)] ${familyTheme.bg}`} />
         <div className="min-w-0">
           <h3 className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
             {family.title}
@@ -718,7 +497,6 @@ function StyleCollectionFamilySection({
               {...sharedProps}
               title={collection.title}
               tabHash={getStyleTabHash(tabId)}
-              theme={getStyleCollectionTheme(collection)}
               dataAttributes={{ 'data-style-collection-card': collection.id }}
             />
           );
@@ -787,7 +565,6 @@ function StyleSourcePacksSection({
               {...sharedProps}
               title={pack.cardTitle ?? pack.name}
               tabHash={getStyleTabHash(pack.id)}
-              theme={PACK_THEMES[pack.id] ?? PACK_THEMES.pack_01}
               dataAttributes={{ 'data-style-pack-card': pack.id }}
             />
           );
@@ -888,33 +665,18 @@ function StyleNavigationPanel({
                           : 'border-transparent bg-transparent text-[color:var(--wb-muted)] hover:border-[color:var(--wb-border)] hover:bg-white/[0.045] hover:text-[color:var(--wb-ink)]'
                       }`}
                     >
-                      <span
-                        className={`flex size-6 shrink-0 items-center justify-center rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-white/[0.035] ${item.theme.text}`}
-                      >
+                      <span className="flex size-6 shrink-0 items-center justify-center rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-white/[0.035] text-[color:var(--wb-muted)]">
                         {item.icon}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span
-                          className={`block truncate text-[length:var(--wbp-label)] font-semibold tracking-normal ${
-                            active
-                              ? item.theme.text
-                              : 'text-[color:var(--wb-ink)] group-hover/nav:text-[color:var(--wb-ink)]'
-                          }`}
-                        >
+                        <span className="block truncate text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
                           {item.label}
                         </span>
                         <span className="block truncate text-[length:var(--wbp-label)] font-medium text-[color:var(--wb-dim)]">
                           {item.caption}
                         </span>
                       </span>
-                      <span
-                        className={`rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] px-1.5 py-0.5 text-[length:var(--wbp-label)] font-semibold tabular-nums ${active ? `${item.theme.bg} text-[color:var(--wb-ink)]` : 'bg-white/[0.035] text-[color:var(--wb-muted)]'}`}
-                        style={
-                          active
-                            ? ({ '--tw-bg-opacity': '0.68' } as React.CSSProperties)
-                            : undefined
-                        }
-                      >
+                      <span className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-white/[0.035] px-1.5 py-0.5 text-[length:var(--wbp-label)] font-semibold tabular-nums text-[color:var(--wb-muted)]">
                         {item.countLabel}
                       </span>
                     </button>
@@ -963,7 +725,6 @@ export function StyleCollectionsLandingSurface({
     const personalItems = personalStyleCollections.map((collection) => {
       const isUserStyles = collection.id === 'my_styles';
       const tabId = isUserStyles ? USER_STYLE_PACK_ID : FAVORITES_PACK_ID;
-      const theme = getStyleCollectionTheme(collection);
       return {
         id: `collection:${collection.id}`,
         targetId: `collection:${collection.id}`,
@@ -971,7 +732,6 @@ export function StyleCollectionsLandingSurface({
         caption: 'Personal',
         countLabel: `${isUserStyles ? userStyleCount : favoritesCount}`,
         tabId,
-        theme,
         icon: getStyleCollectionIcon(collection.icon, 14),
         kind: 'collection',
       } satisfies StyleNavigationItem;
@@ -981,7 +741,6 @@ export function StyleCollectionsLandingSurface({
       id: family.id,
       title: family.title,
       items: collections.map((collection) => {
-        const theme = getStyleCollectionTheme(collection);
         return {
           id: `collection:${collection.id}`,
           targetId: `collection:${collection.id}`,
@@ -989,7 +748,6 @@ export function StyleCollectionsLandingSurface({
           caption: family.title,
           countLabel: `${getLandingFolderPresetCount(collection.id, collection.sourcePackIds.length)}`,
           tabId: getCollectionTabId(collection.id),
-          theme,
           icon: getStyleCollectionIcon(collection.icon, 14),
           kind: 'collection',
         } satisfies StyleNavigationItem;
@@ -1003,7 +761,6 @@ export function StyleCollectionsLandingSurface({
         id: 'source',
         title: 'Source',
         items: STYLE_RUNTIME_PACK_SUMMARIES.map((pack) => {
-          const theme = PACK_THEMES[pack.id] ?? PACK_THEMES.pack_01;
           return {
             id: `source:${pack.id}`,
             targetId: `source:${pack.id}`,
@@ -1011,7 +768,6 @@ export function StyleCollectionsLandingSurface({
             caption: 'Source pack',
             countLabel: `${pack.presetCount}`,
             tabId: pack.id,
-            theme,
             icon: getPackIcon(pack.id),
             kind: 'source',
           } satisfies StyleNavigationItem;
@@ -1108,7 +864,6 @@ export function StyleCollectionsLandingSurface({
           <div className="flex min-w-0 flex-col gap-5 pb-16">
             <section data-style-collection-family="personal" className="min-w-0">
               <div className="mb-2 flex items-center gap-2">
-                <div className="h-4 w-1 rounded-[var(--wb-radius)] bg-sky-500" />
                 <h3 className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
                   Personal
                 </h3>

@@ -130,7 +130,8 @@ describe('HeaderToolbar chrome', () => {
     const nav = screen.getByRole('navigation', { name: 'Studio navigation' });
     expect(
       [...nav.querySelectorAll('button')].map((button) => button.getAttribute('aria-label')),
-    ).toEqual(['Open create workspace', 'Workflow: Default', 'Open Library']);
+    ).toEqual(['Open create workspace', 'Open Library']);
+    expect(nav.contains(screen.getByRole('button', { name: 'Workflow: Default' }))).toBe(false);
     expect(screen.queryByRole('button', { name: /change provider/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /open jobs/i })).toBeNull();
     expect(document.querySelector('.studio-toolbar-shell.studio-bar')).toBeTruthy();

@@ -58,13 +58,11 @@ jobs:
       - name: Migration fixture
         run: bun run apps/local-server/src/dbMigrationFixture.ts
 
-      - name: Studio init (isolated home)
-        shell: bash
-        run: |
-          export HOME="${RUNNER_TEMP}/studio-home"
-          export TEMP="${RUNNER_TEMP}/studio-temp"
-          mkdir -p "$HOME" "$TEMP"
-          bun run studio:init
+      - name: Studio init (isolated storage)
+        env:
+          STUDIO_LIBRARY_DIR: ${{ runner.temp }}/studio-library
+          STUDIO_IMAGES_DIR: ${{ runner.temp }}/studio-images
+        run: bun run studio:init
 
       - name: Local API health smoke
         run: bun run portability:smoke

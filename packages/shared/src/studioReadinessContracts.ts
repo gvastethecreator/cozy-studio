@@ -18,6 +18,7 @@ export interface StudioReadinessEnvelope {
   lastSuccessAt: string | null;
   codexRuntime: CodexRuntimeDoctorReport | null;
   localCodexSession: LocalCodexSessionResponse | null;
+  chatgptSession: LocalCodexSessionResponse | null;
 }
 
 export interface StudioReadinessRefreshRequest {

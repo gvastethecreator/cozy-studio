@@ -108,6 +108,7 @@ export function useStudioReadiness(refreshIntervalMs = 30_000) {
     onboardingProbe: response?.onboarding ?? null,
     isRefreshing,
     localCodexSession: response?.readiness.localCodexSession ?? null,
+    chatgptSession: response?.readiness.chatgptSession ?? null,
     refresh,
     serverSnapshot: response?.readiness ?? null,
   };

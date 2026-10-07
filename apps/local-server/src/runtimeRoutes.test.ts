@@ -62,6 +62,7 @@ function createReadiness(
     refreshState: 'idle',
     lastAttemptAt: '2026-05-31T00:00:00.000Z',
     lastSuccessAt: '2026-05-31T00:00:00.000Z',
+    chatgptSession: null,
     codexRuntime: createCodexRuntimeReport(),
     localCodexSession,
   };

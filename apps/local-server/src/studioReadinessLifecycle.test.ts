@@ -16,6 +16,21 @@ const readyReport: CodexRuntimeDoctorReport = {
   candidates: [],
 };
 
+const studioSession = {
+  authMode: 'chatgpt' as const,
+  planType: 'pro',
+  usage: null,
+  source: 'chatgpt-http' as const,
+  fetchedAt: '2026-07-10T00:00:00.000Z',
+  error: null,
+  authLabel: 'ChatGPT login',
+  state: 'ready' as const,
+  reason: null,
+  isChatgptLogin: true,
+  isSupportedAuthMode: true,
+  canRunLocalJobs: false,
+};
+
 describe('Studio Readiness lifecycle', () => {
   it('returns immediately without probing and deduplicates concurrent refreshes', async () => {
     const probeCodexRuntime = vi.fn(async () => readyReport);
@@ -37,6 +52,7 @@ describe('Studio Readiness lifecycle', () => {
       isAppServerRunning: () => true,
       probeCodexRuntime,
       readLocalCodexSession,
+      readChatgptSession: async () => studioSession,
     });
 
     expect(lifecycle.readSnapshot()).toMatchObject({ revision: 0, freshness: 'unknown' });
@@ -49,6 +65,8 @@ describe('Studio Readiness lifecycle', () => {
     expect(a).toMatchObject({ revision: 1, freshness: 'fresh' });
     expect(probeCodexRuntime).toHaveBeenCalledTimes(1);
     expect(readLocalCodexSession).toHaveBeenCalledTimes(1);
+    expect(a.localCodexSession?.source).toBe('app-server');
+    expect(a.chatgptSession).toBe(studioSession);
   });
 
   it('does not open a doomed session probe when Codex is blocked', async () => {
@@ -57,6 +75,7 @@ describe('Studio Readiness lifecycle', () => {
       isAppServerRunning: () => true,
       probeCodexRuntime: async () => ({ ...readyReport, status: 'blocked', canRunJobs: false }),
       readLocalCodexSession,
+      readChatgptSession: async () => null,
     });
 
     await lifecycle.refresh({ reason: 'manual' });
@@ -89,6 +108,7 @@ describe('Studio Readiness lifecycle', () => {
     const snapshot = await lifecycle.refresh({ reason: 'manual' });
     expect(readLocalCodexSession).not.toHaveBeenCalled();
     expect(snapshot.localCodexSession).toBe(httpSession);
+    expect(snapshot.chatgptSession).toBe(httpSession);
   });
 
   it('uses the fresh cache for passive refreshes and only probes again when forced', async () => {
@@ -113,6 +133,7 @@ describe('Studio Readiness lifecycle', () => {
       isAppServerRunning: () => true,
       probeCodexRuntime,
       readLocalCodexSession,
+      readChatgptSession: async () => null,
     });
 
     await lifecycle.refresh({ reason: 'startup' });
@@ -130,6 +151,7 @@ describe('Studio Readiness lifecycle', () => {
     const lifecycle = createStudioReadinessLifecycle({
       isAppServerRunning: () => true,
       probeCodexRuntime: async () => readyReport,
+      readChatgptSession: async () => null,
       readLocalCodexSession: async () => ({
         authMode: 'chatgpt' as const,
         planType: null,

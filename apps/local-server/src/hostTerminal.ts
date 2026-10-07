@@ -160,6 +160,9 @@ export function compileVisibleHostSpawn(
 }
 
 export function defaultHostTerminalRunner(request: HostTerminalSpawnRequest) {
+  // Only compileVisibleHostSpawn supplies this request, after action validation and consent.
+  // It selects the executable; prompt text travels through a file, not shell source.
+  // react-doctor-disable-next-line react-doctor/command-execution-input-risk
   const child = spawn(request.command, request.args, {
     cwd: request.cwd,
     detached: true,

@@ -78,6 +78,7 @@ export interface GeneratedImage {
   preview?: string;
   width?: number | null;
   height?: number | null;
+  fileSizeBytes?: number | null;
   batchId: string;
   createdAt: number;
   isFavorite?: boolean; // Added for pinning

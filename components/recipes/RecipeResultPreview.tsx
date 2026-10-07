@@ -15,7 +15,9 @@ import {
 
 import { buildCarouselThumbnailWindow } from '../../lib/imageCarouselThumbnails';
 import { useImagePanZoom } from '../../lib/imagePanZoom';
+import { useImagePresentation } from '../../hooks/useImagePresentation';
 import { useHorizontalDragScroll } from '../../hooks/useHorizontalDragScroll';
+import { writeCatalogImageDrag } from '../../lib/catalogImageDrag';
 import { useToastUi } from '../../contexts/GlobalContext';
 import { useImageConversion } from '../../contexts/ImageConversionContext';
 import type { Attachment, GeneratedImageWithConfig } from '../../types';
@@ -66,8 +68,10 @@ export function RecipeResultPreview({
   const [background, setBackground] = useState<StageBackground>('dark');
   const [navSide, setNavSide] = useState<NavSide>(null);
   const [canvasFocused, setCanvasFocused] = useState(false);
-  const selected = images.find((image) => image.id === selectedId) ?? images[0];
-  const selectedIndex = selected ? images.findIndex((image) => image.id === selected.id) : -1;
+  const requestedImage = images.find((image) => image.id === selectedId) ?? images[0];
+  const selectedIndex = requestedImage
+    ? images.findIndex((image) => image.id === requestedImage.id)
+    : -1;
   useEffect(() => {
     if (previousScope.current !== history?.scopeKey) {
       previousIndex.current = 0;
@@ -87,7 +91,17 @@ export function RecipeResultPreview({
     )
       void history.loadMore();
   }, [history, images.length, selectedIndex]);
-  const src = showReference || !selected ? reference?.dataUrl : selected?.src;
+  const requestedSrc =
+    showReference || !requestedImage
+      ? reference?.dataUrl
+      : (requestedImage.sourceUrl ?? requestedImage.src);
+  const presentation = useImagePresentation(
+    { image: requestedImage, showReference },
+    requestedSrc,
+    history?.scopeKey,
+  );
+  const { image: selected, showReference: displayedReference } = presentation.value;
+  const src = presentation.src;
   const isStage = variant === 'stage';
   const canCompare = Boolean(isStage && reference && selected);
   const panZoom = useImagePanZoom(isStage && Boolean(src), src);
@@ -115,7 +129,6 @@ export function RecipeResultPreview({
     if (!image) return;
     setSelectedId(image.id);
     setShowReference(false);
-    panZoom.reset();
   };
 
   const handleCopy = async () => {
@@ -159,7 +172,8 @@ export function RecipeResultPreview({
       data-result-variant={variant}
       data-stage-background={isStage ? background : undefined}
       aria-label="Result preview"
-      aria-busy={isGenerating}
+      aria-busy={isGenerating || presentation.pending}
+      data-image-transition={Boolean(presentation.previousSrc)}
     >
       {isGenerating && (
         <div className="recipe-result-progress" role="status">
@@ -168,7 +182,7 @@ export function RecipeResultPreview({
       )}
       {!isStage ? (
         <div className="recipe-result-heading">
-          <span>{showReference || !selected ? 'Reference preview' : 'Result'}</span>
+          <span>{displayedReference || !selected ? 'Reference preview' : 'Result'}</span>
           {reference && selected && (
             <button
               type="button"
@@ -196,7 +210,7 @@ export function RecipeResultPreview({
               <span
                 className="result-context-label"
                 data-tooltip={
-                  showReference || !selected
+                  displayedReference || !selected
                     ? 'Source image'
                     : isGenerating
                       ? 'Previous result'
@@ -205,7 +219,7 @@ export function RecipeResultPreview({
                         : 'Recent result · not attached as source'
                 }
               >
-                {showReference || !selected
+                {displayedReference || !selected
                   ? 'Source image'
                   : isGenerating
                     ? 'Previous result'
@@ -319,9 +333,14 @@ export function RecipeResultPreview({
                     type="button"
                     className="recipe-result-scale"
                     aria-label="Reset zoom to 100%"
-                    onClick={panZoom.reset}
+                    onClick={panZoom.actualSize}
                   >
                     {Math.round(panZoom.scale * 100)}%
+                  </button>
+                </Tooltip>
+                <Tooltip content="Fit image">
+                  <button type="button" aria-label="Fit image" onClick={panZoom.fit}>
+                    Fit
                   </button>
                 </Tooltip>
                 <Tooltip content="Zoom in">
@@ -331,11 +350,13 @@ export function RecipeResultPreview({
                 </Tooltip>
               </div>
             </div>
-            {selected?.config.prompt ? (
-              <p className="recipe-result-prompt" data-tooltip={selected.config.prompt}>
-                {selected.config.prompt}
-              </p>
-            ) : null}
+            <p
+              key={selected?.config.prompt}
+              className="recipe-result-prompt image-metadata-enter"
+              data-tooltip={selected?.config.prompt}
+            >
+              {selected?.config.prompt || 'No prompt saved.'}
+            </p>
           </div>
         </div>
       ) : null}
@@ -406,12 +427,37 @@ export function RecipeResultPreview({
                 </button>
               </>
             ) : null}
-            <img
-              ref={isStage ? panZoom.contentRef : undefined}
-              src={src}
-              alt={showReference || !selected ? 'Reference image' : 'Generated result'}
-              draggable={false}
-            />
+            {[presentation.previousSrc, src]
+              .filter((source): source is string => Boolean(source))
+              .map((source) => (
+                <div
+                  key={source}
+                  aria-hidden={source !== src || undefined}
+                  onTransitionEnd={source === src ? presentation.finishTransition : undefined}
+                  className={`image-presentation-layer ${source === src ? 'image-swap-enter' : 'image-swap-previous'}`}
+                >
+                  <img
+                    ref={isStage && source === src ? panZoom.contentRef : undefined}
+                    onLoad={isStage && source === src ? panZoom.onImageLoad : undefined}
+                    src={source}
+                    hidden={source === src && presentation.failed}
+                    aria-hidden={source !== src || undefined}
+                    alt={
+                      source !== src
+                        ? ''
+                        : displayedReference || !selected
+                          ? 'Reference image'
+                          : 'Generated result'
+                    }
+                    draggable={false}
+                  />
+                </div>
+              ))}
+            {presentation.failed && (
+              <p role="alert" className="image-load-error">
+                Original image unavailable.
+              </p>
+            )}
           </>
         ) : (
           <div>
@@ -434,11 +480,13 @@ export function RecipeResultPreview({
                 <button
                   type="button"
                   key={image.id}
+                  draggable
+                  onDragStart={(event) => writeCatalogImageDrag(event, image.id)}
                   aria-label={`View result ${resultIndex + 1}`}
-                  aria-pressed={selected?.id === image.id && !showReference}
+                  aria-pressed={requestedImage?.id === image.id && !showReference}
                   onClick={() => selectIndex(resultIndex)}
                 >
-                  <img src={image.thumbnail || image.src} alt="" />
+                  <img src={image.thumbnail || image.src} alt="" draggable={false} />
                 </button>
               );
             },

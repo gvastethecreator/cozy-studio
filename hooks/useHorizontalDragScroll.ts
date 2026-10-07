@@ -26,6 +26,8 @@ export function useHorizontalDragScroll<T extends HTMLElement>(ref: RefObject<T 
   const onPointerDown = useCallback<PointerEventHandler<T>>(
     (event) => {
       if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      if (event.pointerType === 'mouse' && (event.target as Element).closest('[draggable="true"]'))
+        return;
       const element = ref.current;
       if (!element || element.scrollWidth <= element.clientWidth) return;
       stateRef.current = {
@@ -57,7 +59,9 @@ export function useHorizontalDragScroll<T extends HTMLElement>(ref: RefObject<T 
   );
 
   return {
-    onDragStart: (event: React.DragEvent<T>) => event.preventDefault(),
+    onDragStart: (event: React.DragEvent<T>) => {
+      if (!(event.target as Element).closest('[draggable="true"]')) event.preventDefault();
+    },
     onPointerCancel: finish,
     onPointerDown,
     onPointerMove,

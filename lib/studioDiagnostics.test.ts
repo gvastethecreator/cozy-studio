@@ -123,6 +123,50 @@ function createLocalCodexSession(
 }
 
 describe('studioDiagnostics', () => {
+  it('keeps separate provider account quotas and never labels Studio HTTP usage as Codex usage', () => {
+    const chatgptSession = createLocalCodexSession({
+      source: 'chatgpt-http',
+      usage: {
+        available: 91,
+        display: '91%',
+        unit: 'quota_percent',
+        path: 'rate_limit',
+        raw: {},
+        limits: [
+          {
+            id: 'primary',
+            label: 'Weekly',
+            availablePercent: 91,
+            usedPercent: 9,
+            windowMinutes: 10080,
+            resetsAt: null,
+            path: 'rate_limit.primary',
+          },
+        ],
+      },
+    });
+    const snapshot = buildStudioDiagnosticsSnapshot({
+      health: createHealth(),
+      localCodexSession: createLocalCodexSession(),
+      chatgptSession,
+      hasFetchedDiagnostics: true,
+      isBackendConnected: true,
+    });
+    expect(
+      snapshot.providerUsage.codex.limits.find((limit) => limit.label === 'Weekly')
+        ?.availablePercent,
+    ).toBe(55);
+    expect(snapshot.providerUsage.chatgpt.limits[0]?.availablePercent).toBe(91);
+    const httpOnly = buildStudioDiagnosticsSnapshot({
+      health: createHealth(),
+      localCodexSession: chatgptSession,
+      chatgptSession,
+      hasFetchedDiagnostics: true,
+      isBackendConnected: true,
+    });
+    expect(httpOnly.providerUsage.codex.limits).toEqual([]);
+    expect(httpOnly.providerUsage.codex.value).toBe('Unavailable');
+  });
   it('formats Codex plan labels for UI copy', () => {
     expect(formatCodexPlan('chatgpt_pro')).toBe('ChatGPT Pro');
     expect(formatCodexPlan(null)).toBe('Codex account');

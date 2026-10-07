@@ -64,6 +64,7 @@ export function useStudioRuntime({
   const diagnostics = buildStudioDiagnosticsSnapshot({
     health: readinessState.health,
     localCodexSession: readinessState.localCodexSession,
+    chatgptSession: readinessState.chatgptSession,
     hasFetchedDiagnostics: readinessState.serverSnapshot !== null,
     isBackendConnected: sync.activity.isBackendConnected,
   });

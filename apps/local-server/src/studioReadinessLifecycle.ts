@@ -49,6 +49,7 @@ export function createStudioReadinessLifecycle({
     lastSuccessAt: null,
     codexRuntime: null,
     localCodexSession: null,
+    chatgptSession: null,
   };
 
   const readSnapshot = () => {
@@ -71,10 +72,11 @@ export function createStudioReadinessLifecycle({
     inFlight = (async () => {
       try {
         const codexRuntime = await probeCodexRuntime();
-        const localCodexSession =
-          codexRuntime.canRunJobs && isAppServerRunning()
-            ? await readLocalCodexSession()
-            : await readChatgptSession();
+        const [codexSession, chatgptSession] = await Promise.all([
+          codexRuntime.canRunJobs && isAppServerRunning() ? readLocalCodexSession() : null,
+          readChatgptSession(),
+        ]);
+        const localCodexSession = codexSession ?? chatgptSession;
         if (disposed) throw new Error('Studio Readiness lifecycle is disposed');
         const observedAt = now().toISOString();
         expiresAt = now().getTime() + maxAgeMs;
@@ -87,6 +89,7 @@ export function createStudioReadinessLifecycle({
           lastSuccessAt: observedAt,
           codexRuntime,
           localCodexSession,
+          chatgptSession,
         };
         return snapshot;
       } catch (error) {

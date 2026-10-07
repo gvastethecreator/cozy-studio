@@ -35,11 +35,13 @@ export interface StudioDiagnosticsSnapshot {
   localCodexSession: LocalCodexSessionResponse | null;
   statusItems: StudioRuntimeStatusItem[];
   usage: StudioUsageSummary;
+  providerUsage: Record<'codex' | 'chatgpt', StudioUsageSummary>;
 }
 
 interface BuildStudioDiagnosticsSnapshotArgs {
   health: HealthResponse | null;
   localCodexSession: LocalCodexSessionResponse | null;
+  chatgptSession?: LocalCodexSessionResponse | null;
   hasFetchedDiagnostics: boolean;
   isBackendConnected: boolean;
 }
@@ -72,9 +74,49 @@ function formatResetLabel(resetsAt: number | null | undefined, now = Date.now())
   return `${Math.ceil(remainingHours / 24)}d reset`;
 }
 
+function summarizeProviderUsage(
+  provider: 'Codex' | 'ChatGPT',
+  session: LocalCodexSessionResponse | null,
+  connected: boolean,
+  isLoading: boolean,
+): StudioUsageSummary {
+  const limits =
+    session?.usage?.limits?.map((limit) => ({
+      id: limit.id,
+      label: limit.label,
+      availablePercent: limit.availablePercent,
+      usedPercent: limit.usedPercent,
+      resetLabel: formatResetLabel(limit.resetsAt),
+    })) ?? [];
+  return {
+    value: !connected
+      ? 'Offline'
+      : isLoading
+        ? 'Checking…'
+        : (session?.usage?.display ?? 'Unavailable'),
+    meta: provider,
+    tooltip: !connected
+      ? `${provider} usage is offline.`
+      : session?.error
+        ? `${provider} usage unavailable: ${session.error}`
+        : session?.usage
+          ? `${provider} account · ${formatCodexPlan(session.planType)}`
+          : `${provider} usage is unavailable for this account.`,
+    unitLabel: session?.usage?.unit === 'credits' ? 'credits' : null,
+    limits,
+    tone: !connected
+      ? 'offline'
+      : limits.length > 0 || session?.usage?.display
+        ? 'available'
+        : 'neutral',
+    isLoading,
+  };
+}
+
 export function buildStudioDiagnosticsSnapshot({
   health,
   localCodexSession,
+  chatgptSession = null,
   hasFetchedDiagnostics,
   isBackendConnected,
 }: BuildStudioDiagnosticsSnapshotArgs): StudioDiagnosticsSnapshot {
@@ -259,6 +301,20 @@ export function buildStudioDiagnosticsSnapshot({
     hasFetchedDiagnostics,
     localCodexSession,
     statusItems,
+    providerUsage: {
+      codex: summarizeProviderUsage(
+        'Codex',
+        localCodexSession?.source === 'app-server' ? localCodexSession : null,
+        isBackendConnected,
+        usageIsLoading,
+      ),
+      chatgpt: summarizeProviderUsage(
+        'ChatGPT',
+        chatgptSession,
+        isBackendConnected,
+        usageIsLoading,
+      ),
+    },
     usage: {
       value: usageValue,
       meta: usageMeta,

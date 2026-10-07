@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
-  "source_commit": "bb315ea8ab0a4fed3e8f1dd91d0c44ac0b0f58d6",
-  "working_tree_dirty": true,
-  "generated_at": "2026-10-07T19:20:44Z",
-  "generation_id": "5224605a0e638b6188379e827206675b207df8a8e3f9100099c77d37db6aec80",
+  "source_commit": "3a556884bae9772457f1b1e6ae0d664b38f50e95",
+  "working_tree_dirty": false,
+  "generated_at": "2026-10-07T19:31:48Z",
+  "generation_id": "240c10e30a554d94894d17f8552605124de5e45cde57d5f110656020ff22a567",
   "analysis": {
     "version": "syntax-1",
     "digest": "f254907343def68e42baabf08b179db9817a145bc24eaad26add0adf05d75581"
@@ -775,8 +775,8 @@
         "path": "apps/local-server/src/hostTerminal.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "2e5872e6833b92a78c0743d5b9f45a19009dcb545a1229ea33014ca5f0d9fc81",
-        "size": 6883
+        "digest": "4c18ebc75b831b8e0ca155c6d0eb9b7e2f0babccaf73395baace62e4db80b3e9",
+        "size": 7141
       },
       {
         "path": "apps/local-server/src/imageConversion.ts",
@@ -3750,8 +3750,8 @@
         "path": "hooks/useDefaultStylePack.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "42223efa4575aed6d2148e14542206f101f975130f8098b04677fcb12aa549fd",
-        "size": 982
+        "digest": "f431ae981c5b99c5ad194daccd2e8d3f591bcf5c5a509cdfa7a7143d05ff4fcd",
+        "size": 1150
       },
       {
         "path": "hooks/useDialogFocus.ts",
@@ -6305,8 +6305,8 @@
         "path": "scripts/portability-smoke.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "4fca998056b00e3bc9f3e9f09a99a40ba324855ff60f46c407d8b73b3fad0047",
-        "size": 4783
+        "digest": "f7112577376f2a9b9d1a7fdc1622555e3822fa4082d8af5e569fd9797116dd34",
+        "size": 4842
       },
       {
         "path": "scripts/portable-start.ts",
@@ -6995,12 +6995,12 @@
         "size": 710
       }
     ],
-    "digest": "ef2e300b81df265e4ecda9815fdb3e66498696bae7ff272680bbbe14979399ec"
+    "digest": "f292183ba9883a1613ce8daed5b31ce0e6de845953d31c506fe5c2d294f29a49"
   },
-  "source_digest": "4eddd2a585c8952cd2ee655656c6abec8b2311e81d6bf6b42047eca71ed28598",
+  "source_digest": "fcf5fba3e0043a0020f8ba33c4693a8f1ecd763fa71cbd8614108cb3e2049bd1",
   "artifact_hashes": {
-    "codemap.json": "d2d0ac087139515dcbeda14c19e069dd6170057d982224456dd4c7f4440eb30d",
-    "codemap.md": "d9826149ec317df5bd11122570064fac1a1b2f4d6fe230d1b25b3dbd43c21f7c",
-    "codemap.html": "5104f8103b40295bd08382d6f501781dbcc6388fa4199c0b8791e88e8ecd416d"
+    "codemap.json": "e84ad34d14066ff9ded57efbab8742710daeb5014b7e1a3f7574c08d531eb1ad",
+    "codemap.md": "ae65dd2af881c7195925d21d073a2caea8330de1fb98df88987a0ce5c268aa8d",
+    "codemap.html": "ac086f70b609199af5b6013db2f1f6e602160fd190c1b524322ba54dd92409d5"
   }
 }

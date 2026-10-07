@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            bunx react-doctor@0.9.13 --verbose --scope changed --base "origin/${{ github.base_ref }}"
+            bun run doctor -- --verbose --scope changed --base "origin/${{ github.base_ref }}"
           else
-            bunx react-doctor@0.9.13 --verbose --scope full
+            bun run doctor -- --verbose --scope full
           fi

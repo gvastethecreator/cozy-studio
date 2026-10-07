@@ -104,6 +104,7 @@ import { createLibraryRoutes } from './libraryRoutes';
 import { createReferenceRoutes } from './referenceRoutes';
 import { createUserStyleRoutes } from './userStyleRoutes';
 import { createExtensionRoutes } from './extensionRoutes';
+import { createStyleAuthoringRoutes } from './styleAuthoringRoutes';
 import {
   createGitHubExtensionSourceClient,
   resolveRemoteExtensionSources,
@@ -315,6 +316,12 @@ export async function createStudioApp(
   );
 
   app.route('/api/auth', createSubscriptionAuthRoutes());
+  app.route(
+    '/api/style-authoring',
+    createStyleAuthoringRoutes({
+      readSettings: () => readEditableStudioSettings(settingsStorage),
+    }),
+  );
 
   app.route(
     '/api/settings',

@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-10-07T19:20:44Z",
-  "generated_from_commit": "bb315ea8ab0a4fed3e8f1dd91d0c44ac0b0f58d6",
+  "generated_at": "2026-10-07T19:31:48Z",
+  "generated_from_commit": "3a556884bae9772457f1b1e6ae0d664b38f50e95",
   "scope": [
     "."
   ],
@@ -776,8 +776,8 @@
         "path": "apps/local-server/src/hostTerminal.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "2e5872e6833b92a78c0743d5b9f45a19009dcb545a1229ea33014ca5f0d9fc81",
-        "size": 6883
+        "digest": "4c18ebc75b831b8e0ca155c6d0eb9b7e2f0babccaf73395baace62e4db80b3e9",
+        "size": 7141
       },
       {
         "path": "apps/local-server/src/imageConversion.ts",
@@ -3751,8 +3751,8 @@
         "path": "hooks/useDefaultStylePack.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "42223efa4575aed6d2148e14542206f101f975130f8098b04677fcb12aa549fd",
-        "size": 982
+        "digest": "f431ae981c5b99c5ad194daccd2e8d3f591bcf5c5a509cdfa7a7143d05ff4fcd",
+        "size": 1150
       },
       {
         "path": "hooks/useDialogFocus.ts",
@@ -6306,8 +6306,8 @@
         "path": "scripts/portability-smoke.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "4fca998056b00e3bc9f3e9f09a99a40ba324855ff60f46c407d8b73b3fad0047",
-        "size": 4783
+        "digest": "f7112577376f2a9b9d1a7fdc1622555e3822fa4082d8af5e569fd9797116dd34",
+        "size": 4842
       },
       {
         "path": "scripts/portable-start.ts",
@@ -6996,7 +6996,7 @@
         "size": 710
       }
     ],
-    "digest": "ef2e300b81df265e4ecda9815fdb3e66498696bae7ff272680bbbe14979399ec"
+    "digest": "f292183ba9883a1613ce8daed5b31ce0e6de845953d31c506fe5c2d294f29a49"
   },
   "coverage": {
     "discovered_files": 1828,
@@ -38101,31 +38101,31 @@
       },
       {
         "path": "scripts/portability-smoke.ts",
-        "line": 57,
+        "line": 20,
         "reference": "path",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "scripts/portability-smoke.ts",
-        "line": 57,
+        "line": 58,
         "reference": "path",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "scripts/portability-smoke.ts",
-        "line": 73,
+        "line": 58,
+        "reference": "path",
+        "reason": "object-member-call-not-resolved"
+      },
+      {
+        "path": "scripts/portability-smoke.ts",
+        "line": 74,
         "reference": "assert",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "scripts/portability-smoke.ts",
-        "line": 82,
-        "reference": "assert",
-        "reason": "object-member-call-not-resolved"
-      },
-      {
-        "path": "scripts/portability-smoke.ts",
-        "line": 87,
+        "line": 83,
         "reference": "assert",
         "reason": "object-member-call-not-resolved"
       },
@@ -38143,19 +38143,7 @@
       },
       {
         "path": "scripts/portability-smoke.ts",
-        "line": 91,
-        "reference": "path",
-        "reason": "object-member-call-not-resolved"
-      },
-      {
-        "path": "scripts/portability-smoke.ts",
-        "line": 91,
-        "reference": "path",
-        "reason": "object-member-call-not-resolved"
-      },
-      {
-        "path": "scripts/portability-smoke.ts",
-        "line": 92,
+        "line": 90,
         "reference": "assert",
         "reason": "object-member-call-not-resolved"
       },
@@ -38167,8 +38155,20 @@
       },
       {
         "path": "scripts/portability-smoke.ts",
-        "line": 94,
+        "line": 92,
+        "reference": "path",
+        "reason": "object-member-call-not-resolved"
+      },
+      {
+        "path": "scripts/portability-smoke.ts",
+        "line": 93,
         "reference": "assert",
+        "reason": "object-member-call-not-resolved"
+      },
+      {
+        "path": "scripts/portability-smoke.ts",
+        "line": 93,
+        "reference": "path",
         "reason": "object-member-call-not-resolved"
       },
       {
@@ -38179,19 +38179,25 @@
       },
       {
         "path": "scripts/portability-smoke.ts",
-        "line": 124,
-        "reference": "path",
+        "line": 96,
+        "reference": "assert",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "scripts/portability-smoke.ts",
-        "line": 124,
+        "line": 125,
         "reference": "path",
         "reason": "object-member-call-not-resolved"
       },
       {
         "path": "scripts/portability-smoke.ts",
         "line": 125,
+        "reference": "path",
+        "reason": "object-member-call-not-resolved"
+      },
+      {
+        "path": "scripts/portability-smoke.ts",
+        "line": 126,
         "reference": "assert",
         "reason": "object-member-call-not-resolved"
       },
@@ -56278,7 +56284,7 @@
             "start_line": 14,
             "end_line": 14,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "2e5872e6833b92a78c0743d5b9f45a19009dcb545a1229ea33014ca5f0d9fc81",
+            "source_digest": "4c18ebc75b831b8e0ca155c6d0eb9b7e2f0babccaf73395baace62e4db80b3e9",
             "kind": "definition"
           },
           {
@@ -56287,7 +56293,7 @@
             "start_line": 26,
             "end_line": 26,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "2e5872e6833b92a78c0743d5b9f45a19009dcb545a1229ea33014ca5f0d9fc81",
+            "source_digest": "4c18ebc75b831b8e0ca155c6d0eb9b7e2f0babccaf73395baace62e4db80b3e9",
             "kind": "definition"
           },
           {
@@ -56296,7 +56302,7 @@
             "start_line": 34,
             "end_line": 34,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "2e5872e6833b92a78c0743d5b9f45a19009dcb545a1229ea33014ca5f0d9fc81",
+            "source_digest": "4c18ebc75b831b8e0ca155c6d0eb9b7e2f0babccaf73395baace62e4db80b3e9",
             "kind": "definition"
           }
         ]
@@ -126547,7 +126553,7 @@
             "start_line": 3,
             "end_line": 3,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "4fca998056b00e3bc9f3e9f09a99a40ba324855ff60f46c407d8b73b3fad0047",
+            "source_digest": "f7112577376f2a9b9d1a7fdc1622555e3822fa4082d8af5e569fd9797116dd34",
             "kind": "import",
             "resolved_target": "external:javascript:node:assert"
           }
@@ -256245,7 +256251,7 @@
             "start_line": 11,
             "end_line": 11,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "42223efa4575aed6d2148e14542206f101f975130f8098b04677fcb12aa549fd",
+            "source_digest": "f431ae981c5b99c5ad194daccd2e8d3f591bcf5c5a509cdfa7a7143d05ff4fcd",
             "kind": "definition"
           }
         ]
@@ -315208,7 +315214,7 @@
             "start_line": 8,
             "end_line": 8,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "4fca998056b00e3bc9f3e9f09a99a40ba324855ff60f46c407d8b73b3fad0047",
+            "source_digest": "f7112577376f2a9b9d1a7fdc1622555e3822fa4082d8af5e569fd9797116dd34",
             "kind": "definition"
           },
           {
@@ -315217,7 +315223,7 @@
             "start_line": 9,
             "end_line": 9,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "4fca998056b00e3bc9f3e9f09a99a40ba324855ff60f46c407d8b73b3fad0047",
+            "source_digest": "f7112577376f2a9b9d1a7fdc1622555e3822fa4082d8af5e569fd9797116dd34",
             "kind": "definition"
           },
           {
@@ -315226,7 +315232,7 @@
             "start_line": 10,
             "end_line": 10,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "4fca998056b00e3bc9f3e9f09a99a40ba324855ff60f46c407d8b73b3fad0047",
+            "source_digest": "f7112577376f2a9b9d1a7fdc1622555e3822fa4082d8af5e569fd9797116dd34",
             "kind": "definition"
           }
         ]
@@ -351212,10 +351218,10 @@
           {
             "path": "apps/local-server/src/hostTerminal.ts",
             "symbol": "spawn(request.command, request.args, {\n    cwd: request.cwd,\n    detached: true,\n    stdio: 'ignore',\n    windowsHide: request.windowsHide,\n  })",
-            "start_line": 163,
-            "end_line": 168,
+            "start_line": 166,
+            "end_line": 171,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "2e5872e6833b92a78c0743d5b9f45a19009dcb545a1229ea33014ca5f0d9fc81",
+            "source_digest": "4c18ebc75b831b8e0ca155c6d0eb9b7e2f0babccaf73395baace62e4db80b3e9",
             "kind": "call",
             "resolved_target": "external:javascript:node:child_process",
             "target_symbol": "spawn"
@@ -351239,7 +351245,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "2e5872e6833b92a78c0743d5b9f45a19009dcb545a1229ea33014ca5f0d9fc81",
+            "source_digest": "4c18ebc75b831b8e0ca155c6d0eb9b7e2f0babccaf73395baace62e4db80b3e9",
             "kind": "import",
             "resolved_target": "external:javascript:node:child_process"
           }
@@ -351262,7 +351268,7 @@
             "start_line": 2,
             "end_line": 2,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "2e5872e6833b92a78c0743d5b9f45a19009dcb545a1229ea33014ca5f0d9fc81",
+            "source_digest": "4c18ebc75b831b8e0ca155c6d0eb9b7e2f0babccaf73395baace62e4db80b3e9",
             "kind": "import",
             "resolved_target": "external:javascript:node:fs"
           }
@@ -351285,7 +351291,7 @@
             "start_line": 3,
             "end_line": 3,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "2e5872e6833b92a78c0743d5b9f45a19009dcb545a1229ea33014ca5f0d9fc81",
+            "source_digest": "4c18ebc75b831b8e0ca155c6d0eb9b7e2f0babccaf73395baace62e4db80b3e9",
             "kind": "import",
             "resolved_target": "external:javascript:node:os"
           }
@@ -351308,7 +351314,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "2e5872e6833b92a78c0743d5b9f45a19009dcb545a1229ea33014ca5f0d9fc81",
+            "source_digest": "4c18ebc75b831b8e0ca155c6d0eb9b7e2f0babccaf73395baace62e4db80b3e9",
             "kind": "import",
             "resolved_target": "external:javascript:node:path"
           }
@@ -351331,7 +351337,7 @@
             "start_line": 5,
             "end_line": 12,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "2e5872e6833b92a78c0743d5b9f45a19009dcb545a1229ea33014ca5f0d9fc81",
+            "source_digest": "4c18ebc75b831b8e0ca155c6d0eb9b7e2f0babccaf73395baace62e4db80b3e9",
             "kind": "import",
             "resolved_target": "packages/shared/src/index.ts"
           }
@@ -351351,10 +351357,10 @@
           {
             "path": "apps/local-server/src/hostTerminal.ts",
             "symbol": "parseOnboardingHostActionRequest(rawRequest)",
-            "start_line": 185,
-            "end_line": 185,
+            "start_line": 188,
+            "end_line": 188,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "2e5872e6833b92a78c0743d5b9f45a19009dcb545a1229ea33014ca5f0d9fc81",
+            "source_digest": "4c18ebc75b831b8e0ca155c6d0eb9b7e2f0babccaf73395baace62e4db80b3e9",
             "kind": "call",
             "resolved_target": "packages/shared/src/onboardingContracts.ts",
             "target_symbol": "parseOnboardingHostActionRequest"
@@ -351362,10 +351368,10 @@
           {
             "path": "apps/local-server/src/hostTerminal.ts",
             "symbol": "isOnboardingHostActionId(request.action)",
-            "start_line": 192,
-            "end_line": 192,
+            "start_line": 195,
+            "end_line": 195,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "2e5872e6833b92a78c0743d5b9f45a19009dcb545a1229ea33014ca5f0d9fc81",
+            "source_digest": "4c18ebc75b831b8e0ca155c6d0eb9b7e2f0babccaf73395baace62e4db80b3e9",
             "kind": "call",
             "resolved_target": "packages/shared/src/onboardingContracts.ts",
             "target_symbol": "isOnboardingHostActionId"
@@ -444731,7 +444737,7 @@
             "start_line": 12,
             "end_line": 12,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "42223efa4575aed6d2148e14542206f101f975130f8098b04677fcb12aa549fd",
+            "source_digest": "f431ae981c5b99c5ad194daccd2e8d3f591bcf5c5a509cdfa7a7143d05ff4fcd",
             "kind": "call",
             "resolved_target": "external:javascript:react",
             "target_symbol": "useState"
@@ -444739,10 +444745,10 @@
           {
             "path": "hooks/useDefaultStylePack.ts",
             "symbol": "useEffect(() => {\n    if (!enabled) return;\n    let cancelled = false;\n    let timer: ReturnType<typeof setTimeout> | undefined;\n    const poll = () =>\n      getDefaultStylePackState()\n        .then((next) => {\n          if (cancelled) return;\n          setState(next);\n          if (next.state === 'installing' || next.state === 'idle') timer = setTimeout(poll, 2000);\n        })\n        .catch(() => undefined);\n    void poll();\n    return () => {\n      cancelled = true;\n      clearTimeout(timer);\n    };\n  }, [enabled])",
-            "start_line": 13,
-            "end_line": 30,
+            "start_line": 15,
+            "end_line": 32,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "42223efa4575aed6d2148e14542206f101f975130f8098b04677fcb12aa549fd",
+            "source_digest": "f431ae981c5b99c5ad194daccd2e8d3f591bcf5c5a509cdfa7a7143d05ff4fcd",
             "kind": "call",
             "resolved_target": "external:javascript:react",
             "target_symbol": "useEffect"
@@ -444766,7 +444772,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "42223efa4575aed6d2148e14542206f101f975130f8098b04677fcb12aa549fd",
+            "source_digest": "f431ae981c5b99c5ad194daccd2e8d3f591bcf5c5a509cdfa7a7143d05ff4fcd",
             "kind": "import",
             "resolved_target": "external:javascript:react"
           }
@@ -444786,10 +444792,10 @@
           {
             "path": "hooks/useDefaultStylePack.ts",
             "symbol": "getDefaultStylePackState()",
-            "start_line": 18,
-            "end_line": 18,
+            "start_line": 20,
+            "end_line": 20,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "42223efa4575aed6d2148e14542206f101f975130f8098b04677fcb12aa549fd",
+            "source_digest": "f431ae981c5b99c5ad194daccd2e8d3f591bcf5c5a509cdfa7a7143d05ff4fcd",
             "kind": "call",
             "resolved_target": "services/studio-api/extensions.ts",
             "target_symbol": "getDefaultStylePackState"
@@ -444813,7 +444819,7 @@
             "start_line": 2,
             "end_line": 5,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "42223efa4575aed6d2148e14542206f101f975130f8098b04677fcb12aa549fd",
+            "source_digest": "f431ae981c5b99c5ad194daccd2e8d3f591bcf5c5a509cdfa7a7143d05ff4fcd",
             "kind": "import",
             "resolved_target": "services/studio-api/extensions.ts"
           }
@@ -498226,7 +498232,7 @@
             "start_line": 3,
             "end_line": 3,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "4fca998056b00e3bc9f3e9f09a99a40ba324855ff60f46c407d8b73b3fad0047",
+            "source_digest": "f7112577376f2a9b9d1a7fdc1622555e3822fa4082d8af5e569fd9797116dd34",
             "kind": "import",
             "resolved_target": "external:javascript:node:assert"
           }
@@ -498249,7 +498255,7 @@
             "start_line": 8,
             "end_line": 8,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "4fca998056b00e3bc9f3e9f09a99a40ba324855ff60f46c407d8b73b3fad0047",
+            "source_digest": "f7112577376f2a9b9d1a7fdc1622555e3822fa4082d8af5e569fd9797116dd34",
             "kind": "call",
             "resolved_target": "external:javascript:node:fs",
             "target_symbol": "mkdtempSync"
@@ -498257,10 +498263,10 @@
           {
             "path": "scripts/portability-smoke.ts",
             "symbol": "readFileSync(asset.filePath)",
-            "start_line": 93,
-            "end_line": 93,
+            "start_line": 94,
+            "end_line": 94,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "4fca998056b00e3bc9f3e9f09a99a40ba324855ff60f46c407d8b73b3fad0047",
+            "source_digest": "f7112577376f2a9b9d1a7fdc1622555e3822fa4082d8af5e569fd9797116dd34",
             "kind": "call",
             "resolved_target": "external:javascript:node:fs",
             "target_symbol": "readFileSync"
@@ -498268,10 +498274,10 @@
           {
             "path": "scripts/portability-smoke.ts",
             "symbol": "rmSync(temporaryRoot, { force: true, maxRetries: 5, recursive: true, retryDelay: 100 })",
-            "start_line": 128,
-            "end_line": 128,
+            "start_line": 129,
+            "end_line": 129,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "4fca998056b00e3bc9f3e9f09a99a40ba324855ff60f46c407d8b73b3fad0047",
+            "source_digest": "f7112577376f2a9b9d1a7fdc1622555e3822fa4082d8af5e569fd9797116dd34",
             "kind": "call",
             "resolved_target": "external:javascript:node:fs",
             "target_symbol": "rmSync"
@@ -498295,7 +498301,7 @@
             "start_line": 2,
             "end_line": 2,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "4fca998056b00e3bc9f3e9f09a99a40ba324855ff60f46c407d8b73b3fad0047",
+            "source_digest": "f7112577376f2a9b9d1a7fdc1622555e3822fa4082d8af5e569fd9797116dd34",
             "kind": "import",
             "resolved_target": "external:javascript:node:fs"
           }
@@ -498318,7 +498324,7 @@
             "start_line": 8,
             "end_line": 8,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "4fca998056b00e3bc9f3e9f09a99a40ba324855ff60f46c407d8b73b3fad0047",
+            "source_digest": "f7112577376f2a9b9d1a7fdc1622555e3822fa4082d8af5e569fd9797116dd34",
             "kind": "call",
             "resolved_target": "external:javascript:node:os",
             "target_symbol": "tmpdir"
@@ -498326,10 +498332,10 @@
           {
             "path": "scripts/portability-smoke.ts",
             "symbol": "tmpdir()",
-            "start_line": 124,
-            "end_line": 124,
+            "start_line": 125,
+            "end_line": 125,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "4fca998056b00e3bc9f3e9f09a99a40ba324855ff60f46c407d8b73b3fad0047",
+            "source_digest": "f7112577376f2a9b9d1a7fdc1622555e3822fa4082d8af5e569fd9797116dd34",
             "kind": "call",
             "resolved_target": "external:javascript:node:os",
             "target_symbol": "tmpdir"
@@ -498353,7 +498359,7 @@
             "start_line": 5,
             "end_line": 5,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "4fca998056b00e3bc9f3e9f09a99a40ba324855ff60f46c407d8b73b3fad0047",
+            "source_digest": "f7112577376f2a9b9d1a7fdc1622555e3822fa4082d8af5e569fd9797116dd34",
             "kind": "import",
             "resolved_target": "external:javascript:node:os"
           }
@@ -498376,7 +498382,7 @@
             "start_line": 6,
             "end_line": 6,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "4fca998056b00e3bc9f3e9f09a99a40ba324855ff60f46c407d8b73b3fad0047",
+            "source_digest": "f7112577376f2a9b9d1a7fdc1622555e3822fa4082d8af5e569fd9797116dd34",
             "kind": "import",
             "resolved_target": "external:javascript:node:path"
           }
@@ -498399,7 +498405,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-typescript",
-            "source_digest": "4fca998056b00e3bc9f3e9f09a99a40ba324855ff60f46c407d8b73b3fad0047",
+            "source_digest": "f7112577376f2a9b9d1a7fdc1622555e3822fa4082d8af5e569fd9797116dd34",
             "kind": "import",
             "resolved_target": "packages/shared/src/index.ts"
           }
@@ -517325,7 +517331,7 @@
       "handler_symbol": "main"
     }
   ],
-  "source_digest": "4eddd2a585c8952cd2ee655656c6abec8b2311e81d6bf6b42047eca71ed28598",
+  "source_digest": "fcf5fba3e0043a0020f8ba33c4693a8f1ecd763fa71cbd8614108cb3e2049bd1",
   "changes": {
     "added_nodes": [],
     "removed_nodes": [],
@@ -517336,5 +517342,5 @@
     "changed": false,
     "changed_node_ids": []
   },
-  "generation_id": "5224605a0e638b6188379e827206675b207df8a8e3f9100099c77d37db6aec80"
+  "generation_id": "240c10e30a554d94894d17f8552605124de5e45cde57d5f110656020ff22a567"
 }

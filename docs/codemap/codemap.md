@@ -1,7 +1,7 @@
 # Code map: cozy-studio
 
-Generated: 2026-10-07T19:20:44Z | Commit: `bb315ea8ab0a` | Schema: 2
-Generation: `5224605a0e638b6188379e827206675b207df8a8e3f9100099c77d37db6aec80`
+Generated: 2026-10-07T19:31:48Z | Commit: `3a556884bae9` | Schema: 2
+Generation: `240c10e30a554d94894d17f8552605124de5e45cde57d5f110656020ff22a567`
 Scope: . | Inventory: working-tree
 Nodes: 1064 | Edges: 6623 | Flows: 5
 
@@ -9,7 +9,7 @@ Nodes: 1064 | Edges: 6623 | Flows: 5
 
 - Analysis: **partial**; 978 analyzed of 993 included files.
 - Configuration files: 7; omitted untracked files: 0.
-- Unresolved references and analysis limits: 4238.
+- Unresolved references and analysis limits: 4239.
 - Static references and call paths do not prove runtime execution or test coverage.
 
 ## Modules

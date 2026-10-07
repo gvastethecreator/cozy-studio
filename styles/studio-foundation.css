@@ -610,44 +610,25 @@ react-scan-overlay,
   ::view-transition-group(modal-backdrop),
   ::view-transition-group(top-toolbar),
   ::view-transition-group(bottom-toolbar) {
-    animation-duration: 0.5s;
+    animation-duration: var(--studio-route-dur);
     animation-timing-function: var(--ease-out-expo);
   }
 
-  @keyframes custom-fade-in {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-  @keyframes custom-fade-out {
-    from {
-      opacity: 1;
-    }
-    to {
-      opacity: 0;
-    }
+  html:is([data-transition-type='open-modal'], [data-transition-type='close-modal'])
+    ::view-transition-old(root),
+  html:is([data-transition-type='open-modal'], [data-transition-type='close-modal'])
+    ::view-transition-new(root),
+  html:is([data-transition-type='open-modal'], [data-transition-type='close-modal'])
+    ::view-transition-old(modal-backdrop),
+  html:is([data-transition-type='open-modal'], [data-transition-type='close-modal'])
+    ::view-transition-new(modal-backdrop) {
+    animation: none;
   }
 
-  html[data-transition-type='open-modal'] ::view-transition-group(master-canvas) {
-    animation-duration: 0.7s;
-  }
-
-  html[data-transition-type='open-modal'] ::view-transition-new(modal-backdrop),
-  html[data-transition-type='open-modal'] ::view-transition-new(top-toolbar),
-  html[data-transition-type='open-modal'] ::view-transition-new(bottom-toolbar) {
-    animation: custom-fade-in 0.4s var(--ease-out-expo) 0.3s both;
-  }
-
+  html:is([data-transition-type='open-modal'], [data-transition-type='close-modal'])
+    ::view-transition-old(root),
   html[data-transition-type='close-modal'] ::view-transition-old(modal-backdrop) {
-    animation: custom-fade-out 0.3s var(--ease-out-expo) both;
-  }
-
-  html[data-transition-type='close-modal'] ::view-transition-old(top-toolbar),
-  html[data-transition-type='close-modal'] ::view-transition-old(bottom-toolbar) {
-    animation: custom-fade-out 0s linear both;
+    opacity: 0;
   }
 
   ::view-transition-group(modal-backdrop) {
@@ -681,10 +662,10 @@ react-scan-overlay,
     view-transition-name: none;
   }
 
-  html[data-transition-type] .vt-top-toolbar {
+  html[data-transition-type='route'] .vt-top-toolbar {
     view-transition-name: top-toolbar;
   }
-  html[data-transition-type] .vt-bottom-toolbar {
+  html[data-transition-type='route'] .vt-bottom-toolbar {
     view-transition-name: bottom-toolbar;
   }
 

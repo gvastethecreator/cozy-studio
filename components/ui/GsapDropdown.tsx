@@ -11,6 +11,7 @@ import { createPortal } from 'react-dom';
 import { useGSAP } from '@gsap/react';
 
 import gsap from '../../lib/motionRuntime';
+import { prefersReducedMotion } from '../../lib/motionPreference';
 import { cn } from '../../lib/utils';
 import { workbenchAmbientPortalProps } from '../../lib/workbenchAmbient';
 
@@ -39,12 +40,6 @@ function resolveTransformOrigin(placement: DropdownPlacement) {
 function resolveOffset(placement: DropdownPlacement, open: boolean) {
   const distance = open ? 6 : 4;
   return placement.startsWith('top') ? distance : -distance;
-}
-
-function prefersReducedMotion() {
-  return (
-    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  );
 }
 
 function clamp(value: number, min: number, max: number) {

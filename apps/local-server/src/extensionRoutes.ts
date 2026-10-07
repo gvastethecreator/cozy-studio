@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -16,6 +17,10 @@ import {
 } from './extensionInstaller';
 import type { ExtensionSourceClient, RemoteExtensionSource } from './extensionSources';
 import type { ExtensionStore } from './extensionStore';
+import {
+  createLocalExtensionInstallHandler,
+  LOCAL_EXTENSION_BODY_LIMIT,
+} from './localExtensionInstall';
 
 interface ExtensionRoutesDependencies {
   store: ExtensionStore;
@@ -57,6 +62,12 @@ export function createExtensionRoutes({
   defaultPackId,
 }: ExtensionRoutesDependencies) {
   const app = new Hono();
+  if (remote)
+    app.post(
+      '/install-local',
+      bodyLimit({ maxSize: LOCAL_EXTENSION_BODY_LIMIT }),
+      createLocalExtensionInstallHandler(store, remote.installDir),
+    );
   const isInstalledCopy = (root: string) =>
     remote !== undefined && path.dirname(path.resolve(root)) === path.resolve(remote.installDir);
 

@@ -45,6 +45,18 @@ describe('GsapDropdown Workbench Ambient', () => {
     await waitFor(() => expect((menu as HTMLElement).style.opacity).toBe('1'));
     expect(menu?.hasAttribute('inert')).toBe(false);
     expect(container.querySelector('[data-gsap-dropdown]')).toBe(menu);
+
+    document.documentElement.dataset.motion = 'reduced';
+    try {
+      rerender(<GsapDropdown open={false}>Item</GsapDropdown>);
+      expect(container.querySelector('[data-gsap-dropdown]')).toBeNull();
+      rerender(<GsapDropdown open>Item</GsapDropdown>);
+      expect((container.querySelector('[data-gsap-dropdown]') as HTMLElement).style.opacity).toBe(
+        '1',
+      );
+    } finally {
+      delete document.documentElement.dataset.motion;
+    }
   });
 
   it('keeps keyboard focus in the options, then returns it when the menu closes', async () => {

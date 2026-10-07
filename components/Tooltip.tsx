@@ -8,6 +8,7 @@ interface TooltipProps {
   className?: string;
   contentClassName?: string;
   hidden?: boolean;
+  delay?: number;
 }
 
 const Tooltip: React.FC<TooltipProps> = ({
@@ -17,6 +18,7 @@ const Tooltip: React.FC<TooltipProps> = ({
   className = '',
   contentClassName = '',
   hidden = false,
+  delay,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -38,24 +40,29 @@ const Tooltip: React.FC<TooltipProps> = ({
       onPointerEnter={(event) => {
         if (event.pointerType !== 'touch') setOpen(true);
       }}
-      onPointerLeave={() => setOpen(false)}
+      onPointerLeave={() => {
+        if (!ref.current?.contains(document.activeElement)) setOpen(false);
+      }}
+      onClick={() => setOpen(false)}
       onFocus={() => setOpen(true)}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
       }}
     >
       {children}
-      {open && !hidden && ref.current && (
-        <TooltipBubble
-          anchor={
-            ref.current.querySelector<HTMLElement>('button, a, input, [tabindex]') ?? ref.current
-          }
-          content={content}
-          id={id}
-          position={position}
-          className={contentClassName}
-        />
-      )}
+      <TooltipBubble
+        anchor={
+          open && !hidden
+            ? (ref.current?.querySelector<HTMLElement>('button, a, input, [tabindex]') ??
+              ref.current)
+            : null
+        }
+        content={content}
+        id={id}
+        position={position}
+        className={contentClassName}
+        delay={delay}
+      />
     </div>
   );
 };
@@ -77,15 +84,21 @@ export function ControlTooltips() {
       const control = target?.closest<HTMLElement>(
         '[data-tooltip], button, [role="button"][aria-label], input[aria-label], select[aria-label]',
       );
-      setAnchor(
+      const next =
         control &&
-          !control.hasAttribute('data-tooltip-off') &&
-          !control.closest('.tooltip, [role="tooltip"]')
+        !control.hasAttribute('data-tooltip-off') &&
+        !control.closest('.tooltip, [role="tooltip"]')
           ? control
-          : null,
-      );
+          : null;
+      activeAnchor.current = next;
+      setAnchor(next);
     };
-    const leave = () => setAnchor(null);
+    const leave = (event: Event) => {
+      const related = 'relatedTarget' in event ? event.relatedTarget : null;
+      if (related instanceof Node && activeAnchor.current?.contains(related)) return;
+      activeAnchor.current = null;
+      setAnchor(null);
+    };
     const key = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && activeAnchor.current) {
         setAnchor(null);
@@ -108,7 +121,11 @@ export function ControlTooltips() {
   }, []);
   const content =
     anchor?.dataset.tooltip || anchor?.getAttribute('aria-label') || anchor?.textContent?.trim();
-  return anchor?.isConnected && content ? (
-    <TooltipBubble anchor={anchor} content={content} id={id} />
-  ) : null;
+  return (
+    <TooltipBubble
+      anchor={anchor?.isConnected && content ? anchor : null}
+      content={content}
+      id={id}
+    />
+  );
 }

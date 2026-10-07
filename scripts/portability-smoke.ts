@@ -17,6 +17,7 @@ const server = Bun.spawn(['bun', 'apps/local-server/src/index.ts'], {
   env: {
     ...process.env,
     STUDIO_LIBRARY_DIR: libraryDir,
+    STUDIO_IMAGES_DIR: path.join(temporaryRoot, 'images'),
     STUDIO_SERVER_PORT: String(serverPort),
     STUDIO_CODEX_WS_PORT: String(serverPort + 1),
   },

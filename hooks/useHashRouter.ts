@@ -1,7 +1,7 @@
 import { prefersReducedMotion } from '../lib/motionPreference';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RecipeId } from '../types';
-import { startViewTransition } from '../utils/transitionUtils';
+import { isGlobalTransitioning, startViewTransition } from '../utils/transitionUtils';
 import {
   resolveRecipeAlias,
   resolveRecipeAliasHashSegment,
@@ -130,8 +130,14 @@ export function useHashRouter() {
     resolveHashRouterState(DEFAULT_ROUTE, window.location.hash),
   );
   const routeRef = useRef(route);
+  const pendingRouteRef = useRef<HashRouterState | null>(null);
 
   const commitRoute = useCallback((nextRoute: HashRouterState, beforeCommit?: () => void) => {
+    // The hash event can arrive before the native transition commits its route.
+    if (pendingRouteRef.current && areHashRouterStatesEqual(pendingRouteRef.current, nextRoute)) {
+      beforeCommit?.();
+      return;
+    }
     window.dispatchEvent(new Event('studio-navigation'));
     const applyRoute = () => {
       beforeCommit?.();
@@ -145,15 +151,23 @@ export function useHashRouter() {
     };
 
     const direction = resolveHashRouterTransition(routeRef.current, nextRoute);
-    if (!direction || prefersReducedMotion()) {
+    if (!direction || prefersReducedMotion() || isGlobalTransitioning) {
+      pendingRouteRef.current = null;
       applyRoute();
       return;
     }
 
+    pendingRouteRef.current = nextRoute;
     document.documentElement.dataset.transitionType = 'route';
     document.documentElement.dataset.routeDirection = direction;
-    const transition = startViewTransition(applyRoute, { useNative: true });
+    const transition = startViewTransition(
+      () => {
+        if (pendingRouteRef.current === nextRoute) applyRoute();
+      },
+      { useNative: true },
+    );
     const clearTransition = () => {
+      pendingRouteRef.current = null;
       if (document.documentElement.dataset.transitionType !== 'route') return;
       document.documentElement.removeAttribute('data-transition-type');
       document.documentElement.removeAttribute('data-route-direction');

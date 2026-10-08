@@ -1,6 +1,13 @@
-import { describe, expect, it } from 'vitest';
+/** @vitest-environment jsdom */
+import { act, cleanup, renderHook } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
-import { resolveHashRouterState, resolveHashRouterTransition } from './useHashRouter';
+import {
+  resolveHashRouterState,
+  resolveHashRouterTransition,
+  useHashRouter,
+} from './useHashRouter';
+import { setIsGlobalTransitioning } from '../utils/transitionUtils';
 
 const studioRoute = {
   view: 'studio' as const,
@@ -8,6 +15,59 @@ const studioRoute = {
   activeRecipeAliasId: null,
   overlay: 'none' as const,
 };
+
+it('keeps one native transition through hash sync and lets newer navigation win', async () => {
+  const originalTransition = Object.getOwnPropertyDescriptor(document, 'startViewTransition');
+  let commit: () => void = () => {};
+  let finish: () => void = () => {};
+  const native = vi.fn((callback: () => void) => {
+    commit = callback;
+    return {
+      ready: Promise.resolve(),
+      finished: new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
+    } as ViewTransition;
+  });
+  document.startViewTransition = native;
+  vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+  window.history.replaceState(null, '', '/');
+  try {
+    const { result } = renderHook(useHashRouter);
+    act(() => result.current.navigateToRecipes());
+    act(() => {
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    expect(native).toHaveBeenCalledTimes(1);
+    expect(document.documentElement.dataset.transitionType).toBe('route');
+    act(commit);
+    expect(result.current.route.view).toBe('recipes');
+    await act(async () => {
+      finish();
+    });
+    expect(document.documentElement.dataset.transitionType).toBeUndefined();
+
+    act(() => result.current.navigateToStudio());
+    act(() => result.current.navigateToRecipe('timeline'));
+    act(commit);
+    expect(result.current.route.activeRecipeId).toBe('timeline');
+    await act(async () => {
+      finish();
+    });
+  } finally {
+    cleanup();
+    if (originalTransition) {
+      Object.defineProperty(document, 'startViewTransition', originalTransition);
+    } else {
+      Reflect.deleteProperty(document, 'startViewTransition');
+    }
+    setIsGlobalTransitioning(false);
+    vi.restoreAllMocks();
+    window.history.replaceState(null, '', '/');
+    document.documentElement.removeAttribute('data-transition-type');
+    document.documentElement.removeAttribute('data-route-direction');
+  }
+});
 
 describe('resolveHashRouterState', () => {
   it('maps recipes hash to the recipes view', () => {

@@ -27,6 +27,14 @@ describe('camera recipe', () => {
       framing: 'EXTREME CLOSE-UP (zoomed far in; one detail of the subject fills the frame)',
     });
     expect(getCameraZoomLabel(175)).toBe('175% (closer)');
+    expect(() =>
+      createCameraRecipeParams({
+        azimuth: Number.NaN,
+        elevation: 0,
+        distance: 100,
+        hasReference: true,
+      }),
+    ).toThrow('Invalid camera azimuth');
   });
 
   it('keeps camera position and geometry wording on the same zone', () => {

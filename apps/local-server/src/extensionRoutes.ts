@@ -142,9 +142,11 @@ export function createExtensionRoutes({
     });
     const extensionRoot = path.join(remoteSources.installDir, entry.id);
     const installedLayers: string[] = [];
+    const layersByName = new Map(entry.layers?.map((layer) => [layer.name, layer]));
     for (const name of requestedLayers) {
-      const layer = entry.layers?.find((item) => item.name === name);
+      const layer = layersByName.get(name);
       if (!layer) continue;
+      // react-doctor-disable-next-line react-doctor/async-await-in-loop -- Layers write the same extension root; finish each install before downloading the next.
       const layerArchive = await remoteSources.client.downloadAsset(
         source,
         entry.tag,

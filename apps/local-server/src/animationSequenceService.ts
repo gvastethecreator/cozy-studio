@@ -506,8 +506,8 @@ export function createAnimationSequenceService({
     let changed = false;
     for (const [frame, frameJobs] of jobsByFrame) {
       const correctionMode = readDispatchTarget(frameJobs[0]!.sourceSpec)?.correctionMode === true;
-      const recordedJobIds = listAnimationSequenceFrameJobIds(frame);
-      if (frameJobs.every((job) => recordedJobIds.includes(job.id))) {
+      const recordedJobIds = new Set(listAnimationSequenceFrameJobIds(frame));
+      if (frameJobs.every((job) => recordedJobIds.has(job.id))) {
         if (frame.status !== 'blocked') continue;
       } else {
         frame.dispatch = { jobIds: frameJobs.map((job) => job.id), dispatchedAt: timestamp };
@@ -555,12 +555,15 @@ export function createAnimationSequenceService({
 
   function reconcileRun(runId: string, recoverableJobs: Job[] = []) {
     return updateRun(runId, async (run) => {
+      const recordedJobsByFrame = new Map(
+        run.frames.map((frame) => [frame, new Set(listAnimationSequenceFrameJobIds(frame))]),
+      );
       let changed = recordFrameDispatch(
         run,
         recoverableJobs.filter((job) => {
           const target = readDispatchTarget(job.sourceSpec);
           const frame = target ? resolveFrame(run, target) : null;
-          return frame && !listAnimationSequenceFrameJobIds(frame).includes(job.id);
+          return frame && !recordedJobsByFrame.get(frame)?.has(job.id);
         }),
       );
       for (const frame of run.frames) {

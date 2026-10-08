@@ -72,6 +72,7 @@ export async function migrateIndexedDbWorkspacesToServer(options?: {
     for (const local of localWorkspaces) {
       const id = normalizeWorkspaceId(local.id);
       if (remoteIds.has(id)) continue;
+      // react-doctor-disable-next-line react-doctor/async-await-in-loop -- The returned id updates remoteIds before admitting the next legacy workspace.
       const created = await createRemote({
         id,
         name: local.name?.trim() || (id === DEFAULT_WORKSPACE_ID ? 'Default' : 'Workspace'),

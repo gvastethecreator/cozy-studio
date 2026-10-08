@@ -148,7 +148,9 @@ async function validateContents(archive: Buffer, entry: { id: string; version: s
     runtime.presets.length !== expected.presets.length
   )
     reject('Style pack must contain usable presets and matching runtime data');
-  const presetVersions = new Map(payload.presetManifests.map((preset) => [preset.id, preset.version]));
+  const presetVersions = new Map(
+    payload.presetManifests.map((preset) => [preset.id, preset.version]),
+  );
   for (const [index, preset] of runtime.presets.entries()) {
     const { intentional, ...data } = preset;
     const { intentional: sourcePolicy, ...source } = expected.presets[index];
@@ -178,6 +180,7 @@ async function validateContents(archive: Buffer, entry: { id: string; version: s
     includeStyleText: false,
   });
   if (
+    // react-doctor-disable-next-line react-doctor/no-json-parse-stringify-clone -- Compare the serialized manifest shape: JSON intentionally removes undefined fields.
     !isDeepStrictEqual(json.get(manifest.files.search), JSON.parse(JSON.stringify(expectedSearch)))
   )
     reject('Search references do not match runtime presets');
@@ -198,11 +201,16 @@ async function validateContents(archive: Buffer, entry: { id: string; version: s
       if (!preset.intentional) continue;
       try {
         validateSnapshot({
-          presetId: preset.id, packId: runtime.id, version: preset.intentional.presetVersion,
-          name: preset.name, dna: Object.fromEntries(FIELDS.map((field) => [field, preset.style[field]])),
+          presetId: preset.id,
+          packId: runtime.id,
+          version: preset.intentional.presetVersion,
+          name: preset.name,
+          dna: Object.fromEntries(FIELDS.map((field) => [field, preset.style[field]])),
           policy: preset.intentional.policy,
         });
-      } catch { reject('Invalid archived intentional policy'); }
+      } catch {
+        reject('Invalid archived intentional policy');
+      }
     }
     const allIds = [...runtime.presets, ...archived.presets].map((preset) => preset.id);
     if (new Set(allIds).size !== allIds.length)
@@ -256,13 +264,25 @@ export function createLocalExtensionInstallHandler(
       const checked = await validateContents(archive, entry);
       let installedLayers: string[] = [];
       try {
-        const extension = await installExtensionArchive({ archive, entry, installDir,
+        const extension = await installExtensionArchive({
+          archive,
+          entry,
+          installDir,
           validateInstalled: async () => {
-            const installed = (await store.list({ refresh: true })).extensions.find((item) => item.manifest.id === entry.id);
-            if (!installed || path.resolve(installed.root) !== path.resolve(installDir, entry.id) ||
-                !isDeepStrictEqual(installed.manifest, checked.manifest)) reject('Installed extension does not match its archive');
+            const installed = (await store.list({ refresh: true })).extensions.find(
+              (item) => item.manifest.id === entry.id,
+            );
+            if (
+              !installed ||
+              path.resolve(installed.root) !== path.resolve(installDir, entry.id) ||
+              !isDeepStrictEqual(installed.manifest, checked.manifest)
+            )
+              reject('Installed extension does not match its archive');
             const runtime = await store.readFile(entry.id, checked.manifest.files.runtime);
-            if (!runtime || createHash('sha256').update(runtime).digest('hex') !== checked.runtimeSha256)
+            if (
+              !runtime ||
+              createHash('sha256').update(runtime).digest('hex') !== checked.runtimeSha256
+            )
               reject('Installed runtime does not match its archive');
             installedLayers = installed.layers;
           },

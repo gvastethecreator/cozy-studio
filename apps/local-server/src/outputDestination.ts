@@ -30,13 +30,25 @@ export function reserveOutputPath(root: string, target: string, stateRoot: strin
   const parsed = path.parse(target);
   for (let index = 1; index < 10000; index += 1) {
     const candidate =
+      // react-doctor-disable-next-line react-doctor/path-traversal-risk -- assertOutputInsideRoot checks the registered directory and real ancestors; only the basename suffix changes.
       index === 1 ? target : path.join(parsed.dir, `${parsed.name}-${index}${parsed.ext}`);
     const reservation = path.join(
       stateRoot,
       `${createHash('sha256').update(candidate.toLowerCase()).digest('hex')}.json`,
     );
     if (existsSync(reservation)) {
-      if (JSON.parse(readFileSync(reservation, 'utf8')).jobId === owner) return candidate;
+      const saved: unknown = JSON.parse(readFileSync(reservation, 'utf8'));
+      if (
+        !saved ||
+        typeof saved !== 'object' ||
+        !('jobId' in saved) ||
+        typeof saved.jobId !== 'string' ||
+        !('path' in saved) ||
+        typeof saved.path !== 'string' ||
+        saved.path.toLowerCase() !== candidate.toLowerCase()
+      )
+        throw new Error('Invalid output reservation. The reserved file was not changed.');
+      if (saved.jobId === owner) return candidate;
       continue;
     }
     if (existsSync(candidate)) continue;

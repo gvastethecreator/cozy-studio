@@ -189,7 +189,7 @@ bun run validate
 bun run validate:release
 ```
 
-In VS Code, use **Terminal → Run Task**. Daily tasks are Dev, Test, Check, Format and Build. Provider status, Runtime, Styles, Docs and Logs follow them. Each task runs the same Bun script shown above.
+In VS Code, use **Terminal → Run Task**. Daily tasks are Dev, Test, Check, Format and Build. Validate runs the full local gate for broad product changes. Provider status, Runtime, Styles, Docs and Logs follow them. Each task runs the same Bun script shown above.
 
 Maintenance:
 

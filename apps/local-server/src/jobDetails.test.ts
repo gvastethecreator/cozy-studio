@@ -1,7 +1,82 @@
-import { describe, expect, it } from 'vitest';
+import path from 'node:path';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { Job, JobEventRecord } from '../../../packages/shared/src';
-import { buildJobMetrics, buildJobTraceSummary, parseJobTranscript } from './jobDetails';
+import { createGenerationTaskSpec } from '../../../packages/shared/src/generationContracts';
+import {
+  buildJobMetrics,
+  buildJobTraceSummary,
+  getJobDetail,
+  parseJobTranscript,
+} from './jobDetails';
+
+const detailStore = vi.hoisted(() => ({ job: null as Job | null, outputRoot: '' }));
+vi.mock('./catalog', () => ({ queryCatalogDetails: () => ({ images: [] }) }));
+vi.mock('./db/codexTurns', () => ({ getCodexTurnByJobId: () => null }));
+vi.mock('./db/jobs', () => ({ getJob: () => detailStore.job, listJobAttempts: () => [] }));
+vi.mock('./db/events', () => ({ listJobEvents: () => [] }));
+vi.mock('./db/connection', () => ({
+  getDb: () => ({
+    query: () => ({
+      all: () => [
+        {
+          id: 'output-library',
+          kind: 'output',
+          name: 'Output',
+          path: detailStore.outputRoot,
+          is_default: 0,
+          created_at: '2026-10-08T00:00:00Z',
+        },
+      ],
+    }),
+  }),
+}));
+
+it('projects registered reference URLs for a running job without rewriting its source spec', async () => {
+  detailStore.outputRoot = path.resolve('tmp', '#OUTPUTS', 'CozyStudio');
+  const sourceSpec = createGenerationTaskSpec({
+    id: 'spec-1',
+    task: 'image_generate',
+    prompt: 'Use the reference',
+    assets: [
+      {
+        role: 'reference',
+        name: 'hero',
+        localPath: path.join(detailStore.outputRoot, 'hero image.png'),
+      },
+      {
+        role: 'reference',
+        name: 'outside',
+        localPath: path.resolve('tmp', 'unregistered', 'image.png'),
+      },
+    ],
+  });
+  detailStore.job = {
+    id: 'job-1',
+    workspaceId: 'default',
+    kind: 'image_generate',
+    providerId: 'chatgpt',
+    sourceSpec,
+    status: 'running',
+    execution: null,
+    originalPrompt: sourceSpec.prompt,
+    expandedPrompt: null,
+    finalPromptUsed: sourceSpec.prompt,
+    error: null,
+    createdAt: '2026-10-08T00:00:00Z',
+    updatedAt: '2026-10-08T00:00:01Z',
+    completedAt: null,
+  };
+
+  const detail = await getJobDetail('job-1');
+
+  expect(detail?.job.sourceSpec?.assets[0].sourceUrl).toBe(
+    '/library/output-library/hero%20image.png',
+  );
+  expect(detail?.job.sourceSpec?.assets[1].sourceUrl).toBeUndefined();
+  expect(sourceSpec.assets[0].sourceUrl).toBeUndefined();
+  expect(detailStore.job.sourceSpec).toBe(sourceSpec);
+});
 
 describe('parseJobTranscript', () => {
   it('extracts assistant messages and reasoning-like items from JSONL notifications', () => {

@@ -71,7 +71,7 @@ graph TD
 - `components/shell/StudioViewport.tsx` demand-loads route surfaces.
 - `hooks/useScopedGenerationDraft.ts` projects reference-dependent style instructions and the active Character Lab mode at the draft owner. Remaster adopts a new source's aspect ratio when its dimensions arrive; manual ratio changes survive workflow switches and reloads until the source changes.
 - `hooks/useDialogFocus.ts` opens native modal dialogs and owns scroll locking and focus restoration. Shared menus and tooltips portal into their owning dialog or fullscreen container. Nonmodal workflow panels declare `aria-modal="false"` so they do not block global shortcuts.
-- `CreateWorkflowPicker` presents enabled workflows and Default in a centered, responsive card popover. `RecipeDiscoveryList` retains category semantics and intent preloading; `WorkflowCardArt` supplies distinct 4:3 SVG scenes using the canonical mascot. Arrow keys follow the card layout, Escape restores trigger focus, and pointer entry uses a short CSS unfold with reduced-motion support. Styles remains in the creation rail.
+- `CreateWorkflowPicker` presents enabled workflows and Default in a centered, responsive card popover. `RecipeDiscoveryList` retains category semantics and intent preloading; `WorkflowCardArt` loads distinct 4:3 mascot illustrations from `assets/workflow-cards` as lazy 640x480 WebP images. Each card reserves its image dimensions while loading. Arrow keys follow the card layout, Escape restores trigger focus, and pointer entry uses a short CSS unfold with reduced-motion support. Styles remains in the creation rail.
 - Workbench UI 0.4.0 supplies the visual contract through `styles/workbench-{tokens,precision,ambient,studio}.css`. React owns controls and business state. Workflow inspectors, Settings forms, Jobs, Library controls, and image/style editors use the shared radius, typography, control, and state-color tokens in Carbon and Paper. Native range inputs share the Workbench track/thumb treatment and retain keyboard behavior. Canvas rendering and image pixels remain owned by their editors; the DOM factory and Compose state runtimes are not loaded.
 - Studio uses the Workbench UI font for both chrome and content, with 13px controls, 12px captions and 14px section headings. Single-line controls use the shared 32px row; two-line output selectors use 40px. Settings inherits this scale. Press feedback does not scale whole cards or images; local affordances and overlay owners control their own motion.
 - `components/create/CreateWorkspace.tsx` keeps the main creation rail beside the workflow controls and canvas. The compact style mix stays in the main rail. `RecipeWorkbenchContext` registers the contextual prompt and primary action, and routes workflow controls into the second panel. The prompt grows from 192px to 320px and then scrolls internally; references do not contribute to its height. Provider, model, and the single primary action stay in the main footer. Ctrl+Enter uses the same action and availability as its button. Animation Sequence and Sprite Atlas edit `config.prompt`; Character Lab edits the active mode's `view.prompt`. Workspace, workflow, and alias changes clear these registrations.
@@ -181,7 +181,7 @@ User cancellation and Studio reset record separate reasons. Comfy cancellation m
 The common asset finalizer embeds prompt and model metadata for PNG, JPEG and WebP, including external providers and recovered finalizations, before measuring the file for a new Catalog Entry. Recovery, manual embedding, and bulk embedding also refresh the size of existing Catalog Entries. `jobImageMetadata` uses each provider's prompt compiler and captured execution settings; Codex app-server reports an unknown image model instead of its coordinator model. Historical metadata rewrites use the current compiler with the saved job, not an archived provider request. `metadataEmbedder` changes container metadata without re-encoding pixels; PNG uses UTF-8 iTXt, while JPEG/WebP carry XMP and EXIF. Metadata errors are logged without discarding the provider's image.
 
 High-volume projections stay compact and event-driven.
-Job list rows use `JobSummary` rather than full prompt-bearing jobs.
+Job list rows use `JobSummary` rather than full prompt-bearing jobs. Job detail projects asset URLs through the registered Library that contains each file, including output libraries; the inspector uses these URLs for references without changing the saved task spec.
 Catalog batch mutations emit one scoped `catalog.batch_changed` event.
 The SSE consumer coalesces batch, revision-gap, and reconnect reconciliation.
 
@@ -219,8 +219,10 @@ Current concrete adapters:
   Output above 2560x1440 is experimental on the GPT Image contract.
   Requested canvas dimensions take priority over reference framing in compiled image prompts.
   HTTP image finalization reads the returned pixel dimensions and records them in the catalog.
-  A size mismatch preserves the original image and settles the job as `needs_review`, with both
-  requested and actual sizes; recovery rechecks the saved asset without another provider submission.
+  Different pixel sizes complete normally when the requested aspect ratio is preserved, allowing
+  up to one pixel of rounding. An aspect-ratio mismatch preserves the original image and settles
+  the job as `needs_review`, with both requested and actual sizes; recovery rechecks the saved
+  asset without another provider submission.
   An auth change revalidates the preview and never changes an accepted job's transport.
   HTTP persists a submission marker before its single POST. A lost acknowledgement or restart
   moves the job to review without a second POST or CLI fallback. Only confirmed rejection permits

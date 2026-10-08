@@ -216,56 +216,64 @@ describe('buildJobInspectorDetailModel', () => {
     ]);
   });
 
-  it('prefers persisted localPath over inline dataUrl for reference previews', () => {
-    const detail = createDetail({
-      job: {
-        ...createDetail().job,
-        sourceSpec: {
-          id: 'spec-3',
-          version: 'generation-task-spec/v1',
-          task: 'image_generate',
-          providerId: 'codex',
-          prompt: 'Use the persisted reference',
-          negativePrompt: null,
-          recipeId: null,
-          recipeParams: null,
-          stylePresetId: null,
-          assets: [
-            {
-              role: 'reference',
-              name: 'hero reference.png',
-              localPath: 'D:/AI-Studio-Library/.studio/references/job-9/hero reference.png',
-              dataUrl: `data:image/png;base64,${'A'.repeat(512)}`,
-              strength: 0.5,
+  it.each([undefined, '/library/output-library/hero%20reference.png'])(
+    'prefers the public Library URL or persisted localPath over inline dataUrl (%s)',
+    (sourceUrl) => {
+      const detail = createDetail({
+        job: {
+          ...createDetail().job,
+          sourceSpec: {
+            id: 'spec-3',
+            version: 'generation-task-spec/v1',
+            task: 'image_generate',
+            providerId: 'codex',
+            prompt: 'Use the persisted reference',
+            negativePrompt: null,
+            recipeId: null,
+            recipeParams: null,
+            stylePresetId: null,
+            assets: [
+              {
+                role: 'reference',
+                name: 'hero reference.png',
+                localPath: 'D:/AI-Studio-Library/.studio/references/job-9/hero reference.png',
+                sourceUrl,
+                dataUrl: `data:image/png;base64,${'A'.repeat(512)}`,
+                strength: 0.5,
+              },
+            ],
+            quality: null,
+            output: {
+              count: 1,
+              aspectRatio: '1:1',
+              imageSize: '1K',
+              mimeType: 'image/png',
+              requiresLocalAsset: true,
+              requiresCatalogEntry: true,
+              requiresExactPath: true,
+              background: 'opaque',
             },
-          ],
-          quality: null,
-          output: {
-            count: 1,
-            aspectRatio: '1:1',
-            imageSize: '1K',
-            mimeType: 'image/png',
-            requiresLocalAsset: true,
-            requiresCatalogEntry: true,
-            requiresExactPath: true,
-            background: 'opaque',
+            metadata: {},
           },
-          metadata: {},
+          finalPromptUsed: 'Reference image: B:/#OUTPUTS/CozyStudio/hero reference.png',
         },
-      },
-    });
+      });
 
-    const model = buildJobInspectorDetailModel(detail, {
-      assetBaseUrl: 'http://localhost:17223',
-    });
+      const model = buildJobInspectorDetailModel(detail, {
+        assetBaseUrl: 'http://localhost:17223',
+      });
+      const expectedUrl = sourceUrl
+        ? `http://localhost:17223${sourceUrl}`
+        : 'http://localhost:17223/library/.studio/references/job-9/hero%20reference.png';
 
-    expect(model.request.referenceArtifacts).toEqual([
-      expect.objectContaining({
-        href: 'http://localhost:17223/library/.studio/references/job-9/hero%20reference.png',
-        previewSrc: 'http://localhost:17223/library/.studio/references/job-9/hero%20reference.png',
-      }),
-    ]);
-  });
+      expect(model.request.referenceArtifacts).toEqual([
+        expect.objectContaining({
+          href: expectedUrl,
+          previewSrc: expectedUrl,
+        }),
+      ]);
+    },
+  );
 
   it('derives legacy reference previews from final prompt paths when source assets miss localPath', () => {
     const detail = createDetail({

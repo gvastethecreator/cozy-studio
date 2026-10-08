@@ -51,6 +51,7 @@ export const CreateWorkflowPicker: React.FC<CreateWorkflowPickerProps> = ({
   const [open, setOpen] = useState<'pointer' | 'keyboard' | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
   const recipeDiscovery = useMemo(() => createRecipeDiscoveryProjection(), []);
   const activeId =
     selectedId ??
@@ -74,6 +75,10 @@ export const CreateWorkflowPicker: React.FC<CreateWorkflowPickerProps> = ({
         '--create-workflow-popover-top',
         `${rootRef.current.getBoundingClientRect().bottom + 7}px`,
       );
+      const toolbar = rootRef.current.closest('.studio-toolbar-shell');
+      if (toolbar && backdropRef.current) {
+        backdropRef.current.style.top = `${toolbar.getBoundingClientRect().bottom}px`;
+      }
     };
     updatePopoverPosition();
     window.addEventListener('resize', updatePopoverPosition);
@@ -90,6 +95,7 @@ export const CreateWorkflowPicker: React.FC<CreateWorkflowPickerProps> = ({
     const handlePointerDown = (event: PointerEvent) => {
       if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
         setOpen(null);
+        rootRef.current.querySelector<HTMLButtonElement>('[aria-haspopup]')?.focus();
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -115,6 +121,7 @@ export const CreateWorkflowPicker: React.FC<CreateWorkflowPickerProps> = ({
 
   return (
     <section className="create-workflow-block is-header" aria-label="Workflow">
+      {open && <div ref={backdropRef} className="create-workflow-backdrop" aria-hidden="true" />}
       <div ref={rootRef} className="create-workflow-row">
         <Tooltip content="Workflow" position="bottom">
           <button

@@ -51,14 +51,21 @@ describe('workerAssetFinalizer', () => {
     expect(result.model).toBe('unknown');
   });
 
-  it.each(['1024x1536', '2048x1536'])(
-    'preserves the HTTP image and reviews a mismatch against %s',
-    async (requestedSize) => {
+  it.each([
+    { requestedSize: '1024x1536', width: 1024, height: 1536, needsReview: false },
+    { requestedSize: '2048x1536', width: 1024, height: 1536, needsReview: true },
+    { requestedSize: '1024x1024', width: 1254, height: 1254, needsReview: false },
+    { requestedSize: '1024x1536', width: 1254, height: 1881, needsReview: false },
+    { requestedSize: '1536x864', width: 1672, height: 941, needsReview: false },
+    { requestedSize: '1536x864', width: 1672, height: 960, needsReview: true },
+  ])(
+    'preserves $width x $height against $requestedSize (review: $needsReview)',
+    async ({ requestedSize, width, height, needsReview }) => {
       const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'worker-asset-finalizer-'));
       const organizedPath = path.join(tempRoot, 'outputs', 'final.png');
       mkdirSync(path.dirname(organizedPath), { recursive: true });
       const original = await sharp({
-        create: { width: 1024, height: 1536, channels: 3, background: '#345678' },
+        create: { width, height, channels: 3, background: '#345678' },
       })
         .png()
         .toBuffer();
@@ -72,8 +79,8 @@ describe('workerAssetFinalizer', () => {
         thumbnailPath: `${organizedPath}.thumb.webp`,
         publicUrl: '/library/outputs/final.png',
         prompt: 'prompt',
-        width: 1024,
-        height: 1536,
+        width,
+        height,
         mimeType: 'image/png',
         createdAt: new Date().toISOString(),
         deletedAt: null,
@@ -203,8 +210,8 @@ describe('workerAssetFinalizer', () => {
             filePath: organizedPath,
             thumbnailPath: `${organizedPath}.thumb.webp`,
             publicUrl: '/library/outputs/final.png',
-            width: 1024,
-            height: 1536,
+            width,
+            height,
           }),
         );
         expect(registerCatalogImage).toHaveBeenCalledWith(
@@ -213,8 +220,8 @@ describe('workerAssetFinalizer', () => {
             filePath: organizedPath,
             thumbnailPath: `${organizedPath}.thumb.webp`,
             fileSizeBytes: original.length + 17,
-            width: 1024,
-            height: 1536,
+            width,
+            height,
           }),
         );
         expect(embedMetadataMock).toHaveBeenCalledWith(
@@ -226,11 +233,11 @@ describe('workerAssetFinalizer', () => {
         );
         expect(embedMetadataMock.mock.calls[0][1].prompt).toContain('Avoid:\nsin texto');
         expect(readFileSync(organizedPath).subarray(0, original.length)).toEqual(original);
-        if (requestedSize === '2048x1536') {
+        if (needsReview) {
           expect(updateJobStatus).toHaveBeenCalledWith(
             'job-finalizer-1',
             'needs_review',
-            expect.stringContaining('returned 1024x1536'),
+            expect.stringContaining(`returned ${width}x${height} with a different aspect ratio`),
           );
           expect(addJobEvent).toHaveBeenCalledWith(
             'job-finalizer-1',
@@ -238,7 +245,7 @@ describe('workerAssetFinalizer', () => {
             expect.stringContaining('saved in Library'),
             expect.objectContaining({
               requestedSize,
-              actualSize: '1024x1536',
+              actualSize: `${width}x${height}`,
               catalogId: 'catalog-1',
             }),
           );
@@ -246,6 +253,7 @@ describe('workerAssetFinalizer', () => {
         } else {
           expect(updateJobStatus).toHaveBeenCalledWith('job-finalizer-1', 'completed');
           expect(publishEvent).toHaveBeenCalledWith('job.completed', expect.anything());
+          expect(publishEvent).not.toHaveBeenCalledWith('job.needs_review', expect.anything());
         }
         expect(updateJobFinalization.mock.calls.map((call) => call[1].state)).toEqual([
           'moving_asset',

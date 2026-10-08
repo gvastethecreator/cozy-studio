@@ -690,7 +690,7 @@ function JobReferencePreview({
             alt={primaryReference.label}
             width={512}
             height={512}
-            className="h-[214px] w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] object-cover"
+            className="h-[214px] w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] object-contain"
             loading="lazy"
             decoding="async"
           />

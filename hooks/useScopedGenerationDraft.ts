@@ -1,10 +1,38 @@
 import { useCallback, useMemo } from 'react';
-import type { ImageGenerationConfig } from '../types';
-import { DEFAULT_GENERATION_CONFIG } from '../constants';
+import type { AspectRatio, ImageGenerationConfig } from '../types';
+import { DEFAULT_GENERATION_CONFIG, RATIO_MAP } from '../constants';
 import useIndexedDBStorage from './useIndexedDBStorage';
-import { restoreCharacterLabDraft, updateCharacterLabView } from '../lib/characterLabDraft';
+import {
+  activateCharacterLabView,
+  restoreCharacterLabDraft,
+  updateCharacterLabView,
+} from '../lib/characterLabDraft';
+import type { CharacterLabModeId } from '../lib/characterLabCatalog.generated';
+import { projectStyleCompositionDraft } from '../components/recipes/styleCompositionDraft';
 
 const EMPTY_DRAFTS: Record<string, ImageGenerationConfig> = {};
+
+function withWorkspaceAttachments(
+  current: ImageGenerationConfig,
+  next: ImageGenerationConfig,
+  recipe = next.recipeId,
+): ImageGenerationConfig {
+  const previousSource = current.attachments[0];
+  const source = next.attachments[0];
+  if (
+    recipe !== 'remaster' ||
+    !source?.width ||
+    !source.height ||
+    (source.id === previousSource?.id && previousSource.width && previousSource.height)
+  )
+    return next;
+  const target = Math.log(source.width / source.height);
+  const distance = (ratio: AspectRatio) => Math.abs(Math.log(RATIO_MAP[ratio]) - target);
+  const aspectRatio = (Object.keys(RATIO_MAP) as AspectRatio[]).reduce((best, ratio) =>
+    distance(ratio) < distance(best) ? ratio : best,
+  );
+  return { ...next, aspectRatio };
+}
 
 function getWorkspaceScope(scope: string) {
   return scope.slice(0, scope.lastIndexOf(':'));
@@ -34,7 +62,9 @@ function shareWorkspaceAttachments(
   return Object.fromEntries(
     Object.entries(drafts).map(([key, draft]) => [
       key,
-      key.startsWith(`${workspace}:`) ? { ...draft, attachments } : draft,
+      key.startsWith(`${workspace}:`)
+        ? withWorkspaceAttachments(draft, { ...draft, attachments })
+        : draft,
     ]),
   );
 }
@@ -42,6 +72,7 @@ function shareWorkspaceAttachments(
 export function useScopedGenerationDraft(
   scope: string,
   prepare: (config: ImageGenerationConfig) => ImageGenerationConfig,
+  characterLabMode?: CharacterLabModeId,
 ) {
   // Preserve the original draft at its existing key; recipe drafts have explicit scopes.
   const [legacy, , legacyReady] = useIndexedDBStorage<ImageGenerationConfig>(
@@ -73,11 +104,17 @@ export function useScopedGenerationDraft(
   const workspace = useMemo(() => getWorkspaceScope(scope), [scope]);
   const config = useMemo(() => {
     const active = drafts[scope] ?? initial;
-    return {
-      ...active,
-      attachments: collectWorkspaceAttachments(drafts, workspace, active),
-    };
-  }, [drafts, initial, scope, workspace]);
+    const shared = withWorkspaceAttachments(
+      active,
+      {
+        ...active,
+        attachments: collectWorkspaceAttachments(drafts, workspace, active),
+      },
+      scope.endsWith(':remaster') ? 'remaster' : active.recipeId,
+    );
+    if (scope.endsWith(':character-lab')) return activateCharacterLabView(shared, characterLabMode);
+    return scope.endsWith(':studio') ? projectStyleCompositionDraft(shared) : shared;
+  }, [drafts, initial, scope, workspace, characterLabMode]);
   const setConfig = useCallback(
     (
       update: ImageGenerationConfig | ((current: ImageGenerationConfig) => ImageGenerationConfig),
@@ -86,10 +123,20 @@ export function useScopedGenerationDraft(
       setDrafts((current) => {
         const active = current[scope] ?? initial;
         const sharedAttachments = collectWorkspaceAttachments(current, workspace, active);
-        let updated =
-          typeof update === 'function'
-            ? update({ ...active, attachments: sharedAttachments })
-            : update;
+        const shared = withWorkspaceAttachments(
+          active,
+          { ...active, attachments: sharedAttachments },
+          scope.endsWith(':remaster') ? 'remaster' : active.recipeId,
+        );
+        const currentView = scope.endsWith(':character-lab')
+          ? activateCharacterLabView(shared, characterLabMode)
+          : shared;
+        let updated = typeof update === 'function' ? update(currentView) : update;
+        updated = withWorkspaceAttachments(
+          currentView,
+          updated,
+          scope.endsWith(':remaster') ? 'remaster' : updated.recipeId,
+        );
         if (updated.recipeId === 'character-lab' && updated.characterLabDraft) {
           updated = updateCharacterLabView(updated, updated.characterLabDraft.activeMode, {
             prompt: updated.prompt ?? '',
@@ -98,13 +145,14 @@ export function useScopedGenerationDraft(
             outputBackground: updated.outputBackground ?? 'workflow',
           });
         }
+        if (scope.endsWith(':studio')) updated = projectStyleCompositionDraft(updated);
         return {
           ...shareWorkspaceAttachments(current, workspace, updated.attachments),
           [scope]: updated,
         };
       });
     },
-    [scope, initial, setDrafts, legacyReady, draftsReady, workspace],
+    [scope, initial, setDrafts, legacyReady, draftsReady, workspace, characterLabMode],
   );
   const setRecipeDraft = useCallback(
     (recipeId: ImageGenerationConfig['recipeId'], value: ImageGenerationConfig) => {

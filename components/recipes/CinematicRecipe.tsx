@@ -1,7 +1,5 @@
-import React, { useState, useRef, useMemo, useCallback, useId } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
 import {
-  Check,
-  NavArrowDown as ChevronDown,
   Movie as Clapperboard,
   VideoCamera as Video,
   Lens as Aperture,
@@ -21,7 +19,6 @@ import { useRecipeContextRegistration } from '../../hooks/useRecipeContextRegist
 import { RecipeLayout } from './RecipeLayout';
 import { ControlDropdown } from './RecipeUI';
 import { QuickStartText } from './QuickStartText';
-import { DemandMountedGsapDropdown } from '../ui/DemandMountedGsapDropdown';
 import {
   getRecipeModuleUiModel,
   getRecipeNumberDefault,
@@ -89,84 +86,6 @@ function getCinematicGrid(frames: number, sheetAspect: number) {
   return best;
 }
 
-const ShotTypeDropdown: React.FC<{
-  value: string;
-  sceneLabel: string;
-  openBelow: boolean;
-  onChange: (value: string) => void;
-}> = ({ value, sceneLabel, openBelow, onChange }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const listboxId = useId();
-
-  return (
-    <div className="relative min-w-0 max-w-[min(120px,100%)]">
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => setIsOpen((open) => !open)}
-        className={`flex min-h-7 max-w-full items-center gap-1.5 rounded border px-2 py-1 text-center text-[length:var(--wbp-label)] font-bold tracking-normal transition-[background-color,border-color,color,transform] ${
-          isOpen
-            ? 'border-[color:var(--wb-accent)] bg-[color-mix(in_srgb,var(--wb-accent)_14%,transparent)] text-[color:var(--wb-ink)]'
-            : 'border-[color:var(--wb-line)] bg-[color:var(--wb-well)] text-[color:var(--wb-muted)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)]'
-        }`}
-        aria-label={`${sceneLabel} shot type: ${value}`}
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-        aria-controls={listboxId}
-      >
-        <span className="truncate">{value}</span>
-        <ChevronDown
-          width={11}
-          height={11}
-          className={`shrink-0 text-[color:var(--wb-ink)]/45 transition-[color,transform] ${
-            isOpen ? 'rotate-180 text-[color:var(--wb-ink)]' : ''
-          }`}
-          aria-hidden="true"
-        />
-      </button>
-      <DemandMountedGsapDropdown
-        portal
-        id={listboxId}
-        open={isOpen}
-        onOpenChange={setIsOpen}
-        triggerRef={triggerRef}
-        placement={openBelow ? 'bottom-left' : 'top-left'}
-        role="listbox"
-        aria-label={`${sceneLabel} shot type`}
-        className="max-h-48 w-44 overflow-y-auto rounded-[var(--wb-radius)] p-1"
-      >
-        {SHOT_TYPES.map((shot) => {
-          const selected = shot === value;
-          return (
-            <button
-              key={shot}
-              type="button"
-              role="option"
-              aria-selected={selected}
-              data-dropdown-item
-              onClick={() => {
-                onChange(shot);
-                setIsOpen(false);
-              }}
-              className={`flex min-h-8 w-full items-center justify-between gap-2 rounded-[var(--wb-radius)] px-2 py-1.5 text-left text-[length:var(--wbp-label)] font-semibold tracking-normal transition-[background-color,color] ${
-                selected
-                  ? 'bg-[color-mix(in_srgb,var(--wb-accent)_18%,transparent)] text-[color:var(--wb-ink)]'
-                  : 'text-[color:var(--wb-muted)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)]'
-              }`}
-            >
-              <span className="truncate">{shot}</span>
-              {selected ? (
-                <Check width={11} height={11} className="shrink-0 text-[color:var(--wb-danger)]" />
-              ) : null}
-            </button>
-          );
-        })}
-      </DemandMountedGsapDropdown>
-    </div>
-  );
-};
-
 export const CinematicRecipe: React.FC<CinematicRecipeProps> = ({
   config,
   updateConfig,
@@ -186,6 +105,9 @@ export const CinematicRecipe: React.FC<CinematicRecipeProps> = ({
   const [frameShots, setFrameShots] = useState<Record<number, string>>(
     () => (config.recipeParams?.frameShots as Record<number, string>) ?? {},
   );
+
+  const [selectedFrame, setSelectedFrame] = useState(0);
+  const activeFrame = Math.min(selectedFrame, params.frames - 1);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activeImage = config.attachments[0];
@@ -305,6 +227,13 @@ export const CinematicRecipe: React.FC<CinematicRecipeProps> = ({
 
         <div className="h-10 w-px bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] mx-2 hidden xl:block" />
 
+        <ControlDropdown
+          title={`Scene ${activeFrame + 1} shot`}
+          icon={<Clapperboard width={14} height={14} />}
+          label={frameShots[activeFrame] || 'Auto'}
+          options={SHOT_TYPES}
+          onSelect={(value) => setFrameShots((previous) => ({ ...previous, [activeFrame]: value }))}
+        />
         <details className="recipe-advanced">
           <summary>Advanced camera and mood</summary>
           <div className="recipe-advanced-grid">
@@ -340,7 +269,7 @@ export const CinematicRecipe: React.FC<CinematicRecipeProps> = ({
         </details>
       </>
     ),
-    [params, handleFrameChange],
+    [params, handleFrameChange, activeFrame, frameShots],
   );
 
   return (
@@ -375,22 +304,21 @@ export const CinematicRecipe: React.FC<CinematicRecipeProps> = ({
           }}
         >
           {Array.from({ length: params.frames }).map((_, i) => (
-            <div
+            <button
+              type="button"
+              aria-label={`Select scene ${i + 1}`}
+              aria-pressed={activeFrame === i}
+              onClick={() => setSelectedFrame(i)}
               key={i}
-              className="relative min-w-0 bg-white/[0.02] backdrop-blur-[1px] flex flex-col items-center justify-center border border-[color:var(--wb-line)] group/cell pointer-events-auto"
+              className="relative min-w-0 bg-white/[0.02] backdrop-blur-[1px] flex flex-col items-center justify-center border border-[color:var(--wb-line)] group/cell pointer-events-auto aria-pressed:ring-2 aria-pressed:ring-inset aria-pressed:ring-[color:var(--wb-accent)]"
             >
               <span className="text-[length:var(--wbp-label)] font-semibold text-[color:var(--wb-muted)] group-hover/cell:text-[color:var(--wb-ink)] tracking-normal transition-colors mb-2">
                 {i === 0 ? 'START' : i === params.frames - 1 ? 'END' : `SCENE ${i + 1}`}
               </span>
-              <ShotTypeDropdown
-                value={frameShots[i] || 'Auto'}
-                sceneLabel={
-                  i === 0 ? 'Start scene' : i === params.frames - 1 ? 'End scene' : `Scene ${i + 1}`
-                }
-                openBelow={i < gridLayout.cols}
-                onChange={(value) => setFrameShots((prev) => ({ ...prev, [i]: value }))}
-              />
-            </div>
+              <span className="text-xs text-[color:var(--wb-muted)]">
+                {frameShots[i] || 'Auto'}
+              </span>
+            </button>
           ))}
         </div>
 

@@ -98,6 +98,41 @@ function formatTimestamp(value: string | null) {
   });
 }
 
+function JobFailureBanner({ detail }: { detail: JobDetailResponse }) {
+  const { status, error } = detail.job;
+  const diagnostic = readLatestSubscriptionHttpDiagnostic(detail.events);
+  const isFailure = status === 'failed';
+  const title = isFailure ? 'Job failed' : 'Job was cancelled';
+  const body = error
+    ? error
+    : isFailure
+      ? 'No error details were recorded. Check the activity timeline for more context.'
+      : 'This job was cancelled before it could complete.';
+
+  return (
+    <section className="rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-500/8 p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex items-start gap-3">
+          <AlertCircle
+            width={18}
+            height={18}
+            className="mt-0.5 shrink-0 text-[color:var(--wb-danger)]"
+          />
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-[color:var(--wb-danger)] ">{title}</h3>
+            <p className="mt-2 text-[13px] leading-6 text-[color:var(--wb-danger)]  [overflow-wrap:anywhere]">
+              {body}
+            </p>
+            {isFailure && diagnostic ? (
+              <SubscriptionHttpDiagnosticNotice value={diagnostic} />
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function JobStatusBanner({
   detail,
   hasReadableAssistantReply,
@@ -108,38 +143,7 @@ function JobStatusBanner({
   const { status, error } = detail.job;
   const diagnostic = readLatestSubscriptionHttpDiagnostic(detail.events);
 
-  if (status === 'failed' || status === 'cancelled') {
-    const isFailure = status === 'failed';
-    const title = isFailure ? 'Job failed' : 'Job was cancelled';
-    const body = error
-      ? error
-      : isFailure
-        ? 'No error details were recorded. Check the activity timeline for more context.'
-        : 'This job was cancelled before it could complete.';
-
-    return (
-      <section className="rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-500/8 p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex items-start gap-3">
-            <AlertCircle
-              width={18}
-              height={18}
-              className="mt-0.5 shrink-0 text-[color:var(--wb-danger)]"
-            />
-            <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-[color:var(--wb-danger)] ">{title}</h3>
-              <p className="mt-2 text-[13px] leading-6 text-[color:var(--wb-danger)]  [overflow-wrap:anywhere]">
-                {body}
-              </p>
-              {isFailure && diagnostic ? (
-                <SubscriptionHttpDiagnosticNotice value={diagnostic} />
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  if (status === 'failed' || status === 'cancelled') return <JobFailureBanner detail={detail} />;
 
   if (status === 'needs_review') {
     const transcriptPath = detail.turn?.transcriptPath;
@@ -569,55 +573,315 @@ function TimelineItemCard({ item }: { item: JobInspectorTimelineItem }) {
   );
 }
 
-// react-doctor-disable-next-line react-doctor/no-giant-component -- inspector view intentionally kept cohesive pending dedicated decomposition pass
-export const JobInspectorDetail: React.FC<JobInspectorDetailProps> = ({
-  detail,
-  onClearSelectedJob,
-  onRetryJob,
-}) => {
-  const model = useMemo(
-    () =>
-      buildJobInspectorDetailModel(detail, {
-        assetBaseUrl: getStudioApiBase(),
-      }),
-    [detail],
-  );
-
-  const titlePrompt = detail.job.finalPromptUsed || detail.job.originalPrompt;
-  const hasReadableAssistantReply = model.timeline.some(
-    (item) => item.sourceType === 'transcript' && item.tone === 'message',
-  );
-  const referenceArtifacts = model.request.referenceArtifacts;
-  const primaryOutput = model.outputs[0] ?? null;
-  const primaryReference = referenceArtifacts[0] ?? null;
-  const additionalReferences = referenceArtifacts.slice(1);
-  const primaryCatalogImage = detail.catalogImages[0] ?? null;
-  const referenceSourceSpec =
-    detail.job.sourceSpec?.assets.find((asset) => asset.role === 'reference') ?? null;
-
-  const outputName = primaryOutput?.label || 'Returned image';
-  const outputMeta = [
+function outputMetadata(
+  primaryCatalogImage: JobDetailResponse['catalogImages'][number] | undefined,
+) {
+  return [
     primaryCatalogImage?.width && primaryCatalogImage?.height
       ? `${primaryCatalogImage.width} × ${primaryCatalogImage.height}`
       : null,
     primaryCatalogImage?.mimeType?.replace('image/', '').toUpperCase() ?? null,
     primaryCatalogImage?.aspectRatio ?? null,
   ].filter(Boolean) as string[];
+}
 
-  const requestFactMap = new Map(model.request.facts.map((fact) => [fact.label, fact.value]));
-  const snapshotItems = [
-    ['Task', requestFactMap.get('Task') ?? detail.job.kind],
-    ['Provider', requestFactMap.get('Provider') ?? detail.job.providerId ?? '—'],
-    ['Input assets', requestFactMap.get('Input assets') ?? '0'],
-    [
-      'Reference assets',
-      requestFactMap.get('Reference assets') ?? String(referenceArtifacts.length),
-    ],
-    ['Prompt chars', requestFactMap.get('Final prompt chars') ?? String(titlePrompt.length)],
-    ['Transcript path', detail.turn?.transcriptPath ?? '—'],
-  ] as const;
+function JobOutputPreview({
+  detail,
+  primaryOutput,
+}: {
+  detail: JobDetailResponse;
+  primaryOutput: ReturnType<typeof buildJobInspectorDetailModel>['outputs'][number] | null;
+}) {
+  const outputName = primaryOutput?.label || 'Returned image';
+  const outputMeta = outputMetadata(detail.catalogImages[0]);
 
-  const executionItems = [
+  const pending = detail.job.status === 'queued' || detail.job.status === 'running';
+  const preview = primaryOutput?.previewSrc || primaryOutput?.href;
+  return (
+    <section className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] overflow-hidden">
+      <div className="flex items-center justify-between border-b border-[color:var(--wb-line)] px-4 py-3">
+        <div className="flex items-center gap-2 text-[11px] font-semibold tracking-normal text-[color:var(--wb-ink)]">
+          <MediaImage width={14} height={14} className="text-[color:var(--wb-success)]" />
+          <span>{pending ? 'Output pending' : 'Returned image'}</span>
+        </div>
+        <span
+          className={cn(
+            'rounded-[var(--wb-radius)] border px-2 py-0.5 text-[length:var(--wbp-label)] font-semibold tracking-normal',
+            toneForStatus(detail.job.status),
+          )}
+        >
+          {detail.job.status}
+        </span>
+      </div>
+
+      <div className="bg-[color:var(--wb-well)]">
+        {preview ? (
+          <img
+            src={preview}
+            alt={outputName}
+            width={1024}
+            height={1024}
+            className="h-[320px] w-full object-contain bg-[color:var(--wb-panel)]"
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          <div className="flex min-h-20 items-center justify-center p-4 text-sm text-[color:var(--wb-muted)]">
+            {pending
+              ? 'The image will appear here when the provider returns it.'
+              : 'This job returned no image.'}
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--wb-line)] px-4 py-3">
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold tracking-normal text-[color:var(--wb-ink)]">
+            {outputName}
+          </p>
+          <p className="mt-1 text-[11px] text-[color:var(--wb-muted)]">
+            {outputMeta.length > 0
+              ? outputMeta.join(' · ')
+              : pending
+                ? 'Details appear when the output arrives'
+                : 'No output metadata available'}
+          </p>
+        </div>
+        {primaryOutput?.href ? (
+          <a
+            href={primaryOutput.href}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-3 py-1.5 text-[length:var(--wbp-label)] font-semibold tracking-[0.16em] text-[color:var(--wb-ink)] transition-colors hover:border-[color:var(--wb-border)] hover:text-[color:var(--wb-ink)]"
+          >
+            Open image
+          </a>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function JobReferencePreview({
+  detail,
+  referenceArtifacts,
+}: {
+  detail: JobDetailResponse;
+  referenceArtifacts: ReturnType<
+    typeof buildJobInspectorDetailModel
+  >['request']['referenceArtifacts'];
+}) {
+  const primaryReference = referenceArtifacts[0] ?? null;
+  const additionalReferences = referenceArtifacts.slice(1);
+  const referenceSourceSpec =
+    detail.job.sourceSpec?.assets.find((asset) => asset.role === 'reference') ?? null;
+  if (!primaryReference) return null;
+  return (
+    <section className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] overflow-hidden">
+      <div className="flex items-center gap-2 border-b border-[color:var(--wb-line)] px-4 py-3 text-[11px] font-semibold tracking-normal text-[color:var(--wb-ink)]">
+        <Layers3 width={14} height={14} className="text-indigo-300" />
+        <span>Reference context</span>
+      </div>
+
+      <div className="p-3">
+        {primaryReference?.previewSrc || primaryReference?.href ? (
+          <img
+            src={primaryReference.previewSrc ?? primaryReference?.href ?? ''}
+            alt={primaryReference.label}
+            width={512}
+            height={512}
+            className="h-[214px] w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          <div className="flex h-[214px] items-center justify-center rounded-[var(--wb-radius)] border border-dashed border-[color:var(--wb-line)] text-sm text-[color:var(--wb-muted)]">
+            No reference image.
+          </div>
+        )}
+      </div>
+
+      <div className="border-t border-[color:var(--wb-line)] px-4 py-3 space-y-2">
+        <p className="truncate text-[11px] font-semibold tracking-normal text-[color:var(--wb-ink)]">
+          {primaryReference?.label ?? 'Reference unavailable'}
+        </p>
+        <div className="flex items-center justify-between text-[11px] text-[color:var(--wb-muted)]">
+          <span className="tracking-[0.16em] text-[color:var(--wb-muted)] text-[length:var(--wbp-label)] font-semibold">
+            Reference strength
+          </span>
+          <span className="font-mono text-[color:var(--wb-ink)]">
+            {referenceSourceSpec?.strength != null ? referenceSourceSpec.strength.toFixed(2) : '—'}
+          </span>
+        </div>
+        <div className="h-1.5 rounded-full bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)]">
+          <div
+            className="h-full rounded-full bg-indigo-300"
+            style={{
+              width: `${Math.max(0, Math.min(100, (referenceSourceSpec?.strength ?? 0) * 100))}%`,
+            }}
+          />
+        </div>
+
+        {additionalReferences.length > 0 ? (
+          <div className="space-y-2 pt-1">
+            <p className="text-[length:var(--wbp-label)] font-semibold tracking-[0.16em] text-[color:var(--wb-muted)]">
+              More references ({additionalReferences.length})
+            </p>
+            <div className="custom-scrollbar flex gap-2 overflow-x-auto pb-1">
+              {additionalReferences.map((artifact) => {
+                const preview = artifact.previewSrc ?? artifact.href;
+                return (
+                  <a
+                    key={artifact.id}
+                    href={artifact.href ?? undefined}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block size-16 shrink-0"
+                  >
+                    <div className="size-16 overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)]">
+                      {preview ? (
+                        <img
+                          src={preview}
+                          alt={artifact.label}
+                          width={64}
+                          height={64}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[length:var(--wbp-label)] text-[color:var(--wb-muted)]">
+                          N/A
+                        </div>
+                      )}
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function JobAttemptHistory({ detail }: { detail: JobDetailResponse }) {
+  return (
+    <>
+      {detail.attempts?.length ? (
+        <details className="mt-2 text-xs text-[color:var(--wb-muted)]">
+          <summary className="cursor-pointer">Previous attempts ({detail.attempts.length})</summary>
+          {detail.attempts.map((attempt) => (
+            <p key={attempt.attempt} className="mt-1">
+              Attempt {attempt.attempt}: {attempt.job.status}
+              {attempt.metrics
+                ? ` · elapsed ${formatDuration(findTiming(attempt.metrics.timings, 'total'))}`
+                : ''}
+              {attempt.job.error ? ` — ${attempt.job.error}` : ''}
+            </p>
+          ))}
+        </details>
+      ) : null}
+    </>
+  );
+}
+
+function JobInspectorHeader({
+  detail,
+  model,
+  onClearSelectedJob,
+  onRetryJob,
+}: JobInspectorDetailProps & { model: ReturnType<typeof buildJobInspectorDetailModel> }) {
+  const titlePrompt = detail.job.finalPromptUsed || detail.job.originalPrompt;
+  const referenceArtifacts = model.request.referenceArtifacts;
+  return (
+    <div className="border-b border-[color:var(--wb-line)] px-5 py-4 sm:px-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span
+              className={cn(
+                'rounded-full border px-2.5 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal',
+                toneForStatus(detail.job.status),
+              )}
+            >
+              {detail.job.status}
+            </span>
+            <span className="rounded-full border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-2.5 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
+              {detail.job.kind.replace(/_/g, ' ')}
+            </span>
+            <span className="rounded-full border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-2.5 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
+              {detail.job.providerId ?? 'provider unknown'}
+            </span>
+          </div>
+
+          <p className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
+            Job inspector
+          </p>
+          <h2 className="mt-2 max-w-5xl text-[21px] font-semibold leading-tight text-[color:var(--wb-ink)]">
+            {truncateHeadline(titlePrompt)}
+          </h2>
+          <JobAttemptHistory detail={detail} />
+          <p className="mt-2 text-sm text-[color:var(--wb-muted)]">
+            Accepted execution:{' '}
+            {detail.job.execution?.providerOptions?.codex
+              ? describeCodexExecution(detail.job.execution.providerOptions.codex)
+              : `${detail.job.providerId ?? 'Provider'} · ${detail.job.status === 'queued' || detail.job.status === 'running' ? 'execution details pending' : 'transport not recorded'}`}
+          </p>
+          <details className="mt-3 text-xs text-[color:var(--wb-muted)]">
+            <summary className="cursor-pointer">Execution details</summary>
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-[color:var(--wb-muted)]">
+              <span className="font-mono [overflow-wrap:anywhere]">{detail.job.id}</span>
+              <span>
+                {detail.job.attemptQueuedAt
+                  ? `Attempt ${detail.job.attempt ?? 1}`
+                  : 'Earlier attempt timing unavailable'}
+              </span>
+              <span>•</span>
+              <span>{model.stats.transcriptCount} transcript steps</span>
+              {model.stats.collapsedTranscriptCount > 0 ? (
+                <>
+                  <span>•</span>
+                  <span>{model.stats.collapsedTranscriptCount} streaming updates compacted</span>
+                </>
+              ) : null}
+              <span>•</span>
+              <span>{model.stats.eventCount} system events</span>
+              <span>•</span>
+              <span>{model.stats.outputCount} returned images</span>
+              <span>•</span>
+              <span>{referenceArtifacts.length} reference context</span>
+            </div>
+          </details>
+        </div>
+
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {onRetryJob && (canRetryStudioJob(detail.job) || canResumeStudioJob(detail.job)) ? (
+            <button
+              type="button"
+              onClick={() => onRetryJob(detail.job.id)}
+              className="inline-flex items-center justify-center gap-2 rounded-[var(--wb-radius)] border border-accent-500/2 bg-[color:var(--wb-well)] px-4 py-2.5 text-[length:var(--wbp-label)] font-semibold tracking-normal text-accent-100 transition-colors hover:border-accent-400/2 hover:bg-[color:var(--wb-well)] hover:text-[color:var(--wb-ink)] cursor-pointer"
+            >
+              <RotateCcw width={14} height={14} />
+              <span>{canResumeStudioJob(detail.job) ? 'Resume job' : 'Retry job'}</span>
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onClearSelectedJob}
+            className="shrink-0 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-4 py-2.5 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)] transition-colors hover:border-[color:var(--wb-border)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)] cursor-pointer"
+          >
+            Back to activity
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function executionFacts(detail: JobDetailResponse) {
+  return [
     ['Created', new Date(detail.job.createdAt).toLocaleString()],
     ['Completed', detail.job.completedAt ? new Date(detail.job.completedAt).toLocaleString() : '—'],
     ['Model', detail.job.execution?.model || 'default'],
@@ -643,272 +907,65 @@ export const JobInspectorDetail: React.FC<JobInspectorDetailProps> = ({
     ],
     ['Token source', detail.metrics.tokenUsage?.source || 'not reported'],
   ] as const;
+}
+
+export const JobInspectorDetail: React.FC<JobInspectorDetailProps> = ({
+  detail,
+  onClearSelectedJob,
+  onRetryJob,
+}) => {
+  const model = useMemo(
+    () =>
+      buildJobInspectorDetailModel(detail, {
+        assetBaseUrl: getStudioApiBase(),
+      }),
+    [detail],
+  );
+
+  const titlePrompt = detail.job.finalPromptUsed || detail.job.originalPrompt;
+  const hasReadableAssistantReply = model.timeline.some(
+    (item) => item.sourceType === 'transcript' && item.tone === 'message',
+  );
+  const referenceArtifacts = model.request.referenceArtifacts;
+  const primaryOutput = model.outputs[0] ?? null;
+
+  const requestFactMap = new Map(model.request.facts.map((fact) => [fact.label, fact.value]));
+  const snapshotItems = [
+    ['Task', requestFactMap.get('Task') ?? detail.job.kind],
+    ['Provider', requestFactMap.get('Provider') ?? detail.job.providerId ?? '—'],
+    ['Input assets', requestFactMap.get('Input assets') ?? '0'],
+    [
+      'Reference assets',
+      requestFactMap.get('Reference assets') ?? String(referenceArtifacts.length),
+    ],
+    ['Prompt chars', requestFactMap.get('Final prompt chars') ?? String(titlePrompt.length)],
+    ['Transcript path', detail.turn?.transcriptPath ?? '—'],
+  ] as const;
+
+  const executionItems = executionFacts(detail);
 
   return (
     <section className="overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] shadow-[0_28px_90px_rgba(0,0,0,0.45)]">
-      <div className="border-b border-[color:var(--wb-line)] px-5 py-4 sm:px-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span
-                className={cn(
-                  'rounded-full border px-2.5 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal',
-                  toneForStatus(detail.job.status),
-                )}
-              >
-                {detail.job.status}
-              </span>
-              <span className="rounded-full border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-2.5 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
-                {detail.job.kind.replace(/_/g, ' ')}
-              </span>
-              <span className="rounded-full border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-2.5 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                {detail.job.providerId ?? 'provider unknown'}
-              </span>
-            </div>
-
-            <p className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-              Job inspector
-            </p>
-            <h2 className="mt-2 max-w-5xl text-[21px] font-semibold leading-tight text-[color:var(--wb-ink)]">
-              {truncateHeadline(titlePrompt)}
-            </h2>
-            {detail.attempts?.length ? (
-              <details className="mt-2 text-xs text-[color:var(--wb-muted)]">
-                <summary className="cursor-pointer">
-                  Previous attempts ({detail.attempts.length})
-                </summary>
-                {detail.attempts.map((attempt) => (
-                  <p key={attempt.attempt} className="mt-1">
-                    Attempt {attempt.attempt}: {attempt.job.status}
-                    {attempt.metrics
-                      ? ` · elapsed ${formatDuration(findTiming(attempt.metrics.timings, 'total'))}`
-                      : ''}
-                    {attempt.job.error ? ` — ${attempt.job.error}` : ''}
-                  </p>
-                ))}
-              </details>
-            ) : null}
-            <p className="mt-2 text-sm text-[color:var(--wb-muted)]">
-              Accepted execution:{' '}
-              {detail.job.execution?.providerOptions?.codex
-                ? describeCodexExecution(detail.job.execution.providerOptions.codex)
-                : `${detail.job.providerId ?? 'Provider'} · ${detail.job.status === 'queued' || detail.job.status === 'running' ? 'execution details pending' : 'transport not recorded'}`}
-            </p>
-            <details className="mt-3 text-xs text-[color:var(--wb-muted)]">
-              <summary className="cursor-pointer">Execution details</summary>
-              <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-[color:var(--wb-muted)]">
-                <span className="font-mono [overflow-wrap:anywhere]">{detail.job.id}</span>
-                <span>
-                  {detail.job.attemptQueuedAt
-                    ? `Attempt ${detail.job.attempt ?? 1}`
-                    : 'Earlier attempt timing unavailable'}
-                </span>
-                <span>•</span>
-                <span>{model.stats.transcriptCount} transcript steps</span>
-                {model.stats.collapsedTranscriptCount > 0 ? (
-                  <>
-                    <span>•</span>
-                    <span>{model.stats.collapsedTranscriptCount} streaming updates compacted</span>
-                  </>
-                ) : null}
-                <span>•</span>
-                <span>{model.stats.eventCount} system events</span>
-                <span>•</span>
-                <span>{model.stats.outputCount} returned images</span>
-                <span>•</span>
-                <span>{referenceArtifacts.length} reference context</span>
-              </div>
-            </details>
-          </div>
-
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
-            {onRetryJob && (canRetryStudioJob(detail.job) || canResumeStudioJob(detail.job)) ? (
-              <button
-                type="button"
-                onClick={() => onRetryJob(detail.job.id)}
-                className="inline-flex items-center justify-center gap-2 rounded-[var(--wb-radius)] border border-accent-500/2 bg-[color:var(--wb-well)] px-4 py-2.5 text-[length:var(--wbp-label)] font-semibold tracking-normal text-accent-100 transition-colors hover:border-accent-400/2 hover:bg-[color:var(--wb-well)] hover:text-[color:var(--wb-ink)] cursor-pointer"
-              >
-                <RotateCcw width={14} height={14} />
-                <span>{canResumeStudioJob(detail.job) ? 'Resume job' : 'Retry job'}</span>
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={onClearSelectedJob}
-              className="shrink-0 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-4 py-2.5 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)] transition-colors hover:border-[color:var(--wb-border)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)] cursor-pointer"
-            >
-              Back to activity
-            </button>
-          </div>
-        </div>
-      </div>
+      <JobInspectorHeader
+        detail={detail}
+        model={model}
+        onClearSelectedJob={onClearSelectedJob}
+        onRetryJob={onRetryJob}
+      />
 
       <div className="space-y-5 p-5 sm:p-6">
         <div
           className={
-            primaryReference
+            referenceArtifacts.length > 0
               ? 'grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,0.9fr)]'
               : 'grid gap-4'
           }
         >
           <JobStatusBanner detail={detail} hasReadableAssistantReply={hasReadableAssistantReply} />
 
-          <section className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[color:var(--wb-line)] px-4 py-3">
-              <div className="flex items-center gap-2 text-[11px] font-semibold tracking-normal text-[color:var(--wb-ink)]">
-                <MediaImage width={14} height={14} className="text-[color:var(--wb-success)]" />
-                <span>
-                  {detail.job.status === 'queued' || detail.job.status === 'running'
-                    ? 'Output pending'
-                    : 'Returned image'}
-                </span>
-              </div>
-              <span
-                className={cn(
-                  'rounded-[var(--wb-radius)] border px-2 py-0.5 text-[length:var(--wbp-label)] font-semibold tracking-normal',
-                  toneForStatus(detail.job.status),
-                )}
-              >
-                {detail.job.status}
-              </span>
-            </div>
+          <JobOutputPreview detail={detail} primaryOutput={primaryOutput} />
 
-            <div className="bg-[color:var(--wb-well)]">
-              {primaryOutput?.previewSrc || primaryOutput?.href ? (
-                <img
-                  src={primaryOutput.previewSrc ?? primaryOutput?.href ?? ''}
-                  alt={outputName}
-                  width={1024}
-                  height={1024}
-                  className="h-[320px] w-full object-contain bg-[color:var(--wb-panel)]"
-                  loading="lazy"
-                  decoding="async"
-                />
-              ) : (
-                <div className="flex min-h-20 items-center justify-center p-4 text-sm text-[color:var(--wb-muted)]">
-                  {detail.job.status === 'queued' || detail.job.status === 'running'
-                    ? 'The image will appear here when the provider returns it.'
-                    : 'This job returned no image.'}
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--wb-line)] px-4 py-3">
-              <div className="min-w-0">
-                <p className="truncate text-xs font-semibold tracking-normal text-[color:var(--wb-ink)]">
-                  {outputName}
-                </p>
-                <p className="mt-1 text-[11px] text-[color:var(--wb-muted)]">
-                  {outputMeta.length > 0
-                    ? outputMeta.join(' · ')
-                    : detail.job.status === 'queued' || detail.job.status === 'running'
-                      ? 'Details appear when the output arrives'
-                      : 'No output metadata available'}
-                </p>
-              </div>
-              {primaryOutput?.href ? (
-                <a
-                  href={primaryOutput.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-3 py-1.5 text-[length:var(--wbp-label)] font-semibold tracking-[0.16em] text-[color:var(--wb-ink)] transition-colors hover:border-[color:var(--wb-border)] hover:text-[color:var(--wb-ink)]"
-                >
-                  Open image
-                </a>
-              ) : null}
-            </div>
-          </section>
-
-          {primaryReference && (
-            <section className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] overflow-hidden">
-              <div className="flex items-center gap-2 border-b border-[color:var(--wb-line)] px-4 py-3 text-[11px] font-semibold tracking-normal text-[color:var(--wb-ink)]">
-                <Layers3 width={14} height={14} className="text-indigo-300" />
-                <span>Reference context</span>
-              </div>
-
-              <div className="p-3">
-                {primaryReference?.previewSrc || primaryReference?.href ? (
-                  <img
-                    src={primaryReference.previewSrc ?? primaryReference?.href ?? ''}
-                    alt={primaryReference.label}
-                    width={512}
-                    height={512}
-                    className="h-[214px] w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] object-cover"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ) : (
-                  <div className="flex h-[214px] items-center justify-center rounded-[var(--wb-radius)] border border-dashed border-[color:var(--wb-line)] text-sm text-[color:var(--wb-muted)]">
-                    No reference image.
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-[color:var(--wb-line)] px-4 py-3 space-y-2">
-                <p className="truncate text-[11px] font-semibold tracking-normal text-[color:var(--wb-ink)]">
-                  {primaryReference?.label ?? 'Reference unavailable'}
-                </p>
-                <div className="flex items-center justify-between text-[11px] text-[color:var(--wb-muted)]">
-                  <span className="tracking-[0.16em] text-[color:var(--wb-muted)] text-[length:var(--wbp-label)] font-semibold">
-                    Reference strength
-                  </span>
-                  <span className="font-mono text-[color:var(--wb-ink)]">
-                    {referenceSourceSpec?.strength != null
-                      ? referenceSourceSpec.strength.toFixed(2)
-                      : '—'}
-                  </span>
-                </div>
-                <div className="h-1.5 rounded-full bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)]">
-                  <div
-                    className="h-full rounded-full bg-indigo-300"
-                    style={{
-                      width: `${Math.max(0, Math.min(100, (referenceSourceSpec?.strength ?? 0) * 100))}%`,
-                    }}
-                  />
-                </div>
-
-                {additionalReferences.length > 0 ? (
-                  <div className="space-y-2 pt-1">
-                    <p className="text-[length:var(--wbp-label)] font-semibold tracking-[0.16em] text-[color:var(--wb-muted)]">
-                      More references ({additionalReferences.length})
-                    </p>
-                    <div className="custom-scrollbar flex gap-2 overflow-x-auto pb-1">
-                      {additionalReferences.map((artifact) => {
-                        const preview = artifact.previewSrc ?? artifact.href;
-                        return (
-                          <a
-                            key={artifact.id}
-                            href={artifact.href ?? undefined}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block size-16 shrink-0"
-                          >
-                            <div className="size-16 overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)]">
-                              {preview ? (
-                                <img
-                                  src={preview}
-                                  alt={artifact.label}
-                                  width={64}
-                                  height={64}
-                                  className="h-full w-full object-cover"
-                                  loading="lazy"
-                                  decoding="async"
-                                />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center text-[length:var(--wbp-label)] text-[color:var(--wb-muted)]">
-                                  N/A
-                                </div>
-                              )}
-                            </div>
-                          </a>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </section>
-          )}
+          <JobReferencePreview detail={detail} referenceArtifacts={referenceArtifacts} />
         </div>
 
         <section className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] overflow-hidden">

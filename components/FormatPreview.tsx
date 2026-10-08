@@ -28,9 +28,9 @@ export const FormatPreview: React.FC<FormatPreviewProps> = ({
         >
           <MotionDiv
             key={ratio}
-            initial={{ scale: 0.95, opacity: 0, filter: 'blur(10px)' }}
-            animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
-            exit={{ scale: 1.05, opacity: 0, filter: 'blur(10px)' }}
+            initial={{ scale: 0.95 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 1.05 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className={`relative size-full max-w-full max-h-full border-2 border-dashed rounded-[var(--wb-radius)] flex items-center justify-center overflow-hidden
               ${

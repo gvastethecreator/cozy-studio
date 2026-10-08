@@ -66,6 +66,7 @@ export function SettingsGeneralPanel({
           <span className="flex items-center gap-2">
             <input
               type="range"
+              className="studio-range"
               aria-label="Default style intensity"
               aria-valuetext={`${Math.round(value.defaultStyleIntensity * 100)}%`}
               min={0.1}

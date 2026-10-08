@@ -28,7 +28,11 @@ it('retains exiting surfaces without interaction and cancels removal on rapid re
   expect(screen.getByRole('button', { name: 'Settings' })).toBeTruthy();
   view.rerender(surface(false));
   act(() => {
-    vi.advanceTimersByTime(120);
+    vi.advanceTimersByTime(100);
+  });
+  expect(screen.getByText('Settings').closest('[inert]')).toBeTruthy();
+  act(() => {
+    vi.advanceTimersByTime(20);
   });
   expect(screen.queryByText('Settings')).toBeNull();
   view.rerender(

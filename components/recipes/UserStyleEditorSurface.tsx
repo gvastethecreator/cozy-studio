@@ -138,7 +138,7 @@ function mergeSourceData(sourceData: unknown, extraData: Record<string, unknown>
   return { previous: sourceData, ...extraData };
 }
 
-const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
+function useUserStyleEditorSessionController({
   mode,
   initialDraft,
   initialSource,
@@ -147,9 +147,9 @@ const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
   onClose,
   onSaved,
   onArchived,
-}) => {
+}: UserStyleEditorSurfaceProps) {
   const [draft, setDraft] = useState<UserStylePresetDraft>(initialDraft);
-  const [source, setSource] = useState<UserStylePresetSource | null>(initialSource);
+  const sourceRef = useRef<UserStylePresetSource | null>(initialSource);
   const [section, setSection] = useState<'basics' | 'dna' | 'references' | 'assistant'>('basics');
   const [referenceImages, setReferenceImages] = useState<ReferenceImageItem[]>([]);
   const [disabledDraftFields, setDisabledDraftFields] = useState<UserStyleDraftFieldId[]>([]);
@@ -162,7 +162,12 @@ const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
   const [isAssisting, setIsAssisting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const referenceImageUrlsRef = useRef<string[]>([]);
-  const dialogRef = useDialogFocus(true, onClose, undefined, '[aria-label="Close style editor"]');
+  const dialogRef = useDialogFocus<HTMLDialogElement>(
+    true,
+    onClose,
+    undefined,
+    '[aria-label="Close style editor"]',
+  );
 
   useEffect(
     () => () => {
@@ -240,6 +245,7 @@ const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
     }
 
     const items = images.map((file, index) => {
+      // react-doctor-disable-next-line react-doctor/no-create-object-url-without-revoke -- Registered immediately below; removal, overflow and unmount revoke the same previewUrl.
       const previewUrl = URL.createObjectURL(file);
       referenceImageUrlsRef.current.push(previewUrl);
       return {
@@ -273,13 +279,10 @@ const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
     });
     setAssistAction('draft_from_description');
     setAssistPrompt((current) => current || DEFAULT_REFERENCE_ASSIST_PROMPT);
-    setSource(
-      (current) =>
-        current ?? {
-          kind: 'manual',
-          note: 'Created from visual references in Style Editor.',
-        },
-    );
+    sourceRef.current ??= {
+      kind: 'manual',
+      note: 'Created from visual references in Style Editor.',
+    };
   };
 
   const handleRemoveReferenceImage = (id: string) => {
@@ -301,7 +304,7 @@ const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
 
   const createSourceForSave = () => {
     const baseSource =
-      source ??
+      sourceRef.current ??
       ({
         kind: 'manual',
         note: 'Created manually in Style Editor.',
@@ -349,7 +352,7 @@ const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
       setTagsText(nextDraft.tags.join(', '));
       setAvoidRulesText(nextDraft.avoidRules.join('\n'));
       setAssistWarnings(uniqueTextList([...nextDraft.warnings, ...response.warnings]));
-      setSource({
+      sourceRef.current = {
         kind: 'codex_assist',
         note:
           includedReferenceImages.length > 0
@@ -361,7 +364,7 @@ const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
           referenceImages: includedReferenceImages,
           disabledDraftFields,
         },
-      });
+      };
     } catch (assistError) {
       setError(getErrorMessage(assistError));
     } finally {
@@ -428,15 +431,79 @@ const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
     assistant: 'Assistant',
   };
 
+  return {
+    dialogRef,
+    mode,
+    draft,
+    onClose,
+    sections,
+    section,
+    setSection,
+    sectionLabels,
+    updateDraft,
+    tagsText,
+    setTagsText,
+    updateVisualDna,
+    toggleTask,
+    avoidRulesText,
+    setAvoidRulesText,
+    handleReferenceFiles,
+    includedReferenceImages,
+    referenceImages,
+    updateReferenceImage,
+    handleRemoveReferenceImage,
+    assistAction,
+    setAssistAction,
+    assistPrompt,
+    setAssistPrompt,
+    disabledDraftFieldSet,
+    toggleDraftField,
+    handleAssist,
+    isAssisting,
+    isSaving,
+    normalizedDraft,
+    previewPrompt,
+    assistWarnings,
+    handleDuplicate,
+    handleArchive,
+    error,
+    handleSave,
+    canSave,
+  };
+}
+
+type UserStyleEditorSessionViewModel = ReturnType<typeof useUserStyleEditorSessionController>;
+
+function UserStyleEditorSessionView({ model }: { model: UserStyleEditorSessionViewModel }) {
+  const {
+    dialogRef,
+    mode,
+    draft,
+    onClose,
+    sections,
+    section,
+    setSection,
+    sectionLabels,
+    isAssisting,
+    isSaving,
+    normalizedDraft,
+    previewPrompt,
+    assistWarnings,
+    handleDuplicate,
+    handleArchive,
+    error,
+    handleSave,
+    canSave,
+  } = model;
+
   return (
-    <div
+    <dialog
       data-user-style-editor
       ref={dialogRef}
-      role="dialog"
       aria-modal="true"
       aria-label="Style editor"
       tabIndex={-1}
-      className="studio-style-editor absolute inset-0 z-50 flex flex-col bg-[color:var(--wb-panel)] text-[color:var(--wb-ink)]"
+      className="studio-modal studio-style-editor absolute inset-0 z-50 flex flex-col bg-[color:var(--wb-panel)] text-[color:var(--wb-ink)]"
     >
       <header className="user-style-header">
         <div>
@@ -490,213 +557,7 @@ const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
             </button>
           ))}
         </nav>
-        <section
-          className="user-style-form"
-          role="tabpanel"
-          id={`style-editor-${section}`}
-          aria-labelledby={`style-editor-tab-${section}`}
-        >
-          {section === 'basics' && (
-            <>
-              <h3>Give your style an identity</h3>
-              <label>
-                Name
-                <input
-                  value={draft.name}
-                  onChange={(event) => updateDraft('name', event.target.value)}
-                  maxLength={160}
-                />
-              </label>
-              <label>
-                Category
-                <input
-                  value={draft.category}
-                  onChange={(event) => updateDraft('category', event.target.value)}
-                />
-              </label>
-              <label>
-                Tags
-                <input
-                  value={tagsText}
-                  onChange={(event) => setTagsText(event.target.value)}
-                  placeholder="Separate tags with commas"
-                />
-              </label>
-              <label>
-                Creative brief
-                <textarea
-                  value={draft.visualDna.creative_brief ?? ''}
-                  onChange={(event) => updateVisualDna('creative_brief', event.target.value)}
-                  rows={4}
-                />
-              </label>
-              <fieldset>
-                <legend>Use this style for</legend>
-                <div className="user-style-chip-list">
-                  {USER_STYLE_SUPPORTED_TASKS.map((task) => (
-                    <button
-                      key={task}
-                      type="button"
-                      aria-pressed={draft.supportedTasks.includes(task)}
-                      onClick={() => toggleTask(task)}
-                    >
-                      {taskLabel(task)}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-            </>
-          )}
-          {section === 'dna' && (
-            <>
-              <h3>Define the visual language</h3>
-              <div className="user-style-dna-fields">
-                {USER_STYLE_DNA_FIELDS.map((field) => (
-                  <label key={field.key}>
-                    {field.label}
-                    <textarea
-                      value={draft.visualDna[field.key] ?? ''}
-                      onChange={(event) => updateVisualDna(field.key, event.target.value)}
-                      rows={3}
-                    />
-                  </label>
-                ))}
-              </div>
-              <label>
-                Avoid
-                <textarea
-                  value={avoidRulesText}
-                  onChange={(event) => setAvoidRulesText(event.target.value)}
-                  rows={3}
-                />
-              </label>
-            </>
-          )}
-          {section === 'references' && (
-            <>
-              <h3>Collect visual references</h3>
-              <label className="user-style-upload">
-                <Upload width={24} height={24} />
-                Add reference images
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  aria-label="Add style reference images"
-                  onChange={(event) => {
-                    handleReferenceFiles(event.target.files);
-                    event.target.value = '';
-                  }}
-                />
-              </label>
-              <p>
-                {includedReferenceImages.length} of {MAX_REFERENCE_IMAGES} references included
-              </p>
-              <div className="user-style-reference-grid">
-                {referenceImages.map((image) => (
-                  <article key={image.id}>
-                    <img src={image.previewUrl} alt={image.name} />
-                    <p>
-                      {image.name} · {formatFileSize(image.sizeBytes)}
-                    </p>
-                    <div className="user-style-chip-list">
-                      <button
-                        type="button"
-                        aria-pressed={image.included}
-                        onClick={() =>
-                          updateReferenceImage(image.id, { included: !image.included })
-                        }
-                      >
-                        {image.included ? 'Included' : 'Excluded'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updateReferenceImage(image.id, {
-                            role:
-                              image.role === 'avoid_reference'
-                                ? 'style_reference'
-                                : 'avoid_reference',
-                          })
-                        }
-                      >
-                        {image.role === 'avoid_reference' ? 'Avoid' : 'Style reference'}
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Remove ${image.name}`}
-                        onClick={() => handleRemoveReferenceImage(image.id)}
-                      >
-                        <X width={14} height={14} />
-                      </button>
-                    </div>
-                    <label>
-                      Reference notes
-                      <input
-                        value={image.notes ?? ''}
-                        onChange={(event) =>
-                          updateReferenceImage(image.id, { notes: event.target.value })
-                        }
-                      />
-                    </label>
-                  </article>
-                ))}
-              </div>
-            </>
-          )}
-          {section === 'assistant' && (
-            <>
-              <h3>Develop your style</h3>
-              <label>
-                Action
-                <select
-                  value={assistAction}
-                  onChange={(event) => setAssistAction(event.target.value as UserStyleDraftAction)}
-                >
-                  {DRAFT_ACTIONS.map((action) => (
-                    <option key={action.id} value={action.id}>
-                      {action.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Instructions
-                <textarea
-                  aria-label="Style assistant instructions"
-                  value={assistPrompt}
-                  onChange={(event) => setAssistPrompt(event.target.value)}
-                  rows={6}
-                  placeholder="Describe the visual language you want to create or improve."
-                />
-              </label>
-              <details>
-                <summary>Fields the assistant can change</summary>
-                <div className="user-style-chip-list">
-                  {DRAFT_FIELD_SWITCHES.map((field) => (
-                    <button
-                      key={field.id}
-                      type="button"
-                      aria-pressed={!disabledDraftFieldSet.has(field.id)}
-                      onClick={() => toggleDraftField(field.id)}
-                    >
-                      {field.label}
-                    </button>
-                  ))}
-                </div>
-              </details>
-              <button
-                type="button"
-                className="studio-primary-control"
-                onClick={handleAssist}
-                disabled={isAssisting || isSaving}
-              >
-                <Sparkles width={16} height={16} />
-                {isAssisting ? 'Working…' : 'Apply assistant draft'}
-              </button>
-            </>
-          )}
-        </section>
+        <UserStyleEditorForm model={model} />
         <aside className="user-style-preview" aria-label="Style draft preview">
           <h3>Prompt preview</h3>
           <p>{normalizedDraft.category || 'Uncategorized'}</p>
@@ -744,10 +605,278 @@ const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = ({
           {isSaving ? 'Saving…' : 'Save style'}
         </button>
       </footer>
-    </div>
+    </dialog>
   );
+}
+
+const UserStyleEditorSession: React.FC<UserStyleEditorSurfaceProps> = (props) => {
+  const view = useUserStyleEditorSessionController(props);
+  return <UserStyleEditorSessionView model={view} />;
 };
 
 export const UserStyleEditorSurface: React.FC<UserStyleEditorSurfaceProps> = (props) => (
   <UserStyleEditorSession key={props.sessionId} {...props} />
 );
+
+function UserStyleEditorForm({
+  model,
+}: {
+  model: Pick<
+    UserStyleEditorSessionViewModel,
+    | 'section'
+    | 'draft'
+    | 'updateDraft'
+    | 'tagsText'
+    | 'setTagsText'
+    | 'updateVisualDna'
+    | 'toggleTask'
+    | 'avoidRulesText'
+    | 'setAvoidRulesText'
+    | 'handleReferenceFiles'
+    | 'includedReferenceImages'
+    | 'referenceImages'
+    | 'updateReferenceImage'
+    | 'handleRemoveReferenceImage'
+    | 'assistAction'
+    | 'setAssistAction'
+    | 'assistPrompt'
+    | 'setAssistPrompt'
+    | 'disabledDraftFieldSet'
+    | 'toggleDraftField'
+    | 'handleAssist'
+    | 'isAssisting'
+    | 'isSaving'
+  >;
+}) {
+  const {
+    section,
+    draft,
+    updateDraft,
+    tagsText,
+    setTagsText,
+    updateVisualDna,
+    toggleTask,
+    avoidRulesText,
+    setAvoidRulesText,
+    handleReferenceFiles,
+    includedReferenceImages,
+    referenceImages,
+    updateReferenceImage,
+    handleRemoveReferenceImage,
+    assistAction,
+    setAssistAction,
+    assistPrompt,
+    setAssistPrompt,
+    disabledDraftFieldSet,
+    toggleDraftField,
+    handleAssist,
+    isAssisting,
+    isSaving,
+  } = model;
+
+  return (
+    <section
+      className="user-style-form"
+      role="tabpanel"
+      id={`style-editor-${section}`}
+      aria-labelledby={`style-editor-tab-${section}`}
+    >
+      {section === 'basics' && (
+        <>
+          <h3>Give your style an identity</h3>
+          <label>
+            Name
+            <input
+              value={draft.name}
+              onChange={(event) => updateDraft('name', event.target.value)}
+              maxLength={160}
+            />
+          </label>
+          <label>
+            Category
+            <input
+              value={draft.category}
+              onChange={(event) => updateDraft('category', event.target.value)}
+            />
+          </label>
+          <label>
+            Tags
+            <input
+              value={tagsText}
+              onChange={(event) => setTagsText(event.target.value)}
+              placeholder="Separate tags with commas"
+            />
+          </label>
+          <label>
+            Creative brief
+            <textarea
+              value={draft.visualDna.creative_brief ?? ''}
+              onChange={(event) => updateVisualDna('creative_brief', event.target.value)}
+              rows={4}
+            />
+          </label>
+          <fieldset>
+            <legend>Use this style for</legend>
+            <div className="user-style-chip-list">
+              {USER_STYLE_SUPPORTED_TASKS.map((task) => (
+                <button
+                  key={task}
+                  type="button"
+                  aria-pressed={draft.supportedTasks.includes(task)}
+                  onClick={() => toggleTask(task)}
+                >
+                  {taskLabel(task)}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        </>
+      )}
+      {section === 'dna' && (
+        <>
+          <h3>Define the visual language</h3>
+          <div className="user-style-dna-fields">
+            {USER_STYLE_DNA_FIELDS.map((field) => (
+              <label key={field.key}>
+                {field.label}
+                <textarea
+                  value={draft.visualDna[field.key] ?? ''}
+                  onChange={(event) => updateVisualDna(field.key, event.target.value)}
+                  rows={3}
+                />
+              </label>
+            ))}
+          </div>
+          <label>
+            Avoid
+            <textarea
+              value={avoidRulesText}
+              onChange={(event) => setAvoidRulesText(event.target.value)}
+              rows={3}
+            />
+          </label>
+        </>
+      )}
+      {section === 'references' && (
+        <>
+          <h3>Collect visual references</h3>
+          <label className="user-style-upload">
+            <Upload width={24} height={24} />
+            Add reference images
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              aria-label="Add style reference images"
+              onChange={(event) => {
+                handleReferenceFiles(event.target.files);
+                event.target.value = '';
+              }}
+            />
+          </label>
+          <p>
+            {includedReferenceImages.length} of {MAX_REFERENCE_IMAGES} references included
+          </p>
+          <div className="user-style-reference-grid">
+            {referenceImages.map((image) => (
+              <article key={image.id}>
+                <img src={image.previewUrl} alt={image.name} />
+                <p>
+                  {image.name} · {formatFileSize(image.sizeBytes)}
+                </p>
+                <div className="user-style-chip-list">
+                  <button
+                    type="button"
+                    aria-pressed={image.included}
+                    onClick={() => updateReferenceImage(image.id, { included: !image.included })}
+                  >
+                    {image.included ? 'Included' : 'Excluded'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateReferenceImage(image.id, {
+                        role:
+                          image.role === 'avoid_reference' ? 'style_reference' : 'avoid_reference',
+                      })
+                    }
+                  >
+                    {image.role === 'avoid_reference' ? 'Avoid' : 'Style reference'}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${image.name}`}
+                    onClick={() => handleRemoveReferenceImage(image.id)}
+                  >
+                    <X width={14} height={14} />
+                  </button>
+                </div>
+                <label>
+                  Reference notes
+                  <input
+                    value={image.notes ?? ''}
+                    onChange={(event) =>
+                      updateReferenceImage(image.id, { notes: event.target.value })
+                    }
+                  />
+                </label>
+              </article>
+            ))}
+          </div>
+        </>
+      )}
+      {section === 'assistant' && (
+        <>
+          <h3>Develop your style</h3>
+          <label>
+            Action
+            <select
+              value={assistAction}
+              onChange={(event) => setAssistAction(event.target.value as UserStyleDraftAction)}
+            >
+              {DRAFT_ACTIONS.map((action) => (
+                <option key={action.id} value={action.id}>
+                  {action.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Instructions
+            <textarea
+              aria-label="Style assistant instructions"
+              value={assistPrompt}
+              onChange={(event) => setAssistPrompt(event.target.value)}
+              rows={6}
+              placeholder="Describe the visual language you want to create or improve."
+            />
+          </label>
+          <details>
+            <summary>Fields the assistant can change</summary>
+            <div className="user-style-chip-list">
+              {DRAFT_FIELD_SWITCHES.map((field) => (
+                <button
+                  key={field.id}
+                  type="button"
+                  aria-pressed={!disabledDraftFieldSet.has(field.id)}
+                  onClick={() => toggleDraftField(field.id)}
+                >
+                  {field.label}
+                </button>
+              ))}
+            </div>
+          </details>
+          <button
+            type="button"
+            className="studio-primary-control"
+            onClick={handleAssist}
+            disabled={isAssisting || isSaving}
+          >
+            <Sparkles width={16} height={16} />
+            {isAssisting ? 'Working…' : 'Apply assistant draft'}
+          </button>
+        </>
+      )}
+    </section>
+  );
+}

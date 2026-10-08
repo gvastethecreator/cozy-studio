@@ -34,6 +34,7 @@ describe('SpritesheetRecipe', () => {
       />
     );
     const { rerender } = render(renderRecipe('workflow'));
+    fireEvent.click(screen.getByText('Advanced appearance'));
     const background = screen.getByRole('button', { name: 'Background' });
 
     expect(background.closest('fieldset')?.disabled).toBe(false);

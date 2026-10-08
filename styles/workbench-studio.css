@@ -7,7 +7,7 @@
   padding: 6px 10px;
   gap: var(--wbp-gap, 12px);
   background: var(--wb-bar);
-  border-bottom: 1px solid var(--wb-line) !important;
+  border-bottom: var(--wb-border-width) solid var(--wb-line) !important;
   box-shadow: none !important;
   color: var(--wb-ink);
 }
@@ -16,7 +16,7 @@
 .vt-top-toolbar .studio-command-surface,
 .vt-top-toolbar .studio-control,
 .vt-top-toolbar [data-gsap-dropdown] {
-  border: 1px solid var(--wb-border) !important;
+  border: var(--wb-border-width) solid var(--wb-border) !important;
   box-shadow: none !important;
   border-radius: var(--wb-radius);
   min-height: var(--wb-control-height);
@@ -55,7 +55,7 @@
   gap: 0;
   min-height: 31px;
   background: var(--wb-bg);
-  border-bottom: 1px solid var(--wb-line);
+  border-bottom: var(--wb-border-width) solid var(--wb-line);
 }
 
 .workbench-tabs [role='tab'] {
@@ -65,7 +65,7 @@
   gap: 7px;
   padding: 0 13px;
   border: 0;
-  border-right: 1px solid var(--wb-line);
+  border-right: var(--wb-border-width) solid var(--wb-line);
   background: transparent;
   color: var(--wb-muted);
   font-size: var(--wb-font-size);
@@ -80,7 +80,7 @@
 
 .studio-experience .studio-status-bar,
 .studio-status-bar.studio-bar {
-  border-top: 1px solid var(--wb-line);
+  border-top: var(--wb-border-width) solid var(--wb-line);
   background: var(--wb-bg);
   font-size: 10px;
   color: var(--wb-muted);
@@ -92,20 +92,20 @@
 }
 
 .studio-status-provider {
-  height: var(--wb-control-height);
-  border-radius: var(--wb-radius);
+  height: 26px;
+  border-radius: 999px;
   font-size: 10px;
 }
 
 .studio-experience .create-tools {
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: 5px;
   background: var(--wb-panel);
   box-shadow: none;
 }
 
 .studio-experience .create-stage {
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: 5px;
   background: var(--wb-canvas);
 }
@@ -122,8 +122,8 @@
 
 .studio-experience .create-select-field,
 .studio-experience .create-stepper {
-  height: 36px;
-  min-height: 36px;
+  height: 40px;
+  min-height: 40px;
 }
 
 .studio-experience .create-step-button {
@@ -160,7 +160,7 @@
 .wb-ambient.studio-popover,
 .studio-experience .recipe-control-popover,
 .studio-experience .studio-mobile-popover {
-  border: 1px solid var(--wb-border);
+  border: var(--wb-border-width) solid var(--wb-border);
   border-radius: 6px;
   background: var(--wb-popover);
   color: var(--wb-ink);
@@ -169,7 +169,7 @@
 
 .studio-experience .workbench-config {
   background: var(--wb-panel);
-  border-left: 1px solid var(--wb-line);
+  border-left: var(--wb-border-width) solid var(--wb-line);
 }
 
 .studio-experience .create-tools.workbench-config {
@@ -271,7 +271,7 @@
 }
 
 .studio-dialog {
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: 6px;
   background: var(--wb-panel);
   color: var(--wb-ink);
@@ -338,7 +338,7 @@
 
 .studio-field,
 .studio-list-row {
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: var(--wb-radius);
   background: var(--wb-well);
   color: var(--wb-ink);
@@ -357,6 +357,10 @@
   color: var(--wb-dim);
   opacity: 1;
 }
+:is(input, select).studio-field {
+  height: var(--wb-control-height);
+  padding-block: 0;
+}
 .studio-field:disabled {
   color: var(--wb-disabled);
   cursor: not-allowed;
@@ -367,13 +371,14 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 6px 12px;
-  border: 1px solid var(--wb-control-border);
+  padding: 0 12px;
+  border: var(--wb-border-width) solid var(--wb-control-border);
   border-radius: var(--wb-radius);
   background: var(--wb-panel);
   color: var(--wb-ink);
   min-height: var(--wb-control-height);
   min-width: var(--wb-control-height);
+  line-height: 1.3;
 }
 .studio-ghost-control:has(> svg:only-child) {
   padding: 6px;
@@ -416,12 +421,7 @@
 }
 
 .studio-settings-dialog {
-  --wbp-row: 40px;
-  --wbp-text: 14px;
   --wbp-pad: 24px;
-  --wb-control-height: 40px;
-  --wb-font-size: 14px;
-  --studio-action-height: 40px;
   display: flex;
   flex-direction: column;
   width: min(100%, 1120px);
@@ -443,16 +443,17 @@
 .studio-settings-nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   padding: 16px 12px;
-  border-right: 1px solid var(--wb-line);
+  border-right: var(--wb-border-width) solid var(--wb-line);
   background: var(--wb-canvas);
 }
 .studio-settings-nav .studio-tab {
   width: 100%;
+  min-height: 36px;
   height: auto;
   justify-content: flex-start;
-  padding: 10px 12px;
+  padding: 8px;
   border: 1px solid transparent;
   border-radius: var(--wb-radius);
   text-align: left;
@@ -476,7 +477,7 @@
 .settings-search {
   position: relative;
   padding: 12px 24px;
-  border-bottom: 1px solid var(--wb-line);
+  border-bottom: var(--wb-border-width) solid var(--wb-line);
 }
 .settings-search > input {
   width: 100%;
@@ -489,7 +490,7 @@
   max-height: 320px;
   overflow: auto;
   padding: 8px;
-  border: 1px solid var(--wb-border);
+  border: var(--wb-border-width) solid var(--wb-border);
   border-radius: var(--wb-radius);
   background: var(--wb-panel);
   box-shadow: 0 12px 32px #0003;
@@ -524,7 +525,7 @@
 .settings-disclosure {
   min-width: 0;
   padding: 12px 0;
-  border-top: 1px solid var(--wb-line);
+  border-top: var(--wb-border-width) solid var(--wb-line);
 }
 .settings-disclosure > summary {
   cursor: pointer;
@@ -553,14 +554,14 @@
   display: block;
 }
 .settings-row strong {
-  font-size: 14px;
+  font-size: var(--wb-font-size);
   font-weight: 600;
 }
 .settings-row small {
-  margin-top: 5px;
+  margin-top: 4px;
   color: var(--wb-muted);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: var(--wbp-label);
+  line-height: 1.5;
 }
 .settings-row :is(input, select) {
   width: 100%;
@@ -587,7 +588,7 @@
   gap: 8px;
   align-items: center;
   padding: 8px 12px;
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: var(--wb-radius);
   font-size: 12px;
 }
@@ -612,7 +613,7 @@
   min-width: 0;
   gap: 6px;
   padding: 6px;
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: var(--wb-radius);
 }
 .settings-folder-levels select {
@@ -623,7 +624,7 @@
   gap: 10px;
   padding: 16px;
   background: var(--wb-well);
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: var(--wb-radius);
 }
 .settings-output-preview output {
@@ -664,7 +665,7 @@
 }
 .studio-help-guide li {
   padding: 14px 16px;
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: var(--wb-radius);
 }
 .studio-help-guide li p {
@@ -679,7 +680,7 @@
 .output-background-control select {
   width: 100%;
   min-height: 36px;
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: var(--wb-radius);
   background: var(--wb-well);
   padding: 6px 8px;
@@ -745,7 +746,7 @@
 .settings-provider-defaults {
   min-width: 0;
   padding: 12px;
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: var(--wb-radius);
   background: var(--wb-panel);
 }
@@ -830,7 +831,7 @@
   gap: 8px;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid var(--wb-line);
+  border-top: var(--wb-border-width) solid var(--wb-line);
 }
 .settings-account-auth-row {
   display: flex;
@@ -923,7 +924,7 @@
     flex-shrink: 0;
     gap: 10px;
     padding: 10px 16px;
-    border-bottom: 1px solid var(--wb-line);
+    border-bottom: var(--wb-border-width) solid var(--wb-line);
     font-size: 12px;
     color: var(--wb-muted);
   }
@@ -965,7 +966,7 @@
   ) {
   min-width: 0;
   min-height: var(--wb-control-height);
-  border: 1px solid var(--wb-control-border);
+  border: var(--wb-border-width) solid var(--wb-control-border);
   border-radius: var(--wb-radius);
   background: var(--wb-well);
   color: var(--wb-ink);
@@ -988,9 +989,6 @@
   padding: 6px;
   width: 32px;
   height: 32px;
-  transition:
-    background-color var(--wb-fast),
-    color var(--wb-fast);
 }
 .wb .studio-icon-action.is-active {
   color: var(--wb-ink);
@@ -1029,14 +1027,14 @@
   width: var(--wbp-thumb);
   height: calc(var(--wbp-thumb) + 4px);
   margin-top: calc((3px - var(--wbp-thumb) - 4px) / 2);
-  border: 1px solid var(--wb-border);
+  border: var(--wb-border-width) solid var(--wb-border);
   border-radius: 2px;
   background: var(--wb-ink);
 }
 .wb .studio-range::-moz-range-thumb {
   width: var(--wbp-thumb);
   height: calc(var(--wbp-thumb) + 4px);
-  border: 1px solid var(--wb-border);
+  border: var(--wb-border-width) solid var(--wb-border);
   border-radius: 2px;
   background: var(--wb-ink);
 }
@@ -1119,7 +1117,7 @@
   select,
   textarea
 ) {
-  transition-property: color, background-color, border-color, box-shadow, opacity, scale;
+  transition-property: color, background-color, border-color, box-shadow;
   transition-duration: var(--dropdown-close-dur);
   transition-timing-function: var(--dropdown-ease);
 }
@@ -1138,18 +1136,19 @@
 .studio-presence[data-state='closed'] > :not([data-motion-surface]):not([data-gsap-dropdown]) {
   opacity: 0 !important;
   pointer-events: none !important;
+  transition-duration: var(--dropdown-close-dur);
+}
+
+/* GSAP owns geometry and opacity; CSS only handles interactive colors. */
+[data-motion-surface] {
+  transition-property: color, background-color, border-color, box-shadow;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :where(button, summary, [role='tab']):not(:disabled):not([aria-disabled='true']):active {
-    scale: 0.98;
-  }
-
   :is(
       .studio-dialog,
       .create-prompt-dialog,
       .create-side-panel-dialog,
-      .create-workflow-popover,
       .style-detail-dialog,
       .studio-operations-rail
     ):not([data-motion-surface]):not([data-gsap-dropdown]) {
@@ -1157,9 +1156,7 @@
     translate: 0 0;
     transition:
       opacity var(--dropdown-open-dur) var(--dropdown-ease),
-      translate var(--dropdown-open-dur) var(--dropdown-ease),
-      display var(--dropdown-close-dur) allow-discrete,
-      overlay var(--dropdown-close-dur) allow-discrete;
+      translate var(--dropdown-open-dur) var(--dropdown-ease);
   }
 
   @starting-style {
@@ -1167,14 +1164,15 @@
         .studio-dialog,
         .create-prompt-dialog,
         .create-side-panel-dialog,
-        .create-workflow-popover,
         .style-detail-dialog[open],
         .studio-operations-rail
       ):not([data-motion-surface]):not([data-gsap-dropdown]) {
       opacity: 0;
       translate: 0 -4px;
     }
-    :is(.studio-scrim, .create-dialog-backdrop, [role='tabpanel']:not([hidden])) {
+    :is(.studio-scrim, .create-dialog-backdrop, [role='tabpanel']:not([hidden])):not(
+        [data-motion-surface]
+      ):not([data-gsap-dropdown]) {
       opacity: 0;
     }
     .studio-operations-rail:not([data-motion-surface]) {
@@ -1192,8 +1190,15 @@
     transition-duration: var(--dropdown-close-dur);
   }
 
-  :is(.studio-scrim, .create-dialog-backdrop, [role='tabpanel']) {
+  :is(.studio-scrim, .create-dialog-backdrop, [role='tabpanel']):not([data-motion-surface]):not(
+      [data-gsap-dropdown]
+    ) {
     transition: opacity var(--dropdown-open-dur) var(--dropdown-ease);
+  }
+
+  .studio-scrim[data-motion-surface] .studio-dialog {
+    opacity: 1;
+    transition-property: translate;
   }
 
   .style-detail-dialog:not([open]) {
@@ -1249,12 +1254,16 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :is(.studio-toast, .studio-image-editor, .studio-style-editor, [data-motion-panel]) {
+  :is(.studio-toast, .studio-image-editor, .studio-style-editor, [data-motion-panel]):not(
+      [data-motion-surface]
+    ):not([data-gsap-dropdown]) {
     opacity: 1;
     transition: opacity var(--dropdown-open-dur) var(--dropdown-ease);
   }
   @starting-style {
-    :is(.studio-toast, .studio-image-editor, .studio-style-editor, [data-motion-panel]) {
+    :is(.studio-toast, .studio-image-editor, .studio-style-editor, [data-motion-panel]):not(
+        [data-motion-surface]
+      ):not([data-gsap-dropdown]) {
       opacity: 0;
     }
   }
@@ -1325,7 +1334,7 @@
 }
 .onboarding-step {
   padding: 18px;
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: var(--wb-radius);
   background: var(--wb-well);
 }
@@ -1364,7 +1373,7 @@
   align-items: center;
   gap: 14px;
   padding: 16px;
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: var(--wb-radius);
 }
 .onboarding-connections-button {

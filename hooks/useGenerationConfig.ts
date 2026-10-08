@@ -26,9 +26,11 @@ import {
   isInlineImageDataUrl,
 } from '../lib/browserPersistenceBudget';
 import { createContextImageDataUrl } from '../utils/imageUtils';
+import { resolveRecipeAlias, type RecipeAliasId } from '../lib/recipeAliases';
 
 interface UseGenerationConfigProps {
   scopeKey?: string;
+  recipeAliasId?: RecipeAliasId | null;
   log: (message: string) => void;
 }
 
@@ -132,9 +134,14 @@ export function normalizeGenerationConfigForCodexModels(
 export const useGenerationConfig = ({
   log,
   scopeKey = 'default:studio',
+  recipeAliasId,
 }: UseGenerationConfigProps) => {
   const [generationConfig, setGenerationConfig, setRecipeDraft, isDraftReady] =
-    useScopedGenerationDraft(scopeKey, prepareGenerationConfigForPersist);
+    useScopedGenerationDraft(
+      scopeKey,
+      prepareGenerationConfigForPersist,
+      resolveRecipeAlias(recipeAliasId)?.characterLabMode,
+    );
   const [codexModelCatalogState, setCodexModelCatalogState] = useState<CodexModelCatalogState>({
     catalog: null,
     isLoading: true,
@@ -281,7 +288,7 @@ export const useGenerationConfig = ({
   );
 
   const processFiles = useCallback(
-    async (files: File[], replaceId?: string) => {
+    async (files: File[], replaceId?: string, options?: Pick<Attachment, 'strength'>) => {
       const filesToProcess = files.slice(0, replaceId ? 1 : maxAttachments);
       if (replaceId) {
         const preview = uploadPreviews.current.get(replaceId);
@@ -293,7 +300,7 @@ export const useGenerationConfig = ({
           id: crypto.randomUUID(),
           name: file.name,
           dataUrl: URL.createObjectURL(file),
-          strength: 0.5,
+          strength: options?.strength ?? 0.5,
           isProcessing: true,
         };
         uploadPreviews.current.set(attachment.id, attachment.dataUrl);
@@ -305,7 +312,7 @@ export const useGenerationConfig = ({
         attachments: replaceId
           ? prev.attachments.map((attachment) =>
               attachment.id === replaceId && uploads[0]
-                ? { ...uploads[0].attachment, strength: attachment.strength }
+                ? { ...uploads[0].attachment, strength: options?.strength ?? attachment.strength }
                 : attachment,
             )
           : [...prev.attachments, ...uploads.map(({ attachment }) => attachment)].slice(
@@ -345,7 +352,7 @@ export const useGenerationConfig = ({
               id: pendingAttachment.id,
               name: attachmentName,
               dataUrl,
-              strength: 0.5,
+              strength: pendingAttachment.strength,
               ...(contextImage.width && contextImage.height
                 ? { width: contextImage.width, height: contextImage.height }
                 : {}),
@@ -421,8 +428,8 @@ export const useGenerationConfig = ({
   );
 
   const handlePastedFiles = useCallback(
-    (files: File[], replaceId?: string) => {
-      void processFiles(files, replaceId);
+    (files: File[], replaceId?: string, options?: Pick<Attachment, 'strength'>) => {
+      void processFiles(files, replaceId, options);
     },
     [processFiles],
   );

@@ -1,41 +1,52 @@
-import type { UseCatalogResult } from '../../hooks/useCatalogPage';
-import { AnimatePresence } from '../../lib/gsapMotion';
-import React, { createContext, useContext, useEffect, useId, useRef, useState } from 'react';
+import { RecipeWorkbenchContext, type WorkflowPrompt } from './recipeWorkbenchContextState';
+import React, { useContext, useEffect, useLayoutEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-export type CanvasCompareChrome = {
-  showReference: boolean;
-  toggle: () => void;
-} | null;
-
-export const RecipeWorkbenchContext = createContext<{
-  controls: HTMLElement | null;
-  action: HTMLElement | null;
-  overlay: HTMLElement | null;
-  sidePanel: HTMLElement | null;
-  compare: CanvasCompareChrome;
-  setCompare: (compare: CanvasCompareChrome) => void;
-  history?: UseCatalogResult;
-  results?: React.ReactNode;
-  latestResultId?: string;
-}>({
-  controls: null,
-  action: null,
-  overlay: null,
-  sidePanel: null,
-  compare: null,
-  setCompare: () => {},
-});
-
-export function RecipeControls({ children }: { children: React.ReactNode }) {
-  const { controls } = useContext(RecipeWorkbenchContext);
-  return controls
-    ? createPortal(<section className="recipe-controls">{children}</section>, controls)
+export function RecipeControls({
+  children,
+  compact = false,
+}: {
+  children: React.ReactNode;
+  compact?: boolean;
+}) {
+  const context = useContext(RecipeWorkbenchContext);
+  const target = compact ? context.compactControls : context.controls;
+  return target
+    ? createPortal(<section className="recipe-controls">{children}</section>, target)
     : children;
 }
 
-export function RecipePrimaryAction({ children }: { children: React.ReactNode }) {
-  const { action } = useContext(RecipeWorkbenchContext);
+export function useWorkflowPrompt(prompt: WorkflowPrompt) {
+  const { value, label, placeholder } = prompt;
+  const { setPrompt } = useContext(RecipeWorkbenchContext);
+  const onChange = useRef(prompt.onChange);
+  useLayoutEffect(() => {
+    onChange.current = prompt.onChange;
+  });
+  useLayoutEffect(() => {
+    setPrompt?.({ value, label, placeholder, onChange: (next) => onChange.current(next) });
+    return () => setPrompt?.(null);
+  }, [setPrompt, value, label, placeholder]);
+}
+
+export function RecipePrimaryAction({
+  children,
+  execute,
+  disabled = false,
+}: {
+  children: React.ReactNode;
+  execute: () => void;
+  disabled?: boolean;
+}) {
+  const { action, setPrimaryAction } = useContext(RecipeWorkbenchContext);
+  const executeRef = useRef(execute);
+  useLayoutEffect(() => {
+    executeRef.current = execute;
+  });
+  useLayoutEffect(() => {
+    setPrimaryAction?.({ execute: () => executeRef.current(), disabled });
+    return () => setPrimaryAction?.(null);
+  }, [setPrimaryAction, disabled]);
   return action ? createPortal(children, action) : children;
 }
 
@@ -50,7 +61,7 @@ export function RecipeSidePanel({ children }: { children: React.ReactNode }) {
 }
 
 export function RecipeResults() {
-  return useContext(RecipeWorkbenchContext).results ?? null;
+  return <>{useContext(RecipeWorkbenchContext).results ?? null}</>;
 }
 
 /** Keep the editor mounted when viewing results so its local draft and canvas survive. */
@@ -143,6 +154,7 @@ export function RecipeOptionsPanel({
     panelRef.current?.focus({ preventScroll: true });
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.defaultPrevented) return;
+      if (panelRef.current?.closest('[inert]')) return;
       event.preventDefault();
       setOpen(false);
       triggerRef.current?.focus({ preventScroll: true });
@@ -164,36 +176,33 @@ export function RecipeOptionsPanel({
           {title}
         </button>
       </RecipeControls>
-      <RecipeSidePanel>
-        <AnimatePresence>
-          {open && (
-            <div
-              ref={panelRef}
-              id={id}
-              role="dialog"
-              aria-modal="false"
-              aria-label={title}
-              tabIndex={-1}
-              className="studio-surface create-side-panel-dialog"
+      <RecipeControls>
+        <div
+          ref={panelRef}
+          id={id}
+          role="region"
+          aria-label={title}
+          hidden={!open}
+          inert={!open}
+          tabIndex={-1}
+          className="recipe-detail-section"
+        >
+          <div className="create-side-panel-head">
+            <strong>{title}</strong>
+            <button
+              type="button"
+              aria-label={`Close ${title.toLowerCase()}`}
+              onClick={() => {
+                setOpen(false);
+                triggerRef.current?.focus();
+              }}
             >
-              <div className="create-side-panel-head">
-                <strong>{title}</strong>
-                <button
-                  type="button"
-                  aria-label={`Close ${title.toLowerCase()}`}
-                  onClick={() => {
-                    setOpen(false);
-                    triggerRef.current?.focus();
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-              <div className="create-side-panel-body custom-scrollbar">{children}</div>
-            </div>
-          )}
-        </AnimatePresence>
-      </RecipeSidePanel>
+              ×
+            </button>
+          </div>
+          <div className="create-side-panel-body custom-scrollbar">{children}</div>
+        </div>
+      </RecipeControls>
     </>
   );
 }

@@ -1,6 +1,11 @@
 import { projectGenerationBackgroundParams } from '../../lib/generationBackground';
 import { CozyLoader as Loader2 } from '../CozyMascot';
-import { RecipeControls, RecipePrimaryAction, RecipeOptionsPanel } from './RecipeWorkbenchContext';
+import {
+  RecipeControls,
+  useWorkflowPrompt,
+  RecipePrimaryAction,
+  RecipeOptionsPanel,
+} from './RecipeWorkbenchContext';
 import React from 'react';
 import { AnimationFramePreview } from './AnimationFramePreview';
 import {
@@ -363,22 +368,97 @@ function ActionButton({
   );
 }
 
-export const AnimationSequenceRecipe: React.FC<AnimationSequenceRecipeProps> = ({
-  workspaceId,
-  config,
-  updateConfig,
-  onGenerate,
-  isGenerating,
-  images = EMPTY_IMAGES,
-  onSelectImage,
-}) => {
-  const params = React.useMemo(() => getParams(config.recipeParams), [config.recipeParams]);
-  const prompt = config.prompt ?? '';
-  const [runs, setRuns] = React.useState<AnimationSequenceRun[]>([]);
-  const [isRunsLoading, setIsRunsLoading] = React.useState(true);
-  const [runsLoadError, setRunsLoadError] = React.useState<string | null>(null);
-  const [activeRun, setActiveRun] = React.useState<AnimationSequenceRun | null>(null);
-  const [selectedFrameId, setSelectedFrameId] = React.useState<string | null>(null);
+function projectSequenceFrames(
+  activeRun: AnimationSequenceRun | null,
+  draftFramePlan: ReturnType<typeof createAnimationSequenceFramePlan>,
+  selectedFrameId: string | null,
+) {
+  const framePlan = activeRun?.framePlan ?? draftFramePlan;
+  const selectedFrameKey = resolveAnimationSequenceFrameSelection(
+    selectedFrameId,
+    framePlan.frames.map((frame) => frame.id),
+  );
+  const selectedFrame =
+    activeRun?.frames.find((frame) => frame.id === selectedFrameKey) ??
+    activeRun?.frames[0] ??
+    null;
+  const selectedPlanFrame =
+    framePlan.frames.find((frame) => frame.id === selectedFrameKey) ?? framePlan.frames[0] ?? null;
+  const generatedCount =
+    activeRun?.frames.filter((frame) => frame.status === 'generated').length ?? 0;
+  const keyframeIds = new Set(
+    framePlan.frames.filter((frame) => frame.isKeyframe).map((frame) => frame.id),
+  );
+  const generatedKeyframeCount =
+    activeRun?.frames.filter((frame) => keyframeIds.has(frame.id) && frame.status === 'generated')
+      .length ?? 0;
+  const nextFrameId = framePlan.generationOrder.find((frameId) => {
+    const frame = activeRun?.frames.find((candidate) => candidate.id === frameId);
+    return frame && frame.status !== 'generated' && !isAnimationSequenceFrameAwaitingJob(frame);
+  });
+  const gifExport = activeRun?.exports.find((item) => item.format === 'gif') ?? null;
+  return {
+    framePlan,
+    selectedFrameKey,
+    selectedFrame,
+    selectedPlanFrame,
+    generatedCount,
+    keyframeIds,
+    generatedKeyframeCount,
+    nextFrameId,
+    gifExport,
+  };
+}
+
+function describeSharedReferences(
+  contract: ReturnType<typeof createAnimationSequenceContract>,
+  selectedPlanFrame: AnimationSequenceFramePlanItem | null,
+  sharedReferenceCount: number,
+) {
+  const selectedFrameReferenceCount = selectedPlanFrame
+    ? createAnimationFrameHandoff({
+        contract: contract,
+        frame: selectedPlanFrame,
+      }).recipeParams.executableReferenceFrameIds.length
+    : 0;
+  // Frame references go first in the request; shared references fill what is left.
+  const sentSharedReferenceCount = Math.min(
+    sharedReferenceCount,
+    Math.max(0, ANIMATION_SEQUENCE_MAX_REQUEST_IMAGES - selectedFrameReferenceCount),
+  );
+  const pluralize = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;
+  const sharedReferenceNote =
+    sharedReferenceCount === 0
+      ? 'Add a shared reference to anchor identity, camera, palette, and scale across frames.'
+      : sentSharedReferenceCount === sharedReferenceCount
+        ? `${selectedPlanFrame?.id ?? 'Each frame'} sends ${pluralize(sharedReferenceCount, 'shared reference')} with ${pluralize(selectedFrameReferenceCount, 'frame reference')}.`
+        : `${selectedPlanFrame?.id ?? 'Each frame'}: only ${sentSharedReferenceCount} of ${sharedReferenceCount} shared references fit. A request sends up to ${ANIMATION_SEQUENCE_MAX_REQUEST_IMAGES} images and ${pluralize(selectedFrameReferenceCount, 'frame reference')} go first, so ${sharedReferenceCount - sentSharedReferenceCount} will be dropped.`;
+  return sharedReferenceNote;
+}
+
+function describeSequenceExecution(
+  activeRun: AnimationSequenceRun | null,
+  frameJobs: Record<string, FrameJobStatus>,
+) {
+  const executionLabel = activeRun?.frames.some((frame) =>
+    listAnimationSequenceFrameJobIds(frame).some((jobId) =>
+      ['queued', 'running'].includes(frameJobs[jobId]),
+    ),
+  )
+    ? 'Generating frames'
+    : activeRun?.frames.some(isAnimationSequenceFrameAwaitingJob)
+      ? 'Review frame results'
+      : activeRun
+        ? STATUS_LABELS[activeRun.status]
+        : 'Draft';
+  return executionLabel;
+}
+
+function useAnimationFramePrompt(
+  activeRunId: string | null,
+  resolvedSelectedFrameId: string | null,
+  selectedPlanFrame: AnimationSequenceFramePlanItem | null,
+) {
   const [promptLoadState, setPromptLoadState] = React.useState<{
     loadedPrompt: LoadedAnimationSequenceFramePrompt | null;
     isLoading: boolean;
@@ -386,6 +466,85 @@ export const AnimationSequenceRecipe: React.FC<AnimationSequenceRecipeProps> = (
   }>({ loadedPrompt: null, isLoading: false, error: null });
   const { loadedPrompt, isLoading: isPromptLoading, error: promptLoadError } = promptLoadState;
   const [promptReloadVersion, setPromptReloadVersion] = React.useState(0);
+  const hasCurrentLoadedPrompt = isAnimationSequenceFramePromptCurrent({
+    loadedPrompt,
+    runId: activeRunId,
+    frameId: resolvedSelectedFrameId,
+  });
+  const selectedPrompt = activeRunId
+    ? hasCurrentLoadedPrompt
+      ? (loadedPrompt?.prompt ?? '')
+      : ''
+    : (selectedPlanFrame?.prompt ?? '');
+  const isSelectedPromptReady = Boolean(
+    selectedPlanFrame && (!activeRunId || hasCurrentLoadedPrompt),
+  );
+  React.useEffect(() => {
+    if (!activeRunId || !resolvedSelectedFrameId) {
+      setPromptLoadState({ loadedPrompt: null, isLoading: false, error: null });
+      return;
+    }
+
+    let cancelled = false;
+    const runId = activeRunId;
+    const frameId = resolvedSelectedFrameId;
+    setPromptLoadState({ loadedPrompt: null, isLoading: true, error: null });
+    void getAnimationSequenceFramePrompt(runId, frameId)
+      .then((payload) => {
+        if (!cancelled) {
+          setPromptLoadState({
+            loadedPrompt: { runId, frameId, prompt: payload.prompt },
+            isLoading: false,
+            error: null,
+          });
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setPromptLoadState({
+            loadedPrompt: null,
+            isLoading: false,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeRunId, promptReloadVersion, resolvedSelectedFrameId]);
+
+  return {
+    isPromptLoading,
+    promptLoadError,
+    selectedPrompt,
+    isSelectedPromptReady,
+    setPromptReloadVersion,
+  };
+}
+
+function useAnimationSequenceRecipeController({
+  workspaceId,
+  config,
+  updateConfig,
+  onGenerate,
+  isGenerating,
+  images = EMPTY_IMAGES,
+  onSelectImage,
+}: AnimationSequenceRecipeProps) {
+  const params = React.useMemo(() => getParams(config.recipeParams), [config.recipeParams]);
+  const prompt = config.prompt ?? '';
+  useWorkflowPrompt({
+    value: prompt,
+    onChange: (value) => updateConfig('prompt', value),
+    label: 'Motion prompt',
+    placeholder: 'Describe motion, timing, camera, and the visual anchor to preserve.',
+  });
+  const [runs, setRuns] = React.useState<AnimationSequenceRun[]>([]);
+  const [isRunsLoading, setIsRunsLoading] = React.useState(true);
+  const [runsLoadError, setRunsLoadError] = React.useState<string | null>(null);
+  const [activeRun, setActiveRun] = React.useState<AnimationSequenceRun | null>(null);
+  const [selectedFrameId, setSelectedFrameId] = React.useState<string | null>(null);
   const [isBusy, setIsBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [message, setMessage] = React.useState<string | null>(null);
@@ -408,43 +567,26 @@ export const AnimationSequenceRecipe: React.FC<AnimationSequenceRecipeProps> = (
     () => createAnimationSequenceFramePlan(contract),
     [contract],
   );
-  const framePlan = activeRun?.framePlan ?? draftFramePlan;
-  const selectedFrameKey = resolveAnimationSequenceFrameSelection(
-    selectedFrameId,
-    framePlan.frames.map((frame) => frame.id),
-  );
-  const selectedFrame =
-    activeRun?.frames.find((frame) => frame.id === selectedFrameKey) ??
-    activeRun?.frames[0] ??
-    null;
-  const selectedPlanFrame =
-    framePlan.frames.find((frame) => frame.id === selectedFrameKey) ?? framePlan.frames[0] ?? null;
-  const hasCurrentLoadedPrompt = isAnimationSequenceFramePromptCurrent({
-    loadedPrompt,
-    runId: activeRun?.id ?? null,
-    frameId: selectedFrame?.id ?? null,
-  });
-  const selectedPrompt = activeRun
-    ? hasCurrentLoadedPrompt
-      ? (loadedPrompt?.prompt ?? '')
-      : ''
-    : (selectedPlanFrame?.prompt ?? '');
-  const isSelectedPromptReady = Boolean(
-    selectedPlanFrame && (!activeRun || hasCurrentLoadedPrompt),
-  );
-  const generatedCount =
-    activeRun?.frames.filter((frame) => frame.status === 'generated').length ?? 0;
-  const keyframeIds = new Set(
-    framePlan.frames.filter((frame) => frame.isKeyframe).map((frame) => frame.id),
-  );
-  const generatedKeyframeCount =
-    activeRun?.frames.filter((frame) => keyframeIds.has(frame.id) && frame.status === 'generated')
-      .length ?? 0;
-  const nextFrameId = framePlan.generationOrder.find((frameId) => {
-    const frame = activeRun?.frames.find((candidate) => candidate.id === frameId);
-    return frame && frame.status !== 'generated' && !isAnimationSequenceFrameAwaitingJob(frame);
-  });
-  const gifExport = activeRun?.exports.find((item) => item.format === 'gif') ?? null;
+  const {
+    framePlan,
+    selectedFrameKey,
+    selectedFrame,
+    selectedPlanFrame,
+    generatedCount,
+    keyframeIds,
+    generatedKeyframeCount,
+    nextFrameId,
+    gifExport,
+  } = projectSequenceFrames(activeRun, draftFramePlan, selectedFrameId);
+  const activeRunId = activeRun?.id ?? null;
+  const resolvedSelectedFrameId = selectedFrame?.id ?? null;
+  const {
+    isPromptLoading,
+    promptLoadError,
+    selectedPrompt,
+    isSelectedPromptReady,
+    setPromptReloadVersion,
+  } = useAnimationFramePrompt(activeRunId, resolvedSelectedFrameId, selectedPlanFrame);
   const busy = isBusy || isGenerating;
 
   const refreshRuns = React.useCallback(async () => {
@@ -510,7 +652,6 @@ export const AnimationSequenceRecipe: React.FC<AnimationSequenceRecipeProps> = (
     setActiveRun((current) => (current?.id === run.id ? run : current));
     setRuns((current) => current.map((item) => (item.id === run.id ? run : item)));
   }, []);
-  const activeRunId = activeRun?.id ?? null;
   // The backend settles frame jobs; the view refetches when it reports a change or reconnects.
   React.useEffect(() => {
     if (!activeRunId) return;
@@ -539,18 +680,7 @@ export const AnimationSequenceRecipe: React.FC<AnimationSequenceRecipeProps> = (
       stream.close();
     };
   }, [activeRunId, applyRunUpdate]);
-  const executionLabel = activeRun?.frames.some((frame) =>
-    listAnimationSequenceFrameJobIds(frame).some((jobId) =>
-      ['queued', 'running'].includes(frameJobs[jobId]),
-    ),
-  )
-    ? 'Generating frames'
-    : activeRun?.frames.some(isAnimationSequenceFrameAwaitingJob)
-      ? 'Review frame results'
-      : activeRun
-        ? STATUS_LABELS[activeRun.status]
-        : 'Draft';
-  const resolvedSelectedFrameId = selectedFrame?.id ?? null;
+  const executionLabel = describeSequenceExecution(activeRun, frameJobs);
   // A frame whose job may still run cannot be queued again; that would spend twice.
   const isSelectedFrameJobActive = Boolean(selectedFrame && isFrameJobActive(selectedFrame));
   const selectedFrameImage = resolveFrameImage(selectedFrame?.catalogImageId);
@@ -565,60 +695,11 @@ export const AnimationSequenceRecipe: React.FC<AnimationSequenceRecipeProps> = (
     if (frame.id !== selectedFrame?.id && !hasAcceptedFrameImage(frame)) return [];
     return [{ frameId: frame.id, catalogId: frame.catalogImageId, sourceUrl: image.src }];
   });
-  const selectedFrameReferenceCount = selectedPlanFrame
-    ? createAnimationFrameHandoff({
-        contract: activeRun?.contract ?? contract,
-        frame: selectedPlanFrame,
-      }).recipeParams.executableReferenceFrameIds.length
-    : 0;
-  const sharedReferenceCount = config.attachments.length;
-  // Frame references go first in the request; shared references fill what is left.
-  const sentSharedReferenceCount = Math.min(
-    sharedReferenceCount,
-    Math.max(0, ANIMATION_SEQUENCE_MAX_REQUEST_IMAGES - selectedFrameReferenceCount),
+  const sharedReferenceNote = describeSharedReferences(
+    activeRun?.contract ?? contract,
+    selectedPlanFrame,
+    config.attachments.length,
   );
-  const pluralize = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;
-  const sharedReferenceNote =
-    sharedReferenceCount === 0
-      ? 'Add a shared reference to anchor identity, camera, palette, and scale across frames.'
-      : sentSharedReferenceCount === sharedReferenceCount
-        ? `${selectedPlanFrame?.id ?? 'Each frame'} sends ${pluralize(sharedReferenceCount, 'shared reference')} with ${pluralize(selectedFrameReferenceCount, 'frame reference')}.`
-        : `${selectedPlanFrame?.id ?? 'Each frame'}: only ${sentSharedReferenceCount} of ${sharedReferenceCount} shared references fit. A request sends up to ${ANIMATION_SEQUENCE_MAX_REQUEST_IMAGES} images and ${pluralize(selectedFrameReferenceCount, 'frame reference')} go first, so ${sharedReferenceCount - sentSharedReferenceCount} will be dropped.`;
-
-  React.useEffect(() => {
-    if (!activeRunId || !resolvedSelectedFrameId) {
-      setPromptLoadState({ loadedPrompt: null, isLoading: false, error: null });
-      return;
-    }
-
-    let cancelled = false;
-    const runId = activeRunId;
-    const frameId = resolvedSelectedFrameId;
-    setPromptLoadState({ loadedPrompt: null, isLoading: true, error: null });
-    void getAnimationSequenceFramePrompt(runId, frameId)
-      .then((payload) => {
-        if (!cancelled) {
-          setPromptLoadState({
-            loadedPrompt: { runId, frameId, prompt: payload.prompt },
-            isLoading: false,
-            error: null,
-          });
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setPromptLoadState({
-            loadedPrompt: null,
-            isLoading: false,
-            error: err instanceof Error ? err.message : String(err),
-          });
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeRunId, promptReloadVersion, resolvedSelectedFrameId]);
 
   const setParam = React.useCallback(
     (key: string, value: unknown) => {
@@ -776,582 +857,1008 @@ export const AnimationSequenceRecipe: React.FC<AnimationSequenceRecipeProps> = (
     void runAction(() => runAnimationSequenceQa(activeRun.id), 'QA written.');
   };
 
+  return {
+    selectedFrame,
+    selectedPlanFrame,
+    isPromptLoading,
+    promptLoadError,
+    activeRun,
+    prompt,
+    selectedPrompt,
+    setPromptReloadVersion,
+    generateFrame,
+    isSelectedPromptReady,
+    isSelectedFrameJobActive,
+    busy,
+    attachSelectedGeneratedFrame,
+    selectedCatalogMatch,
+    frameJobs,
+    selectedFrameImage,
+    onSelectImage,
+    contract,
+    updateConfig,
+    params,
+    setParam,
+    sharedReferenceNote,
+    handleCreateRun,
+    isRunsLoading,
+    runsLoadError,
+    refreshRuns,
+    runs,
+    setActiveRun,
+    setSelectedFrameId,
+    syncRun,
+    nextFrameId,
+    exportGif,
+    generatedCount,
+    framePlan,
+    resolveFrameImage,
+    gifExport,
+    selectedFrameKey,
+    generatedKeyframeCount,
+    keyframeIds,
+    executionLabel,
+    runQa,
+    message,
+    error,
+  };
+}
+
+type AnimationSequenceRecipeViewModel = ReturnType<typeof useAnimationSequenceRecipeController>;
+
+function AnimationSequenceRecipeView({
+  selectedFrame,
+  selectedPlanFrame,
+  isPromptLoading,
+  promptLoadError,
+  activeRun,
+  prompt,
+  selectedPrompt,
+  setPromptReloadVersion,
+  generateFrame,
+  isSelectedPromptReady,
+  isSelectedFrameJobActive,
+  busy,
+  attachSelectedGeneratedFrame,
+  selectedCatalogMatch,
+  frameJobs,
+  selectedFrameImage,
+  onSelectImage,
+  contract,
+  updateConfig,
+  params,
+  setParam,
+  sharedReferenceNote,
+  handleCreateRun,
+  isRunsLoading,
+  runsLoadError,
+  refreshRuns,
+  runs,
+  setActiveRun,
+  setSelectedFrameId,
+  syncRun,
+  nextFrameId,
+  exportGif,
+  generatedCount,
+  framePlan,
+  resolveFrameImage,
+  gifExport,
+  selectedFrameKey,
+  generatedKeyframeCount,
+  keyframeIds,
+  executionLabel,
+  runQa,
+  message,
+  error,
+}: AnimationSequenceRecipeViewModel) {
   return (
     <div className="studio-surface flex h-full min-h-0 flex-col bg-[color:var(--wb-panel)] text-[color:var(--wb-ink)]">
       <div data-animation-workbench="true" className="recipe-run-stage">
-        <RecipeOptionsPanel title="Frame details">
-          <aside className="flex min-h-0 flex-col overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] lg:col-span-2 xl:col-span-1 xl:min-h-0">
-            <div className="border-b border-[color:var(--wb-line)] p-3">
-              <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                Frame Inspector
-              </div>
-              <h3 className="mt-1 truncate text-sm font-semibold text-[color:var(--wb-ink)]">
-                {selectedFrame?.id ?? selectedPlanFrame?.id ?? 'No frame'}
-              </h3>
-            </div>
+        <AnimationFrameDetails
+          selectedFrame={selectedFrame}
+          selectedPlanFrame={selectedPlanFrame}
+          isPromptLoading={isPromptLoading}
+          promptLoadError={promptLoadError}
+          activeRun={activeRun}
+          prompt={prompt}
+          selectedPrompt={selectedPrompt}
+          setPromptReloadVersion={setPromptReloadVersion}
+          generateFrame={generateFrame}
+          isSelectedPromptReady={isSelectedPromptReady}
+          isSelectedFrameJobActive={isSelectedFrameJobActive}
+          busy={busy}
+          attachSelectedGeneratedFrame={attachSelectedGeneratedFrame}
+          selectedCatalogMatch={selectedCatalogMatch}
+          frameJobs={frameJobs}
+          selectedFrameImage={selectedFrameImage}
+          onSelectImage={onSelectImage}
+        />
+        <AnimationSequenceControls
+          activeRun={activeRun}
+          contract={contract}
+          prompt={prompt}
+          updateConfig={updateConfig}
+          params={params}
+          setParam={setParam}
+          sharedReferenceNote={sharedReferenceNote}
+          selectedFrame={selectedFrame}
+          handleCreateRun={handleCreateRun}
+          busy={busy}
+          isRunsLoading={isRunsLoading}
+          runsLoadError={runsLoadError}
+          refreshRuns={refreshRuns}
+          runs={runs}
+          setActiveRun={setActiveRun}
+        />
 
-            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
-              <textarea
-                aria-label="Animation frame prompt"
-                value={
-                  isPromptLoading
-                    ? 'Loading prompt...'
-                    : promptLoadError
-                      ? ''
-                      : !activeRun && !prompt.trim()
-                        ? 'Enter a motion prompt to preview frame instructions.'
-                        : selectedPrompt
-                }
-                readOnly
-                rows={12}
-                aria-describedby={promptLoadError ? 'animation-frame-prompt-error' : undefined}
-                className="w-full resize-none rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-2 font-mono text-[11px] leading-relaxed text-[color:var(--wb-ink)] outline-none"
-              />
-
-              {promptLoadError ? (
-                <div
-                  id="animation-frame-prompt-error"
-                  role="alert"
-                  className="mt-2 rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-500/10 p-2 text-xs text-[color:var(--wb-danger)] "
-                >
-                  <div>{promptLoadError}</div>
-                  <button
-                    type="button"
-                    onClick={() => setPromptReloadVersion((version) => version + 1)}
-                    className="mt-2 h-8 rounded-[var(--wb-radius)] border border-rose-400/2 bg-rose-500/10 px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-danger)] "
-                  >
-                    Retry prompt
-                  </button>
-                </div>
-              ) : null}
-
-              {selectedFrame?.blocked ? (
-                <div
-                  role="status"
-                  className="mt-2 rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-500/10 p-2 text-xs text-[color:var(--wb-danger)] "
-                >
-                  <div className="font-semibold">{selectedFrame.blocked.userMessage}</div>
-                  <div className="mt-1">{selectedFrame.blocked.suggestion}</div>
-                </div>
-              ) : null}
-
-              <div className="mt-3 grid gap-2">
-                <ActionButton
-                  tone="primary"
-                  onClick={() => generateFrame(false)}
-                  disabled={
-                    !activeRun ||
-                    !selectedPlanFrame ||
-                    !isSelectedPromptReady ||
-                    isSelectedFrameJobActive ||
-                    busy
-                  }
-                >
-                  <Play width={13} height={13} />
-                  {selectedFrame?.status === 'blocked' ? 'Retry' : 'Generate'}
-                </ActionButton>
-                <ActionButton
-                  onClick={() => generateFrame(true)}
-                  disabled={
-                    !activeRun ||
-                    !selectedPlanFrame ||
-                    !isSelectedPromptReady ||
-                    isSelectedFrameJobActive ||
-                    busy
-                  }
-                >
-                  <Sparkles width={13} height={13} />
-                  Correct
-                </ActionButton>
-                <ActionButton
-                  onClick={attachSelectedGeneratedFrame}
-                  disabled={!selectedCatalogMatch || busy}
-                >
-                  <RefreshCw width={13} height={13} />
-                  Attach
-                </ActionButton>
-              </div>
-
-              {activeRun && selectedFrame ? (
-                <div className="mt-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] p-2 text-[length:var(--wbp-label)] text-[color:var(--wb-muted)]">
-                  <div className="flex justify-between gap-2">
-                    <span>Job status</span>
-                    <span className="font-semibold text-[color:var(--wb-ink)]">
-                      {selectedFrame.jobId && isAnimationSequenceFrameAwaitingJob(selectedFrame)
-                        ? (frameJobs[selectedFrame.jobId] ?? 'Checking job')
-                        : FRAME_STATUS_LABELS[selectedFrame.status]}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex justify-between gap-2">
-                    <span>Catalog</span>
-                    <span className="truncate font-mono text-[color:var(--wb-ink)]">
-                      {selectedFrame.catalogImageId ?? 'none'}
-                    </span>
-                  </div>
-                  {selectedFrameImage && onSelectImage ? (
-                    <button
-                      type="button"
-                      onClick={() => onSelectImage(selectedFrameImage)}
-                      className="mt-2 h-8 w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_4%,transparent)] text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]"
-                    >
-                      Preview
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          </aside>
-        </RecipeOptionsPanel>
-        <RecipeControls>
-          <aside className="flex min-h-0 flex-col overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] xl:min-h-0">
-            <details open={!activeRun} className="recipe-draft-settings">
-              <summary>New sequence configuration</summary>
-              <div className="border-b border-[color:var(--wb-line)] p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-warning)] ">
-                      New sequence draft
-                    </div>
-                    <h2 className="mt-1 truncate text-base font-semibold text-[color:var(--wb-ink)]">
-                      Frame Sequence
-                    </h2>
-                    <p className="mt-1 truncate text-xs text-[color:var(--wb-muted)]">
-                      {contract.frameCount} frames / {contract.fps} fps /{' '}
-                      {contract.dimensions.width}×{contract.dimensions.height} GIF
-                    </p>
-                  </div>
-                  <span className="grid size-10 shrink-0 place-items-center rounded-[var(--wb-radius)] border border-amber-400/2 bg-amber-500/10 text-[color:var(--wb-warning)] ">
-                    <Gif width={20} height={20} />
-                  </span>
-                </div>
-              </div>
-
-              <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
-                <label className="grid gap-1.5">
-                  <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                    Motion Prompt
-                  </span>
-                  <textarea
-                    value={prompt}
-                    onChange={(event) => updateConfig('prompt', event.target.value)}
-                    rows={5}
-                    placeholder="Describe motion, timing, camera, and the visual anchor to preserve."
-                    aria-describedby={!prompt.trim() ? 'animation-prompt-requirement' : undefined}
-                    className="resize-none rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-2 text-sm text-[color:var(--wb-ink)] outline-none transition-colors focus:border-amber-400/2"
-                  />
-                </label>
-
-                <label className="mt-3 grid gap-1.5">
-                  <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                    Identity anchor
-                  </span>
-                  <input
-                    value={
-                      typeof params.identityAnchor === 'string'
-                        ? params.identityAnchor
-                        : contract.identityAnchor
-                    }
-                    onChange={(event) => setParam('identityAnchor', event.target.value)}
-                    placeholder="What must remain identical across every frame?"
-                    className="h-9 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-2 text-xs text-[color:var(--wb-ink)] outline-none transition-colors focus:border-amber-400/2"
-                  />
-                </label>
-                <label className="mt-2 grid gap-1.5">
-                  <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                    Motion driver
-                  </span>
-                  <input
-                    value={
-                      typeof params.motionDriver === 'string'
-                        ? params.motionDriver
-                        : contract.motionDriver
-                    }
-                    onChange={(event) => setParam('motionDriver', event.target.value)}
-                    placeholder="The force or action that drives the motion"
-                    className="h-9 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-2 text-xs text-[color:var(--wb-ink)] outline-none transition-colors focus:border-amber-400/2"
-                  />
-                </label>
-
-                <div className="mt-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] p-2 text-[11px] leading-relaxed text-[color:var(--wb-muted)]">
-                  {sharedReferenceNote}
-                </div>
-
-                {selectedFrame?.warning && (
-                  <p role="status" className="studio-warning-notice">
-                    {selectedFrame.warning}
-                  </p>
-                )}
-                <p className="studio-field-description">
-                  PNG keeps full alpha. GIF uses binary transparency (alpha below 128 is
-                  transparent); soft edges are simplified.
-                </p>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <NumberField
-                    label="Frames"
-                    value={contract.frameCount}
-                    min={2}
-                    max={48}
-                    onChange={(value) => setParam('frameCount', value)}
-                  />
-                  <NumberField
-                    label="FPS"
-                    value={contract.fps}
-                    min={1}
-                    max={30}
-                    onChange={(value) => setParam('fps', value)}
-                  />
-                  <SelectField
-                    label="Ratio"
-                    value={contract.aspectRatio}
-                    options={['1:1', '16:9', '9:16', '4:3', '3:4']}
-                    onChange={(value) => {
-                      setParam('aspectRatio', value);
-                      updateConfig('aspectRatio', value as ImageGenerationConfig['aspectRatio']);
-                    }}
-                  />
-                  <SelectField
-                    label="Method"
-                    value={contract.method}
-                    options={['recursive', 'sequential']}
-                    onChange={(value) => setParam('method', value)}
-                  />
-                  <SelectField
-                    label="Continuity"
-                    value={contract.continuity}
-                    options={['loose', 'balanced', 'strict']}
-                    onChange={(value) => setParam('continuity', value)}
-                  />
-                  <fieldset
-                    disabled={contract.background === 'transparent'}
-                    className="grid gap-1.5 disabled:opacity-50"
-                  >
-                    <SelectField
-                      label="Solid export fill"
-                      value={contract.background === 'solid' ? 'solid' : 'preserve'}
-                      options={['preserve', 'solid']}
-                      onChange={(value) => {
-                        updateConfig('outputBackground', 'workflow');
-                        setParam('background', value);
-                      }}
-                    />
-                  </fieldset>
-                  <label className="grid gap-1.5">
-                    <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                      Matte
-                    </span>
-                    <input
-                      type="color"
-                      disabled={contract.background !== 'solid'}
-                      aria-label="Solid background color"
-                      value={contract.matteColor}
-                      onChange={(event) => setParam('matteColor', event.target.value)}
-                      className="h-9 w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)]"
-                    />
-                  </label>
-                </div>
-
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <ToggleField
-                    label="Loop"
-                    value={contract.cyclic}
-                    onChange={(v) => setParam('cyclic', v)}
-                  />
-                  <ToggleField
-                    label="Style"
-                    value={contract.styleLock}
-                    onChange={(v) => setParam('styleLock', v)}
-                  />
-                </div>
-
-                {!activeRun && (
-                  <RecipePrimaryAction>
-                    <ActionButton
-                      tone="primary"
-                      onClick={handleCreateRun}
-                      disabled={busy || !prompt.trim()}
-                      className="mt-3 w-full"
-                    >
-                      {busy ? (
-                        <Loader2 size={13} className="animate-spin" />
-                      ) : (
-                        <Sparkles width={13} height={13} />
-                      )}
-                      Prepare
-                    </ActionButton>
-                  </RecipePrimaryAction>
-                )}
-
-                {!prompt.trim() ? (
-                  <p
-                    id="animation-prompt-requirement"
-                    className="mt-2 text-[11px] text-[color:var(--wb-muted)]"
-                  >
-                    A motion prompt is required to prepare a run.
-                  </p>
-                ) : null}
-              </div>
-            </details>
-            <div className="p-3">
-              <div className="mt-4">
-                <div className="mb-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                  Recent runs
-                </div>
-                <div className="grid gap-2">
-                  {isRunsLoading ? (
-                    <div
-                      role="status"
-                      className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] px-3 py-4 text-xs text-[color:var(--wb-muted)]"
-                    >
-                      Loading runs...
-                    </div>
-                  ) : null}
-                  {!isRunsLoading && runsLoadError ? (
-                    <div
-                      role="alert"
-                      className="rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-500/10 p-3 text-xs text-[color:var(--wb-danger)] "
-                    >
-                      <div>{runsLoadError}</div>
-                      <button
-                        type="button"
-                        onClick={() => void refreshRuns().catch(() => {})}
-                        className="mt-2 h-8 rounded-[var(--wb-radius)] border border-rose-400/2 bg-rose-500/10 px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-danger)] "
-                      >
-                        Retry runs
-                      </button>
-                    </div>
-                  ) : null}
-                  {!isRunsLoading && !runsLoadError && runs.length === 0 ? (
-                    <div className="rounded-[var(--wb-radius)] border border-dashed border-[color:var(--wb-line)] px-3 py-4 text-xs leading-relaxed text-[color:var(--wb-dim)]">
-                      Prepared runs will appear here and remain available after refresh.
-                    </div>
-                  ) : null}
-                  {runs.map((run) => (
-                    <button
-                      key={run.id}
-                      type="button"
-                      onClick={() => setActiveRun(run)}
-                      aria-pressed={activeRun?.id === run.id}
-                      className={`rounded-[var(--wb-radius)] border p-2 text-left transition-colors ${
-                        activeRun?.id === run.id
-                          ? 'border-amber-400/2 bg-amber-500/10'
-                          : 'border-[color:var(--wb-line)] bg-white/[0.035] hover:border-[color:var(--wb-border)]'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-xs font-semibold text-[color:var(--wb-ink)]">
-                          {run.title}
-                        </span>
-                        <span
-                          className={`rounded px-1.5 py-0.5 text-[length:var(--wbp-label)] font-semibold ${getRunTone(run.status)}`}
-                        >
-                          {STATUS_LABELS[run.status]}
-                        </span>
-                      </div>
-                      <div className="mt-1 truncate font-mono text-[length:var(--wbp-label)] text-[color:var(--wb-dim)]">
-                        {run.id}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </aside>
-        </RecipeControls>
-
-        <main
-          data-recipe-stage
-          className="flex min-h-0 flex-col overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] xl:min-h-0"
-        >
-          <div className="flex items-center justify-between gap-3 border-b border-[color:var(--wb-line)] p-3">
-            <div className="min-w-0">
-              <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                {activeRun ? 'Selected sequence' : 'New sequence draft'}
-              </div>
-              <h3 className="truncate text-sm font-semibold text-[color:var(--wb-ink)]">
-                {activeRun?.title ?? 'Draft plan'}
-              </h3>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <ActionButton
-                onClick={() => {
-                  setActiveRun(null);
-                  setSelectedFrameId(null);
-                }}
-              >
-                New sequence
-              </ActionButton>
-              <ActionButton onClick={syncRun} disabled={!activeRun || busy}>
-                <RefreshCw width={13} height={13} />
-                Sync
-              </ActionButton>
-              <ActionButton
-                onClick={() => nextFrameId && setSelectedFrameId(nextFrameId)}
-                disabled={!activeRun || !nextFrameId || busy}
-              >
-                <Play width={13} height={13} />
-                Next frame
-              </ActionButton>
-              <ActionButton
-                onClick={exportGif}
-                disabled={!activeRun || generatedCount < (activeRun?.frames.length ?? 1) || busy}
-              >
-                <Download width={13} height={13} />
-                GIF
-              </ActionButton>
-            </div>
-          </div>
-
-          <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden">
-            <div className="custom-scrollbar overflow-y-auto p-3">
-              <AnimationFramePreview
-                key={activeRun?.id ?? 'draft'}
-                fps={activeRun?.contract.fps ?? contract.fps}
-                frames={framePlan.frames.map((frame) => {
-                  const catalogImageId = activeRun?.frames.find(
-                    (item) => item.id === frame.id,
-                  )?.catalogImageId;
-                  const image = resolveFrameImage(catalogImageId);
-                  return {
-                    id: frame.id,
-                    catalogImageId,
-                    src: image ? (image.preview ?? image.src) : undefined,
-                    unavailable: image === null,
-                  };
-                })}
-              />
-              {activeRun && gifExport ? (
-                <a
-                  className="mb-3 inline-block text-xs underline"
-                  href={getAnimationSequenceGifUrl(activeRun.id)}
-                  download
-                >
-                  Download exported GIF
-                </a>
-              ) : null}
-
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(112px,1fr))] gap-2">
-                {framePlan.frames.map((planFrame) => {
-                  const state =
-                    activeRun?.frames.find((frame) => frame.id === planFrame.id) ?? null;
-                  const generatedImage = resolveFrameImage(state?.catalogImageId);
-                  const selected = selectedFrameKey === planFrame.id;
-                  const frameLabel = getFrameDisplayLabel(planFrame.ordinal);
-                  const frameStatus =
-                    state && isAnimationSequenceFrameAwaitingJob(state)
-                      ? `Job ${frameJobs[state.jobId!] ?? 'checking'} · image pending`
-                      : getFrameDisplayStatus(planFrame, state);
-                  const blockedNote = state?.blocked ? `: ${state.blocked.userMessage}` : '';
-                  return (
-                    <button
-                      key={planFrame.id}
-                      type="button"
-                      onClick={() => setSelectedFrameId(planFrame.id)}
-                      aria-label={`Select ${frameLabel}, ${frameStatus}${blockedNote}`}
-                      aria-pressed={selected}
-                      className={`group min-h-28 overflow-hidden rounded-[var(--wb-radius)] border text-left transition-colors ${
-                        selected ? 'border-amber-400/2 bg-amber-500/10' : getFrameTone(state)
-                      }`}
-                    >
-                      <div className="aspect-video bg-[color:var(--wb-well)]">
-                        {generatedImage ? (
-                          <img
-                            src={generatedImage.thumbnail ?? generatedImage.src}
-                            alt={`${frameLabel} generated preview`}
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="grid h-full place-items-center text-[color:var(--wb-dim)]">
-                            {state?.status === 'generated' ? (
-                              <Check width={20} height={20} />
-                            ) : (
-                              <Play width={20} height={20} />
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-2">
-                        <div className="font-mono text-[length:var(--wbp-label)] font-semibold">
-                          {frameLabel}
-                        </div>
-                        <div className="mt-0.5 break-words text-[length:var(--wbp-label)] font-semibold tracking-normal opacity-70">
-                          {planFrame.semanticPhase} · {frameStatus}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="border-t border-[color:var(--wb-line)] p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                  <span className={activeRun ? 'text-[color:var(--wb-success)]' : ''}>1 Plan</span>
-                  <span
-                    className={
-                      generatedKeyframeCount === keyframeIds.size && activeRun
-                        ? 'text-[color:var(--wb-success)]'
-                        : ''
-                    }
-                  >
-                    2 Keyframes {generatedKeyframeCount}/{keyframeIds.size}
-                  </span>
-                  <span
-                    className={
-                      activeRun && generatedCount === activeRun.frames.length
-                        ? 'text-[color:var(--wb-success)]'
-                        : ''
-                    }
-                  >
-                    3 In-betweens
-                  </span>
-                  <span className={gifExport ? 'text-[color:var(--wb-success)]' : ''}>
-                    4 Export
-                  </span>
-                  <span>
-                    {generatedCount}/{activeRun?.frames.length ?? contract.frameCount} frames
-                  </span>
-                  <span>{executionLabel}</span>
-                  {activeRun?.qa ? (
-                    <span
-                      className={
-                        activeRun.qa.ok
-                          ? 'text-[color:var(--wb-success)] '
-                          : 'text-[color:var(--wb-danger)] '
-                      }
-                    >
-                      QA {activeRun.qa.ok ? 'OK' : 'Issues'}
-                    </span>
-                  ) : null}
-                </div>
-                <ActionButton onClick={runQa} disabled={!activeRun || busy}>
-                  <Check width={13} height={13} />
-                  QA
-                </ActionButton>
-              </div>
-              {(message || error) && (
-                <div
-                  role={error ? 'alert' : 'status'}
-                  aria-live={error ? 'assertive' : 'polite'}
-                  className={`mt-2 flex items-center gap-2 rounded-[var(--wb-radius)] border px-2 py-1.5 text-xs ${
-                    error
-                      ? 'border-rose-500/2 bg-rose-500/10 text-[color:var(--wb-danger)] '
-                      : 'border-emerald-500/2 bg-emerald-500/10 text-[color:var(--wb-success)] '
-                  }`}
-                >
-                  {error ? (
-                    <AlertTriangle width={14} height={14} />
-                  ) : (
-                    <Check width={14} height={14} />
-                  )}
-                  <span className="min-w-0 truncate">{error ?? message}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </main>
+        <AnimationSequenceStage
+          activeRun={activeRun}
+          setActiveRun={setActiveRun}
+          setSelectedFrameId={setSelectedFrameId}
+          syncRun={syncRun}
+          busy={busy}
+          nextFrameId={nextFrameId}
+          exportGif={exportGif}
+          generatedCount={generatedCount}
+          contract={contract}
+          framePlan={framePlan}
+          resolveFrameImage={resolveFrameImage}
+          gifExport={gifExport}
+          selectedFrameKey={selectedFrameKey}
+          frameJobs={frameJobs}
+          generatedKeyframeCount={generatedKeyframeCount}
+          keyframeIds={keyframeIds}
+          executionLabel={executionLabel}
+          runQa={runQa}
+          message={message}
+          error={error}
+        />
       </div>
     </div>
   );
+}
+
+export const AnimationSequenceRecipe: React.FC<AnimationSequenceRecipeProps> = (props) => {
+  const view = useAnimationSequenceRecipeController(props);
+  return <AnimationSequenceRecipeView {...view} />;
 };
+
+function AnimationFrameDetails({
+  selectedFrame,
+  selectedPlanFrame,
+  isPromptLoading,
+  promptLoadError,
+  activeRun,
+  prompt,
+  selectedPrompt,
+  setPromptReloadVersion,
+  generateFrame,
+  isSelectedPromptReady,
+  isSelectedFrameJobActive,
+  busy,
+  attachSelectedGeneratedFrame,
+  selectedCatalogMatch,
+  frameJobs,
+  selectedFrameImage,
+  onSelectImage,
+}: Pick<
+  AnimationSequenceRecipeViewModel,
+  | 'selectedFrame'
+  | 'selectedPlanFrame'
+  | 'isPromptLoading'
+  | 'promptLoadError'
+  | 'activeRun'
+  | 'prompt'
+  | 'selectedPrompt'
+  | 'setPromptReloadVersion'
+  | 'generateFrame'
+  | 'isSelectedPromptReady'
+  | 'isSelectedFrameJobActive'
+  | 'busy'
+  | 'attachSelectedGeneratedFrame'
+  | 'selectedCatalogMatch'
+  | 'frameJobs'
+  | 'selectedFrameImage'
+  | 'onSelectImage'
+>) {
+  return (
+    <RecipeOptionsPanel title="Frame details">
+      <aside className="flex min-h-0 flex-col overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] lg:col-span-2 xl:col-span-1 xl:min-h-0">
+        <div className="border-b border-[color:var(--wb-line)] p-3">
+          <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
+            Frame Inspector
+          </div>
+          <h3 className="mt-1 truncate text-sm font-semibold text-[color:var(--wb-ink)]">
+            {selectedFrame?.id ?? selectedPlanFrame?.id ?? 'No frame'}
+          </h3>
+        </div>
+
+        <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
+          <textarea
+            aria-label="Animation frame prompt"
+            value={
+              isPromptLoading
+                ? 'Loading prompt...'
+                : promptLoadError
+                  ? ''
+                  : !activeRun && !prompt.trim()
+                    ? 'Enter a motion prompt to preview frame instructions.'
+                    : selectedPrompt
+            }
+            readOnly
+            rows={12}
+            aria-describedby={promptLoadError ? 'animation-frame-prompt-error' : undefined}
+            className="w-full resize-none rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-2 font-mono text-[11px] leading-relaxed text-[color:var(--wb-ink)] outline-none"
+          />
+
+          {promptLoadError ? (
+            <div
+              id="animation-frame-prompt-error"
+              role="alert"
+              className="mt-2 rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-500/10 p-2 text-xs text-[color:var(--wb-danger)] "
+            >
+              <div>{promptLoadError}</div>
+              <button
+                type="button"
+                onClick={() => setPromptReloadVersion((version) => version + 1)}
+                className="mt-2 h-8 rounded-[var(--wb-radius)] border border-rose-400/2 bg-rose-500/10 px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-danger)] "
+              >
+                Retry prompt
+              </button>
+            </div>
+          ) : null}
+
+          {selectedFrame?.blocked ? (
+            <div
+              role="status"
+              className="mt-2 rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-500/10 p-2 text-xs text-[color:var(--wb-danger)] "
+            >
+              <div className="font-semibold">{selectedFrame.blocked.userMessage}</div>
+              <div className="mt-1">{selectedFrame.blocked.suggestion}</div>
+            </div>
+          ) : null}
+
+          <AnimationFrameActions
+            generateFrame={generateFrame}
+            activeRun={activeRun}
+            selectedPlanFrame={selectedPlanFrame}
+            isSelectedPromptReady={isSelectedPromptReady}
+            isSelectedFrameJobActive={isSelectedFrameJobActive}
+            busy={busy}
+            selectedFrame={selectedFrame}
+            attachSelectedGeneratedFrame={attachSelectedGeneratedFrame}
+            selectedCatalogMatch={selectedCatalogMatch}
+          />
+
+          {activeRun && selectedFrame ? (
+            <AnimationFrameJobStatus
+              selectedFrame={selectedFrame}
+              frameJobs={frameJobs}
+              selectedFrameImage={selectedFrameImage}
+              onSelectImage={onSelectImage}
+            />
+          ) : null}
+        </div>
+      </aside>
+    </RecipeOptionsPanel>
+  );
+}
+
+function AnimationSequenceControls({
+  activeRun,
+  contract,
+  prompt,
+  updateConfig,
+  params,
+  setParam,
+  sharedReferenceNote,
+  selectedFrame,
+  handleCreateRun,
+  busy,
+  isRunsLoading,
+  runsLoadError,
+  refreshRuns,
+  runs,
+  setActiveRun,
+}: Pick<
+  AnimationSequenceRecipeViewModel,
+  | 'activeRun'
+  | 'contract'
+  | 'prompt'
+  | 'updateConfig'
+  | 'params'
+  | 'setParam'
+  | 'sharedReferenceNote'
+  | 'selectedFrame'
+  | 'handleCreateRun'
+  | 'busy'
+  | 'isRunsLoading'
+  | 'runsLoadError'
+  | 'refreshRuns'
+  | 'runs'
+  | 'setActiveRun'
+>) {
+  return (
+    <RecipeControls>
+      <aside className="flex min-h-0 flex-col overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] xl:min-h-0">
+        <details open={!activeRun} className="recipe-draft-settings">
+          <summary>New sequence configuration</summary>
+          <div className="border-b border-[color:var(--wb-line)] p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-warning)] ">
+                  New sequence draft
+                </div>
+                <h2 className="mt-1 truncate text-base font-semibold text-[color:var(--wb-ink)]">
+                  Frame Sequence
+                </h2>
+                <p className="mt-1 truncate text-xs text-[color:var(--wb-muted)]">
+                  {contract.frameCount} frames / {contract.fps} fps / {contract.dimensions.width}×
+                  {contract.dimensions.height} GIF
+                </p>
+              </div>
+              <span className="grid size-10 shrink-0 place-items-center rounded-[var(--wb-radius)] border border-amber-400/2 bg-amber-500/10 text-[color:var(--wb-warning)] ">
+                <Gif width={20} height={20} />
+              </span>
+            </div>
+          </div>
+
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
+            <label className="mt-3 grid gap-1.5">
+              <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
+                Identity anchor
+              </span>
+              <input
+                value={
+                  typeof params.identityAnchor === 'string'
+                    ? params.identityAnchor
+                    : contract.identityAnchor
+                }
+                onChange={(event) => setParam('identityAnchor', event.target.value)}
+                placeholder="What must remain identical across every frame?"
+                className="h-9 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-2 text-xs text-[color:var(--wb-ink)] outline-none transition-colors focus:border-amber-400/2"
+              />
+            </label>
+            <label className="mt-2 grid gap-1.5">
+              <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
+                Motion driver
+              </span>
+              <input
+                value={
+                  typeof params.motionDriver === 'string'
+                    ? params.motionDriver
+                    : contract.motionDriver
+                }
+                onChange={(event) => setParam('motionDriver', event.target.value)}
+                placeholder="The force or action that drives the motion"
+                className="h-9 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-2 text-xs text-[color:var(--wb-ink)] outline-none transition-colors focus:border-amber-400/2"
+              />
+            </label>
+
+            <div className="mt-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] p-2 text-[11px] leading-relaxed text-[color:var(--wb-muted)]">
+              {sharedReferenceNote}
+            </div>
+
+            {selectedFrame?.warning && (
+              <p role="status" className="studio-warning-notice">
+                {selectedFrame.warning}
+              </p>
+            )}
+            <p className="studio-field-description">
+              PNG keeps full alpha. GIF uses binary transparency (alpha below 128 is transparent);
+              soft edges are simplified.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <NumberField
+                label="Frames"
+                value={contract.frameCount}
+                min={2}
+                max={48}
+                onChange={(value) => setParam('frameCount', value)}
+              />
+              <NumberField
+                label="FPS"
+                value={contract.fps}
+                min={1}
+                max={30}
+                onChange={(value) => setParam('fps', value)}
+              />
+              <SelectField
+                label="Ratio"
+                value={contract.aspectRatio}
+                options={['1:1', '16:9', '9:16', '4:3', '3:4']}
+                onChange={(value) => {
+                  setParam('aspectRatio', value);
+                  updateConfig('aspectRatio', value as ImageGenerationConfig['aspectRatio']);
+                }}
+              />
+              <SelectField
+                label="Method"
+                value={contract.method}
+                options={['recursive', 'sequential']}
+                onChange={(value) => setParam('method', value)}
+              />
+              <SelectField
+                label="Continuity"
+                value={contract.continuity}
+                options={['loose', 'balanced', 'strict']}
+                onChange={(value) => setParam('continuity', value)}
+              />
+              <fieldset
+                disabled={contract.background === 'transparent'}
+                className="grid gap-1.5 disabled:opacity-50"
+              >
+                <SelectField
+                  label="Solid export fill"
+                  value={contract.background === 'solid' ? 'solid' : 'preserve'}
+                  options={['preserve', 'solid']}
+                  onChange={(value) => {
+                    updateConfig('outputBackground', 'workflow');
+                    setParam('background', value);
+                  }}
+                />
+              </fieldset>
+              <label className="grid gap-1.5">
+                <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
+                  Matte
+                </span>
+                <input
+                  type="color"
+                  disabled={contract.background !== 'solid'}
+                  aria-label="Solid background color"
+                  value={contract.matteColor}
+                  onChange={(event) => setParam('matteColor', event.target.value)}
+                  className="h-9 w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)]"
+                />
+              </label>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <ToggleField
+                label="Loop"
+                value={contract.cyclic}
+                onChange={(v) => setParam('cyclic', v)}
+              />
+              <ToggleField
+                label="Style"
+                value={contract.styleLock}
+                onChange={(v) => setParam('styleLock', v)}
+              />
+            </div>
+
+            {!activeRun && (
+              <RecipePrimaryAction execute={handleCreateRun} disabled={busy || !prompt.trim()}>
+                <ActionButton
+                  tone="primary"
+                  onClick={handleCreateRun}
+                  disabled={busy || !prompt.trim()}
+                  className="mt-3 w-full"
+                >
+                  {busy ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Sparkles width={13} height={13} />
+                  )}
+                  Prepare
+                </ActionButton>
+              </RecipePrimaryAction>
+            )}
+
+            {!prompt.trim() ? (
+              <p
+                id="animation-prompt-requirement"
+                className="mt-2 text-[11px] text-[color:var(--wb-muted)]"
+              >
+                A motion prompt is required to prepare a run.
+              </p>
+            ) : null}
+          </div>
+        </details>
+        <AnimationRecentRuns
+          activeRun={activeRun}
+          isRunsLoading={isRunsLoading}
+          runsLoadError={runsLoadError}
+          refreshRuns={refreshRuns}
+          runs={runs}
+          setActiveRun={setActiveRun}
+        />
+      </aside>
+    </RecipeControls>
+  );
+}
+
+function AnimationSequenceStage({
+  activeRun,
+  setActiveRun,
+  setSelectedFrameId,
+  syncRun,
+  busy,
+  nextFrameId,
+  exportGif,
+  generatedCount,
+  contract,
+  framePlan,
+  resolveFrameImage,
+  gifExport,
+  selectedFrameKey,
+  frameJobs,
+  generatedKeyframeCount,
+  keyframeIds,
+  executionLabel,
+  runQa,
+  message,
+  error,
+}: Pick<
+  AnimationSequenceRecipeViewModel,
+  | 'activeRun'
+  | 'setActiveRun'
+  | 'setSelectedFrameId'
+  | 'syncRun'
+  | 'busy'
+  | 'nextFrameId'
+  | 'exportGif'
+  | 'generatedCount'
+  | 'contract'
+  | 'framePlan'
+  | 'resolveFrameImage'
+  | 'gifExport'
+  | 'selectedFrameKey'
+  | 'frameJobs'
+  | 'generatedKeyframeCount'
+  | 'keyframeIds'
+  | 'executionLabel'
+  | 'runQa'
+  | 'message'
+  | 'error'
+>) {
+  return (
+    <main
+      data-recipe-stage
+      className="flex min-h-0 flex-col overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] xl:min-h-0"
+    >
+      <div className="flex items-center justify-between gap-3 border-b border-[color:var(--wb-line)] p-3">
+        <div className="min-w-0">
+          <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
+            {activeRun ? 'Selected sequence' : 'New sequence draft'}
+          </div>
+          <h3 className="truncate text-sm font-semibold text-[color:var(--wb-ink)]">
+            {activeRun?.title ?? 'Draft plan'}
+          </h3>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <ActionButton
+            onClick={() => {
+              setActiveRun(null);
+              setSelectedFrameId(null);
+            }}
+          >
+            New sequence
+          </ActionButton>
+          <ActionButton onClick={syncRun} disabled={!activeRun || busy}>
+            <RefreshCw width={13} height={13} />
+            Sync
+          </ActionButton>
+          <ActionButton
+            onClick={() => nextFrameId && setSelectedFrameId(nextFrameId)}
+            disabled={!activeRun || !nextFrameId || busy}
+          >
+            <Play width={13} height={13} />
+            Next frame
+          </ActionButton>
+          <ActionButton
+            onClick={exportGif}
+            disabled={!activeRun || generatedCount < (activeRun?.frames.length ?? 1) || busy}
+          >
+            <Download width={13} height={13} />
+            GIF
+          </ActionButton>
+        </div>
+      </div>
+
+      <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden">
+        <AnimationFrameGrid
+          activeRun={activeRun}
+          contract={contract}
+          framePlan={framePlan}
+          resolveFrameImage={resolveFrameImage}
+          gifExport={gifExport}
+          selectedFrameKey={selectedFrameKey}
+          frameJobs={frameJobs}
+          setSelectedFrameId={setSelectedFrameId}
+        />
+
+        <AnimationSequenceStatus
+          activeRun={activeRun}
+          generatedKeyframeCount={generatedKeyframeCount}
+          keyframeIds={keyframeIds}
+          generatedCount={generatedCount}
+          gifExport={gifExport}
+          contract={contract}
+          executionLabel={executionLabel}
+          runQa={runQa}
+          busy={busy}
+          message={message}
+          error={error}
+        />
+      </div>
+    </main>
+  );
+}
+
+function AnimationFrameActions({
+  generateFrame,
+  activeRun,
+  selectedPlanFrame,
+  isSelectedPromptReady,
+  isSelectedFrameJobActive,
+  busy,
+  selectedFrame,
+  attachSelectedGeneratedFrame,
+  selectedCatalogMatch,
+}: Pick<
+  AnimationSequenceRecipeViewModel,
+  | 'generateFrame'
+  | 'activeRun'
+  | 'selectedPlanFrame'
+  | 'isSelectedPromptReady'
+  | 'isSelectedFrameJobActive'
+  | 'busy'
+  | 'selectedFrame'
+  | 'attachSelectedGeneratedFrame'
+  | 'selectedCatalogMatch'
+>): React.ReactElement {
+  return (
+    <div className="mt-3 grid gap-2">
+      <ActionButton
+        tone="primary"
+        onClick={() => generateFrame(false)}
+        disabled={
+          !activeRun ||
+          !selectedPlanFrame ||
+          !isSelectedPromptReady ||
+          isSelectedFrameJobActive ||
+          busy
+        }
+      >
+        <Play width={13} height={13} />
+        {selectedFrame?.status === 'blocked' ? 'Retry' : 'Generate'}
+      </ActionButton>
+      <ActionButton
+        onClick={() => generateFrame(true)}
+        disabled={
+          !activeRun ||
+          !selectedPlanFrame ||
+          !isSelectedPromptReady ||
+          isSelectedFrameJobActive ||
+          busy
+        }
+      >
+        <Sparkles width={13} height={13} />
+        Correct
+      </ActionButton>
+      <ActionButton onClick={attachSelectedGeneratedFrame} disabled={!selectedCatalogMatch || busy}>
+        <RefreshCw width={13} height={13} />
+        Attach
+      </ActionButton>
+    </div>
+  );
+}
+
+function AnimationFrameJobStatus({
+  selectedFrame,
+  frameJobs,
+  selectedFrameImage,
+  onSelectImage,
+}: Pick<
+  AnimationSequenceRecipeViewModel,
+  'selectedFrame' | 'frameJobs' | 'selectedFrameImage' | 'onSelectImage'
+>): React.ReactElement | null {
+  if (!selectedFrame) return null;
+  return (
+    <div className="mt-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] p-2 text-[length:var(--wbp-label)] text-[color:var(--wb-muted)]">
+      <div className="flex justify-between gap-2">
+        <span>Job status</span>
+        <span className="font-semibold text-[color:var(--wb-ink)]">
+          {selectedFrame.jobId && isAnimationSequenceFrameAwaitingJob(selectedFrame)
+            ? (frameJobs[selectedFrame.jobId] ?? 'Checking job')
+            : FRAME_STATUS_LABELS[selectedFrame.status]}
+        </span>
+      </div>
+      <div className="mt-1 flex justify-between gap-2">
+        <span>Catalog</span>
+        <span className="truncate font-mono text-[color:var(--wb-ink)]">
+          {selectedFrame.catalogImageId ?? 'none'}
+        </span>
+      </div>
+      {selectedFrameImage && onSelectImage ? (
+        <button
+          type="button"
+          onClick={() => onSelectImage(selectedFrameImage)}
+          className="mt-2 h-8 w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_4%,transparent)] text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]"
+        >
+          Preview
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function AnimationFrameGrid({
+  activeRun,
+  contract,
+  framePlan,
+  resolveFrameImage,
+  gifExport,
+  selectedFrameKey,
+  frameJobs,
+  setSelectedFrameId,
+}: Pick<
+  AnimationSequenceRecipeViewModel,
+  | 'activeRun'
+  | 'contract'
+  | 'framePlan'
+  | 'resolveFrameImage'
+  | 'gifExport'
+  | 'selectedFrameKey'
+  | 'frameJobs'
+  | 'setSelectedFrameId'
+>): React.ReactElement {
+  return (
+    <div className="custom-scrollbar overflow-y-auto p-3">
+      <AnimationFramePreview
+        key={activeRun?.id ?? 'draft'}
+        fps={activeRun?.contract.fps ?? contract.fps}
+        frames={framePlan.frames.map((frame) => {
+          const catalogImageId = activeRun?.frames.find(
+            (item) => item.id === frame.id,
+          )?.catalogImageId;
+          const image = resolveFrameImage(catalogImageId);
+          return {
+            id: frame.id,
+            catalogImageId,
+            src: image ? (image.preview ?? image.src) : undefined,
+            unavailable: image === null,
+          };
+        })}
+      />
+      {activeRun && gifExport ? (
+        <a
+          className="mb-3 inline-block text-xs underline"
+          href={getAnimationSequenceGifUrl(activeRun.id)}
+          download
+        >
+          Download exported GIF
+        </a>
+      ) : null}
+
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(112px,1fr))] gap-2">
+        {framePlan.frames.map((planFrame) => {
+          const state = activeRun?.frames.find((frame) => frame.id === planFrame.id) ?? null;
+          const generatedImage = resolveFrameImage(state?.catalogImageId);
+          const selected = selectedFrameKey === planFrame.id;
+          const frameLabel = getFrameDisplayLabel(planFrame.ordinal);
+          const frameStatus =
+            state && isAnimationSequenceFrameAwaitingJob(state)
+              ? `Job ${frameJobs[state.jobId!] ?? 'checking'} · image pending`
+              : getFrameDisplayStatus(planFrame, state);
+          const blockedNote = state?.blocked ? `: ${state.blocked.userMessage}` : '';
+          return (
+            <button
+              key={planFrame.id}
+              type="button"
+              onClick={() => setSelectedFrameId(planFrame.id)}
+              aria-label={`Select ${frameLabel}, ${frameStatus}${blockedNote}`}
+              aria-pressed={selected}
+              className={`group min-h-28 overflow-hidden rounded-[var(--wb-radius)] border text-left transition-colors ${
+                selected ? 'border-amber-400/2 bg-amber-500/10' : getFrameTone(state)
+              }`}
+            >
+              <div className="aspect-video bg-[color:var(--wb-well)]">
+                {generatedImage ? (
+                  <img
+                    src={generatedImage.thumbnail ?? generatedImage.src}
+                    alt={`${frameLabel} generated preview`}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="grid h-full place-items-center text-[color:var(--wb-dim)]">
+                    {state?.status === 'generated' ? (
+                      <Check width={20} height={20} />
+                    ) : (
+                      <Play width={20} height={20} />
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="p-2">
+                <div className="font-mono text-[length:var(--wbp-label)] font-semibold">
+                  {frameLabel}
+                </div>
+                <div className="mt-0.5 break-words text-[length:var(--wbp-label)] font-semibold tracking-normal opacity-70">
+                  {planFrame.semanticPhase} · {frameStatus}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function AnimationSequenceStatus({
+  activeRun,
+  generatedKeyframeCount,
+  keyframeIds,
+  generatedCount,
+  gifExport,
+  contract,
+  executionLabel,
+  runQa,
+  busy,
+  message,
+  error,
+}: Pick<
+  AnimationSequenceRecipeViewModel,
+  | 'activeRun'
+  | 'generatedKeyframeCount'
+  | 'keyframeIds'
+  | 'generatedCount'
+  | 'gifExport'
+  | 'contract'
+  | 'executionLabel'
+  | 'runQa'
+  | 'busy'
+  | 'message'
+  | 'error'
+>): React.ReactElement {
+  return (
+    <div className="border-t border-[color:var(--wb-line)] p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
+          <span className={activeRun ? 'text-[color:var(--wb-success)]' : ''}>1 Plan</span>
+          <span
+            className={
+              generatedKeyframeCount === keyframeIds.size && activeRun
+                ? 'text-[color:var(--wb-success)]'
+                : ''
+            }
+          >
+            2 Keyframes {generatedKeyframeCount}/{keyframeIds.size}
+          </span>
+          <span
+            className={
+              activeRun && generatedCount === activeRun.frames.length
+                ? 'text-[color:var(--wb-success)]'
+                : ''
+            }
+          >
+            3 In-betweens
+          </span>
+          <span className={gifExport ? 'text-[color:var(--wb-success)]' : ''}>4 Export</span>
+          <span>
+            {generatedCount}/{activeRun?.frames.length ?? contract.frameCount} frames
+          </span>
+          <span>{executionLabel}</span>
+          {activeRun?.qa ? (
+            <span
+              className={
+                activeRun.qa.ok
+                  ? 'text-[color:var(--wb-success)] '
+                  : 'text-[color:var(--wb-danger)] '
+              }
+            >
+              QA {activeRun.qa.ok ? 'OK' : 'Issues'}
+            </span>
+          ) : null}
+        </div>
+        <ActionButton onClick={runQa} disabled={!activeRun || busy}>
+          <Check width={13} height={13} />
+          QA
+        </ActionButton>
+      </div>
+      <AnimationActionFeedback message={message} error={error} />
+    </div>
+  );
+}
+
+function AnimationRecentRuns({
+  activeRun,
+  isRunsLoading,
+  runsLoadError,
+  refreshRuns,
+  runs,
+  setActiveRun,
+}: Pick<
+  AnimationSequenceRecipeViewModel,
+  'activeRun' | 'isRunsLoading' | 'runsLoadError' | 'refreshRuns' | 'runs' | 'setActiveRun'
+>) {
+  return (
+    <div className="p-3">
+      <div className="mt-4">
+        <div className="mb-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
+          Recent runs
+        </div>
+        <div className="grid gap-2">
+          {isRunsLoading ? (
+            <div
+              role="status"
+              className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] px-3 py-4 text-xs text-[color:var(--wb-muted)]"
+            >
+              Loading runs...
+            </div>
+          ) : null}
+          {!isRunsLoading && runsLoadError ? (
+            <div
+              role="alert"
+              className="rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-500/10 p-3 text-xs text-[color:var(--wb-danger)] "
+            >
+              <div>{runsLoadError}</div>
+              <button
+                type="button"
+                onClick={() => void refreshRuns().catch(() => {})}
+                className="mt-2 h-8 rounded-[var(--wb-radius)] border border-rose-400/2 bg-rose-500/10 px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-danger)] "
+              >
+                Retry runs
+              </button>
+            </div>
+          ) : null}
+          {!isRunsLoading && !runsLoadError && runs.length === 0 ? (
+            <div className="rounded-[var(--wb-radius)] border border-dashed border-[color:var(--wb-line)] px-3 py-4 text-xs leading-relaxed text-[color:var(--wb-dim)]">
+              Prepared runs will appear here and remain available after refresh.
+            </div>
+          ) : null}
+          {runs.map((run) => (
+            <button
+              key={run.id}
+              type="button"
+              onClick={() => setActiveRun(run)}
+              aria-pressed={activeRun?.id === run.id}
+              className={`rounded-[var(--wb-radius)] border p-2 text-left transition-colors ${
+                activeRun?.id === run.id
+                  ? 'border-amber-400/2 bg-amber-500/10'
+                  : 'border-[color:var(--wb-line)] bg-white/[0.035] hover:border-[color:var(--wb-border)]'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-xs font-semibold text-[color:var(--wb-ink)]">
+                  {run.title}
+                </span>
+                <span
+                  className={`rounded px-1.5 py-0.5 text-[length:var(--wbp-label)] font-semibold ${getRunTone(run.status)}`}
+                >
+                  {STATUS_LABELS[run.status]}
+                </span>
+              </div>
+              <div className="mt-1 truncate font-mono text-[length:var(--wbp-label)] text-[color:var(--wb-dim)]">
+                {run.id}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AnimationActionFeedback({
+  message,
+  error,
+}: Pick<AnimationSequenceRecipeViewModel, 'message' | 'error'>) {
+  if (!message && !error) return null;
+  return (
+    <div
+      role={error ? 'alert' : 'status'}
+      aria-live={error ? 'assertive' : 'polite'}
+      className={`mt-2 flex items-center gap-2 rounded-[var(--wb-radius)] border px-2 py-1.5 text-xs ${
+        error
+          ? 'border-rose-500/2 bg-rose-500/10 text-[color:var(--wb-danger)] '
+          : 'border-emerald-500/2 bg-emerald-500/10 text-[color:var(--wb-success)] '
+      }`}
+    >
+      {error ? <AlertTriangle width={14} height={14} /> : <Check width={14} height={14} />}
+      <span className="min-w-0 truncate">{error ?? message}</span>
+    </div>
+  );
+}

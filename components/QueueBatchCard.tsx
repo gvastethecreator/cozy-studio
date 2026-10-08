@@ -3,7 +3,7 @@ import type { JobBatchSummary, RetryJobBatchRequest } from '../packages/shared/s
 import { getStudioJobBatchSummary, retryStudioJobBatch } from '../services/studio-api/jobs';
 import { StudioApiError } from '../services/studio-api/http';
 
-export function QueueBatchCard({ batchId, revision }: { batchId: string; revision: string }) {
+function useJobBatch(batchId: string, revision: string) {
   const [batch, setBatch] = useState<JobBatchSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retryError, setRetryError] = useState<string | null>(null);
@@ -44,6 +44,30 @@ export function QueueBatchCard({ batchId, revision }: { batchId: string; revisio
       setBusy(false);
     }
   };
+  return { batch, error, retryError, busy, retryRequest, setRefresh, retryFailed };
+}
+
+function BatchCounts({ batch, error }: { batch: JobBatchSummary | null; error: string | null }) {
+  if (!batch) return null;
+  return (
+    <p>
+      {batch.counts.completed} of {batch.requestedCount} completed
+      {Object.entries(batch.counts)
+        .filter(([status, count]) => status !== 'completed' && count > 0)
+        .map(
+          ([status, count]) => ` · ${count} ${status === 'needs_review' ? 'need review' : status}`,
+        )
+        .join('')}
+      {error ? ' (last confirmed)' : ''}
+    </p>
+  );
+}
+
+export function QueueBatchCard({ batchId, revision }: { batchId: string; revision: string }) {
+  const { batch, error, retryError, busy, retryRequest, setRefresh, retryFailed } = useJobBatch(
+    batchId,
+    revision,
+  );
   if (!batch && !error) return null;
   return (
     <section
@@ -54,19 +78,7 @@ export function QueueBatchCard({ batchId, revision }: { batchId: string; revisio
         <span>Batch · {batch?.requestedCount ?? '—'} requested</span>
         <strong className="capitalize">{batch?.status.replace('_', ' ') ?? 'Unavailable'}</strong>
       </div>
-      {batch ? (
-        <p>
-          {batch.counts.completed} of {batch.requestedCount} completed
-          {Object.entries(batch.counts)
-            .filter(([status, count]) => status !== 'completed' && count > 0)
-            .map(
-              ([status, count]) =>
-                ` · ${count} ${status === 'needs_review' ? 'need review' : status}`,
-            )
-            .join('')}
-          {error ? ' (last confirmed)' : ''}
-        </p>
-      ) : null}
+      <BatchCounts batch={batch} error={error} />
       {error ? (
         <p role="alert">
           {error}{' '}

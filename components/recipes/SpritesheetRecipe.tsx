@@ -177,12 +177,12 @@ function SpritesheetSidebar({
   );
 }
 
-export const SpritesheetRecipe: React.FC<SpritesheetRecipeProps> = ({
+function useSpritesheetRecipeController({
   config,
   updateConfig,
   onGenerate,
   isGenerating = false,
-}) => {
+}: SpritesheetRecipeProps) {
   const [params, setParams] = useState(
     () =>
       ({
@@ -306,38 +306,43 @@ export const SpritesheetRecipe: React.FC<SpritesheetRecipeProps> = ({
             );
           }}
         />
-        <fieldset
-          disabled={config.outputBackground === 'transparent'}
-          className="contents disabled:opacity-50"
-        >
-          <ControlDropdown
-            title="Background"
-            icon={<PaintBucket width={14} height={14} />}
-            label={params.background}
-            options={CONTROL_OPTIONS.background}
-            onSelect={(v) => setParams((p) => ({ ...p, background: v }))}
-          />
-          {params.background.includes('Green') ? (
-            <p className="px-1 text-xs text-[color:var(--wb-muted)]">
-              Chroma green is a key color for a later import, not transparent pixels.
-            </p>
-          ) : null}
-          {params.background === 'Custom' && (
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[length:var(--wbp-label)] font-semibold text-[color:var(--wb-muted)] tracking-normal pl-1">
-                Hex
-              </span>
-              <MinimalColorPicker color={customColor} onChange={setCustomColor} />
-            </div>
-          )}
-        </fieldset>
-        <ControlDropdown
-          title="Separation"
-          icon={<SeparatorHorizontal width={14} height={14} />}
-          label={params.dividers}
-          options={CONTROL_OPTIONS.dividers}
-          onSelect={(v) => setParams((p) => ({ ...p, dividers: v }))}
-        />
+        <details className="recipe-advanced">
+          <summary>Advanced appearance</summary>
+          <div className="recipe-advanced-grid">
+            <fieldset
+              disabled={config.outputBackground === 'transparent'}
+              className="contents disabled:opacity-50"
+            >
+              <ControlDropdown
+                title="Background"
+                icon={<PaintBucket width={14} height={14} />}
+                label={params.background}
+                options={CONTROL_OPTIONS.background}
+                onSelect={(v) => setParams((p) => ({ ...p, background: v }))}
+              />
+              {params.background.includes('Green') ? (
+                <p className="px-1 text-xs text-[color:var(--wb-muted)]">
+                  Chroma green is a key color for a later import, not transparent pixels.
+                </p>
+              ) : null}
+              {params.background === 'Custom' && (
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[length:var(--wbp-label)] font-semibold text-[color:var(--wb-muted)] tracking-normal pl-1">
+                    Hex
+                  </span>
+                  <MinimalColorPicker color={customColor} onChange={setCustomColor} />
+                </div>
+              )}
+            </fieldset>
+            <ControlDropdown
+              title="Separation"
+              icon={<SeparatorHorizontal width={14} height={14} />}
+              label={params.dividers}
+              options={CONTROL_OPTIONS.dividers}
+              onSelect={(v) => setParams((p) => ({ ...p, dividers: v }))}
+            />
+          </div>
+        </details>
         <div className="w-px h-8 bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] mx-2 hidden sm:block" />
         <div className="px-2 hidden sm:block">
           <div className="text-[length:var(--wbp-label)] font-semibold text-emerald-500 tracking-normal mb-0.5">
@@ -378,6 +383,52 @@ export const SpritesheetRecipe: React.FC<SpritesheetRecipeProps> = ({
     }),
     [ratioValue, availHeightCSS, gridCols, gridRows, hasDividers],
   );
+
+  return {
+    isGenerating,
+    BottomDock,
+    hasDividers,
+    params,
+    gridContainerStyle,
+    gridCols,
+    gridRows,
+    setHoveredCell,
+    customColor,
+    showGuides,
+    hoveredCell,
+    editingCell,
+    cellInputRef,
+    cellPrompts,
+    setCellPrompts,
+    setEditingCell,
+    isLightBg,
+    config,
+  };
+}
+
+type SpritesheetRecipeViewModel = ReturnType<typeof useSpritesheetRecipeController>;
+
+function SpritesheetRecipeView({ model }: { model: SpritesheetRecipeViewModel }) {
+  const {
+    isGenerating,
+    BottomDock,
+    hasDividers,
+    params,
+    gridContainerStyle,
+    gridCols,
+    gridRows,
+    setHoveredCell,
+    customColor,
+    showGuides,
+    hoveredCell,
+    editingCell,
+    cellInputRef,
+    cellPrompts,
+    setCellPrompts,
+    setEditingCell,
+    isLightBg,
+    config,
+  } = model;
 
   return (
     <RecipeLayout
@@ -479,4 +530,9 @@ export const SpritesheetRecipe: React.FC<SpritesheetRecipeProps> = ({
       </div>
     </RecipeLayout>
   );
+}
+
+export const SpritesheetRecipe: React.FC<SpritesheetRecipeProps> = (props) => {
+  const view = useSpritesheetRecipeController(props);
+  return <SpritesheetRecipeView model={view} />;
 };

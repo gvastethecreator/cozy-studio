@@ -32,8 +32,9 @@ export function getTcgCompositionReadiness({
     .slice(0, requiredArtworkCount)
     .filter((entry) => !!entry.src).length;
   const missingArtSlots = requiredArtworkCount - selectedArtCount;
+  const missingMaskKeys = new Set(renderHealth?.missingMaskKeys);
   const outstandingMasks = requiredMaskKeys.filter(
-    (key) => !maskSources[key] || renderHealth?.missingMaskKeys.includes(key),
+    (key) => !maskSources[key] || missingMaskKeys.has(key),
   );
   const invalidMasks = renderHealth?.failedMaskKeys ?? [];
   const invalidArt = renderHealth?.failedArtworkSlots ?? [];

@@ -38,6 +38,7 @@ export function SettingsOutputPanel({
   const [customFolders, setCustomFolders] = useState(false);
   const [customName, setCustomName] = useState(false);
   const levels = value.outputSubfolderPreset.split('/').filter(Boolean);
+  const selectedLevels = new Set(levels);
   const setLevels = (next: string[]) =>
     onChange((current) => ({ ...current, outputSubfolderPreset: next.join('/') }));
   const error = validateOutputTemplate(value.outputFileNameTemplate);
@@ -106,7 +107,7 @@ export function SettingsOutputPanel({
         <summary>Customize folders</summary>
         <div className="settings-folder-levels" aria-label="Folder levels">
           {levels.map((level, index) => (
-            <div key={index}>
+            <div key={level}>
               <select
                 className="studio-field"
                 aria-label={`Folder level ${index + 1}`}
@@ -120,7 +121,7 @@ export function SettingsOutputPanel({
                 }
               >
                 {OUTPUT_FOLDER_TOKENS.filter(
-                  (token) => token === level || !levels.includes(token),
+                  (token) => token === level || !selectedLevels.has(token),
                 ).map((token) => (
                   <option key={token} value={token}>
                     {token}
@@ -144,7 +145,7 @@ export function SettingsOutputPanel({
               onClick={() =>
                 setLevels([
                   ...levels,
-                  OUTPUT_FOLDER_TOKENS.find((token) => !levels.includes(token))!,
+                  OUTPUT_FOLDER_TOKENS.find((token) => !selectedLevels.has(token))!,
                 ])
               }
             >

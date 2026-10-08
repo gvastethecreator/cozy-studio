@@ -129,6 +129,7 @@ export function useCatalogPage({
         setError(normalizedError);
         if (propagateError) throw normalizedError;
       } finally {
+        // react-doctor-disable-next-line react-doctor/no-loading-flag-reset-outside-finally -- finally clears only the current request; stale completions must not reset a newer load
         if (requestGate.finish(token)) setIsLoading(false);
       }
     },
@@ -164,6 +165,7 @@ export function useCatalogPage({
     } catch (error) {
       if (requestGate.isCurrent(token)) setError(normalizeCatalogError(error));
     } finally {
+      // react-doctor-disable-next-line react-doctor/no-loading-flag-reset-outside-finally -- finally clears only the current request; stale completions must not reset a newer load
       if (requestGate.finish(token)) setIsLoading(false);
     }
   }, [

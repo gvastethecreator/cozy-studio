@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { resolveProviderMaxOutputCount } from '../../lib/composerProviderProjection';
 
 import { useGenerationDraft } from '../../contexts/GenerationContext';
 import {
@@ -39,6 +40,13 @@ function ConnectedGenerationToolbar({
   'activeRecipe' | 'currentView' | 'toolbarArgs' | 'layout' | 'railTools' | 'railAction'
 >) {
   const draft = useGenerationDraft();
+  const maxOutputCount = resolveProviderMaxOutputCount(toolbarArgs.provider.activeProviderId);
+  const { generationConfig, updateGenerationConfig } = draft;
+  useEffect(() => {
+    if ((generationConfig.batchCount || 1) > maxOutputCount) {
+      updateGenerationConfig('batchCount', maxOutputCount);
+    }
+  }, [generationConfig.batchCount, maxOutputCount, updateGenerationConfig]);
   const toolbarProps = useGenerationToolbarConfig({
     ...toolbarArgs,
     config: {

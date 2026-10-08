@@ -14,25 +14,25 @@ const SUPPORT_LINKS = [
 ] as const;
 
 export function SupportProjectPage({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const dialogRef = useDialogFocus(isOpen, onClose);
+  const dialogRef = useDialogFocus<HTMLDialogElement>(isOpen, onClose);
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-120 flex items-start justify-center overflow-y-auto p-4 sm:items-center">
+    <dialog
+      aria-modal="true"
+      ref={dialogRef}
+      aria-labelledby="support-project-title"
+      tabIndex={-1}
+      className="studio-modal fixed inset-0 z-120 flex items-start justify-center overflow-y-auto p-4 sm:items-center"
+    >
       <button
         type="button"
         className="absolute inset-0 studio-scrim"
+        tabIndex={-1}
         aria-label="Close support page"
         onClick={onClose}
       />
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="support-project-title"
-        tabIndex={-1}
-        className="studio-dialog relative z-10 w-full max-w-lg rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-6"
-      >
+      <div className="studio-dialog relative z-10 w-full max-w-lg rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-6">
         <h2 id="support-project-title" className="text-xl font-semibold text-[color:var(--wb-ink)]">
           Help keep Cozy Studio moving.
         </h2>
@@ -78,6 +78,6 @@ export function SupportProjectPage({ isOpen, onClose }: { isOpen: boolean; onClo
           Back
         </button>
       </div>
-    </div>
+    </dialog>
   );
 }

@@ -1,29 +1,16 @@
+import { RecipeWorkbenchContext } from './recipeWorkbenchContextState';
 import { getStyleCategoryDisplayName } from './styles/collections/categoryDisplayNames';
 import { runtimeLogger } from '../../utils/runtimeLogger';
 import { AnimatePresence } from '../../lib/gsapMotion';
 import { useWorkspaceState } from '../../contexts/GlobalContext';
 import {
-  Archive,
-  Sort as ArrowUpDown,
-  Box3dCenter as Box,
-  Suitcase as Briefcase,
   Check,
-  NavArrowDown as ChevronDown,
-  NavArrowLeft as ChevronLeft,
-  NavArrowRight as ChevronRight,
-  Copy,
-  Filter,
-  Folder as Folders,
   Heart,
   ViewGrid as LayoutGrid,
   MultiplePages as Layers,
-  EditPencil as PenTool,
   Play,
-  Plus,
-  Search,
   ControlSlider as SlidersHorizontal,
   Sparks as Sparkles,
-  MagicWand as Wand2,
   Xmark as X,
 } from 'iconoir-react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -37,13 +24,10 @@ import {
 } from '../../lib/styleThumbnailCatalog';
 import { styleCategoryImageKey } from '../../lib/recipeAssetKeys';
 import { hasStylePresetIdentity } from '../../lib/recipeIdentity';
-import { StyleCategoryGlyph } from './StyleCategoryGlyph';
-import { resolveStyleCategoryIdentity } from './styleCategoryIdentity';
 import type { Attachment, GeneratedImageWithConfig, ImageGenerationConfig } from '../../types';
 import type { EditableStudioSettings, GenerationProviderId } from '../../packages/shared/src';
 import { resolveGrokImagineGenerateBlock } from '../../lib/grokImagineUiPolicy';
 import { useStyleRuntimePacks } from '../../hooks/useStyleRuntimePacks';
-import { DemandMountedGsapDropdown } from '../ui/DemandMountedGsapDropdown';
 import { LazySurfaceFallback } from '../ui/LazySurfaceFallback';
 import {
   RecipeControls,
@@ -52,23 +36,13 @@ import {
   RecipeResults,
 } from './RecipeWorkbenchContext';
 import { RecipeLayout } from './RecipeLayout';
-import { StyleBrowseSwitch } from './StyleBrowseSwitch';
 import {
   STYLE_BROWSER_EAGER_SECTION_LIMIT,
-  STYLE_BROWSER_FLAT_GROUP_KEY,
   collectStylePresetPreviewSources,
   createStyleBrowserProcessedData,
   createStyleBrowserRenderPlan,
-  type StyleBrowserSortOrder,
 } from './styleBrowserRenderPlan';
-import {
-  STYLE_GRID_DEFAULT_VIEWPORT_HEIGHT_PX,
-  createStyleGridVirtualWindow,
-  fitStyleGridColumns,
-  resolveStyleGridColumns,
-  estimateStyleGroupPlaceholderHeight,
-  type StyleGridVirtualWindow,
-} from './styleGridVirtualization';
+import { fitStyleGridColumns, resolveStyleGridColumns } from './styleGridVirtualization';
 import {
   createStylePresetCatalogSearchIndexFromRuntimePacks,
   type StylePresetCatalogSearchResult,
@@ -76,7 +50,6 @@ import {
 import {
   getStyleRuntimePresetDisplayName,
   STYLE_RUNTIME_PACK_SUMMARIES,
-  type StyleRuntimePack,
   type StyleRuntimePreset,
 } from './stylesData';
 import type { ArchivedStylePresetEntry } from './archivedStylePresets';
@@ -113,19 +86,17 @@ import type {
   StyleRecipeNavigationItem,
   StyleRecipeNavigationSection,
 } from './StyleRecipeNavigationPanel';
-import type {
-  StyleCardHoverPreview,
-  StylePresetSourceProvenance,
-  StylePresetVisualState,
-} from './StylePresetCardSurface';
+import type { StylePresetSourceProvenance, StylePresetVisualState } from './StylePresetCardSurface';
+import { useLocalStorage } from '../../hooks/useLocalStorage';
+import { FAVORITES_PACK_ID, ALL_STYLE_CARDS_TAB_ID } from './styleTabRouting';
+const StyleCatalogPanel = React.lazy(() =>
+  import('./StyleCatalogPanel').then((module) => ({ default: module.StyleCatalogPanel })),
+);
 
 const StyleDetailPreview = React.lazy(() => import('./StyleDetailPreview'));
 
-const TcgComponentStudio = React.lazy(() =>
-  import('./styles/TcgComponentStudio').then((module) => ({ default: module.TcgComponentStudio })),
-);
-
 export interface StylesBrowserProps {
+  catalogOnly?: boolean;
   config: ImageGenerationConfig;
   updateConfig: <K extends keyof ImageGenerationConfig>(
     key: K,
@@ -148,9 +119,7 @@ export interface StylesBrowserProps {
   defaultStyleReferenceMode?: EditableStudioSettings['defaultStyleReferenceMode'];
 }
 
-const FAVORITES_PACK_ID = 'favorites';
 const ALL_STYLE_CATEGORIES_TAB_ID = 'all_categories';
-const ALL_STYLE_CARDS_TAB_ID = 'all_cards';
 const EMPTY_IMAGES: GeneratedImageWithConfig[] = [];
 // Installed packs are listed before React mounts and do not change until reload, so these
 // are computed on first use and stay stable for hook dependencies.
@@ -178,17 +147,6 @@ const USER_STYLE_PACK_SUMMARY = {
   description: USER_STYLE_PACK_DESCRIPTION,
   presetCount: 0,
 };
-const STYLE_BROWSER_SORT_OPTIONS = [
-  { value: 'source', label: 'Source' },
-  { value: 'az', label: 'Name A-Z' },
-  { value: 'za', label: 'Name Z-A' },
-  { value: 'created_desc', label: 'Created New' },
-  { value: 'created_asc', label: 'Created Old' },
-  { value: 'updated_desc', label: 'Updated New' },
-  { value: 'updated_asc', label: 'Updated Old' },
-] satisfies Array<{ value: StyleBrowserSortOrder; label: string }>;
-const STYLE_GROUP_VIEWPORT_ROOT_MARGIN = '220px 0px';
-const STYLE_HOVER_PREVIEW_EXIT_DELAY_MS = 280;
 const MAX_STYLE_REFERENCE_IMAGES = 5;
 const MAX_SELECTED_STYLE_SLOTS = 5;
 type StyleCollectionsModule = typeof import('./styles/collections');
@@ -211,16 +169,6 @@ const CompactStyleSelector = React.lazy(() =>
   })),
 );
 
-const StylePresetCatalogSearchSurface = React.lazy(() =>
-  import('./StylePresetCatalogSearchSurface').then((module) => ({
-    default: module.StylePresetCatalogSearchSurface,
-  })),
-);
-
-const PagedStyleCatalog = React.lazy(() =>
-  import('./PagedStyleCatalog').then((module) => ({ default: module.PagedStyleCatalog })),
-);
-
 const StyleAdvancedControlsPanel = React.lazy(() =>
   import('./StyleAdvancedControlsPanel').then((module) => ({
     default: module.StyleAdvancedControlsPanel,
@@ -233,18 +181,6 @@ const UserStyleEditorSurface = React.lazy(() =>
   })),
 );
 
-const StyleCollectionsLandingSurface = React.lazy(() =>
-  import('./StyleCollectionsLandingSurface').then((module) => ({
-    default: module.StyleCollectionsLandingSurface,
-  })),
-);
-
-const StyleRecipeNavigationPanel = React.lazy(() =>
-  import('./StyleRecipeNavigationPanel').then((module) => ({
-    default: module.StyleRecipeNavigationPanel,
-  })),
-);
-
 const StylePresetCard = React.lazy(() =>
   import('./StylePresetCardSurface').then((module) => ({
     default: module.StylePresetCard,
@@ -253,14 +189,8 @@ const StylePresetCard = React.lazy(() =>
 
 // Color mapping for each pack to give them distinct identities
 
-import { useLocalStorage } from '../../hooks/useLocalStorage';
-
 function getStyleTabHash(tabId: StyleTabId) {
   return getStyleTabHashForRoute(tabId, styleTabRouteOptions());
-}
-
-function styleCatalogTabClass(active: boolean) {
-  return `styles-catalog-tab${active ? ' is-active' : ''}`;
 }
 
 function compactStyleRecipeHash() {
@@ -305,98 +235,6 @@ function createStylePresetVisualState({
       previewImage ||
       null,
   };
-}
-
-interface StylePresetGroupSectionProps {
-  groupKey: string;
-  title: string;
-  icon?: React.ReactNode;
-  presets: StyleRuntimePreset[];
-  gridColumns: number;
-  scrollRootRef: React.RefObject<HTMLDivElement | null>;
-  scrollContainerWidth: number;
-  initiallyVisible: boolean;
-  headerClassName: string;
-  accentClassName: string;
-  titleClassName: string;
-  dividerClassName: string;
-  renderPresetCard: (preset: StyleRuntimePreset) => React.ReactNode;
-}
-
-function areStyleGridVirtualWindowsEqual(
-  first: StyleGridVirtualWindow,
-  second: StyleGridVirtualWindow,
-) {
-  return (
-    first.startIndex === second.startIndex &&
-    first.endIndex === second.endIndex &&
-    first.topSpacerHeight === second.topSpacerHeight &&
-    first.bottomSpacerHeight === second.bottomSpacerHeight &&
-    first.totalHeight === second.totalHeight
-  );
-}
-
-function StyleGridPlaceholderCells({
-  gridColumns,
-  presetCount,
-}: {
-  gridColumns: number;
-  presetCount: number;
-}) {
-  const placeholderCount = Math.min(Math.max(0, presetCount), Math.max(gridColumns * 3, 3));
-
-  if (placeholderCount <= 0) return null;
-
-  return (
-    <div
-      data-style-grid-placeholder
-      className="grid gap-2.5"
-      style={{
-        gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
-      }}
-    >
-      {Array.from({ length: placeholderCount }, (_, index) => (
-        <div
-          key={index}
-          data-style-grid-placeholder-card
-          className="aspect-[3/4] rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)]/32 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
-        >
-          <div className="h-full rounded-[var(--wb-radius)] bg-linear-to-b from-white/[0.035] via-transparent to-black/20" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function StyleGridVirtualSpacer({
-  align,
-  gridColumns,
-  height,
-  presetCount,
-}: {
-  align: 'start' | 'end';
-  gridColumns: number;
-  height: number;
-  presetCount: number;
-}) {
-  if (height <= 0) return null;
-
-  return (
-    <div
-      aria-hidden="true"
-      data-style-grid-virtual-spacer={align}
-      className="relative overflow-hidden"
-      style={{ height }}
-    >
-      <div
-        className={`pointer-events-none absolute inset-x-0 ${
-          align === 'end' ? 'bottom-0' : 'top-0'
-        } opacity-55`}
-      >
-        <StyleGridPlaceholderCells gridColumns={gridColumns} presetCount={presetCount} />
-      </div>
-    </div>
-  );
 }
 
 type StyleFadeImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
@@ -448,211 +286,6 @@ const StyleFadeImage = React.memo(function StyleFadeImage({
   );
 });
 
-const StylePresetGroupSection = React.memo(
-  ({
-    groupKey,
-    title,
-    icon,
-    presets,
-    gridColumns,
-    scrollRootRef,
-    scrollContainerWidth,
-    initiallyVisible,
-    headerClassName,
-    accentClassName,
-    titleClassName,
-    dividerClassName,
-    renderPresetCard,
-  }: StylePresetGroupSectionProps) => {
-    const sectionRef = useRef<HTMLDivElement>(null);
-    const gridRef = useRef<HTMLDivElement>(null);
-    const [isNearViewport, setIsNearViewport] = useState(() => initiallyVisible);
-    const createInitialGridWindow = useCallback(
-      () =>
-        createStyleGridVirtualWindow({
-          presetCount: presets.length,
-          gridColumns,
-          containerWidth: scrollContainerWidth,
-          viewportTop: 0,
-          viewportBottom: STYLE_GRID_DEFAULT_VIEWPORT_HEIGHT_PX,
-        }),
-      [gridColumns, presets.length, scrollContainerWidth],
-    );
-    const [gridWindow, setGridWindow] = useState(createInitialGridWindow);
-    const placeholderHeight = estimateStyleGroupPlaceholderHeight({
-      renderedPresetCount: presets.length,
-      gridColumns,
-      containerWidth: scrollContainerWidth,
-      hasShowMore: false,
-    });
-    const visiblePresets = useMemo(
-      () => presets.slice(gridWindow.startIndex, gridWindow.endIndex),
-      [gridWindow.endIndex, gridWindow.startIndex, presets],
-    );
-
-    useLayoutEffect(() => {
-      if (initiallyVisible || isNearViewport) return;
-      const node = sectionRef.current;
-      const root = scrollRootRef.current;
-      if (!node) return;
-      const rootRect = root?.getBoundingClientRect() ?? {
-        top: 0,
-        bottom: typeof window === 'undefined' ? 0 : window.innerHeight,
-      };
-      const rect = node.getBoundingClientRect();
-      if (rect.bottom >= rootRect.top - 220 && rect.top <= rootRect.bottom + 220) {
-        setIsNearViewport(true);
-      }
-    }, [initiallyVisible, isNearViewport, scrollRootRef]);
-
-    useEffect(() => {
-      if (initiallyVisible) {
-        setIsNearViewport(true);
-        return;
-      }
-
-      const node = sectionRef.current;
-      const root = scrollRootRef.current;
-      if (!node || typeof IntersectionObserver === 'undefined') {
-        setIsNearViewport(true);
-        return;
-      }
-
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          setIsNearViewport(Boolean(entry?.isIntersecting));
-        },
-        {
-          root,
-          rootMargin: STYLE_GROUP_VIEWPORT_ROOT_MARGIN,
-        },
-      );
-
-      observer.observe(node);
-      return () => observer.disconnect();
-    }, [initiallyVisible, scrollRootRef]);
-
-    useEffect(() => {
-      if (!isNearViewport) return;
-
-      const root = scrollRootRef.current;
-      const grid = gridRef.current;
-      if (!root || !grid) {
-        setGridWindow(createInitialGridWindow());
-        return;
-      }
-
-      let animationFrame = 0;
-      const updateGridWindow = () => {
-        animationFrame = 0;
-        const rootRect = root.getBoundingClientRect();
-        const gridRect = grid.getBoundingClientRect();
-        const nextWindow = createStyleGridVirtualWindow({
-          presetCount: presets.length,
-          gridColumns,
-          containerWidth: scrollContainerWidth,
-          viewportTop: rootRect.top - gridRect.top,
-          viewportBottom: rootRect.bottom - gridRect.top,
-        });
-
-        setGridWindow((currentWindow) =>
-          areStyleGridVirtualWindowsEqual(currentWindow, nextWindow) ? currentWindow : nextWindow,
-        );
-      };
-      const scheduleGridWindowUpdate = () => {
-        if (animationFrame !== 0) return;
-        animationFrame = window.requestAnimationFrame(updateGridWindow);
-      };
-
-      updateGridWindow();
-      root.addEventListener('scroll', scheduleGridWindowUpdate, { passive: true });
-      window.addEventListener('resize', scheduleGridWindowUpdate);
-
-      return () => {
-        root.removeEventListener('scroll', scheduleGridWindowUpdate);
-        window.removeEventListener('resize', scheduleGridWindowUpdate);
-        if (animationFrame !== 0) window.cancelAnimationFrame(animationFrame);
-      };
-    }, [
-      createInitialGridWindow,
-      gridColumns,
-      isNearViewport,
-      presets.length,
-      scrollContainerWidth,
-      scrollRootRef,
-    ]);
-
-    return (
-      <div
-        ref={sectionRef}
-        data-style-group={groupKey}
-        data-style-group-state={isNearViewport ? 'eager' : 'placeholder'}
-        data-style-group-planned-cards={presets.length}
-        data-style-group-mounted-cards={isNearViewport ? gridWindow.renderedPresetCount : 0}
-        data-style-group-hidden-cards={0}
-        className="relative"
-        style={isNearViewport ? undefined : { minHeight: placeholderHeight }}
-      >
-        <div
-          className={`sticky top-0 z-30 mb-2 flex items-center gap-2 border-y border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] px-2 py-2 shadow-[0_10px_18px_rgba(0,0,0,0.28)] ${headerClassName}`}
-        >
-          <div className={`h-4 w-1 rounded-[var(--wb-radius)] ${accentClassName}`} />
-          {icon ? <span className="text-[color:var(--wb-muted)]">{icon}</span> : null}
-          <h3
-            className={`text-[length:var(--wbp-label)] font-semibold tracking-normal ${titleClassName}`}
-          >
-            {title}
-          </h3>
-          <div className={`h-px flex-1 ${dividerClassName}`} />
-        </div>
-
-        {isNearViewport ? (
-          <>
-            <div
-              ref={gridRef}
-              data-style-group-grid={groupKey}
-              data-style-grid-window={`${gridWindow.startIndex}:${gridWindow.endIndex}`}
-              data-style-grid-total-cards={presets.length}
-              data-style-grid-mounted-cards={gridWindow.renderedPresetCount}
-            >
-              <StyleGridVirtualSpacer
-                align="end"
-                gridColumns={gridColumns}
-                height={gridWindow.topSpacerHeight}
-                presetCount={presets.length}
-              />
-              <div
-                className="grid gap-2.5"
-                style={{
-                  gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
-                }}
-              >
-                {visiblePresets.map(renderPresetCard)}
-              </div>
-              <StyleGridVirtualSpacer
-                align="start"
-                gridColumns={gridColumns}
-                height={gridWindow.bottomSpacerHeight}
-                presetCount={presets.length}
-              />
-            </div>
-          </>
-        ) : (
-          <div
-            aria-hidden="true"
-            data-style-group-placeholder
-            className="relative overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)]/20 p-2"
-            style={{ height: Math.max(120, placeholderHeight - 40) }}
-          >
-            <StyleGridPlaceholderCells gridColumns={gridColumns} presetCount={presets.length} />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-zinc-950/90 to-transparent" />
-          </div>
-        )}
-      </div>
-    );
-  },
-);
-
 function getStylePackSummary(packId: string) {
   if (packId === USER_STYLE_PACK_ID) return USER_STYLE_PACK_SUMMARY;
   return STYLE_RUNTIME_PACK_SUMMARIES.find((pack) => pack.id === packId) ?? null;
@@ -663,7 +296,257 @@ function getStylePackSummary(packId: string) {
 const buildStylePromptText = (preset: StyleRuntimePreset) =>
   import('./stylePromptText').then((module) => module.buildStylePromptText(preset));
 
-export const StylesBrowser: React.FC<StylesBrowserProps> = ({
+function useStyleCatalogLayout(
+  workbench: React.ContextType<typeof RecipeWorkbenchContext>,
+  navigation: ReturnType<typeof useStyleBrowserNavigation>,
+) {
+  const { currentPackId, isPackLandingOpen, writeStyleTabHash } = navigation;
+  const [styleScrollWidth, setStyleScrollWidth] = useState(0);
+  const [gridColumnPref, setGridColumnPref] = useLocalStorage<number | 'auto'>(
+    'styles-grid-columns-v2',
+    'auto',
+  );
+  const [localCatalogExpanded, setCatalogExpanded] = useState(false);
+  const catalogExpanded = workbench.catalogExpanded ?? localCatalogExpanded;
+  const [explorerColumnPref, setExplorerColumnPref] = useLocalStorage<number | 'auto'>(
+    'styles-explorer-columns-v1',
+    'auto',
+  );
+  const fitColumns = fitStyleGridColumns(styleScrollWidth);
+  const gridColumns = resolveStyleGridColumns(
+    catalogExpanded ? explorerColumnPref : gridColumnPref,
+    fitColumns,
+  );
+  const [isDisplayOptionsOpen, setIsDisplayOptionsOpen] = useState(false);
+  const [isManageStylesOpen, setIsManageStylesOpen] = useState(false);
+  const manageStylesButtonRef = useRef<HTMLButtonElement>(null);
+  const manageStylesMenuId = React.useId();
+  const [stylePanelVisibility, setStylePanelVisibility] = useLocalStorage<
+    Partial<StylePanelVisibility>
+  >('styles-panel-visibility', DEFAULT_STYLE_PANEL_VISIBILITY);
+  const [inspectedStyle, setInspectedStyle] = useState<{
+    preset: StyleRuntimePreset;
+    packId: string;
+  } | null>(null);
+  const inspectTriggerRef = useRef<HTMLElement | null>(null);
+  const [localExplorerOpen, setExplorerOpen] = useState(
+    () => readStyleTabIdFromRouteHash(window.location.hash, styleTabRouteOptions()) !== null,
+  );
+  const explorerOpen = workbench.stylesOpen ?? localExplorerOpen;
+  const [catalogMounted, setCatalogMounted] = useState(explorerOpen);
+  // Retain the catalog after its first opening, before children commit, so later
+  // openings preserve its scroll state without an extra effect-driven frame.
+  if (explorerOpen && !catalogMounted) setCatalogMounted(true);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const advancedPanelRef = useRef<HTMLDivElement>(null);
+  const catalogRootRef = useRef<HTMLDialogElement>(null);
+  const closeStyleCatalog = useCallback(() => {
+    if (workbench.closeStyles) {
+      workbench.closeStyles();
+      return;
+    }
+    setCatalogExpanded(false);
+    setExplorerOpen(false);
+    const compactHash = compactStyleRecipeHash();
+    if (window.location.hash !== compactHash) {
+      window.history.replaceState(
+        null,
+        '',
+        `${window.location.pathname}${window.location.search}${compactHash}`,
+      );
+    }
+    window.setTimeout(() => {
+      const focusTarget =
+        document.querySelector<HTMLElement>('#style-advanced-panel button') ??
+        document.querySelector<HTMLElement>('[data-open-style-catalog]');
+      focusTarget?.focus();
+    }, 0);
+  }, [workbench.closeStyles]);
+  const openStyleCatalog = useCallback(
+    (expanded = false) => {
+      if (workbench.openStyles) {
+        workbench.openStyles(expanded);
+        return;
+      }
+      setCatalogExpanded(expanded);
+      setExplorerOpen(true);
+      writeStyleTabHash(isPackLandingOpen ? STYLE_PACKS_TAB_ID : currentPackId);
+    },
+    [currentPackId, isPackLandingOpen, writeStyleTabHash, workbench.openStyles],
+  );
+  const isStyleNavigationPanelOpen = Boolean(
+    stylePanelVisibility.navigation ?? DEFAULT_STYLE_PANEL_VISIBILITY.navigation,
+  );
+  const toggleStylePanel = useCallback(
+    (panel: keyof StylePanelVisibility) => {
+      setStylePanelVisibility((current) => {
+        const normalized = { ...DEFAULT_STYLE_PANEL_VISIBILITY, ...current };
+        return {
+          ...normalized,
+          [panel]: !normalized[panel],
+        };
+      });
+    },
+    [setStylePanelVisibility],
+  );
+  const styleScrollRootRef = useRef<HTMLDivElement>(null);
+  const displayOptionsRef = useRef<HTMLButtonElement>(null);
+  const displayOptionsId = React.useId();
+
+  return {
+    styleScrollWidth,
+    setStyleScrollWidth,
+    gridColumnPref,
+    setGridColumnPref,
+    catalogExpanded,
+    setCatalogExpanded,
+    explorerColumnPref,
+    setExplorerColumnPref,
+    fitColumns,
+    gridColumns,
+    isDisplayOptionsOpen,
+    setIsDisplayOptionsOpen,
+    isManageStylesOpen,
+    setIsManageStylesOpen,
+    manageStylesButtonRef,
+    manageStylesMenuId,
+    inspectedStyle,
+    setInspectedStyle,
+    inspectTriggerRef,
+    explorerOpen,
+    setExplorerOpen,
+    catalogMounted,
+    advancedOpen,
+    setAdvancedOpen,
+    advancedPanelRef,
+    catalogRootRef,
+    closeStyleCatalog,
+    openStyleCatalog,
+    isStyleNavigationPanelOpen,
+    toggleStylePanel,
+    styleScrollRootRef,
+    displayOptionsRef,
+    displayOptionsId,
+  };
+}
+
+function resolveCatalogTheme(
+  collection: Parameters<typeof getStyleCollectionTheme>[0] | null,
+  packId: string,
+  allCards: boolean,
+  allCategories: boolean,
+) {
+  if (collection) return getStyleCollectionTheme(collection);
+  if (allCards) return PACK_THEMES.pack_06;
+  if (allCategories) return PACK_THEMES.pack_10;
+  return PACK_THEMES[packId] || PACK_THEMES.pack_01;
+}
+
+function useArchivedStyleFavorites(
+  currentPackId: string,
+  normalizedStyleSearchQuery: string,
+  favorites: string[],
+  presetPackIdById: Map<string, string>,
+) {
+  const retiredFavoriteIds = useMemo(() => {
+    if (currentPackId !== FAVORITES_PACK_ID || normalizedStyleSearchQuery) return [];
+    return favorites.filter(
+      (presetId) => !presetPackIdById.has(presetId) && /^SP(?:14|15)-\d{3}$/.test(presetId),
+    );
+  }, [currentPackId, favorites, normalizedStyleSearchQuery, presetPackIdById]);
+  const [archivedFavoriteEntries, setArchivedFavoriteEntries] = useState<
+    ArchivedStylePresetEntry[]
+  >([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (retiredFavoriteIds.length === 0) {
+      setArchivedFavoriteEntries([]);
+      return;
+    }
+
+    void import('./archivedStylePresets')
+      .then(({ loadArchivedStylePresetsByIds }) =>
+        loadArchivedStylePresetsByIds(retiredFavoriteIds),
+      )
+      .then((entries) => {
+        if (!cancelled) setArchivedFavoriteEntries(entries);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        runtimeLogger.error('Could not load archived style favorites.', error);
+        setArchivedFavoriteEntries([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [retiredFavoriteIds]);
+
+  const archivedFavoriteById = useMemo(
+    () => new Map(archivedFavoriteEntries.map((entry) => [entry.preset.id, entry])),
+    [archivedFavoriteEntries],
+  );
+  const unsearchedFavoritesRoute =
+    currentPackId === FAVORITES_PACK_ID && normalizedStyleSearchQuery.length === 0;
+  const archivedFavoritePresets = useMemo(() => {
+    if (!unsearchedFavoritesRoute) return [];
+    const favoriteIds = new Set(favorites);
+    return archivedFavoriteEntries
+      .filter((entry) => favoriteIds.has(entry.preset.id))
+      .map((entry) => entry.preset);
+  }, [archivedFavoriteEntries, favorites, unsearchedFavoritesRoute]);
+  const onlyArchivedFavoritesSelected =
+    unsearchedFavoritesRoute &&
+    favorites.length > 0 &&
+    favorites.every((presetId) => archivedFavoriteById.has(presetId));
+
+  return {
+    archivedFavoriteById,
+    unsearchedFavoritesRoute,
+    archivedFavoritePresets,
+    onlyArchivedFavoritesSelected,
+  };
+}
+
+function useStyleCatalogInteraction(config: ImageGenerationConfig) {
+  const recipePresetId =
+    config.recipeId === 'styles' && typeof config.recipeParams?.presetId === 'string'
+      ? config.recipeParams.presetId
+      : null;
+  const [interactionState, setInteractionState] = useState({
+    activePresetId: null as string | null,
+    sourcePresetId: null as string | null,
+    copiedStyleId: null as string | null,
+  });
+  const activePresetId =
+    interactionState.sourcePresetId === recipePresetId
+      ? interactionState.activePresetId
+      : recipePresetId;
+  const { copiedStyleId } = interactionState;
+  const timeoutRef = useRef<number | null>(null);
+  const clearCopyFeedback = useCallback(() => {
+    if (timeoutRef.current === null) return;
+    window.clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+  }, []);
+  useEffect(
+    () => () => {
+      clearCopyFeedback();
+    },
+    [clearCopyFeedback],
+  );
+
+  return {
+    recipePresetId,
+    setInteractionState,
+    activePresetId,
+    copiedStyleId,
+    timeoutRef,
+  };
+}
+
+function useStylesBrowserController({
   config,
   updateConfig,
   onFileSelect,
@@ -675,7 +558,8 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
   intentionalStylesV1 = false,
   defaultStyleIntensity,
   defaultStyleReferenceMode,
-}) => {
+}: StylesBrowserProps) {
+  const workbench = React.useContext(RecipeWorkbenchContext);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [tcgCatalogView, setTcgCatalogView] = useState<'visual' | 'components'>('visual');
   const generateTcgRecipeArt = (artPrompt: string) => {
@@ -736,35 +620,13 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
   const [styleCollectionsModule, setStyleCollectionsModule] =
     useState<StyleCollectionsModule | null>(null);
   const [styleCollectionsLoadError, setStyleCollectionsLoadError] = useState<string | null>(null);
-  const [interactionState, setInteractionState] = useState({
-    activePresetId: null as string | null,
-    copiedStyleId: null as string | null,
-    hoveredPresetPreview: null as StyleCardHoverPreview | null,
-  });
-  const { copiedStyleId } = interactionState;
-  const timeoutRef = useRef<number | null>(null);
-  const hoverPreviewClearTimeoutRef = useRef<number | null>(null);
-
-  const clearPendingHoverPreview = useCallback(() => {
-    if (hoverPreviewClearTimeoutRef.current === null) return;
-    window.clearTimeout(hoverPreviewClearTimeoutRef.current);
-    hoverPreviewClearTimeoutRef.current = null;
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current !== null) {
-        window.clearTimeout(timeoutRef.current);
-      }
-      if (hoverPreviewClearTimeoutRef.current !== null) {
-        window.clearTimeout(hoverPreviewClearTimeoutRef.current);
-      }
-    };
-  }, []);
+  const { recipePresetId, setInteractionState, activePresetId, copiedStyleId, timeoutRef } =
+    useStyleCatalogInteraction(config);
 
   // -- FILTERS & STATE --
   const { activeWorkspaceId } = useWorkspaceState();
   const navigation = useStyleBrowserNavigation({
+    syncRoute: !workbench.openStyles,
     scopeKey: activeWorkspaceId,
     routeOptions: styleTabRouteOptions(),
     defaultPackId: defaultStylePackId(),
@@ -791,88 +653,43 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
     setCatalogOpen,
     toggleFavoritesOnly,
   } = navigation;
-  const [styleScrollWidth, setStyleScrollWidth] = useState(0);
   const normalizedStyleSearchQuery = searchQuery.trim();
   const isGlobalStyleSearchActive = normalizedStyleSearchQuery.length > 0;
-  const activeSortOption =
-    STYLE_BROWSER_SORT_OPTIONS.find((option) => option.value === sortOrder) ??
-    STYLE_BROWSER_SORT_OPTIONS[0];
-  const [gridColumnPref, setGridColumnPref] = useLocalStorage<number | 'auto'>(
-    'styles-grid-columns-v2',
-    'auto',
-  );
-  const [catalogExpanded, setCatalogExpanded] = useState(false);
-  const [explorerColumnPref, setExplorerColumnPref] = useLocalStorage<number | 'auto'>(
-    'styles-explorer-columns-v1',
-    'auto',
-  );
-  const fitColumns = fitStyleGridColumns(styleScrollWidth, catalogExpanded ? 240 : undefined);
-  const gridColumns = resolveStyleGridColumns(
-    catalogExpanded ? explorerColumnPref : gridColumnPref,
+  const {
+    styleScrollWidth,
+    setStyleScrollWidth,
+    gridColumnPref,
+    setGridColumnPref,
+    catalogExpanded,
+    setCatalogExpanded,
+    explorerColumnPref,
+    setExplorerColumnPref,
     fitColumns,
-  );
-  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
-  const [isManageStylesOpen, setIsManageStylesOpen] = useState(false);
-  const manageStylesButtonRef = useRef<HTMLButtonElement>(null);
-  const [stylePanelVisibility, setStylePanelVisibility] = useLocalStorage<
-    Partial<StylePanelVisibility>
-  >('styles-panel-visibility', DEFAULT_STYLE_PANEL_VISIBILITY);
-  const [inspectedStyle, setInspectedStyle] = useState<{
-    preset: StyleRuntimePreset;
-    packId: string;
-  } | null>(null);
-  const inspectTriggerRef = useRef<HTMLElement | null>(null);
-  const [explorerOpen, setExplorerOpen] = useState(
-    () => readStyleTabIdFromRouteHash(window.location.hash, styleTabRouteOptions()) !== null,
-  );
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const advancedPanelRef = useRef<HTMLDivElement>(null);
-  const catalogRootRef = useRef<HTMLDivElement>(null);
-  const closeStyleCatalog = useCallback(() => {
-    setCatalogExpanded(false);
-    setExplorerOpen(false);
-    const compactHash = compactStyleRecipeHash();
-    if (window.location.hash !== compactHash) {
-      window.history.replaceState(
-        null,
-        '',
-        `${window.location.pathname}${window.location.search}${compactHash}`,
-      );
-    }
-    window.setTimeout(() => {
-      const focusTarget =
-        document.querySelector<HTMLElement>('#style-advanced-panel button') ??
-        document.querySelector<HTMLElement>('[data-open-style-catalog]');
-      focusTarget?.focus();
-    }, 0);
-  }, []);
-  const openStyleCatalog = useCallback(
-    (expanded = false) => {
-      setCatalogExpanded(expanded);
-      setExplorerOpen(true);
-      writeStyleTabHash(isPackLandingOpen ? STYLE_PACKS_TAB_ID : currentPackId);
-    },
-    [currentPackId, isPackLandingOpen, writeStyleTabHash],
-  );
-  const isStyleNavigationPanelOpen = Boolean(
-    stylePanelVisibility.navigation ?? DEFAULT_STYLE_PANEL_VISIBILITY.navigation,
-  );
-  const toggleStylePanel = useCallback(
-    (panel: keyof StylePanelVisibility) => {
-      setStylePanelVisibility((current) => {
-        const normalized = { ...DEFAULT_STYLE_PANEL_VISIBILITY, ...current };
-        return {
-          ...normalized,
-          [panel]: !normalized[panel],
-        };
-      });
-    },
-    [setStylePanelVisibility],
-  );
-  const styleScrollRootRef = useRef<HTMLDivElement>(null);
-  const sortDropdownRef = useRef<HTMLDivElement>(null);
-  const sortButtonRef = useRef<HTMLButtonElement>(null);
-  const sortMenuId = React.useId();
+    gridColumns,
+    isDisplayOptionsOpen,
+    setIsDisplayOptionsOpen,
+    isManageStylesOpen,
+    setIsManageStylesOpen,
+    manageStylesButtonRef,
+    manageStylesMenuId,
+    inspectedStyle,
+    setInspectedStyle,
+    inspectTriggerRef,
+    explorerOpen,
+    setExplorerOpen,
+    catalogMounted,
+    advancedOpen,
+    setAdvancedOpen,
+    advancedPanelRef,
+    catalogRootRef,
+    closeStyleCatalog,
+    openStyleCatalog,
+    isStyleNavigationPanelOpen,
+    toggleStylePanel,
+    styleScrollRootRef,
+    displayOptionsRef,
+    displayOptionsId,
+  } = useStyleCatalogLayout(workbench, navigation);
 
   const userStyles = useUserStyleLibrary({
     onReconciled: (style, archived) => {
@@ -892,7 +709,11 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
       } else composition.replacePreset(userStylePresetToRuntimePreset(style));
     },
     onSaved: (style) => {
-      setInteractionState((prev) => ({ ...prev, activePresetId: style.id }));
+      setInteractionState((prev) => ({
+        ...prev,
+        activePresetId: style.id,
+        sourcePresetId: recipePresetId,
+      }));
       navigateToStyleTab(USER_STYLE_PACK_ID);
     },
     onArchived: () => {
@@ -919,6 +740,7 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
   );
 
   useEffect(() => {
+    if (workbench.openStyles) return;
     const syncExplorerFromHash = () => {
       const tab = readStyleTabIdFromRouteHash(window.location.hash, styleTabRouteOptions());
       setExplorerOpen(tab !== null);
@@ -927,7 +749,7 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
     syncExplorerFromHash();
     window.addEventListener('hashchange', syncExplorerFromHash);
     return () => window.removeEventListener('hashchange', syncExplorerFromHash);
-  }, []);
+  }, [workbench.openStyles, setExplorerOpen, setCatalogExpanded]);
 
   useEffect(() => {
     if (!advancedOpen) return;
@@ -945,11 +767,13 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [advancedOpen]);
+  }, [advancedOpen, advancedPanelRef, setAdvancedOpen]);
 
   useEffect(() => {
-    if (explorerOpen) catalogRootRef.current?.focus({ preventScroll: true });
-  }, [explorerOpen]);
+    if (explorerOpen && (!workbench.openStyles || catalogExpanded)) {
+      catalogRootRef.current?.focus({ preventScroll: true });
+    }
+  }, [explorerOpen, workbench.openStyles, catalogExpanded, catalogRootRef]);
 
   useEffect(() => {
     if (!explorerOpen) return;
@@ -1045,8 +869,9 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
         const collection = styleCollectionsModule?.STYLE_COLLECTIONS.find(
           (item) => item.id === collectionId,
         );
+        const installedPackIds = new Set(styleRuntimePackIds());
         const packIds = (collection?.sourcePackIds ?? []).filter((packId) =>
-          styleRuntimePackIds().includes(packId),
+          installedPackIds.has(packId),
         );
         if (packIds.length > 0) void loadStyleRuntimePacks(packIds);
         return;
@@ -1057,26 +882,6 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
     },
     [loadStyleRuntimePacks, styleCollectionsModule],
   );
-
-  useEffect(() => {
-    if (!isSortDropdownOpen) return;
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!sortDropdownRef.current?.contains(event.target as Node)) {
-        setIsSortDropdownOpen(false);
-      }
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsSortDropdownOpen(false);
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isSortDropdownOpen]);
 
   // react-doctor-disable-next-line react-doctor/no-initialize-state
   useEffect(() => {
@@ -1090,18 +895,7 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
     const observer = new ResizeObserver(updateWidth);
     observer.observe(node);
     return () => observer.disconnect();
-  }, [currentPackId, isPackLandingOpen, explorerOpen]);
-
-  const recipePresetId =
-    config.recipeId === 'styles' &&
-    config.recipeParams &&
-    typeof config.recipeParams.presetId === 'string'
-      ? config.recipeParams.presetId
-      : null;
-  useEffect(() => {
-    if (!recipePresetId) return;
-    setInteractionState((prev) => ({ ...prev, activePresetId: recipePresetId }));
-  }, [recipePresetId]);
+  }, [styleScrollRootRef, setStyleScrollWidth, currentPackId, isPackLandingOpen, explorerOpen]);
 
   const loadedRuntimeStylePacks = useMemo(
     () =>
@@ -1177,8 +971,9 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
       const pack = loadedStylePacksById[packId];
       return pack ? [pack] : [];
     });
+    const installedPackIds = new Set(styleRuntimePackIds());
     const missingSourcePack = activeStyleCollection.sourcePackIds.some(
-      (packId) => styleRuntimePackIds().includes(packId) && !loadedStylePacksById[packId],
+      (packId) => installedPackIds.has(packId) && !loadedStylePacksById[packId],
     );
     if (missingSourcePack) return sourceByPresetId;
 
@@ -1221,13 +1016,12 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
     ? globalStyleSourceByPresetId
     : activeStyleCollectionSourceByPresetId;
 
-  const activeTheme = activeStyleCollection
-    ? getStyleCollectionTheme(activeStyleCollection)
-    : isAllStyleCardsTab
-      ? PACK_THEMES.pack_06
-      : isAllStyleCategoriesTab
-        ? PACK_THEMES.pack_10
-        : PACK_THEMES[currentPackId] || PACK_THEMES['pack_01'];
+  const activeTheme = resolveCatalogTheme(
+    activeStyleCollection,
+    currentPackId,
+    isAllStyleCardsTab,
+    isAllStyleCategoriesTab,
+  );
   const orderedLoadedStylePacks = useMemo(() => globalStylePacks, [globalStylePacks]);
   const searchableStylePresets = useMemo(
     () => orderedLoadedStylePacks.flatMap((pack) => pack.presets),
@@ -1241,58 +1035,17 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
     return packIdByPresetId;
   }, [orderedLoadedStylePacks]);
 
-  const retiredFavoriteIds = useMemo(() => {
-    if (currentPackId !== FAVORITES_PACK_ID || normalizedStyleSearchQuery) return [];
-    return favorites.filter(
-      (presetId) => !presetPackIdById.has(presetId) && /^SP(?:14|15)-\d{3}$/.test(presetId),
-    );
-  }, [currentPackId, favorites, normalizedStyleSearchQuery, presetPackIdById]);
-  const [archivedFavoriteEntries, setArchivedFavoriteEntries] = useState<
-    ArchivedStylePresetEntry[]
-  >([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (retiredFavoriteIds.length === 0) {
-      setArchivedFavoriteEntries([]);
-      return;
-    }
-
-    void import('./archivedStylePresets')
-      .then(({ loadArchivedStylePresetsByIds }) =>
-        loadArchivedStylePresetsByIds(retiredFavoriteIds),
-      )
-      .then((entries) => {
-        if (!cancelled) setArchivedFavoriteEntries(entries);
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        runtimeLogger.error('Could not load archived style favorites.', error);
-        setArchivedFavoriteEntries([]);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [retiredFavoriteIds]);
-
-  const archivedFavoriteById = useMemo(
-    () => new Map(archivedFavoriteEntries.map((entry) => [entry.preset.id, entry])),
-    [archivedFavoriteEntries],
+  const {
+    archivedFavoriteById,
+    unsearchedFavoritesRoute,
+    archivedFavoritePresets,
+    onlyArchivedFavoritesSelected,
+  } = useArchivedStyleFavorites(
+    currentPackId,
+    normalizedStyleSearchQuery,
+    favorites,
+    presetPackIdById,
   );
-  const unsearchedFavoritesRoute =
-    currentPackId === FAVORITES_PACK_ID && normalizedStyleSearchQuery.length === 0;
-  const archivedFavoritePresets = useMemo(() => {
-    if (!unsearchedFavoritesRoute) return [];
-    const favoriteIds = new Set(favorites);
-    return archivedFavoriteEntries
-      .filter((entry) => favoriteIds.has(entry.preset.id))
-      .map((entry) => entry.preset);
-  }, [archivedFavoriteEntries, favorites, unsearchedFavoritesRoute]);
-  const onlyArchivedFavoritesSelected =
-    unsearchedFavoritesRoute &&
-    favorites.length > 0 &&
-    favorites.every((presetId) => archivedFavoriteById.has(presetId));
 
   const favoritePresets = useMemo(() => {
     const presetById = new Map<string, StyleRuntimePreset>();
@@ -1334,11 +1087,6 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
     },
     [getPackIdForPreset, getPackNameForId],
   );
-
-  const filterKey = `${currentPackId}|${searchQuery}|${sortOrder}|${activeStyleViewMode}|${showFavoritesOnly}`;
-  useEffect(() => {
-    setInteractionState((prev) => ({ ...prev, hoveredPresetPreview: null }));
-  }, [filterKey]);
 
   const fullProcessedData = useMemo(
     () =>
@@ -1481,24 +1229,24 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
       presetPackNameOverride?: string,
     ) => {
       const packId = presetPackIdOverride ?? getPackIdForPreset(preset);
-      setInteractionState((prev) => ({ ...prev, activePresetId: preset.id }));
+      setInteractionState((prev) => ({
+        ...prev,
+        activePresetId: preset.id,
+        sourcePresetId: recipePresetId,
+      }));
       toggleStyle(preset, packId, presetPackNameOverride ?? getPackNameForId(packId));
     },
-    [getPackIdForPreset, getPackNameForId, toggleStyle],
+    [getPackIdForPreset, getPackNameForId, toggleStyle, recipePresetId, setInteractionState],
   );
 
   const handleApplyStyleRef = useLatestRef(handleSelectStyle);
 
   const activePreset = useMemo(
-    () =>
-      searchableStylePresets.find((preset) => preset.id === interactionState.activePresetId) ??
-      null,
-    [interactionState.activePresetId, searchableStylePresets],
+    () => searchableStylePresets.find((preset) => preset.id === activePresetId) ?? null,
+    [activePresetId, searchableStylePresets],
   );
   const activePresetPackId = activePreset ? getPackIdForPreset(activePreset) : null;
-  const activeUserStyle = interactionState.activePresetId
-    ? (userStylePresetById.get(interactionState.activePresetId) ?? null)
-    : null;
+  const activeUserStyle = activePresetId ? (userStylePresetById.get(activePresetId) ?? null) : null;
   const canSaveStyleBlend = activeSelectedStyleCount > 0;
   const canCloneActiveStyle = Boolean(activePreset && activePresetPackId !== USER_STYLE_PACK_ID);
   const canEditActiveUserStyle = Boolean(activeUserStyle);
@@ -1532,10 +1280,14 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
         },
       });
       writeStyleTabHash(result.packId);
-      setInteractionState((prev) => ({ ...prev, activePresetId: result.id }));
+      setInteractionState((prev) => ({
+        ...prev,
+        activePresetId: result.id,
+        sourcePresetId: recipePresetId,
+      }));
       setCatalogOpen(false);
     },
-    [applyStyleTab, setCatalogOpen, writeStyleTabHash],
+    [applyStyleTab, setCatalogOpen, writeStyleTabHash, recipePresetId, setInteractionState],
   );
 
   const handleChooseCompactStyle = useCallback(
@@ -1622,26 +1374,7 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
         2000,
       );
     },
-    [],
-  );
-
-  const handleHoverPreviewChange = useCallback(
-    (preview: StyleCardHoverPreview | null) => {
-      clearPendingHoverPreview();
-
-      if (preview) {
-        setInteractionState((prev) => ({ ...prev, hoveredPresetPreview: preview }));
-        return;
-      }
-
-      hoverPreviewClearTimeoutRef.current = window.setTimeout(() => {
-        hoverPreviewClearTimeoutRef.current = null;
-        setInteractionState((prev) =>
-          prev.hoveredPresetPreview === null ? prev : { ...prev, hoveredPresetPreview: null },
-        );
-      }, STYLE_HOVER_PREVIEW_EXIT_DELAY_MS);
-    },
-    [clearPendingHoverPreview],
+    [setInteractionState, timeoutRef],
   );
 
   const renderPresetCard = React.useCallback(
@@ -1668,7 +1401,11 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
             inspectTriggerRef.current =
               document.activeElement instanceof HTMLElement ? document.activeElement : null;
             setInspectedStyle({ preset, packId: presetPackId });
-            setInteractionState((prev) => ({ ...prev, activePresetId: preset.id }));
+            setInteractionState((prev) => ({
+              ...prev,
+              activePresetId: preset.id,
+              sourcePresetId: recipePresetId,
+            }));
           }}
           selectionDisabled={
             selectedStyles.length >= MAX_SELECTED_STYLE_SLOTS && !selectedStyleIds.has(preset.id)
@@ -1685,7 +1422,6 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
             )
           }
           onToggleFavorite={toggleFavorite}
-          onHoverPreviewChange={handleHoverPreviewChange}
         />
       );
     },
@@ -1702,10 +1438,13 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
       toggleFavorite,
       eagerPresetVisualStateById,
       getPresetVisualState,
-      handleHoverPreviewChange,
       handleCopyStylePrompt,
       handleUseStylePrompt,
       handleApplyStyleRef,
+      recipePresetId,
+      inspectTriggerRef,
+      setInspectedStyle,
+      setInteractionState,
     ],
   );
 
@@ -1821,6 +1560,500 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
   const nextStyleTab = styleTabNavigationItems[currentStyleTabIndex + 1] ?? null;
 
   const styleDetail = inspectedStyle ? (
+    <StylePreviewDetail
+      model={{
+        inspectedStyle: inspectedStyle,
+        getPresetVisualState: getPresetVisualState,
+        selectedStyleIds: selectedStyleIds,
+        selectedStyles: selectedStyles,
+        copiedStyleId: copiedStyleId,
+        handleApplyStyleRef: handleApplyStyleRef,
+        handleCopyStylePrompt: handleCopyStylePrompt,
+        handleUseStylePrompt: handleUseStylePrompt,
+        setPromptNotice: setPromptNotice,
+        userStyles: userStyles,
+        getPackNameForId: getPackNameForId,
+        setInspectedStyle: setInspectedStyle,
+        inspectTriggerRef: inspectTriggerRef,
+      }}
+    />
+  ) : (
+    <div className="style-explorer-empty">
+      <h2>Explore styles</h2>
+      <p>Select a card to see its examples, visual DNA and prompt.</p>
+    </div>
+  );
+
+  return {
+    catalogMounted,
+    isGenerating,
+    explorerOpen,
+    catalogExpanded,
+    inspectedStyle,
+    styleDetail,
+    fileInputRef,
+    onFileSelect,
+    referenceSlotsRemaining,
+    catalogRootRef,
+    closeStyleCatalog,
+    searchQuery,
+    isPackLandingOpen,
+    applyStyleTab,
+    writeStyleTabHash,
+    updateFilters,
+    openStyleCatalog,
+    selectedStyles,
+    displayOptionsRef,
+    isDisplayOptionsOpen,
+    displayOptionsId,
+    setIsDisplayOptionsOpen,
+    sortOrder,
+    isGlobalStyleBrowseTab,
+    activeStyleViewMode,
+    gridColumns,
+    fitColumns,
+    setExplorerColumnPref,
+    setGridColumnPref,
+    currentPackId,
+    showFavoritesOnly,
+    toggleFavoritesOnly,
+    manageStylesButtonRef,
+    manageStylesMenuId,
+    isManageStylesOpen,
+    setIsManageStylesOpen,
+    handleCreateUserStyle,
+    handleSaveSelectedStyleBlend,
+    canSaveStyleBlend,
+    canEditActiveUserStyle,
+    handleEditActiveUserStyle,
+    handleCloneActiveStyle,
+    canCloneActiveStyle,
+    navigateToStyleTab,
+    getStyleTabHash,
+    favorites,
+    userStylePresets,
+    isStyleNavigationPanelOpen,
+    prefetchStyleTab,
+    toggleStylePanel,
+    userStyleError,
+    refreshUserStyles,
+    previousStyleTab,
+    currentStyleTabId,
+    styleTabNavigationItems,
+    nextStyleTab,
+    styleRuntimePackLoadRequest,
+    onlyArchivedFavoritesSelected,
+    unsearchedFavoritesRoute,
+    archivedFavoritePresets,
+    styleScrollRootRef,
+    styleScrollWidth,
+    renderPresetCard,
+    userSearchIndex,
+    loadedStylePacksById,
+    userStylePack,
+    loadStyleRuntimePacks,
+    setStyleScrollWidth,
+    styleRecipeNavigationSections,
+    setTcgCatalogView,
+    tcgCatalogView,
+    images,
+    generateTcgRecipeArt,
+    processedData,
+    visibleStyleGroupEntries,
+    getPackNameForId,
+    getPackIdForPreset,
+    styleCategoryEagerBudget,
+    activeTheme,
+    filteredStylePresets,
+    styleRuntimeError,
+    retryStylePacks,
+    isLoadingUserStyles,
+    normalizedStyleSearchQuery,
+    isLoadingStylePacks,
+    isCatalogSearchOpen,
+    handleCloseCatalogSearch,
+    handleSelectCatalogPreset,
+    handleChooseCompactStyle,
+    selectedStyleIds,
+    toggleFavorite,
+    handleCatalogPrompt,
+    promptNotice,
+    previousPrompt,
+    updateConfig,
+    setPreviousPrompt,
+    setPromptNotice,
+    removeSelectedStyle,
+    updateSelectedStyleStrength,
+    toggleSelectedStyleEnabled,
+    moveSelectedStyle,
+    advancedOpen,
+    setAdvancedOpen,
+    advancedPanelRef,
+    selectedStyleLayers,
+    toggleSelectedStyleField,
+    updateSelectedStyleFieldWeight,
+    setSelectedStyleAvoidRulesMode,
+    intentionalStylesV1,
+    referenceImages,
+    intentionalMode,
+    setIntentionalMode,
+    compileIssues,
+    handleGenerateSelectedStyles,
+    activeSelectedStyleCount,
+    grokGenerateBlock,
+    userStyleEditorSession,
+    userStyles,
+    getPresetVisualState,
+    copiedStyleId,
+    handleApplyStyleRef,
+    handleCopyStylePrompt,
+    handleUseStylePrompt,
+    setInspectedStyle,
+    inspectTriggerRef,
+  };
+}
+
+export type StylesBrowserViewModel = ReturnType<typeof useStylesBrowserController>;
+
+function StylesBrowserView({
+  model,
+}: {
+  model: StylesBrowserViewModel & { catalogOnly: boolean };
+}) {
+  const {
+    catalogOnly,
+    catalogMounted,
+    isGenerating,
+    explorerOpen,
+    catalogExpanded,
+    inspectedStyle,
+    styleDetail,
+    fileInputRef,
+    onFileSelect,
+    referenceSlotsRemaining,
+    selectedStyleLayers,
+    userStyleEditorSession,
+    userStyles,
+  } = model;
+
+  return (
+    <>
+      {!catalogOnly && (
+        <RecipeLayout isGenerating={isGenerating} className="styles-workbench flex size-full">
+          {explorerOpen && !catalogExpanded && inspectedStyle ? styleDetail : <RecipeResults />}
+        </RecipeLayout>
+      )}
+      <input
+        type="file"
+        ref={fileInputRef}
+        aria-label="Upload reference images"
+        onChange={(e) => {
+          if (e.target.files) {
+            onFileSelect(Array.from(e.target.files).slice(0, referenceSlotsRemaining));
+            e.target.value = '';
+          }
+        }}
+        className="hidden"
+        accept="image/*"
+        multiple
+      />
+      <RecipeSidePanel>
+        <AnimatePresence>
+          {catalogMounted || explorerOpen ? (
+            <div className="styles-catalog-mount" hidden={!explorerOpen} inert={!explorerOpen}>
+              <React.Suspense fallback={<LazySurfaceFallback label="Loading styles" />}>
+                <StyleCatalogPanel model={model} />
+              </React.Suspense>
+            </div>
+          ) : null}
+        </AnimatePresence>
+      </RecipeSidePanel>
+
+      {!catalogOnly && <StyleCompositionControls model={model} />}
+      <RecipeOverlay>
+        <AnimatePresence>
+          {userStyleEditorSession && (
+            <React.Suspense
+              fallback={
+                <LazySurfaceFallback
+                  label="Loading style editor"
+                  className="absolute inset-0 z-50 grid place-items-center bg-[color:var(--wb-panel)]/86 text-[color:var(--wb-muted)] backdrop-blur-xl"
+                />
+              }
+            >
+              <UserStyleEditorSurface
+                sessionId={userStyleEditorSession.id}
+                mode={userStyleEditorSession.mode}
+                initialDraft={userStyleEditorSession.draft}
+                initialSource={userStyleEditorSession.source}
+                editingStyleId={userStyleEditorSession.editingStyleId}
+                selectedStyleLayers={selectedStyleLayers}
+                onClose={userStyles.close}
+                onSaved={(style) => userStyles.reconcile(userStyleEditorSession.id, style, false)}
+                onArchived={(style) => userStyles.reconcile(userStyleEditorSession.id, style, true)}
+              />
+            </React.Suspense>
+          )}
+        </AnimatePresence>
+      </RecipeOverlay>
+    </>
+  );
+}
+
+export const StylesBrowser: React.FC<StylesBrowserProps> = (props) => {
+  const [catalogDraft, setCatalogDraft] = useState<ImageGenerationConfig>(() => ({
+    ...props.config,
+    recipeId: null,
+    recipeParams: null,
+  }));
+  const updateCatalogDraft = useCallback<StylesBrowserProps['updateConfig']>(
+    (key, value) => setCatalogDraft((draft) => ({ ...draft, [key]: value })),
+    [],
+  );
+  const view = useStylesBrowserController(
+    props.catalogOnly
+      ? { ...props, config: catalogDraft, updateConfig: updateCatalogDraft }
+      : props,
+  );
+  return <StylesBrowserView model={{ ...view, catalogOnly: Boolean(props.catalogOnly) }} />;
+};
+
+function StyleCompositionControls({
+  model,
+}: {
+  model: Pick<
+    StylesBrowserViewModel,
+    | 'promptNotice'
+    | 'previousPrompt'
+    | 'updateConfig'
+    | 'setPreviousPrompt'
+    | 'setPromptNotice'
+    | 'explorerOpen'
+    | 'catalogExpanded'
+    | 'openStyleCatalog'
+    | 'selectedStyles'
+    | 'favorites'
+    | 'userSearchIndex'
+    | 'toggleFavorite'
+    | 'handleChooseCompactStyle'
+    | 'handleCatalogPrompt'
+    | 'removeSelectedStyle'
+    | 'updateSelectedStyleStrength'
+    | 'toggleSelectedStyleEnabled'
+    | 'moveSelectedStyle'
+    | 'advancedOpen'
+    | 'setAdvancedOpen'
+    | 'advancedPanelRef'
+    | 'selectedStyleLayers'
+    | 'toggleSelectedStyleField'
+    | 'updateSelectedStyleFieldWeight'
+    | 'setSelectedStyleAvoidRulesMode'
+    | 'intentionalStylesV1'
+    | 'referenceImages'
+    | 'intentionalMode'
+    | 'setIntentionalMode'
+    | 'compileIssues'
+    | 'handleGenerateSelectedStyles'
+    | 'activeSelectedStyleCount'
+    | 'grokGenerateBlock'
+    | 'isGenerating'
+  >;
+}) {
+  const {
+    promptNotice,
+    previousPrompt,
+    updateConfig,
+    setPreviousPrompt,
+    setPromptNotice,
+    explorerOpen,
+    catalogExpanded,
+    openStyleCatalog,
+    selectedStyles,
+    favorites,
+    userSearchIndex,
+    toggleFavorite,
+    handleChooseCompactStyle,
+    handleCatalogPrompt,
+    removeSelectedStyle,
+    updateSelectedStyleStrength,
+    toggleSelectedStyleEnabled,
+    moveSelectedStyle,
+    advancedOpen,
+    setAdvancedOpen,
+    advancedPanelRef,
+    selectedStyleLayers,
+    toggleSelectedStyleField,
+    updateSelectedStyleFieldWeight,
+    setSelectedStyleAvoidRulesMode,
+    intentionalStylesV1,
+    referenceImages,
+    compileIssues,
+    handleGenerateSelectedStyles,
+    activeSelectedStyleCount,
+    grokGenerateBlock,
+    isGenerating,
+  } = model;
+
+  return (
+    <RecipeControls compact>
+      {promptNotice && (
+        <div className="style-prompt-notice" role="status">
+          {promptNotice}
+          {previousPrompt !== null && (
+            <button
+              type="button"
+              onClick={() => {
+                updateConfig('prompt', previousPrompt);
+                setPreviousPrompt(null);
+                setPromptNotice('Previous prompt restored.');
+              }}
+            >
+              Undo
+            </button>
+          )}
+        </div>
+      )}
+      <React.Suspense fallback={<LazySurfaceFallback label="Loading styles" />}>
+        <CompactStyleSelector
+          catalogOpen={explorerOpen}
+          catalogExpanded={catalogExpanded}
+          onExploreStyles={() => openStyleCatalog(true)}
+          selectedStyles={selectedStyles}
+          maxSlots={MAX_SELECTED_STYLE_SLOTS}
+          favorites={favorites}
+          extraIndex={userSearchIndex}
+          onToggleFavorite={toggleFavorite}
+          onChooseStyle={handleChooseCompactStyle}
+          onCopyPrompt={(result) => void handleCatalogPrompt(result, 'copy')}
+          onUsePrompt={(result) => void handleCatalogPrompt(result, 'use')}
+          onRemove={removeSelectedStyle}
+          onSetStrength={updateSelectedStyleStrength}
+          onToggleEnabled={toggleSelectedStyleEnabled}
+          onMove={moveSelectedStyle}
+          onBrowseCatalog={() => openStyleCatalog(false)}
+        />
+      </React.Suspense>
+      {selectedStyles.length > 0 ? (
+        <button
+          type="button"
+          className="cs-advanced-toggle"
+          data-style-advanced-toggle
+          aria-expanded={advancedOpen}
+          aria-controls="style-advanced-panel"
+          onClick={() => {
+            setAdvancedOpen((open) => !open);
+            openStyleCatalog();
+          }}
+        >
+          <span>Advanced layers</span>
+          <SlidersHorizontal width={13} height={13} />
+        </button>
+      ) : null}
+      {advancedOpen && selectedStyles.length > 0 ? (
+        <RecipeSidePanel>
+          <div
+            ref={advancedPanelRef}
+            id="style-advanced-panel"
+            className="studio-surface style-advanced-rail"
+            role="region"
+            aria-label="Advanced layers"
+          >
+            <div className="create-side-panel-head">
+              <strong>Advanced layers</strong>
+              <span className="create-side-panel-count">{selectedStyles.length} active</span>
+              <button
+                type="button"
+                aria-label="Close advanced layers"
+                onClick={() => {
+                  setAdvancedOpen(false);
+                  document.querySelector<HTMLElement>('[data-style-advanced-toggle]')?.focus();
+                }}
+              >
+                <X width={14} height={14} />
+              </button>
+            </div>
+            <div className="create-side-panel-body custom-scrollbar">
+              <React.Suspense fallback={<LazySurfaceFallback label="Loading advanced controls" />}>
+                <StyleAdvancedControlsPanel
+                  selectedStyles={selectedStyles}
+                  selectedStyleLayers={selectedStyleLayers}
+                  onToggleStyleEnabled={toggleSelectedStyleEnabled}
+                  onToggleField={toggleSelectedStyleField}
+                  onUpdateFieldWeight={updateSelectedStyleFieldWeight}
+                  onSetAvoidRulesMode={setSelectedStyleAvoidRulesMode}
+                />
+              </React.Suspense>
+            </div>
+          </div>
+        </RecipeSidePanel>
+      ) : null}
+      {selectedStyles.length > 0 && (intentionalStylesV1 || referenceImages.length > 0) ? (
+        <div className="mt-3 space-y-2">
+          <StyleApplicationMode model={model} />
+          {intentionalStylesV1 && compileIssues.length > 0 ? (
+            <ul className="space-y-1 text-xs text-[color:var(--wb-warning)]">
+              {compileIssues.map((issue) => (
+                <li key={`${issue.code}:${issue.message}`}>{issue.message}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+      <button
+        type="button"
+        onClick={handleGenerateSelectedStyles}
+        disabled={activeSelectedStyleCount === 0 || Boolean(grokGenerateBlock)}
+        data-tooltip={grokGenerateBlock?.message}
+        hidden
+        data-style-generate-button
+        data-generate-active={isGenerating ? 'true' : 'false'}
+        className="mt-3 flex h-11 items-center justify-center gap-2 rounded-[var(--wb-radius)] border border-accent-400/2 bg-accent-500/18 px-4 text-[length:var(--wbp-label)] font-semibold tracking-normal text-accent-100 transition-[background-color,border-color,opacity] hover:border-accent-300/2 hover:bg-accent-500/25 disabled:cursor-not-allowed disabled:border-[color:var(--wb-line)] disabled:bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] disabled:text-[color:var(--wb-dim)]"
+      >
+        <Play width={16} height={16} />
+        {isGenerating ? 'Queue' : 'Generate'}
+      </button>
+    </RecipeControls>
+  );
+}
+
+function StylePreviewDetail({
+  model,
+}: {
+  model: Pick<
+    StylesBrowserViewModel,
+    | 'inspectedStyle'
+    | 'getPresetVisualState'
+    | 'selectedStyleIds'
+    | 'selectedStyles'
+    | 'copiedStyleId'
+    | 'handleApplyStyleRef'
+    | 'handleCopyStylePrompt'
+    | 'handleUseStylePrompt'
+    | 'setPromptNotice'
+    | 'userStyles'
+    | 'getPackNameForId'
+    | 'setInspectedStyle'
+    | 'inspectTriggerRef'
+  >;
+}): React.ReactElement | null {
+  const {
+    inspectedStyle,
+    getPresetVisualState,
+    selectedStyleIds,
+    selectedStyles,
+    copiedStyleId,
+    handleApplyStyleRef,
+    handleCopyStylePrompt,
+    handleUseStylePrompt,
+    setPromptNotice,
+    userStyles,
+    getPackNameForId,
+    setInspectedStyle,
+    inspectTriggerRef,
+  } = model;
+
+  if (!inspectedStyle) return null;
+  return (
     <React.Suspense fallback={<LazySurfaceFallback label="Loading style details" />}>
       <StyleDetailPreview
         preset={inspectedStyle.preset}
@@ -1859,951 +2092,44 @@ export const StylesBrowser: React.FC<StylesBrowserProps> = ({
         }}
       />
     </React.Suspense>
-  ) : (
-    <div className="style-explorer-empty">
-      <h2>Explore styles</h2>
-      <p>Select a card to see its examples, visual DNA and prompt.</p>
+  );
+}
+
+function StyleApplicationMode({
+  model,
+}: {
+  model: React.ComponentProps<typeof StyleCompositionControls>['model'];
+}) {
+  const { intentionalStylesV1, intentionalMode, setIntentionalMode } = model;
+  return (
+    <div role="group" aria-label="Style application mode" className="flex gap-1">
+      {(intentionalStylesV1
+        ? (['generate', 'preserve', 'reinterpret'] as const)
+        : (['preserve', 'reinterpret'] as const)
+      ).map((mode) => {
+        const isActive = intentionalMode === mode;
+
+        return (
+          <button
+            key={mode}
+            type="button"
+            aria-pressed={isActive}
+            onClick={() => setIntentionalMode(mode)}
+            className={`${
+              isActive ? 'studio-primary-control' : 'studio-ghost-control'
+            } min-h-8 flex-1 gap-1.5 px-2 text-xs font-semibold capitalize transition-[background-color,border-color,color,box-shadow]`}
+          >
+            <Check
+              width={14}
+              height={14}
+              strokeWidth={3}
+              aria-hidden="true"
+              className={isActive ? 'opacity-100' : 'opacity-0'}
+            />
+            <span>{mode}</span>
+          </button>
+        );
+      })}
     </div>
   );
-
-  return (
-    <RecipeLayout isGenerating={isGenerating} className="styles-workbench flex size-full">
-      {explorerOpen && !catalogExpanded && inspectedStyle ? styleDetail : <RecipeResults />}
-      <input
-        type="file"
-        ref={fileInputRef}
-        aria-label="Upload reference images"
-        onChange={(e) => {
-          if (e.target.files) {
-            onFileSelect(Array.from(e.target.files).slice(0, referenceSlotsRemaining));
-            e.target.value = '';
-          }
-        }}
-        className="hidden"
-        accept="image/*"
-        multiple
-      />
-      <RecipeSidePanel>
-        <AnimatePresence>
-          {explorerOpen ? (
-            <div
-              className="studio-surface create-side-panel-dialog styles-catalog-panel"
-              data-workspace-expanded={catalogExpanded}
-            >
-              <div
-                ref={catalogRootRef}
-                data-style-browser-root
-                role="dialog"
-                aria-modal="false"
-                aria-label="Style catalog"
-                tabIndex={-1}
-                onKeyDown={(event) => {
-                  if (event.key === 'Escape' && !event.defaultPrevented) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    closeStyleCatalog();
-                  }
-                }}
-                className="vt-style-browser-surface studio-surface relative flex h-full min-w-0 flex-1 flex-col bg-[color:var(--wb-bg)] outline-none"
-              >
-                <div className="styles-catalog-chrome">
-                  <div className="styles-catalog-header">
-                    <h2 className="styles-catalog-title">
-                      {catalogExpanded ? 'Style explorer' : 'Styles'}
-                    </h2>
-                    <label className="styles-catalog-search">
-                      <Search width={16} height={16} aria-hidden="true" />
-                      <input
-                        type="search"
-                        aria-label="Search styles"
-                        placeholder="Search styles…"
-                        value={searchQuery}
-                        onChange={(event) => {
-                          const nextQuery = event.target.value;
-                          if (isPackLandingOpen) {
-                            applyStyleTab(ALL_STYLE_CARDS_TAB_ID, {
-                              browserStatePatch: { searchQuery: nextQuery },
-                            });
-                            writeStyleTabHash(ALL_STYLE_CARDS_TAB_ID);
-                          } else updateFilters({ searchQuery: nextQuery });
-                        }}
-                      />
-                    </label>
-                    <StyleBrowseSwitch
-                      catalogOpen
-                      expanded={catalogExpanded}
-                      onCatalog={() => openStyleCatalog(false)}
-                      onExplore={() => openStyleCatalog(true)}
-                    />
-                    {catalogExpanded && (
-                      <button
-                        type="button"
-                        className="styles-explorer-done"
-                        onClick={closeStyleCatalog}
-                      >
-                        {selectedStyles.length > 0
-                          ? `Use ${selectedStyles.length} selected`
-                          : 'Back to create'}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="styles-catalog-close"
-                      data-close-style-catalog
-                      aria-label="Close style catalog"
-                      onClick={closeStyleCatalog}
-                    >
-                      <X width={14} height={14} />
-                      Close
-                    </button>
-                    <div className="styles-catalog-tabs vt-recipe-tabs vt-style-tabs">
-                      <div className="styles-catalog-tab-group">
-                        <button
-                          type="button"
-                          onClick={() => navigateToStyleTab(ALL_STYLE_CARDS_TAB_ID)}
-                          data-style-tab-url={`#${getStyleTabHash(ALL_STYLE_CARDS_TAB_ID)}`}
-                          aria-label="Show all styles"
-                          aria-pressed={
-                            !isPackLandingOpen && currentPackId === ALL_STYLE_CARDS_TAB_ID
-                          }
-                          className={styleCatalogTabClass(
-                            !isPackLandingOpen && currentPackId === ALL_STYLE_CARDS_TAB_ID,
-                          )}
-                        >
-                          <LayoutGrid width={15} height={15} />
-                          All styles
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => navigateToStyleTab(STYLE_PACKS_TAB_ID)}
-                          data-style-tab-url={`#${getStyleTabHash(STYLE_PACKS_TAB_ID)}`}
-                          aria-label="Show collections"
-                          aria-pressed={isPackLandingOpen}
-                          className={styleCatalogTabClass(isPackLandingOpen)}
-                        >
-                          <Layers width={15} height={15} />
-                          Collections
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => navigateToStyleTab(USER_STYLE_PACK_ID)}
-                          data-style-pack-id={USER_STYLE_PACK_ID}
-                          data-style-pack-active={
-                            !isPackLandingOpen && currentPackId === USER_STYLE_PACK_ID
-                              ? 'true'
-                              : 'false'
-                          }
-                          data-style-tab-url={`#${getStyleTabHash(USER_STYLE_PACK_ID)}`}
-                          aria-label={`Show ${USER_STYLE_PACK_NAME}`}
-                          aria-pressed={!isPackLandingOpen && currentPackId === USER_STYLE_PACK_ID}
-                          className={styleCatalogTabClass(
-                            !isPackLandingOpen && currentPackId === USER_STYLE_PACK_ID,
-                          )}
-                        >
-                          <Sparkles width={15} height={15} />
-                          {USER_STYLE_PACK_NAME}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => navigateToStyleTab(FAVORITES_PACK_ID)}
-                          data-style-tab-url={`#${getStyleTabHash(FAVORITES_PACK_ID)}`}
-                          aria-label="Show favorite styles"
-                          aria-pressed={!isPackLandingOpen && currentPackId === FAVORITES_PACK_ID}
-                          className={styleCatalogTabClass(
-                            !isPackLandingOpen && currentPackId === FAVORITES_PACK_ID,
-                          )}
-                        >
-                          <Heart
-                            width={15}
-                            height={15}
-                            fill={
-                              !isPackLandingOpen && currentPackId === FAVORITES_PACK_ID
-                                ? 'currentColor'
-                                : 'none'
-                            }
-                          />
-                          Favorites
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {isPackLandingOpen ? (
-                  <React.Suspense
-                    fallback={
-                      <LazySurfaceFallback
-                        label="Loading collections"
-                        className="flex flex-1 items-center justify-center bg-[color:var(--wb-panel)]/40 text-[color:var(--wb-muted)]"
-                      />
-                    }
-                  >
-                    <StyleCollectionsLandingSurface
-                      favoritesCount={favorites.length}
-                      userStyleCount={userStylePresets.length}
-                      isNavigationPanelOpen={isStyleNavigationPanelOpen}
-                      getCollectionTabId={getStyleCollectionTabId}
-                      getStyleTabHash={getStyleTabHash}
-                      onNavigateToStyleTab={navigateToStyleTab}
-                      onPrefetchStyleTab={prefetchStyleTab}
-                      onToggleNavigationPanel={() => toggleStylePanel('navigation')}
-                    />
-                  </React.Suspense>
-                ) : (
-                  <div data-style-folder={currentPackId} className="flex min-h-0 flex-1 flex-col">
-                    {currentPackId === USER_STYLE_PACK_ID &&
-                    userStyleError &&
-                    userStylePresets.length > 0 ? (
-                      <div
-                        role="alert"
-                        className="flex items-center justify-between gap-2 p-3 text-xs text-[color:var(--wb-warning)] "
-                      >
-                        <span>{userStyleError} The list may be incomplete.</span>
-                        <button type="button" onClick={() => void refreshUserStyles()}>
-                          Retry
-                        </button>
-                      </div>
-                    ) : null}
-                    {/* Pack Header Info + Search Bar */}
-                    <div
-                      className={`style-folder-heading grid min-h-12 min-w-0 items-center gap-4 border-b border-[color:var(--wb-line)] px-4 py-2.5 sm:px-5 2xl:px-6 ${
-                        isStyleNavigationPanelOpen
-                          ? 'lg:grid-cols-[260px_minmax(0,1fr)]'
-                          : 'lg:grid-cols-[40px_minmax(0,1fr)]'
-                      }`}
-                    >
-                      <div className="hidden lg:block" aria-hidden="true" />
-                      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                        <div className="styles-category-navigation">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              previousStyleTab && navigateToStyleTab(previousStyleTab.id)
-                            }
-                            disabled={!previousStyleTab}
-                            data-style-tab-previous
-                            aria-label="Previous category"
-                            data-tooltip={
-                              previousStyleTab
-                                ? `Previous: ${previousStyleTab.label}`
-                                : 'No previous category'
-                            }
-                          >
-                            <ChevronLeft width={15} height={15} />
-                          </button>
-                          <label className="styles-catalog-map-select">
-                            <select
-                              aria-label="Browse collections and categories"
-                              value={currentStyleTabId}
-                              onChange={(event) => navigateToStyleTab(event.target.value)}
-                            >
-                              {styleTabNavigationItems.map((item) => (
-                                <option key={item.id} value={item.id}>
-                                  {item.label}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => nextStyleTab && navigateToStyleTab(nextStyleTab.id)}
-                            disabled={!nextStyleTab}
-                            data-style-tab-next
-                            aria-label="Next category"
-                            data-tooltip={
-                              nextStyleTab ? `Next: ${nextStyleTab.label}` : 'No next category'
-                            }
-                          >
-                            <ChevronRight width={15} height={15} />
-                          </button>
-                        </div>
-                        {/* Search & Filter Toolbar */}
-                        <div className="vt-style-actionbar flex min-h-9 shrink-0 flex-wrap items-center gap-1.5 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] p-1">
-                          <button
-                            type="button"
-                            onClick={handleCreateUserStyle}
-                            className="studio-ghost-control style-catalog-control"
-                            data-style-create-user-style
-                          >
-                            <Plus width={15} height={15} /> New style
-                          </button>
-                          <div className="relative">
-                            <button
-                              ref={manageStylesButtonRef}
-                              type="button"
-                              aria-haspopup="menu"
-                              aria-label="Manage styles"
-                              aria-expanded={isManageStylesOpen}
-                              onClick={() => setIsManageStylesOpen((open) => !open)}
-                              className="studio-ghost-control style-catalog-control"
-                            >
-                              Manage
-                              <ChevronDown width={12} height={12} aria-hidden="true" />
-                            </button>
-                            <DemandMountedGsapDropdown
-                              open={isManageStylesOpen}
-                              onOpenChange={setIsManageStylesOpen}
-                              triggerRef={manageStylesButtonRef}
-                              placement="bottom-left"
-                              portal
-                              role="menu"
-                              aria-label="Manage styles"
-                              className="grid w-44 gap-1 p-2"
-                            >
-                              <button
-                                type="button"
-                                role="menuitem"
-                                data-dropdown-item
-                                onClick={() => {
-                                  setIsManageStylesOpen(false);
-                                  handleSaveSelectedStyleBlend();
-                                }}
-                                disabled={!canSaveStyleBlend}
-                                data-style-save-blend
-                                className="studio-ghost-control style-catalog-control style-catalog-menu-action"
-                                data-tooltip="Save Blend"
-                              >
-                                <Layers width={15} height={15} />
-                                <span className="inline">Blend</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                role="menuitem"
-                                data-dropdown-item
-                                onClick={() => {
-                                  setIsManageStylesOpen(false);
-                                  if (canEditActiveUserStyle) handleEditActiveUserStyle();
-                                  else handleCloneActiveStyle();
-                                }}
-                                disabled={!canEditActiveUserStyle && !canCloneActiveStyle}
-                                data-style-edit-or-clone
-                                className="studio-ghost-control style-catalog-control style-catalog-menu-action"
-                                data-tooltip={canEditActiveUserStyle ? 'Edit Style' : 'Clone Style'}
-                              >
-                                {canEditActiveUserStyle ? (
-                                  <PenTool width={15} height={15} />
-                                ) : (
-                                  <Copy width={15} height={15} />
-                                )}
-                                <span className="inline">
-                                  {canEditActiveUserStyle ? 'Edit' : 'Clone'}
-                                </span>
-                              </button>
-                            </DemandMountedGsapDropdown>
-                          </div>
-                          {isGlobalStyleBrowseTab ? null : (
-                            <div
-                              data-style-view-mode={activeStyleViewMode}
-                              className="flex items-center gap-1"
-                            >
-                              <button
-                                type="button"
-                                onClick={() => updateFilters({ viewMode: 'grouped' })}
-                                aria-label="Show grouped style categories"
-                                aria-pressed={activeStyleViewMode === 'grouped'}
-                                className="studio-ghost-control style-catalog-control style-catalog-icon"
-                                data-tooltip="Categories"
-                              >
-                                <Layers width={14} height={14} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => updateFilters({ viewMode: 'flat' })}
-                                aria-label="Show all style cards in one grid"
-                                aria-pressed={activeStyleViewMode === 'flat'}
-                                className="studio-ghost-control style-catalog-control style-catalog-icon"
-                                data-tooltip="All cards"
-                              >
-                                <LayoutGrid width={14} height={14} />
-                              </button>
-                            </div>
-                          )}
-
-                          <div ref={sortDropdownRef} className="relative" data-style-sort-dropdown>
-                            <button
-                              ref={sortButtonRef}
-                              type="button"
-                              onClick={() => setIsSortDropdownOpen((open) => !open)}
-                              aria-label={`Sort style cards: ${activeSortOption.label}`}
-                              aria-haspopup="listbox"
-                              aria-expanded={isSortDropdownOpen}
-                              aria-controls={sortMenuId}
-                              className="studio-ghost-control style-catalog-control style-catalog-sort"
-                              data-tooltip="Sort styles"
-                            >
-                              <ArrowUpDown width={14} height={14} className="shrink-0" />
-                              <span className="min-w-0 flex-1 truncate text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
-                                {activeSortOption.label}
-                              </span>
-                              <ChevronDown
-                                width={13}
-                                height={13}
-                                className={`shrink-0 transition-transform ${isSortDropdownOpen ? 'rotate-180 text-[color:var(--wb-ink)]' : 'text-[color:var(--wb-dim)]'}`}
-                              />
-                            </button>
-
-                            <DemandMountedGsapDropdown
-                              id={sortMenuId}
-                              open={isSortDropdownOpen}
-                              onOpenChange={setIsSortDropdownOpen}
-                              triggerRef={sortButtonRef}
-                              placement="bottom-right"
-                              portal
-                              role="listbox"
-                              aria-label="Sort style cards"
-                              className="absolute right-0 top-[calc(100%+0.45rem)] z-50 w-52 overflow-hidden rounded-[var(--wb-radius)] p-1"
-                            >
-                              <div className="px-2 pb-1 pt-1 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]">
-                                Sort
-                              </div>
-                              <div className="space-y-0.5">
-                                {STYLE_BROWSER_SORT_OPTIONS.map((option) => {
-                                  const selected = option.value === sortOrder;
-
-                                  return (
-                                    <button
-                                      key={option.value}
-                                      type="button"
-                                      role="option"
-                                      aria-selected={selected}
-                                      data-dropdown-item
-                                      onClick={() => {
-                                        updateFilters({ sortOrder: option.value });
-                                        setIsSortDropdownOpen(false);
-                                      }}
-                                      className={`flex min-h-9 w-full items-center justify-between gap-3 rounded-[var(--wb-radius)] px-2 text-left text-[length:var(--wbp-label)] font-semibold tracking-normal transition-[background-color,color,transform] ${
-                                        selected
-                                          ? 'bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] text-[color:var(--wb-ink)]'
-                                          : 'text-[color:var(--wb-muted)] hover:bg-white/[0.055] hover:text-[color:var(--wb-ink)]'
-                                      }`}
-                                    >
-                                      <span>{option.label}</span>
-                                      {selected ? (
-                                        <Check width={13} height={13} className="shrink-0" />
-                                      ) : null}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </DemandMountedGsapDropdown>
-                          </div>
-
-                          {currentPackId !== FAVORITES_PACK_ID && (
-                            <button
-                              type="button"
-                              aria-label="Filter favorite styles"
-                              onClick={() => toggleFavoritesOnly()}
-                              aria-pressed={showFavoritesOnly}
-                              className="studio-ghost-control style-catalog-control style-catalog-icon"
-                              data-tooltip="Filter Favorites in this Pack"
-                            >
-                              <Heart
-                                width={16}
-                                height={16}
-                                fill={showFavoritesOnly ? 'currentColor' : 'none'}
-                              />
-                            </button>
-                          )}
-
-                          <div className="h-6 w-px bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)]" />
-
-                          <div className="hidden items-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)]/40 px-2 py-1 md:flex">
-                            <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                              Zoom
-                            </span>
-                            <input
-                              type="range"
-                              min={1}
-                              max={Math.max(1, fitColumns)}
-                              step={1}
-                              value={gridColumns}
-                              onChange={(e) =>
-                                (catalogExpanded ? setExplorerColumnPref : setGridColumnPref)(
-                                  Number(e.target.value),
-                                )
-                              }
-                              className="h-1.5 w-20 accent-white"
-                              aria-label="Style grid zoom"
-                              data-tooltip="Style card columns"
-                            />
-                            <span className="w-4 text-[length:var(--wbp-label)] font-semibold text-[color:var(--wb-ink)] tabular-nums">
-                              {gridColumns}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {styleRuntimePackLoadRequest.loadAll && !onlyArchivedFavoritesSelected ? (
-                      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                        {unsearchedFavoritesRoute && archivedFavoritePresets.length > 0 ? (
-                          <div
-                            ref={styleScrollRootRef}
-                            data-style-archived-favorites
-                            className="max-h-[38vh] min-h-0 shrink-0 overflow-y-auto px-4 pb-3"
-                          >
-                            <StylePresetGroupSection
-                              groupKey="archived-favorites"
-                              title="Archived favorites"
-                              presets={archivedFavoritePresets}
-                              gridColumns={gridColumns}
-                              scrollRootRef={styleScrollRootRef}
-                              scrollContainerWidth={styleScrollWidth}
-                              initiallyVisible
-                              headerClassName=""
-                              accentClassName="bg-amber-500"
-                              titleClassName="text-[color:var(--wb-muted)]"
-                              dividerClassName="bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)]"
-                              renderPresetCard={renderPresetCard}
-                            />
-                          </div>
-                        ) : null}
-                        <React.Suspense fallback={<LazySurfaceFallback label="Loading styles" />}>
-                          <PagedStyleCatalog
-                            query={searchQuery}
-                            sortOrder={sortOrder}
-                            favorites={favorites}
-                            favoritesOnly={showFavoritesOnly || currentPackId === FAVORITES_PACK_ID}
-                            extraIndex={userSearchIndex}
-                            loadedPacks={{
-                              ...loadedStylePacksById,
-                              [USER_STYLE_PACK_ID]: userStylePack,
-                            }}
-                            loadPacks={loadStyleRuntimePacks}
-                            renderCard={renderPresetCard}
-                            columns={gridColumns}
-                            onWidthChange={setStyleScrollWidth}
-                            grouped={activeStyleViewMode === 'grouped'}
-                          />
-                        </React.Suspense>
-                      </div>
-                    ) : (
-                      <div
-                        className={`style-folder-layout grid min-h-0 min-w-0 flex-1 gap-4 px-4 py-3 sm:px-5 2xl:px-6 ${
-                          isStyleNavigationPanelOpen
-                            ? 'lg:grid-cols-[260px_minmax(0,1fr)]'
-                            : 'lg:grid-cols-[40px_minmax(0,1fr)]'
-                        }`}
-                      >
-                        {isStyleNavigationPanelOpen ? (
-                          <React.Suspense
-                            fallback={
-                              <LazySurfaceFallback
-                                label="Loading style map"
-                                className="hidden min-h-0 lg:flex"
-                              />
-                            }
-                          >
-                            <StyleRecipeNavigationPanel
-                              sections={styleRecipeNavigationSections}
-                              activeTabId={currentStyleTabId}
-                              onOpen={navigateToStyleTab}
-                              onClose={() => toggleStylePanel('navigation')}
-                            />
-                          </React.Suspense>
-                        ) : (
-                          <aside
-                            data-style-detail-navigation-rail
-                            className="hidden min-h-0 min-w-0 items-start justify-center rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)]/70 p-1.5 lg:flex"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => toggleStylePanel('navigation')}
-                              data-style-detail-navigation-toggle
-                              className="flex size-7 items-center justify-center rounded-[var(--wb-radius)] text-[color:var(--wb-muted)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)]"
-                              aria-label="Show style map"
-                              data-tooltip="Show style map"
-                            >
-                              <ChevronRight width={14} height={14} />
-                            </button>
-                          </aside>
-                        )}
-                        <div
-                          ref={styleScrollRootRef}
-                          className="min-h-0 min-w-0 overflow-y-auto pb-12 custom-scrollbar"
-                        >
-                          <React.Suspense
-                            fallback={
-                              <LazySurfaceFallback
-                                label="Loading style cards"
-                                className="flex min-h-64 items-center justify-center text-[color:var(--wb-muted)]"
-                              />
-                            }
-                          >
-                            <div className="w-full space-y-6 pb-20">
-                              {currentPackId === 'pack_22' ? (
-                                <div
-                                  className="flex w-fit flex-wrap gap-1 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-1"
-                                  role="group"
-                                  aria-label="Trading card atlas sections"
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={() => setTcgCatalogView('visual')}
-                                    aria-pressed={tcgCatalogView === 'visual'}
-                                    className="rounded-[var(--wb-radius)] px-3 py-1.5 text-xs font-semibold text-[color:var(--wb-ink)] transition-colors aria-pressed:bg-[color-mix(in_srgb,var(--wb-ink)_12%,transparent)]"
-                                  >
-                                    Visual styles
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setTcgCatalogView('components')}
-                                    aria-pressed={tcgCatalogView === 'components'}
-                                    className="rounded-[var(--wb-radius)] px-3 py-1.5 text-xs font-semibold text-[color:var(--wb-ink)] transition-colors aria-pressed:bg-[color-mix(in_srgb,var(--wb-ink)_12%,transparent)]"
-                                  >
-                                    Components · 42
-                                  </button>
-                                </div>
-                              ) : null}
-                              {currentPackId === 'pack_22' && tcgCatalogView === 'components' ? (
-                                <TcgComponentStudio
-                                  query={searchQuery}
-                                  images={images}
-                                  onGenerateArtwork={generateTcgRecipeArt}
-                                  isGenerating={isGenerating}
-                                />
-                              ) : (
-                                <>
-                                  {/* FAVORITES SECTION (If any exist in current filter and not in favorites tab) */}
-                                  {processedData.favorites.length > 0 &&
-                                    currentPackId !== FAVORITES_PACK_ID && (
-                                      <StylePresetGroupSection
-                                        key={`favorites:${gridColumns}:${styleScrollWidth}:${processedData.favorites.length}`}
-                                        groupKey="favorites"
-                                        title="Pinned / Favorites"
-                                        presets={processedData.favorites}
-                                        gridColumns={gridColumns}
-                                        scrollRootRef={styleScrollRootRef}
-                                        scrollContainerWidth={styleScrollWidth}
-                                        initiallyVisible
-                                        headerClassName="opacity-100"
-                                        accentClassName="bg-rose-500"
-                                        titleClassName="text-[color:var(--wb-danger)]"
-                                        dividerClassName="bg-linear-to-r from-rose-500/20 to-transparent"
-                                        renderPresetCard={renderPresetCard}
-                                      />
-                                    )}
-
-                                  {visibleStyleGroupEntries.map(([groupKey, presets], index) => {
-                                    const isFlatStyleGroup =
-                                      activeStyleViewMode === 'flat' &&
-                                      groupKey === STYLE_BROWSER_FLAT_GROUP_KEY;
-                                    const categoryIdentity = isFlatStyleGroup
-                                      ? null
-                                      : resolveStyleCategoryIdentity(currentPackId, groupKey);
-                                    return (
-                                      <StylePresetGroupSection
-                                        key={`${groupKey}:${gridColumns}:${styleScrollWidth}:${presets.length}`}
-                                        groupKey={groupKey}
-                                        title={
-                                          isFlatStyleGroup
-                                            ? 'All Styles'
-                                            : presets[0]
-                                              ? `${groupKey.includes(' / ') ? `${getPackNameForId(getPackIdForPreset(presets[0]))} / ` : ''}${getStyleCategoryDisplayName(getPackIdForPreset(presets[0]), presets[0].category || 'General')}`
-                                              : groupKey
-                                        }
-                                        icon={
-                                          isFlatStyleGroup || !categoryIdentity ? (
-                                            <LayoutGrid width={12} height={12} />
-                                          ) : (
-                                            <StyleCategoryGlyph
-                                              iconId={categoryIdentity.iconId}
-                                              size={12}
-                                            />
-                                          )
-                                        }
-                                        presets={presets}
-                                        gridColumns={gridColumns}
-                                        scrollRootRef={styleScrollRootRef}
-                                        scrollContainerWidth={styleScrollWidth}
-                                        initiallyVisible={index < styleCategoryEagerBudget}
-                                        headerClassName=""
-                                        accentClassName={
-                                          categoryIdentity?.accentClassName ?? activeTheme.bg
-                                        }
-                                        titleClassName={
-                                          categoryIdentity?.titleClassName ??
-                                          'text-[color:var(--wb-ink)]'
-                                        }
-                                        dividerClassName="bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)]"
-                                        renderPresetCard={renderPresetCard}
-                                      />
-                                    );
-                                  })}
-
-                                  {filteredStylePresets.length === 0 && (
-                                    <div className="h-64 flex flex-col items-center justify-center text-[color:var(--wb-dim)] gap-4">
-                                      {currentPackId !== USER_STYLE_PACK_ID && styleRuntimeError ? (
-                                        <>
-                                          <Filter width={32} height={32} className="opacity-20" />
-                                          <span className="text-xs font-bold tracking-normal">
-                                            Could not load this style pack
-                                          </span>
-                                          <button
-                                            type="button"
-                                            onClick={retryStylePacks}
-                                            className="flex h-9 items-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)]"
-                                          >
-                                            <Wand2 width={13} height={13} />
-                                            Retry
-                                          </button>
-                                        </>
-                                      ) : currentPackId === USER_STYLE_PACK_ID && userStyleError ? (
-                                        <>
-                                          <Filter width={32} height={32} className="opacity-20" />
-                                          <span className="text-xs font-bold tracking-normal">
-                                            Could not load styles
-                                          </span>
-                                          <button
-                                            type="button"
-                                            onClick={() => void refreshUserStyles()}
-                                            className="flex h-9 items-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)]"
-                                          >
-                                            <Wand2 width={13} height={13} />
-                                            Retry
-                                          </button>
-                                        </>
-                                      ) : currentPackId === USER_STYLE_PACK_ID &&
-                                        !isLoadingUserStyles &&
-                                        normalizedStyleSearchQuery.length === 0 ? (
-                                        <>
-                                          <Sparkles
-                                            width={32}
-                                            height={32}
-                                            className="opacity-30 text-[color:var(--wb-info)] "
-                                          />
-                                          <span className="text-xs font-bold tracking-normal text-[color:var(--wb-muted)]">
-                                            No custom styles yet
-                                          </span>
-                                          <button
-                                            type="button"
-                                            onClick={handleCreateUserStyle}
-                                            className="flex h-9 items-center gap-2 rounded-[var(--wb-radius)] border border-sky-400/2 bg-sky-500/10 px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-info)]  transition-colors hover:bg-sky-500/16"
-                                          >
-                                            <Plus width={13} height={13} />
-                                            Create Style
-                                          </button>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Filter width={32} height={32} className="opacity-20" />
-                                          <span className="text-xs font-bold tracking-normal">
-                                            {isLoadingUserStyles || isLoadingStylePacks
-                                              ? 'Loading styles'
-                                              : 'No styles found matching criteria'}
-                                          </span>
-                                        </>
-                                      )}
-                                    </div>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          </React.Suspense>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {isCatalogSearchOpen && (
-                  <React.Suspense
-                    fallback={
-                      <LazySurfaceFallback
-                        label="Loading catalog"
-                        className="absolute inset-0 z-40 grid place-items-center bg-[color:var(--wb-panel)] text-[color:var(--wb-muted)]"
-                      />
-                    }
-                  >
-                    <StylePresetCatalogSearchSurface
-                      onClose={handleCloseCatalogSearch}
-                      onSelectPreset={handleSelectCatalogPreset}
-                      onApplyPreset={handleChooseCompactStyle}
-                      selectedIds={selectedStyleIds}
-                      favorites={favorites}
-                      onToggleFavorite={toggleFavorite}
-                      onCopyPrompt={(result) => void handleCatalogPrompt(result, 'copy')}
-                      onUsePrompt={(result) => void handleCatalogPrompt(result, 'use')}
-                    />
-                  </React.Suspense>
-                )}
-              </div>
-              {catalogExpanded ? <div className="style-explorer-detail">{styleDetail}</div> : null}
-            </div>
-          ) : null}
-        </AnimatePresence>
-      </RecipeSidePanel>
-
-      <RecipeControls>
-        {promptNotice && (
-          <div className="style-prompt-notice" role="status">
-            {promptNotice}
-            {previousPrompt !== null && (
-              <button
-                type="button"
-                onClick={() => {
-                  updateConfig('prompt', previousPrompt);
-                  setPreviousPrompt(null);
-                  setPromptNotice('Previous prompt restored.');
-                }}
-              >
-                Undo
-              </button>
-            )}
-          </div>
-        )}
-        <React.Suspense fallback={<LazySurfaceFallback label="Loading styles" />}>
-          <CompactStyleSelector
-            catalogOpen={explorerOpen}
-            catalogExpanded={catalogExpanded}
-            onExploreStyles={() => openStyleCatalog(true)}
-            selectedStyles={selectedStyles}
-            maxSlots={MAX_SELECTED_STYLE_SLOTS}
-            favorites={favorites}
-            extraIndex={userSearchIndex}
-            onToggleFavorite={toggleFavorite}
-            onChooseStyle={handleChooseCompactStyle}
-            onCopyPrompt={(result) => void handleCatalogPrompt(result, 'copy')}
-            onUsePrompt={(result) => void handleCatalogPrompt(result, 'use')}
-            onRemove={removeSelectedStyle}
-            onSetStrength={updateSelectedStyleStrength}
-            onToggleEnabled={toggleSelectedStyleEnabled}
-            onMove={moveSelectedStyle}
-            onBrowseCatalog={() => openStyleCatalog(false)}
-          />
-        </React.Suspense>
-        {selectedStyles.length > 0 ? (
-          <button
-            type="button"
-            className="cs-advanced-toggle"
-            data-style-advanced-toggle
-            aria-expanded={advancedOpen}
-            aria-controls="style-advanced-panel"
-            onClick={() => {
-              setAdvancedOpen((open) => !open);
-            }}
-          >
-            <span>Advanced layers</span>
-            <SlidersHorizontal width={13} height={13} />
-          </button>
-        ) : null}
-        {advancedOpen && selectedStyles.length > 0 ? (
-          <div
-            ref={advancedPanelRef}
-            id="style-advanced-panel"
-            className="studio-surface style-advanced-rail"
-            role="region"
-            aria-label="Advanced layers"
-          >
-            <div className="create-side-panel-head">
-              <strong>Advanced layers</strong>
-              <span className="create-side-panel-count">{selectedStyles.length} active</span>
-              <button
-                type="button"
-                aria-label="Close advanced layers"
-                onClick={() => {
-                  setAdvancedOpen(false);
-                  document.querySelector<HTMLElement>('[data-style-advanced-toggle]')?.focus();
-                }}
-              >
-                <X width={14} height={14} />
-              </button>
-            </div>
-            <div className="create-side-panel-body custom-scrollbar">
-              <React.Suspense fallback={<LazySurfaceFallback label="Loading advanced controls" />}>
-                <StyleAdvancedControlsPanel
-                  selectedStyles={selectedStyles}
-                  selectedStyleLayers={selectedStyleLayers}
-                  onToggleStyleEnabled={toggleSelectedStyleEnabled}
-                  onToggleField={toggleSelectedStyleField}
-                  onUpdateFieldWeight={updateSelectedStyleFieldWeight}
-                  onSetAvoidRulesMode={setSelectedStyleAvoidRulesMode}
-                />
-              </React.Suspense>
-            </div>
-          </div>
-        ) : null}
-        {selectedStyles.length > 0 && (intentionalStylesV1 || referenceImages.length > 0) ? (
-          <div className="mt-3 space-y-2">
-            <div role="group" aria-label="Style application mode" className="flex gap-1">
-              {(intentionalStylesV1
-                ? (['generate', 'preserve', 'reinterpret'] as const)
-                : (['preserve', 'reinterpret'] as const)
-              ).map((mode) => {
-                const isActive = intentionalMode === mode;
-
-                return (
-                  <button
-                    key={mode}
-                    type="button"
-                    aria-pressed={isActive}
-                    onClick={() => setIntentionalMode(mode)}
-                    className={`${
-                      isActive ? 'studio-primary-control' : 'studio-ghost-control'
-                    } min-h-8 flex-1 gap-1.5 px-2 text-xs font-semibold capitalize transition-[background-color,border-color,color,box-shadow]`}
-                  >
-                    <Check
-                      width={14}
-                      height={14}
-                      strokeWidth={3}
-                      aria-hidden="true"
-                      className={isActive ? 'opacity-100' : 'opacity-0'}
-                    />
-                    <span>{mode}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {intentionalStylesV1 && compileIssues.length > 0 ? (
-              <ul className="space-y-1 text-xs text-[color:var(--wb-warning)]">
-                {compileIssues.map((issue) => (
-                  <li key={`${issue.code}:${issue.message}`}>{issue.message}</li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-        ) : null}
-        <button
-          type="button"
-          onClick={handleGenerateSelectedStyles}
-          disabled={activeSelectedStyleCount === 0 || Boolean(grokGenerateBlock)}
-          data-tooltip={grokGenerateBlock?.message}
-          hidden
-          data-style-generate-button
-          data-generate-active={isGenerating ? 'true' : 'false'}
-          className="mt-3 flex h-11 items-center justify-center gap-2 rounded-[var(--wb-radius)] border border-accent-400/2 bg-accent-500/18 px-4 text-[length:var(--wbp-label)] font-semibold tracking-normal text-accent-100 transition-[background-color,border-color,opacity] hover:border-accent-300/2 hover:bg-accent-500/25 disabled:cursor-not-allowed disabled:border-[color:var(--wb-line)] disabled:bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] disabled:text-[color:var(--wb-dim)]"
-        >
-          <Play width={16} height={16} />
-          {isGenerating ? 'Queue' : 'Generate'}
-        </button>
-      </RecipeControls>
-      <RecipeOverlay>
-        <AnimatePresence>
-          {userStyleEditorSession && (
-            <React.Suspense
-              fallback={
-                <LazySurfaceFallback
-                  label="Loading style editor"
-                  className="absolute inset-0 z-50 grid place-items-center bg-[color:var(--wb-panel)]/86 text-[color:var(--wb-muted)] backdrop-blur-xl"
-                />
-              }
-            >
-              <UserStyleEditorSurface
-                sessionId={userStyleEditorSession.id}
-                mode={userStyleEditorSession.mode}
-                initialDraft={userStyleEditorSession.draft}
-                initialSource={userStyleEditorSession.source}
-                editingStyleId={userStyleEditorSession.editingStyleId}
-                selectedStyleLayers={selectedStyleLayers}
-                onClose={userStyles.close}
-                onSaved={(style) => userStyles.reconcile(userStyleEditorSession.id, style, false)}
-                onArchived={(style) => userStyles.reconcile(userStyleEditorSession.id, style, true)}
-              />
-            </React.Suspense>
-          )}
-        </AnimatePresence>
-      </RecipeOverlay>
-    </RecipeLayout>
-  );
-};
+}

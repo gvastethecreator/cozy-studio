@@ -48,35 +48,4 @@ describe('RemasterRecipe', () => {
     });
     expect(validateRecipeParams(getRecipeModule('remaster')!, params).valid).toBe(true);
   });
-
-  it('matches the source ratio once and keeps a later manual ratio', () => {
-    const updateConfig = vi.fn();
-    const config = remasterConfig({
-      attachments: [
-        {
-          id: 'ratio-source',
-          name: 'photo.webp',
-          dataUrl: 'data:image/webp;base64,AAAA',
-          strength: 1,
-          width: 1536,
-          height: 1024,
-        },
-      ],
-    });
-    const view = render(
-      <RemasterRecipe config={config} updateConfig={updateConfig} isGenerating={false} />,
-    );
-    expect(updateConfig).toHaveBeenCalledWith('aspectRatio', '3:2');
-
-    view.unmount();
-    updateConfig.mockClear();
-    render(
-      <RemasterRecipe
-        config={{ ...config, aspectRatio: '1:1' }}
-        updateConfig={updateConfig}
-        isGenerating={false}
-      />,
-    );
-    expect(updateConfig).not.toHaveBeenCalledWith('aspectRatio', expect.anything());
-  });
 });

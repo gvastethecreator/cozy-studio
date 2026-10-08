@@ -107,6 +107,443 @@ function resolveQueueRecipeLabel(
   );
 }
 
+function QueueNavigation({
+  workspaceFilter,
+  setWorkspaceFilter,
+  setVisibleCount,
+  jobHistory,
+  view,
+  setView,
+  activeJobs,
+  reviewJobs,
+}: {
+  workspaceFilter: string;
+  setWorkspaceFilter: React.Dispatch<React.SetStateAction<string>>;
+  setVisibleCount: React.Dispatch<React.SetStateAction<number>>;
+  jobHistory: ReturnType<typeof useJobHistory>;
+  view: 'active' | 'review' | 'history';
+  setView: React.Dispatch<React.SetStateAction<'active' | 'review' | 'history'>>;
+  activeJobs: StudioJob[];
+  reviewJobs: StudioJob[];
+}) {
+  return (
+    <div className="space-y-3 border-b border-[color:var(--wb-border)] px-3 pb-3">
+      <label className="block text-xs text-[color:var(--wb-muted)]">
+        Workspace
+        <select
+          aria-label="Job workspace"
+          value={workspaceFilter}
+          onChange={(event) => {
+            setWorkspaceFilter(event.target.value);
+            setVisibleCount(20);
+          }}
+          className="mt-1 w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-border)] bg-[color:var(--wb-panel)] p-2 text-xs text-[color:var(--wb-ink)]"
+        >
+          <option value="">All workspaces</option>
+          {jobHistory.workspaces.map((workspace) => (
+            <option key={workspace.id} value={workspace.id}>
+              {workspace.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div
+        role="group"
+        aria-label="Job views"
+        className="grid grid-cols-3 gap-1 rounded-[var(--wb-radius)] bg-[color:var(--wb-well)] p-1"
+      >
+        {(['active', 'review', 'history'] as const).map((item) => (
+          <button
+            key={item}
+            type="button"
+            aria-pressed={view === item}
+            onClick={() => {
+              setView(item);
+              setVisibleCount(20);
+            }}
+            className={cn(
+              'min-h-9 rounded-[var(--wb-radius)] px-1 text-xs transition-colors',
+              view === item
+                ? 'bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] text-[color:var(--wb-ink)]'
+                : 'text-[color:var(--wb-muted)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] hover:text-[color:var(--wb-ink)]',
+            )}
+          >
+            {item === 'active' ? 'Active' : item === 'review' ? 'Review' : 'History'}
+            {item !== 'history' ? (
+              <span
+                className={cn(
+                  'ml-1 tabular-nums',
+                  item === 'review' && reviewJobs.length > 0 && 'text-[color:var(--wb-warning)] ',
+                )}
+              >
+                {item === 'active' ? activeJobs.length : reviewJobs.length}
+              </span>
+            ) : null}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QueueHistoryFilters({
+  statusFilter,
+  setStatusFilter,
+  results,
+  onSelectResult,
+  jobHistory,
+  attentionClearedAt,
+}: {
+  statusFilter: TerminalJobStatus | '';
+  setStatusFilter: React.Dispatch<React.SetStateAction<TerminalJobStatus | ''>>;
+  results: StudioQueueResultPreview[];
+  onSelectResult: (id: string) => void;
+  jobHistory: ReturnType<typeof useJobHistory>;
+  attentionClearedAt: number;
+}) {
+  return (
+    <>
+      <label className="block text-xs text-[color:var(--wb-muted)]">
+        Status
+        <select
+          aria-label="Job history status"
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value as TerminalJobStatus | '')}
+          className="mt-1 w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-border)] bg-[color:var(--wb-panel)] p-2 text-xs text-[color:var(--wb-ink)]"
+        >
+          <option value="">All finished jobs</option>
+          <option value="completed">Completed</option>
+          <option value="failed">Failed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </label>
+      {results.length > 0 ? (
+        <details className="rounded-[var(--wb-radius)] border border-[color:var(--wb-border)] p-2 text-xs text-[color:var(--wb-muted)]">
+          <summary className="cursor-pointer py-1">Recent images · current workspace</summary>
+          <div className="mt-2 grid grid-cols-4 gap-1">
+            {results.map((result) => (
+              <button
+                type="button"
+                key={result.id}
+                onClick={() => onSelectResult(result.id)}
+                className="group relative overflow-hidden rounded border border-[color:var(--wb-border)]"
+                data-tooltip={result.prompt || 'Generated result'}
+              >
+                <img
+                  src={result.src}
+                  alt={result.prompt || 'Generated result'}
+                  width={64}
+                  height={64}
+                  className="aspect-square w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <span className="absolute inset-0 grid place-items-center text-[color:var(--wb-ink)] opacity-0 group-hover:bg-[color:var(--wb-well)] group-hover:opacity-100 group-focus-visible:opacity-100">
+                  <Maximize2 width={14} height={14} />
+                </span>
+              </button>
+            ))}
+          </div>
+        </details>
+      ) : null}
+      <p className="text-xs text-[color:var(--wb-muted)]">
+        {jobHistory.page?.counts.history ?? '—'} matching jobs
+        {attentionClearedAt > 0 && (statusFilter === '' || statusFilter === 'failed')
+          ? ' · prior failures hidden from this list'
+          : ''}
+      </p>
+    </>
+  );
+}
+
+function QueueWorkerDetails({ worker }: { worker: ReturnType<typeof useWorkerDiagnostics> }) {
+  return (
+    <details className="border-t border-[color:var(--wb-border)] pt-3 text-xs text-[color:var(--wb-muted)]">
+      <summary className="cursor-pointer py-1">Worker details</summary>
+      <div className="mt-2 space-y-1" aria-label="Worker capacity">
+        {worker.status ? (
+          <>
+            <p>
+              {worker.status.activeWorkerCount} / {worker.status.maxConcurrentJobs} worker slots
+              active{worker.status.stopping ? ' · Stopping' : ''}
+            </p>
+            {Object.entries(worker.status.providerLimits).map(([providerId, limit]) => (
+              <p key={providerId}>
+                {providerId}: {worker.status?.activeByProvider[providerId] ?? 0} / {limit} active
+              </p>
+            ))}
+          </>
+        ) : (
+          <p>{worker.error ? 'Worker capacity unavailable' : 'Reading worker capacity'}</p>
+        )}
+      </div>
+    </details>
+  );
+}
+
+function useQueuePanelData(
+  results: StudioQueueResultPreview[],
+  serverJobs: StudioJob[],
+  onClose: QueuePanelProps['onClose'],
+) {
+  const [activeResultId, setActiveResultId] = useState<string | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeRef = useLatestRef(onClose);
+  const hasClose = Boolean(onClose);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [workspaceFilter, setWorkspaceFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<TerminalJobStatus | ''>('');
+  const jobHistory = useJobHistory(serverJobs, workspaceFilter, statusFilter);
+  const worker = useWorkerDiagnostics();
+  const waitReasons = new Map(worker.status?.waiting.map((entry) => [entry.jobId, entry]) ?? []);
+  const [view, setView] = useState<'active' | 'review' | 'history'>('active');
+  const [autoSelectedView, setAutoSelectedView] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(20);
+  const { clearedAt, clearListedJobs, attentionClearedAt, clearAttentionJobs, showAttentionJobs } =
+    useStudioJobsListClearedAt();
+  const activeJobs = jobHistory.open.filter((job) => job.status !== 'needs_review');
+  const reviewJobs = jobHistory.open.filter(
+    (job) =>
+      job.status === 'needs_review' &&
+      isStudioJobVisibleAfterListClear(job.createdAt, clearedAt) &&
+      isStudioJobVisibleAfterAttentionClear(job.status, job.updatedAt, attentionClearedAt),
+  );
+  const visibleHistory = jobHistory.history.filter(
+    (job) =>
+      isStudioJobVisibleAfterListClear(job.createdAt, clearedAt) &&
+      isStudioJobVisibleAfterAttentionClear(job.status, job.updatedAt, attentionClearedAt),
+  );
+  const jobs = view === 'history' ? visibleHistory : view === 'review' ? reviewJobs : activeJobs;
+  const visibleJobs = view === 'history' ? jobs : jobs.slice(0, visibleCount);
+  const jobGroups = Array.from(
+    visibleJobs
+      .reduce((groups, job) => {
+        const key = job.batchId ?? job.id;
+        const group = groups.get(key) ?? [];
+        group.push(job);
+        groups.set(key, group);
+        return groups;
+      }, new Map<string, StudioJob[]>())
+      .entries(),
+  );
+  const activeResultIndex = activeResultId
+    ? results.findIndex((result) => result.id === activeResultId)
+    : -1;
+  const activeResult = activeResultIndex >= 0 ? results[activeResultIndex] : null;
+  const resultsByJobId = useMemo(() => {
+    const previews = new Map<string, string>();
+    for (const result of results) {
+      if (result.jobId && !previews.has(result.jobId)) previews.set(result.jobId, result.src);
+    }
+    return previews;
+  }, [results]);
+  const summary = useMemo(() => summarizePersistentJobs(jobHistory.open), [jobHistory.open]);
+  const hasLiveDurations = summary.queued + summary.running > 0;
+
+  if (!autoSelectedView && !jobHistory.loading) {
+    setAutoSelectedView(true);
+    if (activeJobs.length === 0 && reviewJobs.length > 0) setView('review');
+  }
+
+  useEffect(() => {
+    if (!hasLiveDurations) return;
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [hasLiveDurations]);
+
+  useEffect(() => {
+    if (!hasClose || !panelRef.current) return;
+    const panel = panelRef.current;
+    const opener = document.activeElement;
+    panel.focus({ preventScroll: true });
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key !== 'Escape' ||
+        event.defaultPrevented ||
+        document.activeElement?.closest(
+          '[aria-modal="true"], dialog[open]:not([aria-modal="false"])',
+        ) ||
+        !panel.contains(document.activeElement)
+      )
+        return;
+      event.preventDefault();
+      closeRef.current?.();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      if (
+        opener instanceof HTMLElement &&
+        opener.isConnected &&
+        (panel.contains(document.activeElement) || document.activeElement === document.body)
+      )
+        opener.focus({ preventScroll: true });
+    };
+  }, [hasClose, closeRef]);
+
+  return {
+    activeResultId,
+    setActiveResultId,
+    panelRef,
+    hasClose,
+    nowMs,
+    workspaceFilter,
+    setWorkspaceFilter,
+    statusFilter,
+    setStatusFilter,
+    jobHistory,
+    worker,
+    waitReasons,
+    view,
+    setView,
+    visibleCount,
+    setVisibleCount,
+    clearListedJobs,
+    attentionClearedAt,
+    clearAttentionJobs,
+    showAttentionJobs,
+    activeJobs,
+    reviewJobs,
+    jobs,
+    visibleJobs,
+    jobGroups,
+    activeResultIndex,
+    activeResult,
+    resultsByJobId,
+    summary,
+  };
+}
+
+function QueueEmptyState({ view }: { view: 'active' | 'review' | 'history' }) {
+  return (
+    <div className="py-8 text-center">
+      <Layers width={24} height={24} className="mx-auto mb-3 text-[color:var(--wb-muted)]" />
+      <p className="text-sm text-[color:var(--wb-ink)]">
+        {view === 'active'
+          ? 'No active jobs'
+          : view === 'review'
+            ? 'Nothing to review'
+            : 'No matching history'}
+      </p>
+      <p className="mt-1 text-xs leading-relaxed text-[color:var(--wb-muted)]">
+        {view === 'active'
+          ? 'New generations will appear here.'
+          : view === 'review'
+            ? 'Jobs that need your input will appear here.'
+            : 'Try another status or workspace.'}
+      </p>
+    </div>
+  );
+}
+
+function QueueJobList({
+  data,
+  selectedJobId,
+  onInspectJob,
+  onRetryServerJob,
+  onCancelServerJob,
+}: Pick<
+  QueuePanelProps,
+  'selectedJobId' | 'onInspectJob' | 'onRetryServerJob' | 'onCancelServerJob'
+> & { data: ReturnType<typeof useQueuePanelData> }) {
+  const {
+    view,
+    jobGroups,
+    waitReasons,
+    resultsByJobId,
+    nowMs,
+    jobHistory,
+    jobs,
+    visibleCount,
+    setVisibleCount,
+    visibleJobs,
+  } = data;
+  return (
+    <>
+      <section
+        aria-label={
+          view === 'active'
+            ? 'Active jobs'
+            : view === 'review'
+              ? 'Jobs needing review'
+              : 'Job history'
+        }
+        className="space-y-2"
+      >
+        {jobGroups.map(([groupId, group]) => (
+          <div key={groupId} className="space-y-2">
+            {group.length > 1 && (
+              <p className="pt-3 text-xs text-[color:var(--wb-ink)]">
+                {resolveQueueRecipeLabel(group[0].recipeId, group[0].kind)} · {group.length} jobs on
+                this page · {group.filter((job) => job.status === 'completed').length} completed
+              </p>
+            )}
+            {group.map((job, index) => (
+              <ServerJobItem
+                key={job.id}
+                job={job}
+                showBatch={index === 0}
+                waitReason={
+                  job.status === 'queued' && waitReasons.has(job.id)
+                    ? formatWaitReason(waitReasons.get(job.id)!)
+                    : undefined
+                }
+                previewSrc={resultsByJobId.get(job.id) ?? null}
+                nowMs={nowMs}
+                isSelected={selectedJobId === job.id}
+                onInspect={() => onInspectJob(job.id)}
+                onRetry={onRetryServerJob ? () => onRetryServerJob(job.id) : undefined}
+                onCancel={() => onCancelServerJob(job.id)}
+              />
+            ))}
+          </div>
+        ))}
+      </section>
+      {!jobHistory.loading && !jobHistory.error && jobs.length === 0 ? (
+        <QueueEmptyState view={view} />
+      ) : null}
+      {jobHistory.loading ? (
+        <p role="status" className="text-xs text-[color:var(--wb-muted)]">
+          Loading jobs…
+        </p>
+      ) : null}
+      {view !== 'history' && jobs.length > visibleCount ? (
+        <button
+          type="button"
+          onClick={() => setVisibleCount((count) => count + 20)}
+          className="min-h-9 w-full rounded-[var(--wb-radius)] bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] px-2 text-xs text-[color:var(--wb-ink)]"
+        >
+          Show more · {visibleJobs.length} of {jobs.length}
+        </button>
+      ) : view === 'history' && jobHistory.nextCursor && !jobHistory.loading ? (
+        <button
+          type="button"
+          onClick={jobHistory.loadMore}
+          className="min-h-9 w-full rounded-[var(--wb-radius)] bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] px-2 text-xs text-[color:var(--wb-ink)]"
+        >
+          Load older jobs
+        </button>
+      ) : null}
+    </>
+  );
+}
+
+function queueSummaryText(
+  jobHistory: ReturnType<typeof useJobHistory>,
+  summary: ReturnType<typeof summarizePersistentJobs>,
+  reviewJobs: StudioJob[],
+) {
+  return jobHistory.error
+    ? 'Updates unavailable · last confirmed state'
+    : jobHistory.loading && !jobHistory.page
+      ? 'Loading jobs…'
+      : summary.running + summary.queued > 0
+        ? `${summary.running} running · ${summary.queued} queued`
+        : reviewJobs.length > 0
+          ? `${reviewJobs.length} need review`
+          : 'No active jobs';
+}
+
 export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
   ({
     results = EMPTY_RESULTS,
@@ -117,103 +554,31 @@ export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
     onCancelServerJob,
     onClose,
   }) => {
-    const [activeResultId, setActiveResultId] = useState<string | null>(null);
-    const panelRef = useRef<HTMLDivElement>(null);
-    const closeRef = useLatestRef(onClose);
-    const hasClose = Boolean(onClose);
-    const [nowMs, setNowMs] = useState(() => Date.now());
-    const [workspaceFilter, setWorkspaceFilter] = useState('');
-    const [statusFilter, setStatusFilter] = useState<TerminalJobStatus | ''>('');
-    const jobHistory = useJobHistory(serverJobs, workspaceFilter, statusFilter);
-    const worker = useWorkerDiagnostics();
-    const waitReasons = new Map(worker.status?.waiting.map((entry) => [entry.jobId, entry]) ?? []);
-    const [view, setView] = useState<'active' | 'review' | 'history'>('active');
-    const autoSelectedView = useRef(false);
-    const [visibleCount, setVisibleCount] = useState(20);
+    const data = useQueuePanelData(results, serverJobs, onClose);
     const {
-      clearedAt,
+      setActiveResultId,
+      panelRef,
+      hasClose,
+      workspaceFilter,
+      setWorkspaceFilter,
+      statusFilter,
+      setStatusFilter,
+      jobHistory,
+      worker,
+      view,
+      setView,
+      setVisibleCount,
       clearListedJobs,
       attentionClearedAt,
       clearAttentionJobs,
       showAttentionJobs,
-    } = useStudioJobsListClearedAt();
-    const activeJobs = jobHistory.open.filter((job) => job.status !== 'needs_review');
-    const reviewJobs = jobHistory.open.filter(
-      (job) =>
-        job.status === 'needs_review' &&
-        isStudioJobVisibleAfterListClear(job.createdAt, clearedAt) &&
-        isStudioJobVisibleAfterAttentionClear(job.status, job.updatedAt, attentionClearedAt),
-    );
-    const visibleHistory = jobHistory.history.filter(
-      (job) =>
-        isStudioJobVisibleAfterListClear(job.createdAt, clearedAt) &&
-        isStudioJobVisibleAfterAttentionClear(job.status, job.updatedAt, attentionClearedAt),
-    );
-    const jobs = view === 'history' ? visibleHistory : view === 'review' ? reviewJobs : activeJobs;
-    const visibleJobs = view === 'history' ? jobs : jobs.slice(0, visibleCount);
-    const jobGroups = Array.from(
-      visibleJobs
-        .reduce((groups, job) => {
-          const key = job.batchId ?? job.id;
-          const group = groups.get(key) ?? [];
-          group.push(job);
-          groups.set(key, group);
-          return groups;
-        }, new Map<string, StudioJob[]>())
-        .entries(),
-    );
-    const activeResultIndex = activeResultId
-      ? results.findIndex((result) => result.id === activeResultId)
-      : -1;
-    const activeResult = activeResultIndex >= 0 ? results[activeResultIndex] : null;
-    const resultsByJobId = useMemo(() => {
-      const previews = new Map<string, string>();
-      for (const result of results) {
-        if (result.jobId && !previews.has(result.jobId)) previews.set(result.jobId, result.src);
-      }
-      return previews;
-    }, [results]);
-    const summary = useMemo(() => summarizePersistentJobs(jobHistory.open), [jobHistory.open]);
-    const hasLiveDurations = summary.queued + summary.running > 0;
-
-    useEffect(() => {
-      if (autoSelectedView.current || jobHistory.loading) return;
-      autoSelectedView.current = true;
-      if (activeJobs.length === 0 && reviewJobs.length > 0) setView('review');
-    }, [activeJobs.length, jobHistory.loading, reviewJobs.length]);
-
-    useEffect(() => {
-      if (!hasLiveDurations) return;
-      const id = window.setInterval(() => setNowMs(Date.now()), 1000);
-      return () => window.clearInterval(id);
-    }, [hasLiveDurations]);
-
-    useEffect(() => {
-      if (!hasClose || !panelRef.current) return;
-      const panel = panelRef.current;
-      const opener = document.activeElement;
-      panel.focus({ preventScroll: true });
-      const onKeyDown = (event: KeyboardEvent) => {
-        if (
-          event.key !== 'Escape' ||
-          event.defaultPrevented ||
-          !panel.contains(document.activeElement)
-        )
-          return;
-        event.preventDefault();
-        closeRef.current?.();
-      };
-      document.addEventListener('keydown', onKeyDown);
-      return () => {
-        document.removeEventListener('keydown', onKeyDown);
-        if (
-          opener instanceof HTMLElement &&
-          opener.isConnected &&
-          (panel.contains(document.activeElement) || document.activeElement === document.body)
-        )
-          opener.focus({ preventScroll: true });
-      };
-    }, [hasClose, closeRef]);
+      activeJobs,
+      reviewJobs,
+      jobs,
+      activeResultIndex,
+      activeResult,
+      summary,
+    } = data;
 
     return (
       <div
@@ -227,15 +592,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
           <div>
             <h3 className="text-sm font-semibold text-[color:var(--wb-ink)]/90">Jobs</h3>
             <p className="mt-0.5 text-xs text-[color:var(--wb-muted)]">
-              {jobHistory.error
-                ? 'Updates unavailable · last confirmed state'
-                : jobHistory.loading && !jobHistory.page
-                  ? 'Loading jobs…'
-                  : summary.running + summary.queued > 0
-                    ? `${summary.running} running · ${summary.queued} queued`
-                    : reviewJobs.length > 0
-                      ? `${reviewJobs.length} need review`
-                      : 'No active jobs'}
+              {queueSummaryText(jobHistory, summary, reviewJobs)}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
@@ -279,64 +636,16 @@ export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
             Show hidden failed/review jobs
           </button>
         ) : null}
-        <div className="space-y-3 border-b border-[color:var(--wb-border)] px-3 pb-3">
-          <label className="block text-xs text-[color:var(--wb-muted)]">
-            Workspace
-            <select
-              aria-label="Job workspace"
-              value={workspaceFilter}
-              onChange={(event) => {
-                setWorkspaceFilter(event.target.value);
-                setVisibleCount(20);
-              }}
-              className="mt-1 w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-border)] bg-[color:var(--wb-panel)] p-2 text-xs text-[color:var(--wb-ink)]"
-            >
-              <option value="">All workspaces</option>
-              {jobHistory.workspaces.map((workspace) => (
-                <option key={workspace.id} value={workspace.id}>
-                  {workspace.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div
-            role="group"
-            aria-label="Job views"
-            className="grid grid-cols-3 gap-1 rounded-[var(--wb-radius)] bg-[color:var(--wb-well)] p-1"
-          >
-            {(['active', 'review', 'history'] as const).map((item) => (
-              <button
-                key={item}
-                type="button"
-                aria-pressed={view === item}
-                onClick={() => {
-                  setView(item);
-                  setVisibleCount(20);
-                }}
-                className={cn(
-                  'min-h-9 rounded-[var(--wb-radius)] px-1 text-xs transition-colors',
-                  view === item
-                    ? 'bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] text-[color:var(--wb-ink)]'
-                    : 'text-[color:var(--wb-muted)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] hover:text-[color:var(--wb-ink)]',
-                )}
-              >
-                {item === 'active' ? 'Active' : item === 'review' ? 'Review' : 'History'}
-                {item !== 'history' ? (
-                  <span
-                    className={cn(
-                      'ml-1 tabular-nums',
-                      item === 'review' &&
-                        reviewJobs.length > 0 &&
-                        'text-[color:var(--wb-warning)] ',
-                    )}
-                  >
-                    {item === 'active' ? activeJobs.length : reviewJobs.length}
-                  </span>
-                ) : null}
-              </button>
-            ))}
-          </div>
-        </div>
+        <QueueNavigation
+          workspaceFilter={workspaceFilter}
+          setWorkspaceFilter={setWorkspaceFilter}
+          setVisibleCount={setVisibleCount}
+          jobHistory={jobHistory}
+          view={view}
+          setView={setView}
+          activeJobs={activeJobs}
+          reviewJobs={reviewJobs}
+        />
         <div
           key={`${view}:${workspaceFilter}`}
           data-motion-panel
@@ -358,171 +667,24 @@ export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
               These jobs have stopped and need a decision. Open a job to review what happened.
             </p>
           ) : null}
-          {view === 'history' ? (
-            <>
-              <label className="block text-xs text-[color:var(--wb-muted)]">
-                Status
-                <select
-                  aria-label="Job history status"
-                  value={statusFilter}
-                  onChange={(event) =>
-                    setStatusFilter(event.target.value as TerminalJobStatus | '')
-                  }
-                  className="mt-1 w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-border)] bg-[color:var(--wb-panel)] p-2 text-xs text-[color:var(--wb-ink)]"
-                >
-                  <option value="">All finished jobs</option>
-                  <option value="completed">Completed</option>
-                  <option value="failed">Failed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </label>
-              {results.length > 0 ? (
-                <details className="rounded-[var(--wb-radius)] border border-[color:var(--wb-border)] p-2 text-xs text-[color:var(--wb-muted)]">
-                  <summary className="cursor-pointer py-1">
-                    Recent images · current workspace
-                  </summary>
-                  <div className="mt-2 grid grid-cols-4 gap-1">
-                    {results.map((result) => (
-                      <button
-                        type="button"
-                        key={result.id}
-                        onClick={() => setActiveResultId(result.id)}
-                        className="group relative overflow-hidden rounded border border-[color:var(--wb-border)]"
-                        data-tooltip={result.prompt || 'Generated result'}
-                      >
-                        <img
-                          src={result.src}
-                          alt={result.prompt || 'Generated result'}
-                          width={64}
-                          height={64}
-                          className="aspect-square w-full object-cover"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                        <span className="absolute inset-0 grid place-items-center text-[color:var(--wb-ink)] opacity-0 group-hover:bg-[color:var(--wb-well)] group-hover:opacity-100 group-focus-visible:opacity-100">
-                          <Maximize2 width={14} height={14} />
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </details>
-              ) : null}
-              <p className="text-xs text-[color:var(--wb-muted)]">
-                {jobHistory.page?.counts.history ?? '—'} matching jobs
-                {attentionClearedAt > 0 && (statusFilter === '' || statusFilter === 'failed')
-                  ? ' · prior failures hidden from this list'
-                  : ''}
-              </p>
-            </>
-          ) : null}
-          <section
-            aria-label={
-              view === 'active'
-                ? 'Active jobs'
-                : view === 'review'
-                  ? 'Jobs needing review'
-                  : 'Job history'
-            }
-            className="space-y-2"
-          >
-            {jobGroups.map(([groupId, group]) => (
-              <div key={groupId} className="space-y-2">
-                {group.length > 1 && (
-                  <p className="pt-3 text-xs text-[color:var(--wb-ink)]">
-                    {resolveQueueRecipeLabel(group[0].recipeId, group[0].kind)} · {group.length}{' '}
-                    jobs on this page · {group.filter((job) => job.status === 'completed').length}{' '}
-                    completed
-                  </p>
-                )}
-                {group.map((job, index) => (
-                  <ServerJobItem
-                    key={job.id}
-                    job={job}
-                    showBatch={index === 0}
-                    waitReason={
-                      job.status === 'queued' && waitReasons.has(job.id)
-                        ? formatWaitReason(waitReasons.get(job.id)!)
-                        : undefined
-                    }
-                    previewSrc={resultsByJobId.get(job.id) ?? null}
-                    nowMs={nowMs}
-                    isSelected={selectedJobId === job.id}
-                    onInspect={() => onInspectJob(job.id)}
-                    onRetry={onRetryServerJob ? () => onRetryServerJob(job.id) : undefined}
-                    onCancel={() => onCancelServerJob(job.id)}
-                  />
-                ))}
-              </div>
-            ))}
-          </section>
-          {!jobHistory.loading && !jobHistory.error && jobs.length === 0 ? (
-            <div className="py-8 text-center">
-              <Layers
-                width={24}
-                height={24}
-                className="mx-auto mb-3 text-[color:var(--wb-muted)]"
-              />
-              <p className="text-sm text-[color:var(--wb-ink)]">
-                {view === 'active'
-                  ? 'No active jobs'
-                  : view === 'review'
-                    ? 'Nothing to review'
-                    : 'No matching history'}
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-[color:var(--wb-muted)]">
-                {view === 'active'
-                  ? 'New generations will appear here.'
-                  : view === 'review'
-                    ? 'Jobs that need your input will appear here.'
-                    : 'Try another status or workspace.'}
-              </p>
-            </div>
-          ) : null}
-          {jobHistory.loading ? (
-            <p role="status" className="text-xs text-[color:var(--wb-muted)]">
-              Loading jobs…
-            </p>
-          ) : null}
-          {view !== 'history' && jobs.length > visibleCount ? (
-            <button
-              type="button"
-              onClick={() => setVisibleCount((count) => count + 20)}
-              className="min-h-9 w-full rounded-[var(--wb-radius)] bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] px-2 text-xs text-[color:var(--wb-ink)]"
-            >
-              Show more · {visibleJobs.length} of {jobs.length}
-            </button>
-          ) : view === 'history' && jobHistory.nextCursor && !jobHistory.loading ? (
-            <button
-              type="button"
-              onClick={jobHistory.loadMore}
-              className="min-h-9 w-full rounded-[var(--wb-radius)] bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] px-2 text-xs text-[color:var(--wb-ink)]"
-            >
-              Load older jobs
-            </button>
-          ) : null}
-          {view === 'active' ? (
-            <details className="border-t border-[color:var(--wb-border)] pt-3 text-xs text-[color:var(--wb-muted)]">
-              <summary className="cursor-pointer py-1">Worker details</summary>
-              <div className="mt-2 space-y-1" aria-label="Worker capacity">
-                {worker.status ? (
-                  <>
-                    <p>
-                      {worker.status.activeWorkerCount} / {worker.status.maxConcurrentJobs} worker
-                      slots active{worker.status.stopping ? ' · Stopping' : ''}
-                    </p>
-                    {Object.entries(worker.status.providerLimits).map(([providerId, limit]) => (
-                      <p key={providerId}>
-                        {providerId}: {worker.status?.activeByProvider[providerId] ?? 0} / {limit}{' '}
-                        active
-                      </p>
-                    ))}
-                  </>
-                ) : (
-                  <p>{worker.error ? 'Worker capacity unavailable' : 'Reading worker capacity'}</p>
-                )}
-              </div>
-            </details>
-          ) : null}
+          {view === 'history' && (
+            <QueueHistoryFilters
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              results={results}
+              onSelectResult={setActiveResultId}
+              jobHistory={jobHistory}
+              attentionClearedAt={attentionClearedAt}
+            />
+          )}
+          <QueueJobList
+            data={data}
+            selectedJobId={selectedJobId}
+            onInspectJob={onInspectJob}
+            onRetryServerJob={onRetryServerJob}
+            onCancelServerJob={onCancelServerJob}
+          />
+          {view === 'active' && <QueueWorkerDetails worker={worker} />}
         </div>
 
         {activeResult ? (
@@ -558,12 +720,11 @@ const RecentResultViewer: React.FC<{
   onNext: () => void;
   onInspect?: () => void;
 }> = ({ result, index, total, onClose, onPrevious, onNext, onInspect }) => {
-  const dialogRef = useDialogFocus(true, onClose);
+  const dialogRef = useDialogFocus<HTMLDialogElement>(true, onClose);
 
   return (
-    <div
+    <dialog
       ref={dialogRef}
-      role="dialog"
       aria-modal="true"
       aria-label="Recent result viewer"
       tabIndex={-1}
@@ -574,7 +735,7 @@ const RecentResultViewer: React.FC<{
           else onNext();
         }
       }}
-      className="fixed inset-0 z-50 flex flex-col bg-[color:var(--wba-bg)] backdrop-blur-md"
+      className="studio-modal fixed inset-0 z-50 flex flex-col bg-[color:var(--wba-bg)] backdrop-blur-md"
     >
       <div className="flex h-14 shrink-0 items-center justify-between border-b border-[color:var(--wb-line)] px-3">
         <div className="min-w-0">
@@ -631,9 +792,70 @@ const RecentResultViewer: React.FC<{
           <ChevronRight width={20} height={20} />
         </button>
       </div>
-    </div>
+    </dialog>
   );
 };
+
+function JobItemActions({
+  job,
+  onRetry,
+  onCancel,
+}: {
+  job: StudioJob;
+  onRetry?: () => void;
+  onCancel: () => void;
+}) {
+  const canCancel = job.status === 'queued' || job.status === 'running';
+  const canResume = canResumeStudioJob(job);
+  const canRetry = Boolean(onRetry) && (canRetryStudioJob(job) || canResume);
+  if (!canCancel && !canRetry) return null;
+  return (
+    <div className="mt-2 flex justify-end">
+      {canCancel ? (
+        <button
+          type="button"
+          aria-label={`Cancel backend job ${job.id}`}
+          onClick={onCancel}
+          className="min-h-8 rounded-[var(--wb-radius)] px-2 text-xs text-[color:var(--wb-ink)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)]"
+        >
+          Cancel
+        </button>
+      ) : null}
+      {canRetry ? (
+        <button
+          type="button"
+          aria-label={`${canResume ? 'Resume' : 'Retry'} backend job ${job.id}`}
+          onClick={onRetry}
+          data-tooltip={canResume ? 'Resume existing remote job' : 'Retry this job'}
+          className="flex min-h-8 items-center gap-1.5 rounded-[var(--wb-radius)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-2 text-xs text-[color:var(--wb-ink)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)]"
+        >
+          <RotateCcw width={13} height={13} />
+          {canResume ? 'Resume' : 'Retry'}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function JobStatusIcon({ status }: { status: StudioJob['status'] }) {
+  return status === 'running' ? (
+    <Loader2 size={14} className="motion-safe:animate-spin" />
+  ) : status === 'completed' ? (
+    <CheckCircle2 width={14} height={14} />
+  ) : status === 'needs_review' || status === 'failed' ? (
+    <AlertTriangle width={14} height={14} />
+  ) : (
+    <Clock width={14} height={14} />
+  );
+}
+
+function jobTimeLabel(job: StudioJob, nowMs: number, createdAtMs: number | null) {
+  return job.status === 'running'
+    ? `Submitted ${formatDurationMs(createdAtMs === null ? null : nowMs - createdAtMs)} ago`
+    : job.status === 'queued'
+      ? 'Waiting to start'
+      : new Date(job.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
 
 const ServerJobItem: React.FC<{
   job: StudioJob;
@@ -657,23 +879,11 @@ const ServerJobItem: React.FC<{
   onCancel,
 }) => {
   const [batchOpen, setBatchOpen] = useState(false);
-  const canCancel = job.status === 'queued' || job.status === 'running';
-  const canResume = canResumeStudioJob(job);
-  const canRetry = Boolean(onRetry) && (canRetryStudioJob(job) || canResume);
   const recipeLabel = resolveQueueRecipeLabel(job.recipeId, job.kind);
   const createdAtMs = toEpochMs(job.createdAt);
   const statusLabel =
     job.status === 'needs_review' ? 'Needs review' : formatQueueTaskLabel(job.status);
-  const icon =
-    job.status === 'running' ? (
-      <Loader2 size={14} className="motion-safe:animate-spin" />
-    ) : job.status === 'completed' ? (
-      <CheckCircle2 width={14} height={14} />
-    ) : job.status === 'needs_review' || job.status === 'failed' ? (
-      <AlertTriangle width={14} height={14} />
-    ) : (
-      <Clock width={14} height={14} />
-    );
+
   return (
     <article
       className={cn(
@@ -691,7 +901,7 @@ const ServerJobItem: React.FC<{
       >
         <div className="mb-2 flex items-center justify-between gap-2 text-[11px]">
           <span className={cn('flex items-center gap-1.5', getServerStatusColor(job.status))}>
-            {icon}
+            <JobStatusIcon status={job.status} />
             {statusLabel}
           </span>
           <span className="truncate text-[color:var(--wb-muted)]">{recipeLabel}</span>
@@ -713,11 +923,7 @@ const ServerJobItem: React.FC<{
           </p>
         </div>
         <p className="mt-2 text-[11px] text-[color:var(--wb-muted)]">
-          {job.status === 'running'
-            ? `Submitted ${formatDurationMs(createdAtMs === null ? null : nowMs - createdAtMs)} ago`
-            : job.status === 'queued'
-              ? 'Waiting to start'
-              : new Date(job.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+          {jobTimeLabel(job, nowMs, createdAtMs)}
           <span className="mx-1.5">·</span>
           {formatClockTime(createdAtMs)}
           <span className="float-right text-[color:var(--wb-ink)]">Details →</span>
@@ -731,32 +937,7 @@ const ServerJobItem: React.FC<{
           {job.error}
         </p>
       ) : null}
-      {canCancel || canRetry ? (
-        <div className="mt-2 flex justify-end">
-          {canCancel ? (
-            <button
-              type="button"
-              aria-label={`Cancel backend job ${job.id}`}
-              onClick={onCancel}
-              className="min-h-8 rounded-[var(--wb-radius)] px-2 text-xs text-[color:var(--wb-ink)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)]"
-            >
-              Cancel
-            </button>
-          ) : null}
-          {canRetry ? (
-            <button
-              type="button"
-              aria-label={`${canResume ? 'Resume' : 'Retry'} backend job ${job.id}`}
-              onClick={onRetry}
-              data-tooltip={canResume ? 'Resume existing remote job' : 'Retry this job'}
-              className="flex min-h-8 items-center gap-1.5 rounded-[var(--wb-radius)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-2 text-xs text-[color:var(--wb-ink)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)]"
-            >
-              <RotateCcw width={13} height={13} />
-              {canResume ? 'Resume' : 'Retry'}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
+      <JobItemActions job={job} onRetry={onRetry} onCancel={onCancel} />
       {job.batchId && showBatch ? (
         <details
           onToggle={(event) => setBatchOpen(event.currentTarget.open)}

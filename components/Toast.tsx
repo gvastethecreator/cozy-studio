@@ -85,7 +85,7 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
       </div>
       <div className="absolute bottom-0 left-0 h-1 w-full bg-[color:color-mix(in_srgb,var(--wb-ink)_12%,transparent)]">
         <div
-          className={`h-full ${progressColors[toast.type]} origin-left transition-transform duration-75 ease-linear`}
+          className={`h-full ${progressColors[toast.type]} origin-left`}
           style={{ transform: `scaleX(${progress / 100})` }}
         />
       </div>

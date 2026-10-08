@@ -44,7 +44,7 @@ const EMPTY_CARD_FIELDS: CardFields[] = [
   { name: '', type: '', rules: '' },
 ];
 
-export function TcgComponentStudio({
+function useTcgComponentStudioController({
   query,
   images,
   onGenerateArtwork,
@@ -237,6 +237,73 @@ export function TcgComponentStudio({
     return 'Arte principal';
   };
 
+  return {
+    recipeId,
+    setRecipe,
+    selectedRecipe,
+    subjectPrompt,
+    setSubjectPrompt,
+    generationError,
+    handleGenerate,
+    isGenerating,
+    recipeResolution,
+    setFinishId,
+    setLayoutId,
+    layoutId,
+    setActiveFace,
+    selectedLayout,
+    panoramaColumns,
+    setPanoramaColumns,
+    activeFace,
+    finishId,
+    selectedFinish,
+    selectedArtCount,
+    requiredArtworkCount,
+    artworkChoices,
+    getArtworkSlotLabel,
+    updateArtworkChoice,
+    images,
+    handleArtworkUpload,
+    cardFields,
+    updateCardField,
+    requiredMaskKeys,
+    handleMaskUpload,
+    maskAssets,
+    fileError,
+    exportPng,
+    canExport,
+    selectedReasons,
+    canvasRef,
+    rendering,
+    renderError,
+    normalizedQuery,
+    filteredCatalogCount,
+    query,
+    matchedFinishes,
+    matchedLayouts,
+    matchedRecipes,
+  };
+}
+
+type TcgComponentStudioViewModel = ReturnType<typeof useTcgComponentStudioController>;
+
+function TcgComponentStudioView({ model }: { model: TcgComponentStudioViewModel }) {
+  const {
+    recipeId,
+    setRecipe,
+    setFinishId,
+    setLayoutId,
+    layoutId,
+    setActiveFace,
+    finishId,
+    normalizedQuery,
+    filteredCatalogCount,
+    query,
+    matchedFinishes,
+    matchedLayouts,
+    matchedRecipes,
+  } = model;
+
   return (
     <div className="space-y-5" data-tcg-component-studio>
       <header className="space-y-1">
@@ -249,505 +316,16 @@ export function TcgComponentStudio({
 
       <div className="grid min-w-0 gap-5">
         <div className="space-y-5">
-          <section
-            aria-labelledby="tcg-recipe-heading"
-            className="space-y-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-4"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3
-                id="tcg-recipe-heading"
-                className="text-sm font-semibold text-[color:var(--wb-ink)]"
-              >
-                Receta de arte
-              </h3>
-              <span className="text-[10px] text-[color:var(--wb-dim)]">12 recetas</span>
-            </div>
-            <label
-              htmlFor="tcg-recipe"
-              className="block text-xs font-medium text-[color:var(--wb-muted)]"
-            >
-              Receta
-            </label>
-            <select
-              id="tcg-recipe"
-              value={recipeId}
-              onChange={(event) => setRecipe(event.currentTarget.value as TcgRecipe['id'])}
-              className="w-full rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-3 py-2 text-sm text-[color:var(--wb-ink)]"
-            >
-              {TCG_RECIPES.map((recipe) => (
-                <option key={recipe.id} value={recipe.id}>
-                  {recipe.name} — {recipe.id}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs leading-relaxed text-[color:var(--wb-muted)]">
-              {selectedRecipe.summary}
-            </p>
-            <p className="text-[11px] leading-relaxed text-[color:var(--wb-dim)]">
-              La receta acota la influencia secundaria a «{selectedRecipe.secondaryScope}». El
-              acabado y el layout se aplican aquí después de generar la ilustración.
-            </p>
-            <label
-              htmlFor="tcg-subject"
-              className="block text-xs font-medium text-[color:var(--wb-muted)]"
-            >
-              Sujeto de la carta
-            </label>
-            <textarea
-              id="tcg-subject"
-              value={subjectPrompt}
-              onChange={(event) => setSubjectPrompt(event.currentTarget.value)}
-              rows={3}
-              placeholder="Describe el sujeto, acción y encuadre que quieres conservar."
-              className="w-full resize-y rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-3 py-2 text-sm text-[color:var(--wb-ink)] placeholder:text-[color:var(--wb-dim)]"
-            />
-            {generationError ? (
-              <p role="alert" className="text-xs text-red-700">
-                {generationError}
-              </p>
-            ) : null}
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={handleGenerate}
-                disabled={isGenerating}
-                className="rounded border border-[color:var(--wb-ink)] bg-[color:var(--wb-ink)] px-3 py-2 text-xs font-semibold text-[color:var(--wb-bg)] disabled:cursor-not-allowed disabled:opacity-55"
-              >
-                {isGenerating ? 'Generando arte…' : 'Generar ilustración'}
-              </button>
-              <span className="text-[10px] text-[color:var(--wb-dim)]">
-                No añade marco, texto ni acabado al prompt de arte.
-              </span>
-            </div>
-            <div className="flex flex-wrap items-start justify-between gap-2 border-t border-[color:var(--wb-line)] pt-3">
-              <p className="max-w-xl text-[11px] leading-relaxed text-[color:var(--wb-muted)]">
-                Valores por receta: {recipeResolution.finish.name} · {recipeResolution.layout.name}.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setFinishId(selectedRecipe.finishId);
-                  setLayoutId(selectedRecipe.layoutId);
-                }}
-                className="rounded border border-[color:var(--wb-line)] px-2 py-1 text-[10px] font-medium text-[color:var(--wb-muted)] hover:text-[color:var(--wb-ink)]"
-              >
-                Restaurar valores de receta
-              </button>
-            </div>
-          </section>
+          <TcgRecipePicker model={model} />
 
-          <section
-            aria-labelledby="tcg-layout-finish-heading"
-            className="space-y-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-4"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3
-                id="tcg-layout-finish-heading"
-                className="text-sm font-semibold text-[color:var(--wb-ink)]"
-              >
-                Estructura de carta
-              </h3>
-              <span className="text-[10px] text-[color:var(--wb-dim)]">12 layouts</span>
-            </div>
-            <label
-              htmlFor="tcg-layout"
-              className="block text-xs font-medium text-[color:var(--wb-muted)]"
-            >
-              Layout
-            </label>
-            <select
-              id="tcg-layout"
-              value={layoutId}
-              onChange={(event) => {
-                setLayoutId(event.currentTarget.value as TcgLayout['id']);
-                setActiveFace(0);
-              }}
-              className="w-full rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-3 py-2 text-sm text-[color:var(--wb-ink)]"
-            >
-              {TCG_LAYOUTS.map((layout) => (
-                <option key={layout.id} value={layout.id}>
-                  {layout.name} — {layout.id}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs leading-relaxed text-[color:var(--wb-muted)]">
-              {selectedLayout.summary}
-            </p>
-            {layoutId === 'TCG-L008' ? (
-              <div className="space-y-1">
-                <label
-                  htmlFor="tcg-panorama-columns"
-                  className="block text-xs font-medium text-[color:var(--wb-muted)]"
-                >
-                  Columnas de la grilla
-                </label>
-                <select
-                  id="tcg-panorama-columns"
-                  value={panoramaColumns}
-                  onChange={(event) =>
-                    setPanoramaColumns(Number(event.currentTarget.value) as 2 | 3)
-                  }
-                  className="rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-2 py-1 text-xs text-[color:var(--wb-ink)]"
-                >
-                  <option value={2}>2 columnas</option>
-                  <option value={3}>3 columnas</option>
-                </select>
-                <p className="text-[10px] text-[color:var(--wb-dim)]">
-                  La vista contiene cuatro cartas; los archivos de arte deben seleccionarse por
-                  separado.
-                </p>
-              </div>
-            ) : null}
-            {layoutId === 'TCG-L009' ? (
-              <div
-                className="flex flex-wrap gap-2"
-                aria-label="Seleccionar cara para la vista y exportación"
-              >
-                <button
-                  type="button"
-                  aria-pressed={activeFace === 0}
-                  onClick={() => setActiveFace(0)}
-                  className={faceButtonClass(activeFace === 0)}
-                >
-                  Cara A
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={activeFace === 1}
-                  onClick={() => setActiveFace(1)}
-                  className={faceButtonClass(activeFace === 1)}
-                >
-                  Cara B
-                </button>
-                <span className="self-center text-[10px] text-[color:var(--wb-dim)]">
-                  La exportación descarga una cara a la vez.
-                </span>
-              </div>
-            ) : null}
-            <div className="border-t border-[color:var(--wb-line)] pt-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-sm font-semibold text-[color:var(--wb-ink)]">
-                  Acabado digital
-                </h3>
-                <span className="text-[10px] text-[color:var(--wb-dim)]">18 acabados</span>
-              </div>
-              <label
-                htmlFor="tcg-finish"
-                className="mt-2 block text-xs font-medium text-[color:var(--wb-muted)]"
-              >
-                Acabado
-              </label>
-              <select
-                id="tcg-finish"
-                value={finishId}
-                onChange={(event) => setFinishId(event.currentTarget.value as TcgFinish['id'])}
-                className="w-full rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-3 py-2 text-sm text-[color:var(--wb-ink)]"
-              >
-                {TCG_FINISHES.map((finish) => (
-                  <option key={finish.id} value={finish.id}>
-                    {finish.name} — {finish.id}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-2 text-xs leading-relaxed text-[color:var(--wb-muted)]">
-                {selectedFinish.summary}
-              </p>
-              {selectedFinish.caution ? (
-                <p className="mt-1 text-[10px] leading-relaxed text-[color:var(--wb-dim)]">
-                  {selectedFinish.caution}
-                </p>
-              ) : null}
-            </div>
-          </section>
+          <TcgLayoutControls model={model} />
 
-          <section
-            aria-labelledby="tcg-artwork-heading"
-            className="space-y-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-4"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3
-                id="tcg-artwork-heading"
-                className="text-sm font-semibold text-[color:var(--wb-ink)]"
-              >
-                Archivos de arte
-              </h3>
-              <span className="text-[10px] text-[color:var(--wb-dim)]">
-                {selectedArtCount}/{requiredArtworkCount} listos
-              </span>
-            </div>
-            <p className="text-[11px] leading-relaxed text-[color:var(--wb-muted)]">
-              Elige una imagen generada o carga un archivo local. Los layouts de varias piezas
-              requieren arte separado para cada panel o cara; no se infiere continuidad entre
-              archivos.
-            </p>
-            {Array.from({ length: requiredArtworkCount }, (_, index) => {
-              const choice = artworkChoices[index];
-              const sourceSelectValue =
-                choice?.kind === 'generated'
-                  ? choice.imageId
-                  : choice?.kind === 'upload'
-                    ? '__uploaded__'
-                    : '';
-              const slotId = `tcg-art-${index + 1}`;
-              return (
-                <fieldset
-                  key={slotId}
-                  className="space-y-2 rounded border border-[color:var(--wb-line)] p-3"
-                >
-                  <legend className="px-1 text-xs font-semibold text-[color:var(--wb-ink)]">
-                    {getArtworkSlotLabel(index)}
-                  </legend>
-                  <label
-                    htmlFor={`${slotId}-generated`}
-                    className="block text-[11px] font-medium text-[color:var(--wb-muted)]"
-                  >
-                    Imagen generada
-                  </label>
-                  <select
-                    id={`${slotId}-generated`}
-                    value={sourceSelectValue}
-                    onChange={(event) => {
-                      const value = event.currentTarget.value;
-                      if (value === '__uploaded__') return;
-                      updateArtworkChoice(
-                        index,
-                        value ? { kind: 'generated', imageId: value } : null,
-                      );
-                    }}
-                    className="w-full rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-2 py-2 text-xs text-[color:var(--wb-ink)]"
-                  >
-                    <option value="">Sin seleccionar</option>
-                    {choice?.kind === 'upload' ? (
-                      <option value="__uploaded__">Archivo local: {choice.fileName}</option>
-                    ) : null}
-                    {images.map((image, imageIndex) => (
-                      <option key={`${image.id}-${imageIndex}`} value={image.id}>
-                        {getGeneratedImageLabel(image, imageIndex)}
-                      </option>
-                    ))}
-                  </select>
-                  <label
-                    htmlFor={`${slotId}-file`}
-                    className="block text-[11px] font-medium text-[color:var(--wb-muted)]"
-                  >
-                    o cargar imagen
-                  </label>
-                  <input
-                    id={`${slotId}-file`}
-                    type="file"
-                    accept="image/*"
-                    onChange={(event) => {
-                      void handleArtworkUpload(index, event);
-                    }}
-                    className="block w-full text-xs text-[color:var(--wb-muted)] file:mr-2 file:rounded file:border file:border-[color:var(--wb-line)] file:bg-[color:var(--wb-bg)] file:px-2 file:py-1 file:text-xs file:text-[color:var(--wb-ink)]"
-                  />
-                  {choice?.kind === 'upload' ? (
-                    <p className="text-[10px] text-[color:var(--wb-dim)]">
-                      Archivo local: {choice.fileName}
-                    </p>
-                  ) : null}
-                  <details className="pt-1">
-                    <summary className="cursor-pointer text-[11px] font-medium text-[color:var(--wb-muted)]">
-                      Editar datos de esta carta
-                    </summary>
-                    <div className="mt-2 space-y-2">
-                      <label
-                        htmlFor={`${slotId}-name`}
-                        className="block text-[10px] font-medium text-[color:var(--wb-muted)]"
-                      >
-                        Nombre
-                      </label>
-                      <input
-                        id={`${slotId}-name`}
-                        value={cardFields[index]?.name ?? ''}
-                        maxLength={90}
-                        onChange={(event) =>
-                          updateCardField(index, 'name', event.currentTarget.value)
-                        }
-                        className="w-full rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-2 py-1.5 text-xs text-[color:var(--wb-ink)]"
-                      />
-                      <label
-                        htmlFor={`${slotId}-type`}
-                        className="block text-[10px] font-medium text-[color:var(--wb-muted)]"
-                      >
-                        Tipo / grupo
-                      </label>
-                      <input
-                        id={`${slotId}-type`}
-                        value={cardFields[index]?.type ?? ''}
-                        maxLength={90}
-                        onChange={(event) =>
-                          updateCardField(index, 'type', event.currentTarget.value)
-                        }
-                        className="w-full rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-2 py-1.5 text-xs text-[color:var(--wb-ink)]"
-                      />
-                      <label
-                        htmlFor={`${slotId}-rules`}
-                        className="block text-[10px] font-medium text-[color:var(--wb-muted)]"
-                      >
-                        Reglas o texto de carta
-                      </label>
-                      <textarea
-                        id={`${slotId}-rules`}
-                        value={cardFields[index]?.rules ?? ''}
-                        maxLength={600}
-                        rows={3}
-                        onChange={(event) =>
-                          updateCardField(index, 'rules', event.currentTarget.value)
-                        }
-                        className="w-full resize-y rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-2 py-1.5 text-xs text-[color:var(--wb-ink)]"
-                      />
-                    </div>
-                  </details>
-                </fieldset>
-              );
-            })}
-            {layoutId === 'TCG-L012' ? (
-              <p className="text-[10px] text-[color:var(--wb-dim)]">
-                Art Plate muestra solo la ilustración; los datos editados no se dibujan en ese
-                layout.
-              </p>
-            ) : null}
-          </section>
+          <TcgArtworkControls model={model} />
 
-          <section
-            aria-labelledby="tcg-masks-heading"
-            className="space-y-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-4"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3
-                id="tcg-masks-heading"
-                className="text-sm font-semibold text-[color:var(--wb-ink)]"
-              >
-                Máscaras requeridas
-              </h3>
-              <span className="text-[10px] text-[color:var(--wb-dim)]">
-                {requiredMaskKeys.length} PNG
-              </span>
-            </div>
-            <p className="text-[11px] leading-relaxed text-[color:var(--wb-muted)]">
-              Carga un PNG real por cada capa que pide el acabado. Blanco aplica la máscara y negro
-              la excluye; los tonos grises modulan el efecto. Se ajusta al lienzo completo. No se
-              generan máscaras automáticamente.
-            </p>
-            {layoutId === 'TCG-L005' ? (
-              <p className="rounded border border-amber-700/30 bg-amber-50 px-2 py-1.5 text-[10px] leading-relaxed text-amber-950">
-                Frame Break requiere subjectMask y occlusionMask explícitas. Blanco en subjectMask
-                recorta la zona del sujeto que cruza el marco; blanco en occlusionMask retira esa
-                zona del sujeto superpuesto.
-              </p>
-            ) : null}
-            <div className="grid gap-2 sm:grid-cols-2">
-              {requiredMaskKeys.map((key) => {
-                const id = `tcg-mask-${key}`;
-                return (
-                  <div
-                    key={key}
-                    className="space-y-1 rounded border border-[color:var(--wb-line)] p-2"
-                  >
-                    <label
-                      htmlFor={id}
-                      className="block text-[11px] font-medium text-[color:var(--wb-ink)]"
-                    >
-                      {key} · PNG obligatorio
-                    </label>
-                    <input
-                      id={id}
-                      type="file"
-                      accept="image/png,.png"
-                      onChange={(event) => {
-                        void handleMaskUpload(key, event);
-                      }}
-                      className="block w-full text-[10px] text-[color:var(--wb-muted)] file:mr-1 file:rounded file:border file:border-[color:var(--wb-line)] file:bg-[color:var(--wb-bg)] file:px-1.5 file:py-1 file:text-[10px] file:text-[color:var(--wb-ink)]"
-                    />
-                    {maskAssets[key] ? (
-                      <p className="text-[10px] text-emerald-800">
-                        Cargada: {maskAssets[key].fileName}
-                      </p>
-                    ) : (
-                      <p className="text-[10px] text-[color:var(--wb-dim)]">Sin máscara.</p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            {fileError ? (
-              <p role="alert" className="text-xs text-red-700">
-                {fileError}
-              </p>
-            ) : null}
-          </section>
+          <TcgMaskInputs model={model} />
         </div>
 
-        <section
-          aria-labelledby="tcg-preview-heading"
-          className="space-y-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-4"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3
-              id="tcg-preview-heading"
-              className="text-sm font-semibold text-[color:var(--wb-ink)]"
-            >
-              Vista compuesta
-            </h3>
-            <button
-              type="button"
-              onClick={exportPng}
-              disabled={!canExport}
-              title={
-                canExport ? 'Exportar la composición actual como PNG' : selectedReasons.join(' ')
-              }
-              className="rounded border border-[color:var(--wb-ink)] px-3 py-2 text-xs font-semibold text-[color:var(--wb-ink)] disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              Exportar PNG
-            </button>
-          </div>
-          <p className="text-[11px] leading-relaxed text-[color:var(--wb-muted)]">
-            {layoutId === 'TCG-L007'
-              ? 'El archivo muestra dos cartas contiguas en un lienzo compartido.'
-              : layoutId === 'TCG-L008'
-                ? 'El archivo contiene la grilla completa con los cuatro paneles.'
-                : layoutId === 'TCG-L009'
-                  ? `Previsualizando y exportando Cara ${activeFace === 0 ? 'A' : 'B'}.`
-                  : 'La vista representa una composición digital del layout y el acabado seleccionados.'}
-          </p>
-          <div className="flex min-h-64 items-center justify-center overflow-auto rounded border border-[color:var(--wb-line)] bg-[#20252b] p-3">
-            <canvas
-              ref={canvasRef}
-              aria-label="Vista previa de la composición de carta"
-              className="block h-auto max-h-[72vh] max-w-full rounded shadow-lg"
-            />
-          </div>
-          {rendering ? (
-            <p role="status" className="text-xs text-[color:var(--wb-muted)]">
-              Actualizando vista…
-            </p>
-          ) : null}
-          {renderError ? (
-            <p role="alert" className="text-xs text-red-700">
-              {renderError}
-            </p>
-          ) : null}
-          {!renderError && !canExport ? (
-            <div
-              role="status"
-              className="space-y-1 rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] p-3"
-            >
-              <p className="text-xs font-medium text-[color:var(--wb-ink)]">
-                Completa los recursos para habilitar la exportación.
-              </p>
-              <ul className="list-inside list-disc space-y-0.5 text-[10px] text-[color:var(--wb-muted)]">
-                {selectedReasons.map((reason) => (
-                  <li key={reason}>{reason}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-          <p className="text-[10px] leading-relaxed text-[color:var(--wb-dim)]">
-            Archivo de composición para revisión en pantalla. No certifica medidas, capas, respuesta
-            UV, troquel ni compatibilidad con una imprenta.
-          </p>
-        </section>
+        <TcgCompositionPreview model={model} />
       </div>
 
       <details
@@ -792,6 +370,11 @@ export function TcgComponentStudio({
     </div>
   );
 }
+
+export const TcgComponentStudio: React.FC<TcgComponentStudioProps> = (props) => {
+  const view = useTcgComponentStudioController(props);
+  return <TcgComponentStudioView model={view} />;
+};
 
 interface CatalogGroupProps {
   title: string;
@@ -858,4 +441,600 @@ function readFileAsDataUrl(file: File): Promise<string> {
     };
     reader.readAsDataURL(file);
   });
+}
+
+function TcgRecipePicker({
+  model,
+}: {
+  model: Pick<
+    TcgComponentStudioViewModel,
+    | 'recipeId'
+    | 'setRecipe'
+    | 'selectedRecipe'
+    | 'subjectPrompt'
+    | 'setSubjectPrompt'
+    | 'generationError'
+    | 'handleGenerate'
+    | 'isGenerating'
+    | 'recipeResolution'
+    | 'setFinishId'
+    | 'setLayoutId'
+  >;
+}) {
+  const {
+    recipeId,
+    setRecipe,
+    selectedRecipe,
+    subjectPrompt,
+    setSubjectPrompt,
+    generationError,
+    handleGenerate,
+    isGenerating,
+    recipeResolution,
+    setFinishId,
+    setLayoutId,
+  } = model;
+
+  return (
+    <section
+      aria-labelledby="tcg-recipe-heading"
+      className="space-y-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-4"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id="tcg-recipe-heading" className="text-sm font-semibold text-[color:var(--wb-ink)]">
+          Receta de arte
+        </h3>
+        <span className="text-[10px] text-[color:var(--wb-dim)]">12 recetas</span>
+      </div>
+      <label
+        htmlFor="tcg-recipe"
+        className="block text-xs font-medium text-[color:var(--wb-muted)]"
+      >
+        Receta
+      </label>
+      <select
+        id="tcg-recipe"
+        value={recipeId}
+        onChange={(event) => setRecipe(event.currentTarget.value as TcgRecipe['id'])}
+        className="w-full rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-3 py-2 text-sm text-[color:var(--wb-ink)]"
+      >
+        {TCG_RECIPES.map((recipe) => (
+          <option key={recipe.id} value={recipe.id}>
+            {recipe.name} — {recipe.id}
+          </option>
+        ))}
+      </select>
+      <p className="text-xs leading-relaxed text-[color:var(--wb-muted)]">
+        {selectedRecipe.summary}
+      </p>
+      <p className="text-[11px] leading-relaxed text-[color:var(--wb-dim)]">
+        La receta acota la influencia secundaria a «{selectedRecipe.secondaryScope}». El acabado y
+        el layout se aplican aquí después de generar la ilustración.
+      </p>
+      <label
+        htmlFor="tcg-subject"
+        className="block text-xs font-medium text-[color:var(--wb-muted)]"
+      >
+        Sujeto de la carta
+      </label>
+      <textarea
+        id="tcg-subject"
+        value={subjectPrompt}
+        onChange={(event) => setSubjectPrompt(event.currentTarget.value)}
+        rows={3}
+        placeholder="Describe el sujeto, acción y encuadre que quieres conservar."
+        className="w-full resize-y rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-3 py-2 text-sm text-[color:var(--wb-ink)] placeholder:text-[color:var(--wb-dim)]"
+      />
+      {generationError ? (
+        <p role="alert" className="text-xs text-red-700">
+          {generationError}
+        </p>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={handleGenerate}
+          disabled={isGenerating}
+          className="rounded border border-[color:var(--wb-ink)] bg-[color:var(--wb-ink)] px-3 py-2 text-xs font-semibold text-[color:var(--wb-bg)] disabled:cursor-not-allowed disabled:opacity-55"
+        >
+          {isGenerating ? 'Generando arte…' : 'Generar ilustración'}
+        </button>
+        <span className="text-[10px] text-[color:var(--wb-dim)]">
+          No añade marco, texto ni acabado al prompt de arte.
+        </span>
+      </div>
+      <div className="flex flex-wrap items-start justify-between gap-2 border-t border-[color:var(--wb-line)] pt-3">
+        <p className="max-w-xl text-[11px] leading-relaxed text-[color:var(--wb-muted)]">
+          Valores por receta: {recipeResolution.finish.name} · {recipeResolution.layout.name}.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setFinishId(selectedRecipe.finishId);
+            setLayoutId(selectedRecipe.layoutId);
+          }}
+          className="rounded border border-[color:var(--wb-line)] px-2 py-1 text-[10px] font-medium text-[color:var(--wb-muted)] hover:text-[color:var(--wb-ink)]"
+        >
+          Restaurar valores de receta
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function TcgLayoutControls({
+  model,
+}: {
+  model: Pick<
+    TcgComponentStudioViewModel,
+    | 'layoutId'
+    | 'setLayoutId'
+    | 'setActiveFace'
+    | 'selectedLayout'
+    | 'panoramaColumns'
+    | 'setPanoramaColumns'
+    | 'activeFace'
+    | 'finishId'
+    | 'setFinishId'
+    | 'selectedFinish'
+  >;
+}) {
+  const {
+    layoutId,
+    setLayoutId,
+    setActiveFace,
+    selectedLayout,
+    panoramaColumns,
+    setPanoramaColumns,
+    activeFace,
+    finishId,
+    setFinishId,
+    selectedFinish,
+  } = model;
+
+  return (
+    <section
+      aria-labelledby="tcg-layout-finish-heading"
+      className="space-y-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-4"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3
+          id="tcg-layout-finish-heading"
+          className="text-sm font-semibold text-[color:var(--wb-ink)]"
+        >
+          Estructura de carta
+        </h3>
+        <span className="text-[10px] text-[color:var(--wb-dim)]">12 layouts</span>
+      </div>
+      <label
+        htmlFor="tcg-layout"
+        className="block text-xs font-medium text-[color:var(--wb-muted)]"
+      >
+        Layout
+      </label>
+      <select
+        id="tcg-layout"
+        value={layoutId}
+        onChange={(event) => {
+          setLayoutId(event.currentTarget.value as TcgLayout['id']);
+          setActiveFace(0);
+        }}
+        className="w-full rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-3 py-2 text-sm text-[color:var(--wb-ink)]"
+      >
+        {TCG_LAYOUTS.map((layout) => (
+          <option key={layout.id} value={layout.id}>
+            {layout.name} — {layout.id}
+          </option>
+        ))}
+      </select>
+      <p className="text-xs leading-relaxed text-[color:var(--wb-muted)]">
+        {selectedLayout.summary}
+      </p>
+      {layoutId === 'TCG-L008' ? (
+        <div className="space-y-1">
+          <label
+            htmlFor="tcg-panorama-columns"
+            className="block text-xs font-medium text-[color:var(--wb-muted)]"
+          >
+            Columnas de la grilla
+          </label>
+          <select
+            id="tcg-panorama-columns"
+            value={panoramaColumns}
+            onChange={(event) => setPanoramaColumns(Number(event.currentTarget.value) as 2 | 3)}
+            className="rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-2 py-1 text-xs text-[color:var(--wb-ink)]"
+          >
+            <option value={2}>2 columnas</option>
+            <option value={3}>3 columnas</option>
+          </select>
+          <p className="text-[10px] text-[color:var(--wb-dim)]">
+            La vista contiene cuatro cartas; los archivos de arte deben seleccionarse por separado.
+          </p>
+        </div>
+      ) : null}
+      {layoutId === 'TCG-L009' ? (
+        <div
+          className="flex flex-wrap gap-2"
+          aria-label="Seleccionar cara para la vista y exportación"
+        >
+          <button
+            type="button"
+            aria-pressed={activeFace === 0}
+            onClick={() => setActiveFace(0)}
+            className={faceButtonClass(activeFace === 0)}
+          >
+            Cara A
+          </button>
+          <button
+            type="button"
+            aria-pressed={activeFace === 1}
+            onClick={() => setActiveFace(1)}
+            className={faceButtonClass(activeFace === 1)}
+          >
+            Cara B
+          </button>
+          <span className="self-center text-[10px] text-[color:var(--wb-dim)]">
+            La exportación descarga una cara a la vez.
+          </span>
+        </div>
+      ) : null}
+      <div className="border-t border-[color:var(--wb-line)] pt-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-[color:var(--wb-ink)]">Acabado digital</h3>
+          <span className="text-[10px] text-[color:var(--wb-dim)]">18 acabados</span>
+        </div>
+        <label
+          htmlFor="tcg-finish"
+          className="mt-2 block text-xs font-medium text-[color:var(--wb-muted)]"
+        >
+          Acabado
+        </label>
+        <select
+          id="tcg-finish"
+          value={finishId}
+          onChange={(event) => setFinishId(event.currentTarget.value as TcgFinish['id'])}
+          className="w-full rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-3 py-2 text-sm text-[color:var(--wb-ink)]"
+        >
+          {TCG_FINISHES.map((finish) => (
+            <option key={finish.id} value={finish.id}>
+              {finish.name} — {finish.id}
+            </option>
+          ))}
+        </select>
+        <p className="mt-2 text-xs leading-relaxed text-[color:var(--wb-muted)]">
+          {selectedFinish.summary}
+        </p>
+        {selectedFinish.caution ? (
+          <p className="mt-1 text-[10px] leading-relaxed text-[color:var(--wb-dim)]">
+            {selectedFinish.caution}
+          </p>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function TcgArtworkControls({
+  model,
+}: {
+  model: Pick<
+    TcgComponentStudioViewModel,
+    | 'selectedArtCount'
+    | 'requiredArtworkCount'
+    | 'artworkChoices'
+    | 'getArtworkSlotLabel'
+    | 'updateArtworkChoice'
+    | 'images'
+    | 'handleArtworkUpload'
+    | 'cardFields'
+    | 'updateCardField'
+    | 'layoutId'
+  >;
+}) {
+  const {
+    selectedArtCount,
+    requiredArtworkCount,
+    artworkChoices,
+    getArtworkSlotLabel,
+    updateArtworkChoice,
+    images,
+    handleArtworkUpload,
+    cardFields,
+    updateCardField,
+    layoutId,
+  } = model;
+
+  return (
+    <section
+      aria-labelledby="tcg-artwork-heading"
+      className="space-y-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-4"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id="tcg-artwork-heading" className="text-sm font-semibold text-[color:var(--wb-ink)]">
+          Archivos de arte
+        </h3>
+        <span className="text-[10px] text-[color:var(--wb-dim)]">
+          {selectedArtCount}/{requiredArtworkCount} listos
+        </span>
+      </div>
+      <p className="text-[11px] leading-relaxed text-[color:var(--wb-muted)]">
+        Elige una imagen generada o carga un archivo local. Los layouts de varias piezas requieren
+        arte separado para cada panel o cara; no se infiere continuidad entre archivos.
+      </p>
+      {Array.from({ length: requiredArtworkCount }, (_, index) => {
+        const choice = artworkChoices[index];
+        const sourceSelectValue =
+          choice?.kind === 'generated'
+            ? choice.imageId
+            : choice?.kind === 'upload'
+              ? '__uploaded__'
+              : '';
+        const slotId = `tcg-art-${index + 1}`;
+        return (
+          <fieldset
+            key={slotId}
+            className="space-y-2 rounded border border-[color:var(--wb-line)] p-3"
+          >
+            <legend className="px-1 text-xs font-semibold text-[color:var(--wb-ink)]">
+              {getArtworkSlotLabel(index)}
+            </legend>
+            <label
+              htmlFor={`${slotId}-generated`}
+              className="block text-[11px] font-medium text-[color:var(--wb-muted)]"
+            >
+              Imagen generada
+            </label>
+            <select
+              id={`${slotId}-generated`}
+              value={sourceSelectValue}
+              onChange={(event) => {
+                const value = event.currentTarget.value;
+                if (value === '__uploaded__') return;
+                updateArtworkChoice(index, value ? { kind: 'generated', imageId: value } : null);
+              }}
+              className="w-full rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-2 py-2 text-xs text-[color:var(--wb-ink)]"
+            >
+              <option value="">Sin seleccionar</option>
+              {choice?.kind === 'upload' ? (
+                <option value="__uploaded__">Archivo local: {choice.fileName}</option>
+              ) : null}
+              {images.map((image, imageIndex) => (
+                <option key={`${image.id}-${imageIndex}`} value={image.id}>
+                  {getGeneratedImageLabel(image, imageIndex)}
+                </option>
+              ))}
+            </select>
+            <label
+              htmlFor={`${slotId}-file`}
+              className="block text-[11px] font-medium text-[color:var(--wb-muted)]"
+            >
+              o cargar imagen
+            </label>
+            <input
+              id={`${slotId}-file`}
+              type="file"
+              accept="image/*"
+              onChange={(event) => {
+                void handleArtworkUpload(index, event);
+              }}
+              className="block w-full text-xs text-[color:var(--wb-muted)] file:mr-2 file:rounded file:border file:border-[color:var(--wb-line)] file:bg-[color:var(--wb-bg)] file:px-2 file:py-1 file:text-xs file:text-[color:var(--wb-ink)]"
+            />
+            {choice?.kind === 'upload' ? (
+              <p className="text-[10px] text-[color:var(--wb-dim)]">
+                Archivo local: {choice.fileName}
+              </p>
+            ) : null}
+            <details className="pt-1">
+              <summary className="cursor-pointer text-[11px] font-medium text-[color:var(--wb-muted)]">
+                Editar datos de esta carta
+              </summary>
+              <div className="mt-2 space-y-2">
+                <label
+                  htmlFor={`${slotId}-name`}
+                  className="block text-[10px] font-medium text-[color:var(--wb-muted)]"
+                >
+                  Nombre
+                </label>
+                <input
+                  id={`${slotId}-name`}
+                  value={cardFields[index]?.name ?? ''}
+                  maxLength={90}
+                  onChange={(event) => updateCardField(index, 'name', event.currentTarget.value)}
+                  className="w-full rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-2 py-1.5 text-xs text-[color:var(--wb-ink)]"
+                />
+                <label
+                  htmlFor={`${slotId}-type`}
+                  className="block text-[10px] font-medium text-[color:var(--wb-muted)]"
+                >
+                  Tipo / grupo
+                </label>
+                <input
+                  id={`${slotId}-type`}
+                  value={cardFields[index]?.type ?? ''}
+                  maxLength={90}
+                  onChange={(event) => updateCardField(index, 'type', event.currentTarget.value)}
+                  className="w-full rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-2 py-1.5 text-xs text-[color:var(--wb-ink)]"
+                />
+                <label
+                  htmlFor={`${slotId}-rules`}
+                  className="block text-[10px] font-medium text-[color:var(--wb-muted)]"
+                >
+                  Reglas o texto de carta
+                </label>
+                <textarea
+                  id={`${slotId}-rules`}
+                  value={cardFields[index]?.rules ?? ''}
+                  maxLength={600}
+                  rows={3}
+                  onChange={(event) => updateCardField(index, 'rules', event.currentTarget.value)}
+                  className="w-full resize-y rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-2 py-1.5 text-xs text-[color:var(--wb-ink)]"
+                />
+              </div>
+            </details>
+          </fieldset>
+        );
+      })}
+      {layoutId === 'TCG-L012' ? (
+        <p className="text-[10px] text-[color:var(--wb-dim)]">
+          Art Plate muestra solo la ilustración; los datos editados no se dibujan en ese layout.
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function TcgMaskInputs({
+  model,
+}: {
+  model: Pick<
+    TcgComponentStudioViewModel,
+    'requiredMaskKeys' | 'layoutId' | 'handleMaskUpload' | 'maskAssets' | 'fileError'
+  >;
+}): React.ReactElement {
+  const { requiredMaskKeys, layoutId, handleMaskUpload, maskAssets, fileError } = model;
+
+  return (
+    <section
+      aria-labelledby="tcg-masks-heading"
+      className="space-y-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-4"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id="tcg-masks-heading" className="text-sm font-semibold text-[color:var(--wb-ink)]">
+          Máscaras requeridas
+        </h3>
+        <span className="text-[10px] text-[color:var(--wb-dim)]">
+          {requiredMaskKeys.length} PNG
+        </span>
+      </div>
+      <p className="text-[11px] leading-relaxed text-[color:var(--wb-muted)]">
+        Carga un PNG real por cada capa que pide el acabado. Blanco aplica la máscara y negro la
+        excluye; los tonos grises modulan el efecto. Se ajusta al lienzo completo. No se generan
+        máscaras automáticamente.
+      </p>
+      {layoutId === 'TCG-L005' ? (
+        <p className="rounded border border-amber-700/30 bg-amber-50 px-2 py-1.5 text-[10px] leading-relaxed text-amber-950">
+          Frame Break requiere subjectMask y occlusionMask explícitas. Blanco en subjectMask recorta
+          la zona del sujeto que cruza el marco; blanco en occlusionMask retira esa zona del sujeto
+          superpuesto.
+        </p>
+      ) : null}
+      <div className="grid gap-2 sm:grid-cols-2">
+        {requiredMaskKeys.map((key) => {
+          const id = `tcg-mask-${key}`;
+          return (
+            <div key={key} className="space-y-1 rounded border border-[color:var(--wb-line)] p-2">
+              <label
+                htmlFor={id}
+                className="block text-[11px] font-medium text-[color:var(--wb-ink)]"
+              >
+                {key} · PNG obligatorio
+              </label>
+              <input
+                id={id}
+                type="file"
+                accept="image/png,.png"
+                onChange={(event) => {
+                  void handleMaskUpload(key, event);
+                }}
+                className="block w-full text-[10px] text-[color:var(--wb-muted)] file:mr-1 file:rounded file:border file:border-[color:var(--wb-line)] file:bg-[color:var(--wb-bg)] file:px-1.5 file:py-1 file:text-[10px] file:text-[color:var(--wb-ink)]"
+              />
+              {maskAssets[key] ? (
+                <p className="text-[10px] text-emerald-800">Cargada: {maskAssets[key].fileName}</p>
+              ) : (
+                <p className="text-[10px] text-[color:var(--wb-dim)]">Sin máscara.</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {fileError ? (
+        <p role="alert" className="text-xs text-red-700">
+          {fileError}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function TcgCompositionPreview({
+  model,
+}: {
+  model: React.ComponentProps<typeof TcgComponentStudioView>['model'];
+}) {
+  const {
+    layoutId,
+    activeFace,
+    exportPng,
+    canExport,
+    selectedReasons,
+    canvasRef,
+    rendering,
+    renderError,
+  } = model;
+  return (
+    <section
+      aria-labelledby="tcg-preview-heading"
+      className="space-y-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-4"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id="tcg-preview-heading" className="text-sm font-semibold text-[color:var(--wb-ink)]">
+          Vista compuesta
+        </h3>
+        <button
+          type="button"
+          onClick={exportPng}
+          disabled={!canExport}
+          title={canExport ? 'Exportar la composición actual como PNG' : selectedReasons.join(' ')}
+          className="rounded border border-[color:var(--wb-ink)] px-3 py-2 text-xs font-semibold text-[color:var(--wb-ink)] disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          Exportar PNG
+        </button>
+      </div>
+      <p className="text-[11px] leading-relaxed text-[color:var(--wb-muted)]">
+        {layoutId === 'TCG-L007'
+          ? 'El archivo muestra dos cartas contiguas en un lienzo compartido.'
+          : layoutId === 'TCG-L008'
+            ? 'El archivo contiene la grilla completa con los cuatro paneles.'
+            : layoutId === 'TCG-L009'
+              ? `Previsualizando y exportando Cara ${activeFace === 0 ? 'A' : 'B'}.`
+              : 'La vista representa una composición digital del layout y el acabado seleccionados.'}
+      </p>
+      <div className="flex min-h-64 items-center justify-center overflow-auto rounded border border-[color:var(--wb-line)] bg-[#20252b] p-3">
+        <canvas
+          ref={canvasRef}
+          aria-label="Vista previa de la composición de carta"
+          className="block h-auto max-h-[72vh] max-w-full rounded shadow-lg"
+        />
+      </div>
+      {rendering ? (
+        <p role="status" className="text-xs text-[color:var(--wb-muted)]">
+          Actualizando vista…
+        </p>
+      ) : null}
+      {renderError ? (
+        <p role="alert" className="text-xs text-red-700">
+          {renderError}
+        </p>
+      ) : null}
+      {!renderError && !canExport ? (
+        <div
+          role="status"
+          className="space-y-1 rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] p-3"
+        >
+          <p className="text-xs font-medium text-[color:var(--wb-ink)]">
+            Completa los recursos para habilitar la exportación.
+          </p>
+          <ul className="list-inside list-disc space-y-0.5 text-[10px] text-[color:var(--wb-muted)]">
+            {selectedReasons.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      <p className="text-[10px] leading-relaxed text-[color:var(--wb-dim)]">
+        Archivo de composición para revisión en pantalla. No certifica medidas, capas, respuesta UV,
+        troquel ni compatibilidad con una imprenta.
+      </p>
+    </section>
+  );
 }

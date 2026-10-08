@@ -25,7 +25,7 @@ import {
 } from 'iconoir-react';
 import type { GeneratedImageWithConfig, ImageGenerationConfig } from '../types';
 import ActionButton from './ui/ActionButton';
-import { RecipeWorkbenchContext } from './recipes/RecipeWorkbenchContext';
+import { RecipeWorkbenchContext } from './recipes/recipeWorkbenchContextState';
 import { CarouselImageDetails } from './CarouselImageDetails';
 import { copyImageToClipboard, downloadImage, generateSmartFilename } from '../utils/fileUtils';
 import {
@@ -327,19 +327,27 @@ function CarouselFilmstrip({
   );
 }
 
-const ImageCarousel: React.FC<ImageCarouselProps> = ({
-  activeImage,
-  allImages,
-  activeGenerationConfig,
-  onClose,
-  onDelete,
-  onRegenerate,
-  onAddToContext,
-  onLoadConfig,
-  onToggleFavorite,
-  onActiveImageChange,
-  transitionName,
-}) => {
+const ImageCarousel: React.FC<ImageCarouselProps> = (props) => {
+  const model = useImageCarousel(props);
+  return <ImageCarouselView model={model} />;
+};
+
+export default ImageCarousel;
+
+function useImageCarousel(props: ImageCarouselProps) {
+  const {
+    activeImage,
+    allImages,
+    activeGenerationConfig,
+    onClose,
+    onDelete,
+    onRegenerate,
+    onAddToContext,
+    onLoadConfig,
+    onToggleFavorite,
+    onActiveImageChange,
+    transitionName,
+  } = props;
   const { addToast } = useToastUi();
   const openConversion = useImageConversion();
   const [controlsTarget, setControlsTarget] = useState<HTMLDivElement | null>(null);
@@ -385,23 +393,24 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
   }, []);
   const isProcessingDownloadRef = useRef(false);
 
-  const containerRef = useDialogFocus(Boolean(activeImage), () => {
+  const containerRef = useDialogFocus<HTMLDialogElement>(Boolean(activeImage), () => {
     if (document.fullscreenElement)
       void document.exitFullscreen().catch(() => addToast('Could not exit fullscreen.', 'error'));
     else onClose();
   });
   const navScrollRef = useRef<HTMLDivElement>(null);
+  const fullscreenRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const syncFullscreen = () => {
-      const fullscreen = document.fullscreenElement === containerRef.current;
+      const fullscreen = document.fullscreenElement === fullscreenRef.current;
       setCarouselState((current) =>
         current.isFullscreen === fullscreen ? current : { ...current, isFullscreen: fullscreen },
       );
     };
     document.addEventListener('fullscreenchange', syncFullscreen);
     return () => document.removeEventListener('fullscreenchange', syncFullscreen);
-  }, [containerRef]);
+  }, []);
 
   useEffect(() => {
     if (allImages.length === 0 && !history?.isLoading && !history?.error) {
@@ -464,8 +473,8 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
       if (
         e.defaultPrevented ||
         containerRef.current?.closest('[inert]') ||
-        (target?.closest('[role="dialog"]') &&
-          target.closest('[role="dialog"]') !== containerRef.current) ||
+        (target?.closest('dialog, [role="dialog"]') &&
+          target.closest('dialog, [role="dialog"]') !== containerRef.current) ||
         target?.closest('input, textarea, select, [contenteditable="true"]')
       )
         return;
@@ -474,7 +483,6 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
         if (e.key === 'ArrowRight') handleNextRef.current();
         else handlePrevRef.current();
       }
-      if (e.key === 'Escape' && !document.fullscreenElement) onCloseRef.current();
       if (e.code === 'Space' && !e.repeat && !target?.closest('button'))
         setCarouselState((prev) => ({ ...prev, isComparing: true }));
     };
@@ -571,11 +579,74 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
   // Saved sources may carry only a local path. Compare needs an image the browser can show.
   const hasReference = Boolean(currentImage?.config.attachments?.[0]?.dataUrl);
 
+  return {
+    currentImage,
+    containerRef,
+    fullscreenRef,
+    addToast,
+    presentation,
+    detailsOpen,
+    setControlsTarget,
+    handleDownloadClick,
+    openConversion,
+    onToggleFavorite,
+    onAddToContext,
+    activeIndex,
+    displayedIndex,
+    history,
+    allImages,
+    isFullscreen,
+    setCarouselState,
+    onClose,
+    handlePrev,
+    handleNext,
+    controlsTarget,
+    transitionName,
+    isComparing,
+    navScrollRef,
+    thumbnailWindow,
+    handleJumpTo,
+    hasReference,
+    onLoadConfig,
+    onRegenerate,
+    onDelete,
+    handleCopyPrompt,
+    copiedPrompt,
+  };
+}
+type ImageCarouselModel = ReturnType<typeof useImageCarousel>;
+function ImageCarouselView({ model }: { model: ImageCarouselModel }) {
+  const {
+    currentImage,
+    containerRef,
+    fullscreenRef,
+    addToast,
+    presentation,
+    detailsOpen,
+    setControlsTarget,
+    activeIndex,
+    displayedIndex,
+    history,
+    allImages,
+    isFullscreen,
+    setCarouselState,
+    onClose,
+    handlePrev,
+    handleNext,
+    controlsTarget,
+    transitionName,
+    isComparing,
+    navScrollRef,
+    thumbnailWindow,
+    handleJumpTo,
+    handleCopyPrompt,
+    copiedPrompt,
+  } = model;
   if (!currentImage) return null;
 
   const handleToggleFullscreen = async () => {
     try {
-      if (!document.fullscreenElement) await containerRef.current?.requestFullscreen();
+      if (!document.fullscreenElement) await fullscreenRef.current?.requestFullscreen();
       else await document.exitFullscreen();
     } catch {
       addToast('Could not change fullscreen mode.', 'error');
@@ -583,206 +654,243 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
   };
 
   return (
-    <div
+    <dialog
       ref={containerRef}
-      role="dialog"
       aria-modal="true"
       aria-label="Image viewer"
       tabIndex={-1}
-      className="carousel-viewer fixed inset-0 z-100 flex flex-col studio-scrim overflow-hidden"
-      data-image-transition={Boolean(presentation.previousSrc)}
-      data-details-open={detailsOpen}
+      className="studio-modal"
       aria-busy={presentation.pending}
       style={{ viewTransitionName: 'modal-backdrop' }}
     >
-      <CarouselTopBar
-        setControlsTarget={setControlsTarget}
-        actions={
-          <>
-            <ActionButton
-              icon={<Copy width={16} height={16} />}
-              label="Copy image"
-              onClick={() => {
-                void copyImageToClipboard(currentImage.sourceUrl ?? currentImage.src).then(
-                  () => addToast('Image copied', 'success'),
-                  () => addToast('Could not copy image', 'error'),
-                );
-              }}
-            />
-            <ActionButton
-              icon={<Download width={16} height={16} />}
-              label="Download image"
-              onClick={handleDownloadClick}
-            />
-            {openConversion && (
-              <ActionButton
-                icon={<Photo width={16} height={16} />}
-                label="Convert or compress image"
-                onClick={() => openConversion([currentImage])}
-              />
-            )}
-            <ActionButton
-              icon={<Heart width={16} height={16} />}
-              label={currentImage.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-              isActive={currentImage.isFavorite}
-              onClick={() => onToggleFavorite(currentImage.id)}
-            />
-            <ActionButton
-              icon={<PlusCircle width={16} height={16} />}
-              label="Use as reference"
-              onClick={() => onAddToContext(currentImage)}
-            />
-          </>
-        }
-        activeIndex={Math.max(0, displayedIndex)}
-        total={history?.total ?? allImages.length}
-        loading={history?.isLoading ?? false}
-        error={Boolean(history?.error)}
-        onRetry={() => {
-          void history?.refresh().catch(() => undefined);
-        }}
-        isFullscreen={isFullscreen}
-        detailsOpen={detailsOpen}
-        onToggleDetails={() =>
-          setCarouselState((prev) => ({ ...prev, detailsOpen: !prev.detailsOpen }))
-        }
-        onClose={onClose}
-        onToggleFullscreen={handleToggleFullscreen}
-      />
-
-      <div className="carousel-body">
-        <div className="carousel-canvas-column">
-          <section
-            aria-label="Full image preview"
-            className="flex-1 min-h-0 relative overflow-hidden flex items-center justify-center"
-          >
-            {allImages.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handlePrev();
-                  }}
-                  aria-label="Previous image"
-                  className="studio-ghost-control absolute left-4 z-50 size-10 bg-[color:var(--wb-panel)] group cursor-pointer"
-                >
-                  <ChevronLeft
-                    width={40}
-                    height={40}
-                    className="group-hover:-translate-x-1 transition-transform"
-                  />
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleNext();
-                  }}
-                  aria-label="Next image"
-                  className="studio-ghost-control absolute right-4 z-50 size-10 bg-[color:var(--wb-panel)] group cursor-pointer"
-                >
-                  <ChevronRight
-                    width={40}
-                    height={40}
-                    className="group-hover:translate-x-1 transition-transform"
-                  />
-                </button>
-              </>
-            )}
-            <CarouselImageItem
-              controlsTarget={controlsTarget}
-              src={presentation.src!}
-              previousSrc={presentation.previousSrc}
-              onTransitionEnd={presentation.finishTransition}
-              transitionName={transitionName}
-              failed={presentation.failed}
-              isComparing={presentation.value.isComparing}
-            />
-          </section>
-
-          <CarouselFilmstrip
-            navScrollRef={navScrollRef}
-            thumbnailWindow={thumbnailWindow}
-            activeIndex={activeIndex}
-            total={history?.total ?? allImages.length}
-            onJumpTo={handleJumpTo}
-          />
-        </div>
-        <CarouselImageDetails
-          hidden={!detailsOpen}
-          image={
-            presentation.width && !presentation.value.isComparing
-              ? { ...currentImage, width: presentation.width, height: presentation.height }
-              : currentImage
+      <div
+        ref={fullscreenRef}
+        className="carousel-viewer fixed inset-0 z-100 flex flex-col studio-scrim overflow-hidden"
+        data-image-transition={Boolean(presentation.previousSrc)}
+        data-details-open={detailsOpen}
+      >
+        <CarouselTopBar
+          setControlsTarget={setControlsTarget}
+          actions={<CarouselImageActions model={{ ...model, currentImage }} />}
+          activeIndex={Math.max(0, displayedIndex)}
+          total={history?.total ?? allImages.length}
+          loading={history?.isLoading ?? false}
+          error={Boolean(history?.error)}
+          onRetry={() => {
+            void history?.refresh().catch(() => undefined);
+          }}
+          isFullscreen={isFullscreen}
+          detailsOpen={detailsOpen}
+          onToggleDetails={() =>
+            setCarouselState((prev) => ({ ...prev, detailsOpen: !prev.detailsOpen }))
           }
-        >
-          <div className="carousel-detail-actions">
-            <button
-              type="button"
-              aria-label="Compare with original"
-              disabled={!hasReference}
-              aria-pressed={isComparing}
-              onKeyDown={(event) => {
-                if (event.key === ' ' || event.key === 'Enter') {
-                  event.preventDefault();
-                  setCarouselState((prev) => ({ ...prev, isComparing: true }));
-                }
-              }}
-              onKeyUp={(event) => {
-                if (event.key === ' ' || event.key === 'Enter')
-                  setCarouselState((prev) => ({ ...prev, isComparing: false }));
-              }}
-              onBlur={() => setCarouselState((prev) => ({ ...prev, isComparing: false }))}
-              onPointerDown={() => setCarouselState((prev) => ({ ...prev, isComparing: true }))}
-              onPointerUp={() => setCarouselState((prev) => ({ ...prev, isComparing: false }))}
-              onPointerLeave={() => setCarouselState((prev) => ({ ...prev, isComparing: false }))}
-              className={`studio-icon-action studio-ghost-control ${isComparing ? 'is-active' : ''}`}
-              data-tooltip="Hold to Compare with Original"
-            >
-              <SplitSquareHorizontal width={16} height={16} />
-            </button>
+          onClose={onClose}
+          onToggleFullscreen={handleToggleFullscreen}
+        />
 
-            <ActionButton
-              onClick={() => onLoadConfig(currentImage.config)}
-              icon={<History width={16} height={16} />}
-              label="Reuse settings"
-            />
-            <ActionButton
-              onClick={() => onRegenerate(currentImage.config)}
-              icon={<RefreshCw width={16} height={16} />}
-              label="Generate variation"
-              variant="primary"
-            />
-            <ActionButton
-              onClick={() => onDelete(currentImage.id)}
-              icon={<Trash2 width={16} height={16} />}
-              label="Move to trash"
-              variant="danger"
+        <div className="carousel-body">
+          <div className="carousel-canvas-column">
+            <section
+              aria-label="Full image preview"
+              className="flex-1 min-h-0 relative overflow-hidden flex items-center justify-center"
+            >
+              {allImages.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePrev();
+                    }}
+                    aria-label="Previous image"
+                    className="studio-ghost-control absolute left-4 z-50 size-10 bg-[color:var(--wb-panel)] group cursor-pointer"
+                  >
+                    <ChevronLeft
+                      width={40}
+                      height={40}
+                      className="group-hover:-translate-x-1 transition-transform"
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNext();
+                    }}
+                    aria-label="Next image"
+                    className="studio-ghost-control absolute right-4 z-50 size-10 bg-[color:var(--wb-panel)] group cursor-pointer"
+                  >
+                    <ChevronRight
+                      width={40}
+                      height={40}
+                      className="group-hover:translate-x-1 transition-transform"
+                    />
+                  </button>
+                </>
+              )}
+              <CarouselImageItem
+                controlsTarget={controlsTarget}
+                src={presentation.src!}
+                previousSrc={presentation.previousSrc}
+                onTransitionEnd={presentation.finishTransition}
+                transitionName={transitionName}
+                failed={presentation.failed}
+                isComparing={presentation.value.isComparing}
+              />
+            </section>
+
+            <CarouselFilmstrip
+              navScrollRef={navScrollRef}
+              thumbnailWindow={thumbnailWindow}
+              activeIndex={activeIndex}
+              total={history?.total ?? allImages.length}
+              onJumpTo={handleJumpTo}
             />
           </div>
-        </CarouselImageDetails>
+          <CarouselImageDetails
+            hidden={!detailsOpen}
+            image={
+              presentation.width && !presentation.value.isComparing
+                ? { ...currentImage, width: presentation.width, height: presentation.height }
+                : currentImage
+            }
+          >
+            <CarouselDetailActions model={{ ...model, currentImage }} />
+          </CarouselImageDetails>
+        </div>
+        <footer className="carousel-prompt-bar" aria-label="Image prompt">
+          <span className="text-xs text-[var(--wb-muted)]">Prompt</span>
+          <p key={currentImage.config.prompt} className="image-metadata-enter">
+            {currentImage.config.prompt || 'No prompt saved.'}
+          </p>
+          <ActionButton
+            onClick={handleCopyPrompt}
+            icon={
+              copiedPrompt ? (
+                <Check width={16} height={16} />
+              ) : (
+                <ClipboardList width={16} height={16} />
+              )
+            }
+            label="Copy prompt"
+            disabled={!currentImage.config.prompt}
+          />
+        </footer>
       </div>
-      <footer className="carousel-prompt-bar" aria-label="Image prompt">
-        <span className="text-xs text-[var(--wb-muted)]">Prompt</span>
-        <p key={currentImage.config.prompt} className="image-metadata-enter">
-          {currentImage.config.prompt || 'No prompt saved.'}
-        </p>
+    </dialog>
+  );
+}
+
+function CarouselImageActions({
+  model,
+}: {
+  model: ImageCarouselModel & { currentImage: GeneratedImageWithConfig };
+}) {
+  const {
+    currentImage,
+    addToast,
+    handleDownloadClick,
+    openConversion,
+    onToggleFavorite,
+    onAddToContext,
+  } = model;
+  return (
+    <>
+      <ActionButton
+        icon={<Copy width={16} height={16} />}
+        label="Copy image"
+        onClick={() => {
+          void copyImageToClipboard(currentImage.sourceUrl ?? currentImage.src).then(
+            () => addToast('Image copied', 'success'),
+            () => addToast('Could not copy image', 'error'),
+          );
+        }}
+      />
+      <ActionButton
+        icon={<Download width={16} height={16} />}
+        label="Download image"
+        onClick={handleDownloadClick}
+      />
+      {openConversion && (
         <ActionButton
-          onClick={handleCopyPrompt}
-          icon={
-            copiedPrompt ? (
-              <Check width={16} height={16} />
-            ) : (
-              <ClipboardList width={16} height={16} />
-            )
-          }
-          label="Copy prompt"
-          disabled={!currentImage.config.prompt}
+          icon={<Photo width={16} height={16} />}
+          label="Convert or compress image"
+          onClick={() => openConversion([currentImage])}
         />
-      </footer>
+      )}
+      <ActionButton
+        icon={<Heart width={16} height={16} />}
+        label={currentImage.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+        isActive={currentImage.isFavorite}
+        onClick={() => onToggleFavorite(currentImage.id)}
+      />
+      <ActionButton
+        icon={<PlusCircle width={16} height={16} />}
+        label="Use as reference"
+        onClick={() => onAddToContext(currentImage)}
+      />
+    </>
+  );
+}
+
+function CarouselDetailActions({
+  model,
+}: {
+  model: ImageCarouselModel & { currentImage: GeneratedImageWithConfig };
+}) {
+  const {
+    hasReference,
+    isComparing,
+    setCarouselState,
+    onLoadConfig,
+    currentImage,
+    onRegenerate,
+    onDelete,
+  } = model;
+  return (
+    <div className="carousel-detail-actions">
+      <button
+        type="button"
+        aria-label="Compare with original"
+        disabled={!hasReference}
+        aria-pressed={isComparing}
+        onKeyDown={(event) => {
+          if (event.key === ' ' || event.key === 'Enter') {
+            event.preventDefault();
+            setCarouselState((prev) => ({ ...prev, isComparing: true }));
+          }
+        }}
+        onKeyUp={(event) => {
+          if (event.key === ' ' || event.key === 'Enter')
+            setCarouselState((prev) => ({ ...prev, isComparing: false }));
+        }}
+        onBlur={() => setCarouselState((prev) => ({ ...prev, isComparing: false }))}
+        onPointerDown={() => setCarouselState((prev) => ({ ...prev, isComparing: true }))}
+        onPointerUp={() => setCarouselState((prev) => ({ ...prev, isComparing: false }))}
+        onPointerLeave={() => setCarouselState((prev) => ({ ...prev, isComparing: false }))}
+        className={`studio-icon-action studio-ghost-control ${isComparing ? 'is-active' : ''}`}
+        data-tooltip="Hold to Compare with Original"
+      >
+        <SplitSquareHorizontal width={16} height={16} />
+      </button>
+
+      <ActionButton
+        onClick={() => onLoadConfig(currentImage.config)}
+        icon={<History width={16} height={16} />}
+        label="Reuse settings"
+      />
+      <ActionButton
+        onClick={() => onRegenerate(currentImage.config)}
+        icon={<RefreshCw width={16} height={16} />}
+        label="Generate variation"
+        variant="primary"
+      />
+      <ActionButton
+        onClick={() => onDelete(currentImage.id)}
+        icon={<Trash2 width={16} height={16} />}
+        label="Move to trash"
+        variant="danger"
+      />
     </div>
   );
-};
-
-export default ImageCarousel;
+}

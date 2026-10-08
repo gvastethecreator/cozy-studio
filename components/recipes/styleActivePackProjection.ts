@@ -75,8 +75,9 @@ export function projectActiveStylePack(input: ActiveStylePackInput): StyleRuntim
       const pack = loadedStylePacksById[packId];
       return pack ? [pack] : [];
     });
+    const runtimePackIdSet = new Set(runtimePackIds);
     const missingSourcePack = activeStyleCollection.sourcePackIds.some(
-      (packId) => runtimePackIds.includes(packId) && !loadedStylePacksById[packId],
+      (packId) => runtimePackIdSet.has(packId) && !loadedStylePacksById[packId],
     );
     if (missingSourcePack) {
       return {

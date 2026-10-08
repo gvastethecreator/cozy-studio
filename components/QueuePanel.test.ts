@@ -314,11 +314,15 @@ describe('QueuePanel views', () => {
     fireEvent.click(screen.getByText('Recent images · current workspace'));
     fireEvent.click(screen.getByRole('button', { name: 'First result' }));
     const viewer = screen.getByRole('dialog', { name: 'Recent result viewer' });
-    expect(viewer.contains(document.activeElement)).toBe(true);
+    expect(viewer).toBeInstanceOf(HTMLDialogElement);
+    expect(viewer).toHaveProperty('open', true);
+    // jsdom implements neither modal focus nor Escape's default cancel action.
+    viewer.focus();
     fireEvent.keyDown(viewer, { key: 'ArrowRight' });
     expect(screen.getByText('2 / 2')).toBeTruthy();
-    vi.spyOn(viewer, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
     fireEvent.keyDown(document, { key: 'Escape' });
+    expect(closePanel).not.toHaveBeenCalled();
+    fireEvent(viewer, new Event('cancel', { cancelable: true }));
     expect(screen.queryByRole('dialog', { name: 'Recent result viewer' })).toBeNull();
     expect(closePanel).not.toHaveBeenCalled();
     jobsPanel.focus();

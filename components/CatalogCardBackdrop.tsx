@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useEffectEvent, useId, useRef, useState, type ReactNode } from 'react';
 import { MoreHoriz } from 'iconoir-react';
 
 /** A compact caption and an upward disclosure, shared by image catalogs. */
@@ -18,18 +18,19 @@ export function CatalogCardBackdrop({
   const [expanded, setExpanded] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const id = useId();
+  const notifyClosed = useEffectEvent(() => onExpandedChange?.(false));
   useEffect(() => {
     if (!expanded) return;
     const closeOutside = (event: PointerEvent) => {
       const card = ref.current?.closest('.catalog-art-card');
       if (event.target instanceof Node && !card?.contains(event.target)) {
         setExpanded(false);
-        onExpandedChange?.(false);
+        notifyClosed();
       }
     };
     document.addEventListener('pointerdown', closeOutside);
     return () => document.removeEventListener('pointerdown', closeOutside);
-  }, [expanded, onExpandedChange]);
+  }, [expanded]);
   return (
     <div
       ref={ref}

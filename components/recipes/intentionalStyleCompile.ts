@@ -32,17 +32,19 @@ async function hashedReferences(
   mode: Intentional.Mode,
 ): Promise<Intentional.Reference[]> {
   if (mode === 'generate' || attachments.length === 0) return [];
-  const refs: Intentional.Reference[] = [];
-  for (const [index, attachment] of attachments.entries()) {
-    const material = attachment.dataUrl || attachment.id || `ref-${index + 1}`;
-    const id = attachment.id || `ref-${index + 1}`;
-    const contentHash = await Intentional.sha256(material);
-    refs.push({ id, role: 'subject', contentHash });
-    if (mode === 'preserve' && index === 0 && refs.length < 12) {
-      refs.push({ id: `${id}:composition`, role: 'composition', contentHash });
-    }
-  }
-  return refs;
+  const references = await Promise.all(
+    attachments.map(async (attachment, index) => {
+      const material = attachment.dataUrl || attachment.id || `ref-${index + 1}`;
+      const id = attachment.id || `ref-${index + 1}`;
+      const contentHash = await Intentional.sha256(material);
+      const refs: Intentional.Reference[] = [{ id, role: 'subject', contentHash }];
+      if (mode === 'preserve' && index === 0) {
+        refs.push({ id: `${id}:composition`, role: 'composition', contentHash });
+      }
+      return refs;
+    }),
+  );
+  return references.flat();
 }
 
 export async function compileIntentionalStylePlan({
@@ -95,32 +97,33 @@ export async function compileIntentionalStylePlan({
     ]);
   }
 
-  const layers: Intentional.Layer[] = [];
-  for (const [index, slot] of enabled.entries()) {
-    const registered = policies[index];
-    if (!registered) continue;
-    const layer = await Intentional.layerFromLegacySlot(
-      {
-        preset: {
-          id: slot.preset.id,
-          name: slot.preset.name,
-          displayName: slot.preset.displayName,
-          style: slot.preset.style,
+  const layers = await Promise.all(
+    enabled.map(async (slot, index) => {
+      const registered = policies[index];
+      // Missing policies are rejected above before starting any layer conversion.
+      if (!registered) throw new Error(`Missing style policy: ${slot.preset.id}`);
+      return Intentional.layerFromLegacySlot(
+        {
+          preset: {
+            id: slot.preset.id,
+            name: slot.preset.name,
+            displayName: slot.preset.displayName,
+            style: slot.preset.style,
+          },
+          packId: slot.packId,
+          packName: slot.packName,
+          strength: slot.strength,
+          enabled: slot.enabled,
+          fieldControls: slot.fieldControls,
+          avoidRulesMode: slot.avoidRulesMode,
         },
-        packId: slot.packId,
-        packName: slot.packName,
-        strength: slot.strength,
-        enabled: slot.enabled,
-        fieldControls: slot.fieldControls,
-        avoidRulesMode: slot.avoidRulesMode,
-      },
-      registered.policy,
-      registered.presetVersion,
-      `layer-${index + 1}`,
-      hasExplicitFieldControls(slot),
-    );
-    layers.push(layer);
-  }
+        registered.policy,
+        registered.presetVersion,
+        `layer-${index + 1}`,
+        hasExplicitFieldControls(slot),
+      );
+    }),
+  );
 
   const userPrompt = prompt.trim() || 'Create a balanced composition using the selected styles.';
   const compiled = await Intentional.compileStyleRequest({

@@ -18,6 +18,7 @@ import {
 import React, {
   useCallback,
   useEffect,
+  useEffectEvent,
   useId,
   useLayoutEffect,
   useMemo,
@@ -98,7 +99,7 @@ async function defaultLoadPreview(presetId: string, packId: string) {
   return getStyleThumbnail(presetId) ?? null;
 }
 
-export const CompactStyleSelector: React.FC<CompactStyleSelectorProps> = ({
+function useCompactStyleSelectorController({
   selectedStyles,
   maxSlots,
   favorites,
@@ -118,13 +119,13 @@ export const CompactStyleSelector: React.FC<CompactStyleSelectorProps> = ({
   onExploreStyles,
   catalogOpen = false,
   catalogExpanded = false,
-}) => {
+}: CompactStyleSelectorProps) {
   const instanceId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const popRef = useRef<HTMLDivElement>(null);
-  const weightRef = useRef<HTMLDivElement>(null);
+  const popRef = useRef<HTMLDialogElement>(null);
+  const weightRef = useRef<HTMLDialogElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const previewAnchorRef = useRef<HTMLElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -337,19 +338,21 @@ export const CompactStyleSelector: React.FC<CompactStyleSelectorProps> = ({
     positionPreview();
   }, [positionPopover, positionPreview, positionWeight, results.length, route, query, catalog]);
 
+  const positionOverlays = useEffectEvent(() => {
+    positionPopover();
+    positionWeight();
+    positionPreview();
+  });
+
   useEffect(() => {
-    const update = () => {
-      positionPopover();
-      positionWeight();
-      positionPreview();
-    };
+    const update = () => positionOverlays();
     window.addEventListener('resize', update);
     document.addEventListener('scroll', update, true);
     return () => {
       window.removeEventListener('resize', update);
       document.removeEventListener('scroll', update, true);
     };
-  }, [positionPopover, positionPreview, positionWeight]);
+  }, []);
 
   const showPreview = useCallback(
     async (result: StylePresetCatalogSearchResult, anchor: HTMLElement, pinned: boolean) => {
@@ -409,66 +412,69 @@ export const CompactStyleSelector: React.FC<CompactStyleSelectorProps> = ({
     }, 260);
   }, [closePreview, preview.pinned]);
 
-  useEffect(() => {
-    const onPointerDown = (event: PointerEvent) => {
-      keyboardRef.current = false;
-      const target = event.target as Node | null;
-      if (!target) return;
-      if (
-        [rootRef.current, popRef.current, weightRef.current, previewRef.current].some((node) =>
-          node?.contains(target),
-        )
-      ) {
-        return;
-      }
-      closeMenu(false);
-      closeWeight(false);
+  const handleDocumentPointer = useEffectEvent((event: PointerEvent) => {
+    keyboardRef.current = false;
+    const target = event.target as Node | null;
+    if (!target) return;
+    if (
+      [rootRef.current, popRef.current, weightRef.current, previewRef.current].some((node) =>
+        node?.contains(target),
+      )
+    ) {
+      return;
+    }
+    closeMenu(false);
+    closeWeight(false);
+    closePreview();
+  });
+  const handleDocumentKey = useEffectEvent((event: KeyboardEvent) => {
+    keyboardRef.current = true;
+    if (
+      event.altKey &&
+      event.key.toLowerCase() === 's' &&
+      rootRef.current?.getClientRects().length
+    ) {
+      if (document.querySelector('[data-style-browser-root]')) return;
+      event.preventDefault();
+      openMenu();
+      return;
+    }
+    if (event.key !== 'Escape') return;
+    if (preview.pinned && preview.result) {
+      event.preventDefault();
+      event.stopPropagation();
+      closePreview(true);
+      return;
+    }
+    if (weightId) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeWeight();
+      return;
+    }
+    if (menuOpen) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu();
+      return;
+    }
+    if (preview.result) {
+      event.preventDefault();
+      event.stopPropagation();
       closePreview();
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      keyboardRef.current = true;
-      if (
-        event.altKey &&
-        event.key.toLowerCase() === 's' &&
-        rootRef.current?.getClientRects().length
-      ) {
-        if (document.querySelector('[data-style-browser-root]')) return;
-        event.preventDefault();
-        openMenu();
-        return;
-      }
-      if (event.key !== 'Escape') return;
-      if (preview.pinned && preview.result) {
-        event.preventDefault();
-        event.stopPropagation();
-        closePreview(true);
-        return;
-      }
-      if (weightId) {
-        event.preventDefault();
-        event.stopPropagation();
-        closeWeight();
-        return;
-      }
-      if (menuOpen) {
-        event.preventDefault();
-        event.stopPropagation();
-        closeMenu();
-        return;
-      }
-      if (preview.result) {
-        event.preventDefault();
-        event.stopPropagation();
-        closePreview();
-      }
-    };
+    }
+  });
+
+  useEffect(() => {
+    const onPointerDown = (event: PointerEvent) => handleDocumentPointer(event);
+    const onKeyDown = (event: KeyboardEvent) => handleDocumentKey(event);
     document.addEventListener('pointerdown', onPointerDown, true);
     document.addEventListener('keydown', onKeyDown, true);
     return () => {
       document.removeEventListener('pointerdown', onPointerDown, true);
       document.removeEventListener('keydown', onKeyDown, true);
     };
-  }, [closeMenu, closePreview, closeWeight, menuOpen, openMenu, preview, weightId]);
+  }, []);
 
   useEffect(() => {
     if (menuOpen) searchRef.current?.focus({ preventScroll: true });
@@ -573,235 +579,35 @@ export const CompactStyleSelector: React.FC<CompactStyleSelectorProps> = ({
 
   const menu = menuHasOpened
     ? createPortal(
-        <div
-          {...portalProps}
-          ref={popRef}
-          id={popoverId}
-          className={`${portalProps.className} cs-popover`}
-          hidden={!menuOpen}
-          inert={!menuOpen}
-          data-keyboard={keyboardRef.current || undefined}
-          role="dialog"
-          aria-label="Add styles"
-          onKeyDown={(event) => {
-            const choices = [
-              ...(listRef.current?.querySelectorAll<HTMLButtonElement>('.cs-choice') ?? []),
-            ];
-            const index = choices.indexOf(document.activeElement as HTMLButtonElement);
-            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-              if (!choices.length) return;
-              event.preventDefault();
-              const next =
-                index < 0
-                  ? event.key === 'ArrowDown'
-                    ? 0
-                    : choices.length - 1
-                  : clamp(index + (event.key === 'ArrowDown' ? 1 : -1), 0, choices.length - 1);
-              choices[next]?.focus({ preventScroll: true });
-              choices[next]?.scrollIntoView({ block: 'nearest' });
-              return;
-            }
-            if ((event.key === 'Home' || event.key === 'End') && index >= 0) {
-              event.preventDefault();
-              choices[event.key === 'Home' ? 0 : choices.length - 1]?.focus({
-                preventScroll: true,
-              });
-              return;
-            }
-            if (
-              event.key === 'ArrowLeft' &&
-              index >= 0 &&
-              (query.trim() || route.view !== 'packs')
-            ) {
-              event.preventDefault();
-              goBack();
-              return;
-            }
-            if (event.key === 'ArrowRight' && index >= 0 && route.view === 'packs') {
-              event.preventDefault();
-              choices[index]?.click();
-            }
+        <CompactCatalogMenu
+          model={{
+            portalProps: portalProps,
+            popRef: popRef,
+            popoverId: popoverId,
+            menuOpen: menuOpen,
+            keyboardRef: keyboardRef,
+            listRef: listRef,
+            query: query,
+            route: route,
+            goBack: goBack,
+            searchRef: searchRef,
+            setQuery: setQuery,
+            closePreview: closePreview,
+            showBack: showBack,
+            title: title,
+            browseLabel: browseLabel,
+            navigate: navigate,
+            catalog: catalog,
+            packs: packs,
+            categoryGroups: categoryGroups,
+            thumbRevision: thumbRevision,
+            renderStyleChoice: renderStyleChoice,
+            results: results,
+            selectedCount: selectedCount,
+            maxSlots: maxSlots,
+            closeMenu: closeMenu,
           }}
-        >
-          <div className="cs-search">
-            <Search width={15} height={15} aria-hidden="true" />
-            <input
-              ref={searchRef}
-              type="search"
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="Search styles…"
-              aria-label="Search all styles"
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                closePreview();
-                if (listRef.current) listRef.current.scrollTop = 0;
-              }}
-              onKeyDown={(event) => {
-                if (event.key !== 'Enter') return;
-                event.preventDefault();
-                listRef.current?.querySelector<HTMLButtonElement>('.cs-choice')?.click();
-              }}
-            />
-            {query ? (
-              <button
-                type="button"
-                className="cs-search-clear"
-                aria-label="Clear search"
-                onClick={() => {
-                  setQuery('');
-                  searchRef.current?.focus();
-                }}
-              >
-                <X width={12} height={12} />
-              </button>
-            ) : null}
-          </div>
-          <div className="cs-breadcrumb">
-            {showBack ? (
-              <button type="button" className="cs-back" aria-label="Go back" onClick={goBack}>
-                <ChevronLeft width={13} height={13} />
-              </button>
-            ) : null}
-            <strong data-tooltip={title}>{title}</strong>
-            {browseLabel ? (
-              <button
-                type="button"
-                className="cs-browse"
-                onClick={() => navigate({ view: route.view === 'all' ? 'packs' : 'all' })}
-              >
-                {browseLabel}
-                <ChevronRight width={12} height={12} />
-              </button>
-            ) : null}
-          </div>
-          <div
-            ref={listRef}
-            className={`cs-menu-list${route.view === 'categories' && !query.trim() ? ' is-pack' : ''}`}
-            aria-label="Style catalog"
-          >
-            {catalog.status === 'loading' ? (
-              <div className="cs-empty-result">
-                <strong>Loading styles</strong>
-                <p>The catalog stays in this menu so the prompt keeps its space.</p>
-              </div>
-            ) : catalog.status === 'error' ? (
-              <div className="cs-empty-result">
-                <strong>Could not load styles</strong>
-                <p>Open the menu again to retry, or browse the full catalog.</p>
-              </div>
-            ) : !query.trim() && route.view === 'packs' && packs.length === 0 ? (
-              <NoStylePacksNotice compact />
-            ) : !query.trim() && route.view === 'packs' ? (
-              packs.map((pack) => (
-                <div key={pack.id} className="cs-option-wrap">
-                  <button
-                    type="button"
-                    className="cs-choice"
-                    aria-label={`${pack.name}, ${pack.presetCount} ${pack.presetCount === 1 ? 'style' : 'styles'}`}
-                    onClick={() => navigate({ view: 'categories', packId: pack.id })}
-                  >
-                    <Folder width={13} height={13} />
-                    <span className="cs-option-text">{pack.name}</span>
-                    <span className="cs-dir-count">{pack.presetCount}</span>
-                    <ChevronRight width={13} height={13} />
-                  </button>
-                </div>
-              ))
-            ) : !query.trim() && route.view === 'categories' ? (
-              categoryGroups.length === 0 ? (
-                <div className="cs-empty-result">
-                  <strong>No styles found</strong>
-                  <p>Try another pack or search by name.</p>
-                </div>
-              ) : (
-                categoryGroups
-                  .map((group) => ({
-                    ...group,
-                    presets: group.presets,
-                  }))
-                  .filter((group) => group.presets.length)
-                  .map((group) => {
-                    const identity = resolveStyleCategoryIdentity(group.packId, group.name);
-                    const thumb =
-                      getStyleCategoryImage(styleCategoryImageKey(group.packId, group.name)) ??
-                      getStyleThumbnail(styleCategoryImageKey(group.packId, group.name));
-                    void thumbRevision;
-                    return (
-                      <div key={`${group.packId}:${group.id}`} className="cs-category-block">
-                        <div className="cs-category-head" data-category-header={group.id}>
-                          <span className={`cs-category-accent ${identity.accentClassName}`} />
-                          <span className="cs-category-thumb">
-                            {thumb ? (
-                              <img src={thumb} alt="" />
-                            ) : (
-                              <StyleCategoryGlyph iconId={identity.iconId} size={14} />
-                            )}
-                          </span>
-                          <span className={`cs-category-icon ${identity.titleClassName}`}>
-                            <StyleCategoryGlyph iconId={identity.iconId} size={12} />
-                          </span>
-                          <strong className={identity.titleClassName}>{group.name}</strong>
-                          <span className="cs-dir-count">{group.presets.length}</span>
-                        </div>
-                        {group.presets.map((result) => renderStyleChoice(result))}
-                      </div>
-                    );
-                  })
-              )
-            ) : results.length === 0 ? (
-              <div className="cs-empty-result">
-                <strong>
-                  {route.view === 'favorites' && !query.trim()
-                    ? 'No favorites yet'
-                    : 'No styles found'}
-                </strong>
-                <p>
-                  {route.view === 'favorites' && !query.trim()
-                    ? 'Use the heart beside a style to save it.'
-                    : 'Try another name, pack or category.'}
-                </p>
-              </div>
-            ) : (
-              results.map((result, index) => {
-                const showGroup =
-                  Boolean(query.trim()) || route.view === 'all' || route.view === 'favorites';
-                const previous = results[index - 1];
-                const heading =
-                  showGroup && result.packName !== previous?.packName ? result.packName : null;
-                return (
-                  <React.Fragment key={result.id}>
-                    {heading ? <div className="cs-group-heading">{heading}</div> : null}
-                    {renderStyleChoice(result)}
-                  </React.Fragment>
-                );
-              })
-            )}
-          </div>
-          {selectedCount >= maxSlots ? (
-            <div className="cs-limit-note">
-              {maxSlots} styles selected. Remove one to add another.
-            </div>
-          ) : null}
-          <div className="cs-footer">
-            <button
-              type="button"
-              className="cs-favorites-view"
-              aria-pressed={route.view === 'favorites'}
-              onClick={() => navigate({ view: route.view === 'favorites' ? 'all' : 'favorites' })}
-            >
-              <Heart width={12} height={12} />
-              Favorites
-            </button>
-            <span className="cs-footer-status" aria-live="polite">
-              {selectedCount} / {maxSlots} selected
-            </span>
-            <button type="button" className="cs-done" onClick={() => closeMenu()}>
-              Done
-            </button>
-          </div>
-        </div>,
+        />,
         document.body,
       )
     : null;
@@ -814,82 +620,21 @@ export const CompactStyleSelector: React.FC<CompactStyleSelectorProps> = ({
   const weight = createPortal(
     <AnimatePresence>
       {weightSlot ? (
-        <div
-          {...portalProps}
-          ref={weightRef}
-          id={weightIdAttr}
-          className={`${portalProps.className} cs-weight`}
-          data-keyboard={keyboardRef.current || undefined}
-          role="dialog"
-          aria-label="Style intensity"
-        >
-          <div className="cs-weight-head">
-            <strong>Intensity</strong>
-            <button
-              type="button"
-              disabled={weightSlot.strength === DEFAULT_SELECTED_STYLE_STRENGTH}
-              onClick={() => onSetStrength(weightSlot.preset.id, DEFAULT_SELECTED_STYLE_STRENGTH)}
-            >
-              Reset
-            </button>
-          </div>
-          <p className="cs-weight-name">{weightName}</p>
-          <div className="cs-range-line">
-            <input
-              type="range"
-              min={10}
-              max={100}
-              step={1}
-              value={Math.round(weightSlot.strength * 100)}
-              aria-label={`Intensity for ${weightName}`}
-              onChange={(event) =>
-                onSetStrength(weightSlot.preset.id, Number(event.target.value) / 100)
-              }
-            />
-            <output>{formatCompactStyleStrength(weightSlot.strength)}</output>
-          </div>
-          <div className="cs-range-labels">
-            <span>10%</span>
-            <span>100%</span>
-          </div>
-          <div className="cs-weight-bottom">
-            <button
-              type="button"
-              className="cs-pause-button"
-              onClick={() => onToggleEnabled(weightSlot.preset.id)}
-            >
-              {weightSlot.enabled === false ? (
-                <Play width={12} height={12} />
-              ) : (
-                <Pause width={12} height={12} />
-              )}
-              {weightSlot.enabled === false ? 'Enable style' : 'Pause style'}
-            </button>
-            <div
-              className="cs-order"
-              role="group"
-              aria-label="Style order"
-              hidden={selectedStyles.length < 2}
-            >
-              <button
-                type="button"
-                aria-label="Move style up"
-                disabled={weightIndex <= 0}
-                onClick={() => onMove(weightSlot.preset.id, -1)}
-              >
-                <ChevronUp width={12} height={12} />
-              </button>
-              <button
-                type="button"
-                aria-label="Move style down"
-                disabled={weightIndex >= selectedStyles.length - 1}
-                onClick={() => onMove(weightSlot.preset.id, 1)}
-              >
-                <ChevronDown width={12} height={12} />
-              </button>
-            </div>
-          </div>
-        </div>
+        <CompactStyleIntensity
+          model={{
+            portalProps: portalProps,
+            weightRef: weightRef,
+            weightIdAttr: weightIdAttr,
+            keyboardRef: keyboardRef,
+            weightSlot: weightSlot,
+            onSetStrength: onSetStrength,
+            weightName: weightName,
+            onToggleEnabled: onToggleEnabled,
+            selectedStyles: selectedStyles,
+            weightIndex: weightIndex,
+            onMove: onMove,
+          }}
+        />
       ) : null}
     </AnimatePresence>,
     document.body,
@@ -897,49 +642,109 @@ export const CompactStyleSelector: React.FC<CompactStyleSelectorProps> = ({
 
   const previewVisible = Boolean(preview.result);
   const previewPanel = createPortal(
-    <div
-      {...portalProps}
-      ref={previewRef}
-      id={previewId}
-      className={`${portalProps.className} cs-preview`}
-      data-keyboard={keyboardRef.current || undefined}
-      data-pinned={String(preview.pinned)}
-      data-visible={String(previewVisible)}
-      hidden={!previewVisible}
-      role={preview.pinned ? 'dialog' : 'tooltip'}
-      aria-hidden={previewVisible ? undefined : true}
-      aria-label={preview.pinned && preview.result ? `Preview ${preview.result.name}` : undefined}
-      onPointerEnter={() => window.clearTimeout(hideTimerRef.current)}
-      onPointerLeave={() => deferHidePreview()}
-    >
-      <button
-        type="button"
-        className="cs-preview-close"
-        aria-label="Close preview"
-        onClick={() => closePreview(true)}
-      >
-        <X width={14} height={14} />
-      </button>
-      <div className="cs-preview-image">
-        {preview.src ? (
-          <img src={preview.src} alt="" />
-        ) : (
-          <span className="cs-no-preview">
-            {preview.status === 'loading' ? 'Loading preview…' : 'No preview available'}
-          </span>
-        )}
-      </div>
-      <div className="cs-preview-body">
-        <h3>{preview.result?.name ?? ''}</h3>
-        <p>
-          {preview.result?.packName}
-          {preview.result ? <br /> : null}
-          {preview.result?.categoryName}
-        </p>
-      </div>
-    </div>,
+    <CompactStylePreview
+      portalProps={portalProps}
+      previewRef={previewRef}
+      previewId={previewId}
+      keyboardRef={keyboardRef}
+      preview={preview}
+      previewVisible={previewVisible}
+      hideTimerRef={hideTimerRef}
+      deferHidePreview={deferHidePreview}
+      closePreview={closePreview}
+    />,
     document.body,
   );
+
+  return {
+    rootRef,
+    selectedCount,
+    maxSlots,
+    catalogOpen,
+    catalogExpanded,
+    closeMenu,
+    closeWeight,
+    closePreview,
+    onBrowseCatalog,
+    onExploreStyles,
+    menuOpen,
+    popoverId,
+    openMenu,
+    selectedStyles,
+    onToggleEnabled,
+    showPreview,
+    weightId,
+    queuePreview,
+    deferHidePreview,
+    weightIdAttr,
+    setWeightId,
+    onRemove,
+    menu,
+    weight,
+    previewPanel,
+    portalProps,
+    popRef,
+    keyboardRef,
+    listRef,
+    query,
+    route,
+    goBack,
+    searchRef,
+    setQuery,
+    showBack,
+    title,
+    browseLabel,
+    navigate,
+    catalog,
+    packs,
+    categoryGroups,
+    thumbRevision,
+    renderStyleChoice,
+    results,
+    weightRef,
+    weightSlot,
+    onSetStrength,
+    weightName,
+    weightIndex,
+    onMove,
+    previewRef,
+    previewId,
+    preview,
+    previewVisible,
+    hideTimerRef,
+  };
+}
+
+type CompactStyleSelectorViewModel = ReturnType<typeof useCompactStyleSelectorController>;
+
+function CompactStyleSelectorView({ model }: { model: CompactStyleSelectorViewModel }) {
+  const {
+    rootRef,
+    selectedCount,
+    maxSlots,
+    catalogOpen,
+    catalogExpanded,
+    closeMenu,
+    closeWeight,
+    closePreview,
+    onBrowseCatalog,
+    onExploreStyles,
+    menuOpen,
+    popoverId,
+    openMenu,
+    selectedStyles,
+    onToggleEnabled,
+    showPreview,
+    weightId,
+    queuePreview,
+    deferHidePreview,
+    weightIdAttr,
+    setWeightId,
+    onRemove,
+    menu,
+    weight,
+    previewPanel,
+  } = model;
 
   return (
     <div ref={rootRef} className="cs-root" data-compact-style-selector>
@@ -1085,4 +890,518 @@ export const CompactStyleSelector: React.FC<CompactStyleSelectorProps> = ({
       {previewPanel}
     </div>
   );
+}
+
+export const CompactStyleSelector: React.FC<CompactStyleSelectorProps> = (props) => {
+  const view = useCompactStyleSelectorController(props);
+  return <CompactStyleSelectorView model={view} />;
 };
+
+function CompactCatalogMenu({
+  model,
+}: {
+  model: Pick<
+    CompactStyleSelectorViewModel,
+    | 'portalProps'
+    | 'popRef'
+    | 'popoverId'
+    | 'menuOpen'
+    | 'keyboardRef'
+    | 'listRef'
+    | 'query'
+    | 'route'
+    | 'goBack'
+    | 'searchRef'
+    | 'setQuery'
+    | 'closePreview'
+    | 'showBack'
+    | 'title'
+    | 'browseLabel'
+    | 'navigate'
+    | 'catalog'
+    | 'packs'
+    | 'categoryGroups'
+    | 'thumbRevision'
+    | 'renderStyleChoice'
+    | 'results'
+    | 'selectedCount'
+    | 'maxSlots'
+    | 'closeMenu'
+  >;
+}): React.ReactElement {
+  const {
+    portalProps,
+    popRef,
+    popoverId,
+    menuOpen,
+    keyboardRef,
+    listRef,
+    query,
+    route,
+    goBack,
+    searchRef,
+    setQuery,
+    closePreview,
+    showBack,
+    title,
+    browseLabel,
+    navigate,
+    selectedCount,
+    maxSlots,
+    closeMenu,
+  } = model;
+
+  return (
+    <dialog
+      open
+      aria-modal="false"
+      {...portalProps}
+      ref={popRef}
+      id={popoverId}
+      className={`${portalProps.className} studio-panel-dialog cs-popover`}
+      hidden={!menuOpen}
+      inert={!menuOpen}
+      data-keyboard={keyboardRef.current || undefined}
+      aria-label="Add styles"
+      onKeyDown={(event) => {
+        const choices = [
+          ...(listRef.current?.querySelectorAll<HTMLButtonElement>('.cs-choice') ?? []),
+        ];
+        const index = choices.indexOf(document.activeElement as HTMLButtonElement);
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+          if (!choices.length) return;
+          event.preventDefault();
+          const next =
+            index < 0
+              ? event.key === 'ArrowDown'
+                ? 0
+                : choices.length - 1
+              : clamp(index + (event.key === 'ArrowDown' ? 1 : -1), 0, choices.length - 1);
+          choices[next]?.focus({ preventScroll: true });
+          choices[next]?.scrollIntoView({ block: 'nearest' });
+          return;
+        }
+        if ((event.key === 'Home' || event.key === 'End') && index >= 0) {
+          event.preventDefault();
+          choices[event.key === 'Home' ? 0 : choices.length - 1]?.focus({
+            preventScroll: true,
+          });
+          return;
+        }
+        if (event.key === 'ArrowLeft' && index >= 0 && (query.trim() || route.view !== 'packs')) {
+          event.preventDefault();
+          goBack();
+          return;
+        }
+        if (event.key === 'ArrowRight' && index >= 0 && route.view === 'packs') {
+          event.preventDefault();
+          choices[index]?.click();
+        }
+      }}
+    >
+      <div className="cs-search">
+        <Search width={15} height={15} aria-hidden="true" />
+        <input
+          ref={searchRef}
+          type="search"
+          autoComplete="off"
+          spellCheck={false}
+          placeholder="Search styles…"
+          aria-label="Search all styles"
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            closePreview();
+            if (listRef.current) listRef.current.scrollTop = 0;
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            listRef.current?.querySelector<HTMLButtonElement>('.cs-choice')?.click();
+          }}
+        />
+        {query ? (
+          <button
+            type="button"
+            className="cs-search-clear"
+            aria-label="Clear search"
+            onClick={() => {
+              setQuery('');
+              searchRef.current?.focus();
+            }}
+          >
+            <X width={12} height={12} />
+          </button>
+        ) : null}
+      </div>
+      <div className="cs-breadcrumb">
+        {showBack ? (
+          <button type="button" className="cs-back" aria-label="Go back" onClick={goBack}>
+            <ChevronLeft width={13} height={13} />
+          </button>
+        ) : null}
+        <strong data-tooltip={title}>{title}</strong>
+        {browseLabel ? (
+          <button
+            type="button"
+            className="cs-browse-link"
+            onClick={() => navigate({ view: route.view === 'all' ? 'packs' : 'all' })}
+          >
+            {browseLabel}
+            <ChevronRight width={12} height={12} />
+          </button>
+        ) : null}
+      </div>
+      <CompactCatalogChoices model={model} />
+      {selectedCount >= maxSlots ? (
+        <div className="cs-limit-note">{maxSlots} styles selected. Remove one to add another.</div>
+      ) : null}
+      <div className="cs-footer">
+        <button
+          type="button"
+          className="cs-favorites-view"
+          aria-pressed={route.view === 'favorites'}
+          onClick={() => navigate({ view: route.view === 'favorites' ? 'all' : 'favorites' })}
+        >
+          <Heart width={12} height={12} />
+          Favorites
+        </button>
+        <span className="cs-footer-status" aria-live="polite">
+          {selectedCount} / {maxSlots} selected
+        </span>
+        <button type="button" className="cs-done" onClick={() => closeMenu()}>
+          Done
+        </button>
+      </div>
+    </dialog>
+  );
+}
+
+function CompactStyleIntensity({
+  model,
+}: {
+  model: Pick<
+    CompactStyleSelectorViewModel,
+    | 'portalProps'
+    | 'weightRef'
+    | 'weightIdAttr'
+    | 'keyboardRef'
+    | 'weightSlot'
+    | 'onSetStrength'
+    | 'weightName'
+    | 'onToggleEnabled'
+    | 'selectedStyles'
+    | 'weightIndex'
+    | 'onMove'
+  >;
+}): React.ReactElement | null {
+  const {
+    portalProps,
+    weightRef,
+    weightIdAttr,
+    keyboardRef,
+    weightSlot,
+    onSetStrength,
+    weightName,
+    onToggleEnabled,
+    selectedStyles,
+    weightIndex,
+    onMove,
+  } = model;
+
+  if (!weightSlot) return null;
+  return (
+    <dialog
+      open
+      aria-modal="false"
+      {...portalProps}
+      ref={weightRef}
+      id={weightIdAttr}
+      className={`${portalProps.className} studio-panel-dialog cs-weight`}
+      data-keyboard={keyboardRef.current || undefined}
+      aria-label="Style intensity"
+    >
+      <div className="cs-weight-head">
+        <strong>Intensity</strong>
+        <button
+          type="button"
+          disabled={weightSlot.strength === DEFAULT_SELECTED_STYLE_STRENGTH}
+          onClick={() => onSetStrength(weightSlot.preset.id, DEFAULT_SELECTED_STYLE_STRENGTH)}
+        >
+          Reset
+        </button>
+      </div>
+      <p className="cs-weight-name">{weightName}</p>
+      <div className="cs-range-line">
+        <input
+          type="range"
+          min={10}
+          max={100}
+          step={1}
+          value={Math.round(weightSlot.strength * 100)}
+          aria-label={`Intensity for ${weightName}`}
+          onChange={(event) =>
+            onSetStrength(weightSlot.preset.id, Number(event.target.value) / 100)
+          }
+        />
+        <output>{formatCompactStyleStrength(weightSlot.strength)}</output>
+      </div>
+      <div className="cs-range-labels">
+        <span>10%</span>
+        <span>100%</span>
+      </div>
+      <div className="cs-weight-bottom">
+        <button
+          type="button"
+          className="cs-pause-button"
+          onClick={() => onToggleEnabled(weightSlot.preset.id)}
+        >
+          {weightSlot.enabled === false ? (
+            <Play width={12} height={12} />
+          ) : (
+            <Pause width={12} height={12} />
+          )}
+          {weightSlot.enabled === false ? 'Enable style' : 'Pause style'}
+        </button>
+        <div
+          className="cs-order"
+          role="group"
+          aria-label="Style order"
+          hidden={selectedStyles.length < 2}
+        >
+          <button
+            type="button"
+            aria-label="Move style up"
+            disabled={weightIndex <= 0}
+            onClick={() => onMove(weightSlot.preset.id, -1)}
+          >
+            <ChevronUp width={12} height={12} />
+          </button>
+          <button
+            type="button"
+            aria-label="Move style down"
+            disabled={weightIndex >= selectedStyles.length - 1}
+            onClick={() => onMove(weightSlot.preset.id, 1)}
+          >
+            <ChevronDown width={12} height={12} />
+          </button>
+        </div>
+      </div>
+    </dialog>
+  );
+}
+
+type CompactChoicesModel = Pick<
+  CompactStyleSelectorViewModel,
+  | 'listRef'
+  | 'route'
+  | 'query'
+  | 'catalog'
+  | 'packs'
+  | 'navigate'
+  | 'categoryGroups'
+  | 'thumbRevision'
+  | 'renderStyleChoice'
+  | 'results'
+>;
+
+function CompactCatalogChoices({ model }: { model: CompactChoicesModel }) {
+  const { listRef, route, query } = model;
+  return (
+    <div
+      ref={listRef}
+      className={`cs-menu-list${route.view === 'categories' && !query.trim() ? ' is-pack' : ''}`}
+      aria-label="Style catalog"
+    >
+      <CompactCatalogContents model={model} />
+    </div>
+  );
+}
+
+function CompactCatalogContents({ model }: { model: CompactChoicesModel }) {
+  const { catalog, query, route } = model;
+  if (catalog.status === 'loading')
+    return (
+      <div className="cs-empty-result">
+        <strong>Loading styles</strong>
+        <p>The catalog stays in this menu so the prompt keeps its space.</p>
+      </div>
+    );
+  if (catalog.status === 'error')
+    return (
+      <div className="cs-empty-result">
+        <strong>Could not load styles</strong>
+        <p>Open the menu again to retry, or browse the full catalog.</p>
+      </div>
+    );
+  if (!query.trim() && route.view === 'packs') return <CompactPackChoices model={model} />;
+  if (!query.trim() && route.view === 'categories') return <CompactCategoryChoices model={model} />;
+  return <CompactSearchChoices model={model} />;
+}
+function CompactPackChoices({ model }: { model: CompactChoicesModel }) {
+  const { packs, navigate } = model;
+  if (packs.length === 0) return <NoStylePacksNotice compact />;
+  return (
+    <>
+      {packs.map((pack) => (
+        <div key={pack.id} className="cs-option-wrap">
+          <button
+            type="button"
+            className="cs-choice"
+            aria-label={`${pack.name}, ${pack.presetCount} ${pack.presetCount === 1 ? 'style' : 'styles'}`}
+            onClick={() => navigate({ view: 'categories', packId: pack.id })}
+          >
+            <Folder width={13} height={13} />
+            <span className="cs-option-text">{pack.name}</span>
+            <span className="cs-dir-count">{pack.presetCount}</span>
+            <ChevronRight width={13} height={13} />
+          </button>
+        </div>
+      ))}
+    </>
+  );
+}
+function CompactCategoryChoices({ model }: { model: CompactChoicesModel }) {
+  const { categoryGroups, thumbRevision, renderStyleChoice } = model;
+  if (categoryGroups.length === 0)
+    return (
+      <div className="cs-empty-result">
+        <strong>No styles found</strong>
+        <p>Try another pack or search by name.</p>
+      </div>
+    );
+  return (
+    <>
+      {categoryGroups
+
+        .filter((group) => group.presets.length)
+        .map((group) => {
+          const identity = resolveStyleCategoryIdentity(group.packId, group.name);
+          const thumb =
+            getStyleCategoryImage(styleCategoryImageKey(group.packId, group.name)) ??
+            getStyleThumbnail(styleCategoryImageKey(group.packId, group.name));
+          void thumbRevision;
+          return (
+            <div key={`${group.packId}:${group.id}`} className="cs-category-block">
+              <div className="cs-category-head" data-category-header={group.id}>
+                <span className={`cs-category-accent ${identity.accentClassName}`} />
+                <span className="cs-category-thumb">
+                  {thumb ? (
+                    <img src={thumb} alt="" />
+                  ) : (
+                    <StyleCategoryGlyph iconId={identity.iconId} size={14} />
+                  )}
+                </span>
+                <span className={`cs-category-icon ${identity.titleClassName}`}>
+                  <StyleCategoryGlyph iconId={identity.iconId} size={12} />
+                </span>
+                <strong className={identity.titleClassName}>{group.name}</strong>
+                <span className="cs-dir-count">{group.presets.length}</span>
+              </div>
+              {group.presets.map((result) => renderStyleChoice(result))}
+            </div>
+          );
+        })}
+    </>
+  );
+}
+function CompactSearchChoices({ model }: { model: CompactChoicesModel }) {
+  const { results, route, query, renderStyleChoice } = model;
+  if (results.length === 0) {
+    const emptyFavorites = route.view === 'favorites' && !query.trim();
+    return (
+      <div className="cs-empty-result">
+        <strong>{emptyFavorites ? 'No favorites yet' : 'No styles found'}</strong>
+        <p>
+          {emptyFavorites
+            ? 'Use the heart beside a style to save it.'
+            : 'Try another name, pack or category.'}
+        </p>
+      </div>
+    );
+  }
+  return (
+    <>
+      {results.map((result, index) => {
+        const showGroup =
+          Boolean(query.trim()) || route.view === 'all' || route.view === 'favorites';
+        const previous = results[index - 1];
+        const heading =
+          showGroup && result.packName !== previous?.packName ? result.packName : null;
+        return (
+          <React.Fragment key={result.id}>
+            {heading ? <div className="cs-group-heading">{heading}</div> : null}
+            {renderStyleChoice(result)}
+          </React.Fragment>
+        );
+      })}
+    </>
+  );
+}
+
+function CompactStylePreview({
+  portalProps,
+  previewRef,
+  previewId,
+  keyboardRef,
+  preview,
+  previewVisible,
+  hideTimerRef,
+  deferHidePreview,
+  closePreview,
+}: Pick<
+  CompactStyleSelectorViewModel,
+  | 'portalProps'
+  | 'previewRef'
+  | 'previewId'
+  | 'keyboardRef'
+  | 'preview'
+  | 'previewVisible'
+  | 'hideTimerRef'
+  | 'deferHidePreview'
+  | 'closePreview'
+>): React.ReactElement {
+  return (
+    <div
+      {...portalProps}
+      ref={previewRef}
+      id={previewId}
+      className={`${portalProps.className} cs-preview`}
+      data-keyboard={keyboardRef.current || undefined}
+      data-pinned={String(preview.pinned)}
+      data-visible={String(previewVisible)}
+      hidden={!previewVisible}
+      role={preview.pinned ? 'dialog' : 'tooltip'}
+      aria-hidden={previewVisible ? undefined : true}
+      aria-label={preview.pinned && preview.result ? `Preview ${preview.result.name}` : undefined}
+      onPointerEnter={() => window.clearTimeout(hideTimerRef.current)}
+      onPointerLeave={() => deferHidePreview()}
+    >
+      <button
+        type="button"
+        className="cs-preview-close"
+        aria-label="Close preview"
+        onClick={() => closePreview(true)}
+      >
+        <X width={14} height={14} />
+      </button>
+      <div className="cs-preview-image">
+        {preview.src ? (
+          <img src={preview.src} alt="" />
+        ) : (
+          <span className="cs-no-preview">
+            {preview.status === 'loading' ? 'Loading preview…' : 'No preview available'}
+          </span>
+        )}
+      </div>
+      <div className="cs-preview-body">
+        <h3>{preview.result?.name ?? ''}</h3>
+        <p>
+          {preview.result?.packName}
+          {preview.result ? <br /> : null}
+          {preview.result?.categoryName}
+        </p>
+      </div>
+    </div>
+  );
+}

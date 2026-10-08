@@ -194,6 +194,7 @@ export function useStudioSettings({
         }
       } finally {
         if (isMountedRef.current && refreshRevision.current === revision) {
+          // react-doctor-disable-next-line react-doctor/no-loading-flag-reset-outside-finally -- already in finally; only the mounted current refresh owns this flag
           setIsLoading(false);
         }
       }

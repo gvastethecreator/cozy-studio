@@ -80,50 +80,11 @@ const HeaderToolbarFn: React.FC<HeaderToolbarProps> = ({
   onSelectRecipe,
 }) => {
   const { appearance, toggleAppearance } = useTheme();
-  const [isWorkspaceOpen, setIsWorkspaceOpen] = React.useState(false);
-  const [isToolsOpen, setIsToolsOpen] = React.useState(false);
-  const [isMobileCommandOpen, setIsMobileCommandOpen] = React.useState(false);
-  const workspaceRef = React.useRef<HTMLDivElement>(null);
-  const workspaceButtonRef = React.useRef<HTMLButtonElement>(null);
-  const toolsButtonRef = React.useRef<HTMLButtonElement>(null);
-  const mobileCommandRef = React.useRef<HTMLDivElement>(null);
-  const mobileCommandButtonRef = React.useRef<HTMLButtonElement>(null);
   const activeRecipeAlias = resolveRecipeAlias(activeRecipeAliasId);
   const activeRecipeData = activeRecipe
     ? { name: activeRecipeAlias?.title ?? getRecipeShellTitle(activeRecipe) }
     : null;
   const isRecipeView = routeView === 'recipe' && Boolean(activeRecipeData);
-  const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
-  const workspaceLabel = activeWorkspace?.name || 'Studio';
-
-  React.useEffect(() => {
-    if (!isWorkspaceOpen && !isMobileCommandOpen) return;
-
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (
-        workspaceRef.current &&
-        !workspaceRef.current.contains(event.target as Node) &&
-        isWorkspaceOpen
-      ) {
-        setIsWorkspaceOpen(false);
-      }
-      if (
-        mobileCommandRef.current &&
-        !mobileCommandRef.current.contains(event.target as Node) &&
-        isMobileCommandOpen
-      ) {
-        setIsMobileCommandOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [isMobileCommandOpen, isWorkspaceOpen]);
-
-  const runMobileCommand = React.useCallback((action: () => void) => {
-    setIsMobileCommandOpen(false);
-    action();
-  }, []);
 
   return (
     <TopToolbar className="studio-toolbar-shell studio-bar w-full min-h-10 flex items-center px-2 py-1 z-40 shrink-0">
@@ -192,129 +153,20 @@ const HeaderToolbarFn: React.FC<HeaderToolbarProps> = ({
               )}
             </button>
           </Tooltip>
-          <div ref={workspaceRef} className="relative">
-            <Tooltip content="Workspaces" position="bottom">
-              <button
-                ref={workspaceButtonRef}
-                type="button"
-                onClick={() => setIsWorkspaceOpen((isOpen) => !isOpen)}
-                aria-label={`Open workspace switcher: ${workspaceLabel}`}
-                aria-haspopup="menu"
-                aria-expanded={isWorkspaceOpen}
-                aria-controls="studio-workspace-menu"
-                className="studio-command-surface studio-control studio-hit-target flex h-8 w-auto cursor-pointer items-center justify-center gap-1.5 rounded px-2 transition-[color,background-color,border-color,opacity,transform]"
-              >
-                <Briefcase width={15} height={15} />
-                <span className="hidden max-w-28 truncate text-xs font-medium lg:inline">
-                  {workspaceLabel}
-                </span>
-              </button>
-            </Tooltip>
-            <DemandMountedGsapDropdown
-              id="studio-workspace-menu"
-              open={isWorkspaceOpen}
-              onOpenChange={setIsWorkspaceOpen}
-              triggerRef={workspaceButtonRef}
-              placement="bottom-right"
-              role="menu"
-              aria-label="Workspace switcher"
-              className="absolute right-0 top-full z-50 mt-1.5 p-1.5"
-            >
-              <WorkspaceStrip
-                layout="compact"
-                workspaces={workspaces}
-                activeWorkspaceId={activeWorkspaceId}
-                onSwitchWorkspace={(id) => {
-                  onSwitchWorkspace(id);
-                  setIsWorkspaceOpen(false);
-                }}
-                onAddWorkspace={() => {
-                  onAddWorkspace();
-                  setIsWorkspaceOpen(false);
-                }}
-                onDeleteWorkspace={onDeleteWorkspace}
-                onRenameWorkspace={onRenameWorkspace}
-              />
-            </DemandMountedGsapDropdown>
-          </div>
-          <div className="relative hidden sm:block">
-            <button
-              ref={toolsButtonRef}
-              type="button"
-              className="studio-nav-tab studio-control"
-              aria-label="Open tools"
-              aria-haspopup="menu"
-              aria-expanded={isToolsOpen}
-              aria-controls="studio-tools-menu"
-              onClick={() => setIsToolsOpen((isOpen) => !isOpen)}
-            >
-              Tools
-            </button>
-            <DemandMountedGsapDropdown
-              id="studio-tools-menu"
-              open={isToolsOpen}
-              onOpenChange={setIsToolsOpen}
-              triggerRef={toolsButtonRef}
-              portal
-              placement="bottom-right"
-              role="menu"
-              aria-label="Tools"
-              className="studio-popover grid w-48 gap-2 p-3"
-            >
-              <button
-                type="button"
-                role="menuitem"
-                data-dropdown-item
-                className="studio-menu-item rounded p-2 text-left"
-                onClick={() => {
-                  setIsToolsOpen(false);
-                  onOpenOnboarding();
-                }}
-                aria-label="Open help and setup"
-              >
-                Help &amp; setup
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                data-dropdown-item
-                className="studio-menu-item rounded p-2 text-left"
-                onClick={() => {
-                  setIsToolsOpen(false);
-                  onOpenSupport();
-                }}
-                aria-label="Support this project"
-              >
-                Support this project
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                data-dropdown-item
-                className="studio-menu-item rounded p-2 text-left"
-                onClick={() => {
-                  setIsToolsOpen(false);
-                  onToggleDebug();
-                }}
-                aria-label="Open studio activity"
-              >
-                Activity
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                data-dropdown-item
-                className="studio-menu-item rounded p-2 text-left"
-                onClick={() => {
-                  setIsToolsOpen(false);
-                  onOpenTrash();
-                }}
-                aria-label="Open archived images"
-              >
-                Archive
-              </button>
-            </DemandMountedGsapDropdown>
-          </div>
+          <WorkspaceMenu
+            workspaces={workspaces}
+            activeWorkspaceId={activeWorkspaceId}
+            onSwitchWorkspace={onSwitchWorkspace}
+            onAddWorkspace={onAddWorkspace}
+            onDeleteWorkspace={onDeleteWorkspace}
+            onRenameWorkspace={onRenameWorkspace}
+          />
+          <DesktopTools
+            onOpenOnboarding={onOpenOnboarding}
+            onOpenSupport={onOpenSupport}
+            onToggleDebug={onToggleDebug}
+            onOpenTrash={onOpenTrash}
+          />
           <Tooltip content="Studio settings" position="bottom">
             <button
               type="button"
@@ -325,103 +177,14 @@ const HeaderToolbarFn: React.FC<HeaderToolbarProps> = ({
               <Settings width={15} height={15} />
             </button>
           </Tooltip>
-          <div ref={mobileCommandRef} className="relative sm:hidden">
-            <Tooltip content="Commands" position="bottom">
-              <button
-                ref={mobileCommandButtonRef}
-                type="button"
-                onClick={() => setIsMobileCommandOpen((isOpen) => !isOpen)}
-                aria-label="Open mobile commands"
-                aria-expanded={isMobileCommandOpen}
-                aria-haspopup="menu"
-                aria-controls="mobile-command-menu"
-                className="studio-command-surface studio-control studio-hit-target flex size-10 touch-manipulation items-center justify-center rounded"
-              >
-                <Menu2 width={15} height={15} />
-              </button>
-            </Tooltip>
-            <DemandMountedGsapDropdown
-              id="mobile-command-menu"
-              open={isMobileCommandOpen}
-              onOpenChange={setIsMobileCommandOpen}
-              triggerRef={mobileCommandButtonRef}
-              placement="bottom-right"
-              className="fixed left-2 right-2 top-12 z-[60] p-2"
-            >
-              <div className="mb-2 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  aria-label="Open Studio Settings"
-                  data-dropdown-item
-                  onClick={() => runMobileCommand(onOpenSettings)}
-                  className="studio-ghost-control flex min-h-12 w-full items-center gap-2 px-3 text-left"
-                >
-                  <Settings width={15} height={15} />
-                  Settings
-                </button>
-                <button
-                  type="button"
-                  aria-label="Focus generation prompt"
-                  data-dropdown-item
-                  onClick={() =>
-                    runMobileCommand(() =>
-                      document
-                        .querySelector<HTMLTextAreaElement>('[aria-label="Prompt input"]')
-                        ?.focus(),
-                    )
-                  }
-                  className="studio-ghost-control flex min-h-12 w-full items-center gap-2 px-3 text-left"
-                >
-                  <MessageSquare width={15} height={15} />
-                  Compose
-                </button>
-                <button
-                  type="button"
-                  aria-label="Open studio activity"
-                  data-dropdown-item
-                  onClick={() => runMobileCommand(onToggleDebug)}
-                  className="studio-ghost-control flex min-h-12 w-full items-center gap-2 px-3 text-left"
-                >
-                  <Activity width={15} height={15} />
-                  Activity
-                </button>
-                <button
-                  type="button"
-                  aria-label="Open archived images"
-                  data-dropdown-item
-                  onClick={() => runMobileCommand(onOpenTrash)}
-                  className="studio-ghost-control relative flex min-h-12 items-center gap-2 px-3 text-left"
-                >
-                  <Trash2 width={15} height={15} />
-                  Archive
-                  {trashCount > 0 && (
-                    <span className="ml-auto rounded-full bg-red-500/20 px-1.5 py-0.5 text-[9px] text-[color:var(--wb-danger)]">
-                      {trashCount}
-                    </span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  aria-label="Open help and setup"
-                  data-dropdown-item
-                  onClick={() => runMobileCommand(onOpenOnboarding)}
-                  className="studio-ghost-control flex min-h-12 w-full items-center gap-2 px-3 text-left"
-                >
-                  <CircleHelp width={15} height={15} />
-                  Help
-                </button>
-                <button
-                  type="button"
-                  aria-label="Support this project"
-                  data-dropdown-item
-                  onClick={() => runMobileCommand(onOpenSupport)}
-                  className="studio-ghost-control flex min-h-12 w-full items-center gap-2 px-3 text-left"
-                >
-                  Support
-                </button>
-              </div>
-            </DemandMountedGsapDropdown>
-          </div>
+          <MobileCommands
+            onOpenSettings={onOpenSettings}
+            onToggleDebug={onToggleDebug}
+            onOpenTrash={onOpenTrash}
+            onOpenOnboarding={onOpenOnboarding}
+            onOpenSupport={onOpenSupport}
+            trashCount={trashCount}
+          />
         </div>
       </div>
     </TopToolbar>
@@ -429,3 +192,286 @@ const HeaderToolbarFn: React.FC<HeaderToolbarProps> = ({
 };
 
 export const HeaderToolbar = React.memo(HeaderToolbarFn);
+
+function WorkspaceMenu({
+  workspaces,
+  activeWorkspaceId,
+  onSwitchWorkspace,
+  onAddWorkspace,
+  onDeleteWorkspace,
+  onRenameWorkspace,
+}: Pick<
+  HeaderToolbarProps,
+  | 'workspaces'
+  | 'activeWorkspaceId'
+  | 'onSwitchWorkspace'
+  | 'onAddWorkspace'
+  | 'onDeleteWorkspace'
+  | 'onRenameWorkspace'
+>) {
+  const [isWorkspaceOpen, setIsWorkspaceOpen] = React.useState(false);
+  const workspaceRef = React.useRef<HTMLDivElement>(null);
+  const workspaceButtonRef = React.useRef<HTMLButtonElement>(null);
+  const workspaceLabel =
+    workspaces.find((workspace) => workspace.id === activeWorkspaceId)?.name || 'Studio';
+  return (
+    <div ref={workspaceRef} className="relative">
+      <Tooltip content="Workspaces" position="bottom">
+        <button
+          ref={workspaceButtonRef}
+          type="button"
+          onClick={() => setIsWorkspaceOpen((isOpen) => !isOpen)}
+          aria-label={`Open workspace switcher: ${workspaceLabel}`}
+          aria-haspopup="menu"
+          aria-expanded={isWorkspaceOpen}
+          aria-controls="studio-workspace-menu"
+          className="studio-command-surface studio-control studio-hit-target flex h-8 w-auto cursor-pointer items-center justify-center gap-1.5 rounded px-2 transition-[color,background-color,border-color,opacity,transform]"
+        >
+          <Briefcase width={15} height={15} />
+          <span className="hidden max-w-28 truncate text-xs font-medium lg:inline">
+            {workspaceLabel}
+          </span>
+        </button>
+      </Tooltip>
+      <DemandMountedGsapDropdown
+        id="studio-workspace-menu"
+        open={isWorkspaceOpen}
+        onOpenChange={setIsWorkspaceOpen}
+        triggerRef={workspaceButtonRef}
+        placement="bottom-right"
+        role="menu"
+        aria-label="Workspace switcher"
+        className="absolute right-0 top-full z-50 mt-1.5 p-1.5"
+      >
+        <WorkspaceStrip
+          layout="compact"
+          workspaces={workspaces}
+          activeWorkspaceId={activeWorkspaceId}
+          onSwitchWorkspace={(id) => {
+            onSwitchWorkspace(id);
+            setIsWorkspaceOpen(false);
+          }}
+          onAddWorkspace={() => {
+            onAddWorkspace();
+            setIsWorkspaceOpen(false);
+          }}
+          onDeleteWorkspace={onDeleteWorkspace}
+          onRenameWorkspace={onRenameWorkspace}
+        />
+      </DemandMountedGsapDropdown>
+    </div>
+  );
+}
+function DesktopTools({
+  onOpenOnboarding,
+  onOpenSupport,
+  onToggleDebug,
+  onOpenTrash,
+}: Pick<
+  HeaderToolbarProps,
+  'onOpenOnboarding' | 'onOpenSupport' | 'onToggleDebug' | 'onOpenTrash'
+>) {
+  const [isToolsOpen, setIsToolsOpen] = React.useState(false);
+  const toolsButtonRef = React.useRef<HTMLButtonElement>(null);
+  return (
+    <div className="relative hidden sm:block">
+      <button
+        ref={toolsButtonRef}
+        type="button"
+        className="studio-nav-tab studio-control"
+        aria-label="Open tools"
+        aria-haspopup="menu"
+        aria-expanded={isToolsOpen}
+        aria-controls="studio-tools-menu"
+        onClick={() => setIsToolsOpen((isOpen) => !isOpen)}
+      >
+        Tools
+      </button>
+      <DemandMountedGsapDropdown
+        id="studio-tools-menu"
+        open={isToolsOpen}
+        onOpenChange={setIsToolsOpen}
+        triggerRef={toolsButtonRef}
+        portal
+        placement="bottom-right"
+        role="menu"
+        aria-label="Tools"
+        className="studio-popover grid w-48 gap-2 p-3"
+      >
+        <button
+          type="button"
+          role="menuitem"
+          data-dropdown-item
+          className="studio-menu-item rounded p-2 text-left"
+          onClick={() => {
+            setIsToolsOpen(false);
+            onOpenOnboarding();
+          }}
+          aria-label="Open help and setup"
+        >
+          Help &amp; setup
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          data-dropdown-item
+          className="studio-menu-item rounded p-2 text-left"
+          onClick={() => {
+            setIsToolsOpen(false);
+            onOpenSupport();
+          }}
+          aria-label="Support this project"
+        >
+          Support this project
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          data-dropdown-item
+          className="studio-menu-item rounded p-2 text-left"
+          onClick={() => {
+            setIsToolsOpen(false);
+            onToggleDebug();
+          }}
+          aria-label="Open studio activity"
+        >
+          Activity
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          data-dropdown-item
+          className="studio-menu-item rounded p-2 text-left"
+          onClick={() => {
+            setIsToolsOpen(false);
+            onOpenTrash();
+          }}
+          aria-label="Open archived images"
+        >
+          Archive
+        </button>
+      </DemandMountedGsapDropdown>
+    </div>
+  );
+}
+function MobileCommands({
+  onOpenSettings,
+  onToggleDebug,
+  onOpenTrash,
+  onOpenOnboarding,
+  onOpenSupport,
+  trashCount,
+}: Pick<
+  HeaderToolbarProps,
+  | 'onOpenSettings'
+  | 'onToggleDebug'
+  | 'onOpenTrash'
+  | 'onOpenOnboarding'
+  | 'onOpenSupport'
+  | 'trashCount'
+>) {
+  const [isMobileCommandOpen, setIsMobileCommandOpen] = React.useState(false);
+  const mobileCommandRef = React.useRef<HTMLDivElement>(null);
+  const mobileCommandButtonRef = React.useRef<HTMLButtonElement>(null);
+  const runMobileCommand = (action: () => void) => {
+    setIsMobileCommandOpen(false);
+    action();
+  };
+  return (
+    <div ref={mobileCommandRef} className="relative sm:hidden">
+      <Tooltip content="Commands" position="bottom">
+        <button
+          ref={mobileCommandButtonRef}
+          type="button"
+          onClick={() => setIsMobileCommandOpen((isOpen) => !isOpen)}
+          aria-label="Open mobile commands"
+          aria-expanded={isMobileCommandOpen}
+          aria-haspopup="menu"
+          aria-controls="mobile-command-menu"
+          className="studio-command-surface studio-control studio-hit-target flex size-10 touch-manipulation items-center justify-center rounded"
+        >
+          <Menu2 width={15} height={15} />
+        </button>
+      </Tooltip>
+      <DemandMountedGsapDropdown
+        id="mobile-command-menu"
+        open={isMobileCommandOpen}
+        onOpenChange={setIsMobileCommandOpen}
+        triggerRef={mobileCommandButtonRef}
+        placement="bottom-right"
+        className="fixed left-2 right-2 top-12 z-[60] p-2"
+      >
+        <div className="mb-2 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            aria-label="Open Studio Settings"
+            data-dropdown-item
+            onClick={() => runMobileCommand(onOpenSettings)}
+            className="studio-ghost-control flex min-h-12 w-full items-center gap-2 px-3 text-left"
+          >
+            <Settings width={15} height={15} />
+            Settings
+          </button>
+          <button
+            type="button"
+            aria-label="Focus generation prompt"
+            data-dropdown-item
+            onClick={() =>
+              runMobileCommand(() =>
+                document.querySelector<HTMLTextAreaElement>('[aria-label="Prompt input"]')?.focus(),
+              )
+            }
+            className="studio-ghost-control flex min-h-12 w-full items-center gap-2 px-3 text-left"
+          >
+            <MessageSquare width={15} height={15} />
+            Compose
+          </button>
+          <button
+            type="button"
+            aria-label="Open studio activity"
+            data-dropdown-item
+            onClick={() => runMobileCommand(onToggleDebug)}
+            className="studio-ghost-control flex min-h-12 w-full items-center gap-2 px-3 text-left"
+          >
+            <Activity width={15} height={15} />
+            Activity
+          </button>
+          <button
+            type="button"
+            aria-label="Open archived images"
+            data-dropdown-item
+            onClick={() => runMobileCommand(onOpenTrash)}
+            className="studio-ghost-control relative flex min-h-12 items-center gap-2 px-3 text-left"
+          >
+            <Trash2 width={15} height={15} />
+            Archive
+            {trashCount > 0 && (
+              <span className="ml-auto rounded-full bg-red-500/20 px-1.5 py-0.5 text-[9px] text-[color:var(--wb-danger)]">
+                {trashCount}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            aria-label="Open help and setup"
+            data-dropdown-item
+            onClick={() => runMobileCommand(onOpenOnboarding)}
+            className="studio-ghost-control flex min-h-12 w-full items-center gap-2 px-3 text-left"
+          >
+            <CircleHelp width={15} height={15} />
+            Help
+          </button>
+          <button
+            type="button"
+            aria-label="Support this project"
+            data-dropdown-item
+            onClick={() => runMobileCommand(onOpenSupport)}
+            className="studio-ghost-control flex min-h-12 w-full items-center gap-2 px-3 text-left"
+          >
+            Support
+          </button>
+        </div>
+      </DemandMountedGsapDropdown>
+    </div>
+  );
+}

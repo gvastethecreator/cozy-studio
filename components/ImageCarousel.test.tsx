@@ -55,6 +55,15 @@ it('keeps the canvas while hiding details and navigates from focused controls wi
     />,
   );
   const canvas = screen.getByRole('group', { name: /Image pan and zoom area/ });
+  const fullscreenSurface = canvas.closest<HTMLElement>('.carousel-viewer')!;
+  const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+  Object.assign(fullscreenSurface, { requestFullscreen });
+  expect(fullscreenSurface.tagName).toBe('DIV');
+  expect(fullscreenSurface.closest('dialog')).toBe(
+    screen.getByRole('dialog', { name: 'Image viewer' }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Enter fullscreen' }));
+  expect(requestFullscreen).toHaveBeenCalledOnce();
   const strip = screen.getByRole('toolbar', { name: 'Image thumbnails' });
   const activeThumbnail = screen.getByRole('button', { name: 'Open image 1 of 2' });
   scroll.mockClear();

@@ -15,6 +15,16 @@ const RECIPE_SHELL_TITLES: Record<RegisteredRecipeId, string> = {
   timeline: 'Timeline Frame',
 };
 
+export const RECIPE_PROMPT_PLACEHOLDERS: Partial<Record<RegisteredRecipeId, string>> = {
+  remaster: 'Describe what to restore or change in the source image…',
+  character: 'Describe the character, identity, and details for the reference sheet…',
+  spritesheet: 'Describe the character and action for the sprite sheet…',
+  camera: 'Describe the scene and details to preserve in this camera view…',
+  cinematic: 'Describe the scene and story for this storyboard…',
+  timeline: 'Describe what happens around the selected frame…',
+  styles: 'Describe the image to create with your style mix…',
+};
+
 export function getRecipeShellTitle(recipeId: RegisteredRecipeId) {
   return RECIPE_SHELL_TITLES[recipeId] ?? recipeId;
 }

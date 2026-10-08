@@ -28,7 +28,7 @@ import type { StudioCommandCenterProjection } from '../lib/commandCenterProjecti
 import type { StudioUsageSummary } from '../lib/studioDiagnostics';
 import { ThemeProvider } from '../hooks/useTheme';
 import { HeaderToolbar, type HeaderToolbarProps } from './HeaderToolbar';
-import { RecipeWorkbenchContext } from './recipes/RecipeWorkbenchContext';
+import { RecipeWorkbenchContext } from './recipes/recipeWorkbenchContextState';
 
 afterEach(() => {
   cleanup();
@@ -158,7 +158,7 @@ describe('HeaderToolbar chrome', () => {
     expect(screen.queryByRole('button', { name: 'Compare reference' })).toBeNull();
   });
 
-  it('shows the core styles recipe as Default in the workflow control', () => {
+  it('shows the core styles recipe as Default in the workflow control', async () => {
     const onCloseRecipe = vi.fn();
     renderHeader({
       routeView: 'recipe',
@@ -168,7 +168,7 @@ describe('HeaderToolbar chrome', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Workflow: Default' }));
-    fireEvent.click(screen.getByRole('option', { name: 'Default' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Default' }));
     expect(onCloseRecipe).toHaveBeenCalledTimes(1);
   });
 });

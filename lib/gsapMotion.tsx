@@ -65,7 +65,7 @@ type MotionRenderableState = false | string | MotionState | undefined;
 
 type MotionTag = 'div' | 'button';
 type GsapTween = { kill?: () => void };
-type GsapContext = { revert?: () => void };
+type GsapContext = { kill: (revert: boolean) => void };
 type GsapLike = {
   set: (target: Element, vars: Record<string, unknown>) => void;
   to: (target: Element, vars: Record<string, unknown>) => GsapTween;
@@ -274,7 +274,7 @@ function createMotionComponent<Tag extends MotionTag>(tagName: Tag) {
                 : presenceConfig.present === false
                   ? 0.1
                   : Math.min(mergedTransition.duration, 0.16),
-              delay: reduce ? 0 : mergedTransition.delay,
+              delay: reduce || presenceConfig.present === false ? 0 : mergedTransition.delay,
               ease: mergedTransition.ease,
               overwrite: 'auto',
               onComplete: onAnimationComplete,
@@ -294,7 +294,8 @@ function createMotionComponent<Tag extends MotionTag>(tagName: Tag) {
 
       return () => {
         isCancelled = true;
-        context?.revert?.();
+        // Reversals continue from the visible frame instead of restoring pre-entry styles.
+        context?.kill(false);
         tween?.kill?.();
       };
     }, [
@@ -340,7 +341,7 @@ function PresenceItem({
   const finish = useEffectEvent(onExit);
   useEffect(() => {
     if (present) return;
-    const duration = prefersReducedMotion() ? 0 : 100;
+    const duration = prefersReducedMotion() ? 0 : 120;
     const timer = window.setTimeout(finish, duration);
     return () => window.clearTimeout(timer);
   }, [present]);

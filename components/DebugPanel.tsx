@@ -37,18 +37,17 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
   onClearSelectedJob,
   onRetryJob,
 }) => {
-  const dialogRef = useDialogFocus(isOpen, onClose);
+  const dialogRef = useDialogFocus<HTMLDialogElement>(isOpen, onClose);
 
   if (!isOpen) {
     return null;
   }
 
   return (
-    <div
+    <dialog
       ref={dialogRef}
-      role="dialog"
       tabIndex={-1}
-      className="fixed inset-0 z-50 m-0 h-full w-full max-h-none max-w-none bg-transparent p-0"
+      className="studio-modal fixed inset-0 z-50 m-0 h-full w-full max-h-none max-w-none bg-transparent p-0"
       aria-label="Studio activity inspector"
       aria-modal="true"
     >
@@ -120,6 +119,6 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
           </main>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };

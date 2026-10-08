@@ -59,14 +59,20 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   onClose,
   onConfirm,
 }) => {
-  const dialogRef = useDialogFocus(isOpen, onClose);
+  const dialogRef = useDialogFocus<HTMLDialogElement>(isOpen, onClose);
   if (!isOpen) return null;
 
   const toneStyles = TONE_STYLES[tone];
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-110 flex items-center justify-center p-4 md:p-8">
+      <dialog
+        ref={dialogRef}
+        aria-modal="true"
+        aria-label={title}
+        tabIndex={-1}
+        className="studio-modal fixed inset-0 z-110 flex items-center justify-center p-4 md:p-8"
+      >
         <MotionDiv
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -76,11 +82,6 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         />
 
         <MotionDiv
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label={title}
-          tabIndex={-1}
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -152,7 +153,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             </button>
           </div>
         </MotionDiv>
-      </div>
+      </dialog>
     </AnimatePresence>
   );
 };

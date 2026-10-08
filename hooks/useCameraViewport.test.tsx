@@ -33,13 +33,17 @@ function Camera() {
         aria-label="Azimuth"
         type="number"
         value={cameraState.azimuth}
-        onChange={(event) => setAzimuth(Number(event.target.value))}
+        onChange={(event) => {
+          if (Number.isFinite(event.target.valueAsNumber)) setAzimuth(event.target.valueAsNumber);
+        }}
       />
       <input
         aria-label="Elevation"
         type="number"
         value={cameraState.elevation}
-        onChange={(event) => setElevation(Number(event.target.value))}
+        onChange={(event) => {
+          if (Number.isFinite(event.target.valueAsNumber)) setElevation(event.target.valueAsNumber);
+        }}
       />
     </>
   );

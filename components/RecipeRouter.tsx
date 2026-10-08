@@ -34,7 +34,11 @@ interface RecipeRouterProps {
     value: ImageGenerationConfig[K],
   ) => void;
   updateAttachment: (id: string, newProps: Partial<Attachment>) => void;
-  handlePastedFiles: (files: File[], replaceId?: string) => void;
+  handlePastedFiles: (
+    files: File[],
+    replaceId?: string,
+    options?: Pick<Attachment, 'strength'>,
+  ) => void;
   handleGenerate: (
     promptOverride?: string,
     configOverrides?: Partial<ImageGenerationConfig>,
@@ -127,8 +131,10 @@ export const RecipeRouter: React.FC<RecipeRouterProps> = ({
             onSelectImage={openModal}
           />
         )}
-        {(!activeRecipe || activeRecipe === 'styles') && (
+        {
           <LoadedStylesRecipe
+            key={!activeRecipe || activeRecipe === 'styles' ? 'styles' : 'catalog'}
+            catalogOnly={Boolean(activeRecipe && activeRecipe !== 'styles')}
             config={generationConfig}
             updateConfig={updateGenerationConfig}
             updateAttachment={updateAttachment}
@@ -143,7 +149,7 @@ export const RecipeRouter: React.FC<RecipeRouterProps> = ({
             defaultStyleReferenceMode={defaultStyleReferenceMode}
             onSelectImage={openModal}
           />
-        )}
+        }
         {activeRecipe === 'remaster' && (
           <LoadedRemasterRecipe
             config={generationConfig}

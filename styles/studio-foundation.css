@@ -48,6 +48,37 @@
   }
 }
 
+:where(dialog.studio-modal) {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+}
+
+:where(dialog.studio-modal)::backdrop {
+  background: transparent;
+}
+
+:where(dialog.studio-panel-dialog) {
+  position: relative;
+  inset: auto;
+  width: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+}
+
 /* react-scan overlay must float above all app chrome (z-40/z-50 toolbars) */
 react-scan-overlay,
 #react-scan-toolbar,
@@ -198,19 +229,19 @@ react-scan-overlay,
   }
 
   .vt-top-toolbar.studio-toolbar-shell {
-    border-bottom: 1px solid var(--wb-line) !important;
+    border-bottom: var(--wb-border-width) solid var(--wb-line) !important;
     box-shadow: none !important;
   }
 
   .vt-top-toolbar .studio-command-group,
   .vt-top-toolbar .studio-command-surface,
   .vt-top-toolbar [data-gsap-dropdown] {
-    border: 1px solid var(--wb-border) !important;
+    border: var(--wb-border-width) solid var(--wb-border) !important;
     box-shadow: none !important;
   }
 
   .vt-top-toolbar .studio-command-active {
-    border: 1px solid var(--wb-border) !important;
+    border: var(--wb-border-width) solid var(--wb-border) !important;
     box-shadow: inset 0 -2px var(--wb-accent) !important;
   }
 
@@ -237,44 +268,12 @@ react-scan-overlay,
     min-height: 0;
   }
 
-  .recipe-layout-enter {
-    animation: recipe-layout-enter 500ms ease both;
-  }
-
-  .recipe-layout-dock-enter {
-    animation: recipe-layout-dock-enter 400ms ease 200ms both;
-  }
-
-  @keyframes recipe-layout-enter {
-    from {
-      opacity: 0;
+  /* Native route transitions own entry for their entire lifetime. */
+  @supports not (view-transition-name: studio-workbench) {
+    .studio-route-enter {
+      animation: studio-route-enter var(--studio-route-dur) var(--studio-route-ease) both;
+      transform-origin: center;
     }
-    to {
-      opacity: 1;
-    }
-  }
-
-  @keyframes recipe-layout-dock-enter {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .recipe-layout-enter,
-    .recipe-layout-dock-enter {
-      animation: none;
-    }
-  }
-
-  .studio-route-enter {
-    animation: studio-route-enter var(--studio-route-dur) var(--studio-route-ease) both;
-    transform-origin: center;
   }
   .studio-viewport-route {
     contain: layout paint;
@@ -293,9 +292,6 @@ react-scan-overlay,
   html[data-transition-type='route'] .studio-workbench {
     view-transition-name: studio-workbench;
   }
-  html[data-transition-type='route'] .studio-route-enter {
-    animation: none;
-  }
   html[data-route-direction='forward'] {
     --studio-route-from-x: var(--studio-route-distance);
   }
@@ -307,14 +303,15 @@ react-scan-overlay,
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    html[data-transition-type='route'] ::view-transition-old(root),
-    html[data-transition-type='route'] ::view-transition-new(root) {
+    html[data-transition-type='route']::view-transition-group(*),
+    html[data-transition-type='route']::view-transition-old(*),
+    html[data-transition-type='route']::view-transition-new(*) {
       animation: none;
     }
-    html[data-transition-type='route'] ::view-transition-old(studio-workbench) {
+    html[data-transition-type='route']::view-transition-old(studio-workbench) {
       animation: studio-workbench-exit var(--studio-route-exit-dur) var(--studio-route-ease) both;
     }
-    html[data-transition-type='route'] ::view-transition-new(studio-workbench) {
+    html[data-transition-type='route']::view-transition-new(studio-workbench) {
       animation: studio-workbench-enter var(--studio-route-dur) var(--studio-route-ease) both;
     }
   }
@@ -329,29 +326,6 @@ react-scan-overlay,
     from {
       opacity: 0;
       transform: translateX(var(--studio-route-from-x));
-    }
-  }
-
-  .style-folder-enter {
-    animation: style-folder-enter 360ms cubic-bezier(0.215, 0.61, 0.355, 1)
-      var(--style-folder-enter-delay, 0ms) backwards;
-    transform-origin: center bottom;
-  }
-
-  @keyframes style-folder-enter {
-    from {
-      opacity: 0;
-      transform: translateY(14px) scale(0.985);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .style-folder-enter {
-      animation: none;
     }
   }
 
@@ -384,9 +358,6 @@ react-scan-overlay,
   }
   .ghost-btn:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.05);
-  }
-  .ghost-btn:active:not(:disabled) {
-    transform: scale(0.96);
   }
 
   .style-preset-thumbnail {
@@ -434,10 +405,6 @@ react-scan-overlay,
   button:not(:disabled),
   [role='button']:not([aria-disabled='true']) {
     cursor: pointer;
-  }
-  .character-lab-action-card:active:not(:disabled),
-  .character-lab-control-card:active:not(:disabled) {
-    transform: scale(0.98);
   }
   .character-lab-preview-option {
     transform-origin: center;
@@ -679,14 +646,10 @@ react-scan-overlay,
   .vt-style-pack-title {
     view-transition-name: style-pack-title;
   }
-  .vt-style-actionbar {
-    view-transition-name: style-actionbar;
-  }
 
   ::view-transition-group(style-browser-surface),
   ::view-transition-group(style-tabs),
-  ::view-transition-group(style-pack-title),
-  ::view-transition-group(style-actionbar) {
+  ::view-transition-group(style-pack-title) {
     animation-duration: 0.24s;
     animation-timing-function: var(--ease-out-expo);
   }
@@ -695,9 +658,7 @@ react-scan-overlay,
   ::view-transition-old(style-tabs),
   ::view-transition-new(style-tabs),
   ::view-transition-old(style-pack-title),
-  ::view-transition-new(style-pack-title),
-  ::view-transition-old(style-actionbar),
-  ::view-transition-new(style-actionbar) {
+  ::view-transition-new(style-pack-title) {
     mix-blend-mode: normal;
   }
 

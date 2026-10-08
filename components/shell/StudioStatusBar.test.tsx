@@ -108,7 +108,13 @@ describe('StudioStatusBar', () => {
     expect(screen.getByLabelText('ChatGPT: Ready').textContent).toContain('91%');
     expect(screen.queryByLabelText('Google: Ready')).toBeNull();
     expect(screen.getByRole('button', { name: 'Open runtime status: Ready' }).textContent).toBe('');
-    expect(screen.getByRole('button', { name: 'Codex weekly usage status' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Codex usage status' }));
+    expect(screen.getByRole('region', { name: 'Codex account usage' }).textContent).toContain(
+      'Weekly: 55% available',
+    );
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('region', { name: 'Codex account usage' })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Codex usage status' }));
     expect(screen.getByRole('button', { name: 'Open runtime status: Ready' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /open jobs/i }));
     expect(onToggleQueue).toHaveBeenCalled();

@@ -46,6 +46,108 @@ function getCompactChangedRows(result: StorageMaintenanceCompactResult | null) {
   return result?.results.reduce((total, item) => total + item.changedRows, 0) ?? 0;
 }
 
+function RepairPlanDetails({
+  repairPlan,
+}: {
+  repairPlan: ReturnType<typeof createStorageRepairPlanFromAudit> | null;
+}) {
+  if (!repairPlan) return null;
+  return (
+    <div className="mt-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]">
+          Repair Plan
+        </div>
+        <div className="font-mono text-[length:var(--wbp-label)] font-bold text-[color:var(--wb-muted)]">
+          {repairPlan.summary.itemCount} items / {formatBytes(repairPlan.summary.totalBytes)}
+        </div>
+      </div>
+      {repairPlan.items.length > 0 ? (
+        <div className="grid gap-2">
+          {repairPlan.items.map((item) => (
+            <div
+              key={item.id}
+              className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] px-3 py-2"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
+                  {item.title}
+                </span>
+                <span
+                  className={`text-[length:var(--wbp-label)] font-semibold tracking-normal ${
+                    item.severity === 'warning'
+                      ? 'text-[color:var(--wb-warning)] '
+                      : 'text-[color:var(--wb-muted)]'
+                  }`}
+                >
+                  {item.severity}
+                </span>
+              </div>
+              <p className="mt-1 text-[length:var(--wbp-label)] leading-relaxed text-[color:var(--wb-muted)]">
+                {item.detail}
+              </p>
+              <div className="mt-2 truncate font-mono text-[length:var(--wbp-label)] text-[color:var(--wb-dim)]">
+                {item.command}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-dim)]">
+          No repair actions recommended by the current audit.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MaintenanceResults({
+  compactResult,
+  thumbnailBackfillResult,
+  toolingLogsPruneResult,
+}: Pick<
+  SettingsMaintenancePanelProps['maintenance'],
+  'compactResult' | 'thumbnailBackfillResult' | 'toolingLogsPruneResult'
+>) {
+  const compactRows = getCompactChangedRows(compactResult);
+  const compactBytes = getCompactOmittedBytes(compactResult);
+  return (
+    <>
+      {(compactResult || thumbnailBackfillResult || toolingLogsPruneResult) && (
+        <div className="mt-3 grid gap-2 text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-muted)] md:grid-cols-3">
+          {compactResult ? (
+            <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
+              <span className="text-[color:var(--wb-ink)]">Compact {compactResult.mode}</span>
+              <div className="mt-1 font-mono text-[color:var(--wb-muted)]">
+                {compactRows} rows / {formatBytes(compactBytes)}
+              </div>
+            </div>
+          ) : null}
+          {thumbnailBackfillResult ? (
+            <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
+              <span className="text-[color:var(--wb-ink)]">
+                Thumbs {thumbnailBackfillResult.mode}
+              </span>
+              <div className="mt-1 font-mono text-[color:var(--wb-muted)]">
+                {thumbnailBackfillResult.wroteRows} wrote / {thumbnailBackfillResult.plannedRows}{' '}
+                planned / {thumbnailBackfillResult.missingSourceFiles} missing
+              </div>
+            </div>
+          ) : null}
+          {toolingLogsPruneResult ? (
+            <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
+              <span className="text-[color:var(--wb-ink)]">Logs pruned</span>
+              <div className="mt-1 font-mono text-[color:var(--wb-muted)]">
+                {toolingLogsPruneResult.pruned} files / keep {toolingLogsPruneResult.retainPerTask}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
+    </>
+  );
+}
+
 export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePanelProps) {
   const {
     audit,
@@ -248,85 +350,13 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
         </div>
       </div>
 
-      {repairPlan ? (
-        <div className="mt-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]">
-              Repair Plan
-            </div>
-            <div className="font-mono text-[length:var(--wbp-label)] font-bold text-[color:var(--wb-muted)]">
-              {repairPlan.summary.itemCount} items / {formatBytes(repairPlan.summary.totalBytes)}
-            </div>
-          </div>
-          {repairPlan.items.length > 0 ? (
-            <div className="grid gap-2">
-              {repairPlan.items.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] px-3 py-2"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
-                      {item.title}
-                    </span>
-                    <span
-                      className={`text-[length:var(--wbp-label)] font-semibold tracking-normal ${
-                        item.severity === 'warning'
-                          ? 'text-[color:var(--wb-warning)] '
-                          : 'text-[color:var(--wb-muted)]'
-                      }`}
-                    >
-                      {item.severity}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-[length:var(--wbp-label)] leading-relaxed text-[color:var(--wb-muted)]">
-                    {item.detail}
-                  </p>
-                  <div className="mt-2 truncate font-mono text-[length:var(--wbp-label)] text-[color:var(--wb-dim)]">
-                    {item.command}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-dim)]">
-              No repair actions recommended by the current audit.
-            </div>
-          )}
-        </div>
-      ) : null}
+      <RepairPlanDetails repairPlan={repairPlan} />
 
-      {(compactResult || thumbnailBackfillResult || toolingLogsPruneResult) && (
-        <div className="mt-3 grid gap-2 text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-muted)] md:grid-cols-3">
-          {compactResult ? (
-            <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
-              <span className="text-[color:var(--wb-ink)]">Compact {compactResult.mode}</span>
-              <div className="mt-1 font-mono text-[color:var(--wb-muted)]">
-                {compactRows} rows / {formatBytes(compactBytes)}
-              </div>
-            </div>
-          ) : null}
-          {thumbnailBackfillResult ? (
-            <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
-              <span className="text-[color:var(--wb-ink)]">
-                Thumbs {thumbnailBackfillResult.mode}
-              </span>
-              <div className="mt-1 font-mono text-[color:var(--wb-muted)]">
-                {thumbnailBackfillResult.wroteRows} wrote / {thumbnailBackfillResult.plannedRows}{' '}
-                planned / {thumbnailBackfillResult.missingSourceFiles} missing
-              </div>
-            </div>
-          ) : null}
-          {toolingLogsPruneResult ? (
-            <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
-              <span className="text-[color:var(--wb-ink)]">Logs pruned</span>
-              <div className="mt-1 font-mono text-[color:var(--wb-muted)]">
-                {toolingLogsPruneResult.pruned} files / keep {toolingLogsPruneResult.retainPerTask}
-              </div>
-            </div>
-          ) : null}
-        </div>
-      )}
+      <MaintenanceResults
+        compactResult={compactResult}
+        thumbnailBackfillResult={thumbnailBackfillResult}
+        toolingLogsPruneResult={toolingLogsPruneResult}
+      />
       <ConfirmationModal
         isOpen={Boolean(confirmation)}
         title="Confirm maintenance"
@@ -343,5 +373,3 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
     </div>
   );
 }
-
-// react-doctor-disable-next-line react-doctor/no-many-boolean-props -- settings dialog boundary intentionally receives explicit UI/loading flags

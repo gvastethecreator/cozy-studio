@@ -1,4 +1,3 @@
-import { MotionDiv } from '../lib/gsapMotion';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import React from 'react';
 import {
@@ -24,24 +23,18 @@ export const DashboardModal: React.FC<DashboardModalProps> = ({
   imagesCount,
   workspaces,
 }) => {
-  const dialogRef = useDialogFocus(isOpen, onClose);
+  const dialogRef = useDialogFocus<HTMLDialogElement>(isOpen, onClose);
   if (!isOpen) return null;
 
   return (
-    <MotionDiv
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-100 flex items-center justify-center studio-scrim p-0 sm:p-4"
+    <dialog
+      aria-modal="true"
+      ref={dialogRef}
+      aria-label="Library summary"
+      tabIndex={-1}
+      className="studio-modal fixed inset-0 z-100 flex items-center justify-center studio-scrim p-0 sm:p-4"
     >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Library summary"
-        tabIndex={-1}
-        className="vt-dashboard-modal studio-dialog flex h-full w-full max-w-xl flex-col overflow-hidden sm:h-auto sm:max-h-[88vh] sm:rounded-[var(--wb-radius)]"
-      >
+      <div className="vt-dashboard-modal studio-dialog flex h-full w-full max-w-xl flex-col overflow-hidden sm:h-auto sm:max-h-[88vh] sm:rounded-[var(--wb-radius)]">
         <div className="flex shrink-0 items-center justify-between border-b border-[color:var(--wb-line)] p-4 sm:p-6">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-[var(--wb-radius)] bg-accent-500/10 text-accent-400">
@@ -124,6 +117,6 @@ export const DashboardModal: React.FC<DashboardModalProps> = ({
           </div>
         </div>
       </div>
-    </MotionDiv>
+    </dialog>
   );
 };

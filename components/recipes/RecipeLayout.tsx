@@ -20,7 +20,7 @@ export const RecipeLayout: React.FC<RecipeLayoutProps> = ({
 }) => {
   return (
     <div
-      className={`recipe-layout-enter w-full h-full flex flex-col relative ${isGenerating ? 'data-[generating=true]:opacity-100' : ''}`}
+      className={`w-full h-full flex flex-col relative ${isGenerating ? 'data-[generating=true]:opacity-100' : ''}`}
       data-generating={isGenerating ? 'true' : 'false'}
     >
       {/* Main Content Area */}

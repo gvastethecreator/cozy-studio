@@ -24,13 +24,7 @@ const controlPrimary = `${controlBase} studio-primary-control`;
 const controlGhost = `${controlBase} studio-ghost-control`;
 const controlQuiet = `${controlBase} border border-[color:var(--wb-line)] bg-transparent text-[color:var(--wb-muted)] hover:border-rose-500/2 hover:bg-rose-500/10 hover:text-[color:var(--wb-danger)] `;
 
-export function SubscriptionAuthControls({
-  providerId,
-  compact = false,
-}: {
-  providerId: SubscriptionProviderId;
-  compact?: boolean;
-}) {
+function useSubscriptionAuth(providerId: SubscriptionProviderId) {
   const [status, setStatus] = useState<SubscriptionAuthPublicStatus | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -49,6 +43,7 @@ export function SubscriptionAuthControls({
         if (signal?.aborted) return;
         setError(loadError instanceof Error ? loadError.message : 'Unable to load Sign in status.');
       } finally {
+        // react-doctor-disable-next-line react-doctor/no-loading-flag-reset-outside-finally -- already in finally; aborted superseded requests must not reset a current provider load
         if (!signal?.aborted) setIsLoadingStatus(false);
       }
     },
@@ -128,6 +123,153 @@ export function SubscriptionAuthControls({
     }
   };
 
+  return {
+    status,
+    error,
+    copied,
+    busy,
+    isLoadingStatus,
+    browserUrl,
+    statusLabel,
+    signInDisabled,
+    run,
+    copyCode,
+    loadStatus,
+  };
+}
+
+function PendingSubscriptionAuth({
+  providerId,
+  status,
+  browserUrl,
+  busy,
+  copied,
+  copyCode,
+  run,
+}: {
+  providerId: SubscriptionProviderId;
+  status: SubscriptionAuthPublicStatus;
+  browserUrl: string;
+  busy: boolean;
+  copied: boolean;
+  copyCode: () => Promise<void>;
+  run: (work: () => Promise<SubscriptionAuthPublicStatus>) => Promise<void>;
+}) {
+  const statusLabel = subscriptionAuthStatusLabel(status.status);
+  return (
+    <div className="grid gap-3 rounded-[var(--wb-radius)] border border-accent-400/2 bg-accent-500/10 p-3">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[12px] leading-relaxed text-[color:var(--wb-ink)]">
+          {status.userCode
+            ? 'Confirm this code in the browser. Studio finishes Sign in automatically.'
+            : 'Approve access in the browser. Studio finishes Sign in automatically.'}
+        </p>
+        <span
+          className={`inline-flex h-6 shrink-0 items-center rounded-[var(--wb-radius)] border px-2 text-[length:var(--wbp-label)] font-semibold ${subscriptionAuthPillClass(status.status)}`}
+        >
+          {statusLabel}
+        </span>
+      </div>
+      {status.userCode ? (
+        <div className="flex items-center gap-2">
+          <code className="min-w-0 flex-1 truncate rounded-[var(--wb-radius)] bg-[color:var(--wb-well)] px-3 py-2 font-mono text-sm tracking-normal text-[color:var(--wb-ink)]">
+            {status.userCode}
+          </code>
+          <button
+            type="button"
+            onClick={() => void copyCode()}
+            aria-label="Copy user code"
+            className={`${controlGhost} size-9 shrink-0 px-0`}
+          >
+            {copied ? <Check width={15} height={15} /> : <CopyIcon width={15} height={15} />}
+          </button>
+        </div>
+      ) : null}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+        <a href={browserUrl} target="_blank" rel="noreferrer" className={controlPrimary}>
+          <OpenNewWindow width={14} height={14} />
+          {subscriptionAuthOpenLabel(providerId)}
+        </a>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void run(() => cancelSubscriptionAuth(providerId))}
+          className={controlGhost}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SubscriptionAccountAction({
+  status,
+  busy,
+  isLoadingStatus,
+  providerId,
+  loadStatus,
+  run,
+  signInDisabled,
+}: Pick<
+  ReturnType<typeof useSubscriptionAuth>,
+  'status' | 'busy' | 'isLoadingStatus' | 'loadStatus' | 'run' | 'signInDisabled'
+> & { providerId: SubscriptionProviderId }) {
+  return (
+    <>
+      {status?.status === 'logged_in' ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void run(() => logoutSubscriptionAuth(providerId))}
+          className={controlQuiet}
+        >
+          Sign out
+        </button>
+      ) : status === null ? (
+        <button
+          type="button"
+          disabled={busy || isLoadingStatus}
+          onClick={() => void loadStatus()}
+          className={controlGhost}
+        >
+          {isLoadingStatus ? 'Loading status' : 'Retry status'}
+        </button>
+      ) : (
+        <button
+          type="button"
+          disabled={signInDisabled}
+          onClick={() => void run(() => startSubscriptionAuth(providerId))}
+          className={controlPrimary}
+        >
+          Sign in
+        </button>
+      )}
+    </>
+  );
+}
+
+export function SubscriptionAuthControls({
+  providerId,
+  compact = false,
+}: {
+  providerId: SubscriptionProviderId;
+  compact?: boolean;
+}) {
+  const {
+    status,
+    error,
+    copied,
+    busy,
+    isLoadingStatus,
+    browserUrl,
+    statusLabel,
+    signInDisabled,
+    run,
+    copyCode,
+    loadStatus,
+  } = useSubscriptionAuth(providerId);
+
   return (
     <div
       className="settings-account-auth"
@@ -135,49 +277,15 @@ export function SubscriptionAuthControls({
       data-has-account={status?.status === 'logged_in' && status.accountLabel ? true : undefined}
     >
       {status?.status === 'pending' && browserUrl ? (
-        <div className="grid gap-3 rounded-[var(--wb-radius)] border border-accent-400/2 bg-accent-500/10 p-3">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-[12px] leading-relaxed text-[color:var(--wb-ink)]">
-              {status.userCode
-                ? 'Confirm this code in the browser. Studio finishes Sign in automatically.'
-                : 'Approve access in the browser. Studio finishes Sign in automatically.'}
-            </p>
-            <span
-              className={`inline-flex h-6 shrink-0 items-center rounded-[var(--wb-radius)] border px-2 text-[length:var(--wbp-label)] font-semibold ${subscriptionAuthPillClass(status.status)}`}
-            >
-              {statusLabel}
-            </span>
-          </div>
-          {status.userCode ? (
-            <div className="flex items-center gap-2">
-              <code className="min-w-0 flex-1 truncate rounded-[var(--wb-radius)] bg-[color:var(--wb-well)] px-3 py-2 font-mono text-sm tracking-normal text-[color:var(--wb-ink)]">
-                {status.userCode}
-              </code>
-              <button
-                type="button"
-                onClick={() => void copyCode()}
-                aria-label="Copy user code"
-                className={`${controlGhost} size-9 shrink-0 px-0`}
-              >
-                {copied ? <Check width={15} height={15} /> : <CopyIcon width={15} height={15} />}
-              </button>
-            </div>
-          ) : null}
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-            <a href={browserUrl} target="_blank" rel="noreferrer" className={controlPrimary}>
-              <OpenNewWindow width={14} height={14} />
-              {subscriptionAuthOpenLabel(providerId)}
-            </a>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void run(() => cancelSubscriptionAuth(providerId))}
-              className={controlGhost}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+        <PendingSubscriptionAuth
+          providerId={providerId}
+          status={status}
+          browserUrl={browserUrl}
+          busy={busy}
+          copied={copied}
+          copyCode={copyCode}
+          run={run}
+        />
       ) : (
         <div className="settings-account-auth-row">
           <div className="settings-account-identity">
@@ -191,34 +299,15 @@ export function SubscriptionAuthControls({
               <span className="settings-account-name">{status.accountLabel}</span>
             )}
           </div>
-          {status?.status === 'logged_in' ? (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void run(() => logoutSubscriptionAuth(providerId))}
-              className={controlQuiet}
-            >
-              Sign out
-            </button>
-          ) : status === null ? (
-            <button
-              type="button"
-              disabled={busy || isLoadingStatus}
-              onClick={() => void loadStatus()}
-              className={controlGhost}
-            >
-              {isLoadingStatus ? 'Loading status' : 'Retry status'}
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled={signInDisabled}
-              onClick={() => void run(() => startSubscriptionAuth(providerId))}
-              className={controlPrimary}
-            >
-              Sign in
-            </button>
-          )}
+          <SubscriptionAccountAction
+            status={status}
+            busy={busy}
+            isLoadingStatus={isLoadingStatus}
+            providerId={providerId}
+            loadStatus={loadStatus}
+            run={run}
+            signInDisabled={signInDisabled}
+          />
         </div>
       )}
       <span role="status" aria-live="polite" className="sr-only">

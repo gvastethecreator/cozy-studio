@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type SetStateAction } from 'react';
 import type { Attachment, ImageGenerationConfig } from '../../types';
 import type { StyleRuntimePreset } from './styles/runtimeTypes';
 import {
@@ -10,11 +10,12 @@ import {
   DEFAULT_SELECTED_STYLE_STRENGTH,
   type SelectedStyleSlot,
   type SelectedStyleLayer,
-  STYLE_LAYER_FIELD_DEFINITIONS,
   type StyleLayerAvoidRulesMode,
   type StyleLayerFieldId,
   type StyleReferenceMode,
 } from './styleLayerComposer';
+import { useLatestRef } from '../../hooks/useLatestRef';
+import { readSelectedStyleDraft, projectStyleCompositionDraft } from './styleCompositionDraft';
 import * as Intentional from '../../packages/shared/src/styles/intentional-v1';
 
 interface StyleCompositionInput {
@@ -48,75 +49,52 @@ export function useStyleComposition({
   defaultStyleIntensity = DEFAULT_SELECTED_STYLE_STRENGTH,
   defaultStyleReferenceMode,
 }: StyleCompositionInput) {
-  const [selectedStyles, setSelectedStyles] = useState<SelectedStyleSlot[]>([]);
-  const [intentionalMode, setIntentionalMode] = useState<Intentional.Mode>(() => {
-    const params = config.recipeParams;
-    const saved = params?.intentionalMode ?? params?.styleReferenceMode;
-    if (saved === 'generate' || saved === 'preserve' || saved === 'reinterpret') {
-      return intentionalStylesV1 || saved !== 'generate' ? saved : 'preserve';
-    }
-    return defaultStyleReferenceMode ?? (intentionalStylesV1 ? 'generate' : 'preserve');
-  });
-  useEffect(() => {
-    if (!intentionalStylesV1 && intentionalMode === 'generate') setIntentionalMode('preserve');
-  }, [intentionalMode, intentionalStylesV1]);
+  const configRef = useLatestRef(config);
+  const selectedStyles = useMemo(
+    () => readSelectedStyleDraft(config.recipeParams),
+    [config.recipeParams],
+  );
+  const savedMode = config.recipeParams?.intentionalMode ?? config.recipeParams?.styleReferenceMode;
+  const preferredMode =
+    savedMode === 'generate' || savedMode === 'preserve' || savedMode === 'reinterpret'
+      ? savedMode
+      : (defaultStyleReferenceMode ?? (intentionalStylesV1 ? 'generate' : 'preserve'));
+  const intentionalMode: Intentional.Mode =
+    !intentionalStylesV1 && preferredMode === 'generate' ? 'preserve' : preferredMode;
   const [compileIssues, setCompileIssues] = useState<Intentional.Issue[]>([]);
-  const didRestoreSelection = useRef(false);
-  useEffect(() => {
-    if (selectedStyles.length > 0 || !defaultStyleReferenceMode) return;
-    if (config.recipeParams?.intentionalMode || config.recipeParams?.styleReferenceMode) return;
-    setIntentionalMode(defaultStyleReferenceMode);
-  }, [config.recipeParams, defaultStyleReferenceMode, selectedStyles.length]);
-  useEffect(() => {
-    if (didRestoreSelection.current) return;
-    if (selectedStyles.length > 0) {
-      didRestoreSelection.current = true;
-      return;
-    }
-    const draftSlots = config.recipeParams?.selectedStyleDraft;
-    if (Array.isArray(draftSlots)) {
-      didRestoreSelection.current = true;
-      setSelectedStyles(draftSlots as SelectedStyleSlot[]);
-      return;
-    }
-    const layers = (config.recipeParams as { selectedStyles?: SelectedStyleLayer[] } | null)
-      ?.selectedStyles;
-    if (!Array.isArray(layers) || !layers.length) {
-      didRestoreSelection.current = true;
-      return;
-    }
-    didRestoreSelection.current = true;
-    setSelectedStyles(
-      layers.map((layer) => ({
-        packId: layer.packId,
-        packName: layer.packName,
-        strength: layer.strength,
-        enabled: layer.enabled,
-        avoidRulesMode: layer.avoidRulesMode,
-        fieldControls: layer.fields,
-        preset: {
-          id: layer.presetId,
-          name: layer.presetSourceName || layer.presetName,
-          displayName: layer.presetName,
-          category: layer.category,
-          styleAnchors: layer.styleAnchors,
-          negativePrompt:
-            typeof config.recipeParams?.negativePrompt === 'string'
-              ? config.recipeParams.negativePrompt
-              : '',
-          style: {
-            creative_brief: layer.creativeBrief,
-            ...Object.fromEntries(
-              STYLE_LAYER_FIELD_DEFINITIONS.map((field) => [
-                field.sourceKeys[0],
-                layer[field.paramKey]?.replace(/ \(field weight [^)]+\)$/, ''),
-              ]),
-            ),
-          } as SelectedStyleSlot['preset']['style'],
+  const commitComposition = useCallback(
+    (slots: SelectedStyleSlot[], mode: Intentional.Mode) => {
+      const current = configRef.current;
+      const draftConfig: ImageGenerationConfig = {
+        ...current,
+        recipeId: slots.some((slot) => slot.enabled ?? true) ? 'styles' : null,
+        recipeParams: {
+          ...(intentionalStylesV1 ? { intentionalMode: mode } : {}),
+          ...(mode === 'generate' ? {} : { styleReferenceMode: mode }),
+          selectedStyleDraft: slots,
         },
-      })),
-    );
-  }, [config.recipeParams, selectedStyles.length]);
+      };
+      const next = intentionalStylesV1 ? draftConfig : projectStyleCompositionDraft(draftConfig);
+      configRef.current = next;
+      updateConfig('recipeId', next.recipeId);
+      updateConfig('recipeParams', next.recipeParams);
+    },
+    [configRef, intentionalStylesV1, updateConfig],
+  );
+  const setSelectedStyles = useCallback(
+    (update: SetStateAction<SelectedStyleSlot[]>) => {
+      const current = readSelectedStyleDraft(configRef.current.recipeParams);
+      const next = typeof update === 'function' ? update(current) : update;
+      commitComposition(next, intentionalMode);
+    },
+    [commitComposition, configRef, intentionalMode],
+  );
+  const setIntentionalMode = useCallback(
+    (mode: Intentional.Mode) => {
+      commitComposition(readSelectedStyleDraft(configRef.current.recipeParams), mode);
+    },
+    [commitComposition, configRef],
+  );
   const [isAdvancedStyleControlsOpen, setIsAdvancedStyleControlsOpen] = useState(false);
   const selectedStyleIds = useMemo(
     () => new Set(selectedStyles.map((slot) => slot.preset.id)),
@@ -145,7 +123,7 @@ export function useStyleComposition({
         ];
       });
     },
-    [defaultStyleIntensity, maxSlots],
+    [defaultStyleIntensity, maxSlots, setSelectedStyles],
   );
   const selectedStyleLayers = useMemo(
     () => selectedStyles.map(createSelectedStyleLayer),
@@ -169,36 +147,12 @@ export function useStyleComposition({
           | undefined
       )?.length ?? 0);
   useEffect(() => {
-    if (!didRestoreSelection.current && selectedStyles.length === 0) return;
-    if (intentionalStylesV1) return;
-    updateConfig('recipeId', registeredStyleGenerationPlan ? 'styles' : null);
-    updateConfig('recipeParams', {
-      ...registeredStyleGenerationPlan?.recipeParams,
-      ...(registeredStyleGenerationPlan
-        ? { styleReferenceMode: intentionalMode === 'generate' ? 'preserve' : intentionalMode }
-        : {}),
-      selectedStyles: registeredStyleGenerationPlan?.recipeParams.selectedStyles ?? [],
-      selectedStyleDraft: selectedStyles,
-    });
-  }, [
-    intentionalMode,
-    intentionalStylesV1,
-    registeredStyleGenerationPlan,
-    selectedStyles,
-    updateConfig,
-  ]);
-
-  useEffect(() => {
     if (!intentionalStylesV1) return;
-    if (!didRestoreSelection.current && selectedStyles.length === 0) return;
     if (activeSelectedStyleCount === 0) {
       setCompileIssues([]);
-      updateConfig('recipeId', null);
-      updateConfig('recipeParams', { selectedStyleDraft: selectedStyles });
       return;
     }
     let cancelled = false;
-    updateConfig('recipeId', 'styles');
     void (async () => {
       try {
         const { compileIntentionalStylePlan } = await import('./intentionalStyleCompile');
@@ -278,44 +232,53 @@ export function useStyleComposition({
     selectedStyles,
     updateConfig,
   ]);
-  const updateSelectedStyleStrength = useCallback((presetId: string, strength: number) => {
-    setSelectedStyles((current) =>
-      current.map((slot) =>
-        slot.preset.id === presetId ? { ...slot, strength: clampStyleStrength(strength) } : slot,
-      ),
-    );
-  }, []);
+  const updateSelectedStyleStrength = useCallback(
+    (presetId: string, strength: number) => {
+      setSelectedStyles((current) =>
+        current.map((slot) =>
+          slot.preset.id === presetId ? { ...slot, strength: clampStyleStrength(strength) } : slot,
+        ),
+      );
+    },
+    [setSelectedStyles],
+  );
 
-  const toggleSelectedStyleEnabled = useCallback((presetId: string) => {
-    setSelectedStyles((current) =>
-      current.map((slot) =>
-        slot.preset.id === presetId ? { ...slot, enabled: !(slot.enabled ?? true) } : slot,
-      ),
-    );
-  }, []);
+  const toggleSelectedStyleEnabled = useCallback(
+    (presetId: string) => {
+      setSelectedStyles((current) =>
+        current.map((slot) =>
+          slot.preset.id === presetId ? { ...slot, enabled: !(slot.enabled ?? true) } : slot,
+        ),
+      );
+    },
+    [setSelectedStyles],
+  );
 
-  const toggleSelectedStyleField = useCallback((presetId: string, fieldId: StyleLayerFieldId) => {
-    setSelectedStyles((current) =>
-      current.map((slot) => {
-        if (slot.preset.id !== presetId) return slot;
-        const controls = {
-          ...createDefaultStyleLayerFieldControls(),
-          ...slot.fieldControls,
-        };
-        const currentField = controls[fieldId] ?? { enabled: true, weight: 1 };
-        return {
-          ...slot,
-          fieldControls: {
-            ...controls,
-            [fieldId]: {
-              ...currentField,
-              enabled: !currentField.enabled,
+  const toggleSelectedStyleField = useCallback(
+    (presetId: string, fieldId: StyleLayerFieldId) => {
+      setSelectedStyles((current) =>
+        current.map((slot) => {
+          if (slot.preset.id !== presetId) return slot;
+          const controls = {
+            ...createDefaultStyleLayerFieldControls(),
+            ...slot.fieldControls,
+          };
+          const currentField = controls[fieldId] ?? { enabled: true, weight: 1 };
+          return {
+            ...slot,
+            fieldControls: {
+              ...controls,
+              [fieldId]: {
+                ...currentField,
+                enabled: !currentField.enabled,
+              },
             },
-          },
-        };
-      }),
-    );
-  }, []);
+          };
+        }),
+      );
+    },
+    [setSelectedStyles],
+  );
 
   const updateSelectedStyleFieldWeight = useCallback(
     (presetId: string, fieldId: StyleLayerFieldId, weight: number) => {
@@ -340,7 +303,7 @@ export function useStyleComposition({
         }),
       );
     },
-    [],
+    [setSelectedStyles],
   );
 
   const setSelectedStyleAvoidRulesMode = useCallback(
@@ -349,24 +312,30 @@ export function useStyleComposition({
         current.map((slot) => (slot.preset.id === presetId ? { ...slot, avoidRulesMode } : slot)),
       );
     },
-    [],
+    [setSelectedStyles],
   );
 
-  const removeSelectedStyle = useCallback((presetId: string) => {
-    setSelectedStyles((current) => current.filter((slot) => slot.preset.id !== presetId));
-  }, []);
+  const removeSelectedStyle = useCallback(
+    (presetId: string) => {
+      setSelectedStyles((current) => current.filter((slot) => slot.preset.id !== presetId));
+    },
+    [setSelectedStyles],
+  );
 
-  const moveSelectedStyle = useCallback((presetId: string, direction: -1 | 1) => {
-    setSelectedStyles((current) => {
-      const index = current.findIndex((slot) => slot.preset.id === presetId);
-      const nextIndex = index + direction;
-      if (index < 0 || nextIndex < 0 || nextIndex >= current.length) return current;
-      const next = [...current];
-      const [moved] = next.splice(index, 1);
-      next.splice(nextIndex, 0, moved);
-      return next;
-    });
-  }, []);
+  const moveSelectedStyle = useCallback(
+    (presetId: string, direction: -1 | 1) => {
+      setSelectedStyles((current) => {
+        const index = current.findIndex((slot) => slot.preset.id === presetId);
+        const nextIndex = index + direction;
+        if (index < 0 || nextIndex < 0 || nextIndex >= current.length) return current;
+        const next = [...current];
+        const [moved] = next.splice(index, 1);
+        next.splice(nextIndex, 0, moved);
+        return next;
+      });
+    },
+    [setSelectedStyles],
+  );
 
   const handleGenerateSelectedStyles = useCallback(() => {
     if (intentionalStylesV1) {
@@ -406,7 +375,6 @@ export function useStyleComposition({
     config.executionSpeed,
     config.imageSize,
     config.model,
-    config.negativePrompt,
     config.prompt,
     onGenerate,
     referenceImages,
@@ -415,7 +383,7 @@ export function useStyleComposition({
     intentionalStylesV1,
   ]);
 
-  const clear = useCallback(() => setSelectedStyles([]), []);
+  const clear = useCallback(() => setSelectedStyles([]), [setSelectedStyles]);
   const toggleAdvanced = useCallback(
     () => setIsAdvancedStyleControlsOpen((current) => !current),
     [],
@@ -425,7 +393,7 @@ export function useStyleComposition({
       setSelectedStyles((current) =>
         current.map((slot) => (slot.preset.id === preset.id ? { ...slot, preset } : slot)),
       ),
-    [],
+    [setSelectedStyles],
   );
   return {
     selectedStyles,

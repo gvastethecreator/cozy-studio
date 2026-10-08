@@ -1,6 +1,6 @@
 import { CatalogCardBackdrop } from '../CatalogCardBackdrop';
 import { Check, Copy, Heart, Palette, InfoCircle as Eye, TextBox as TextPlus } from 'iconoir-react';
-import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo } from 'react';
 
 import type { GeneratedImageWithConfig } from '../../types';
 import {
@@ -13,15 +13,6 @@ import type { StyleCollectionRuntimePreset } from './styles/collections';
 import type { StyleTheme } from './StyleRecipeNavigationPanel';
 
 const EMPTY_IMAGES: GeneratedImageWithConfig[] = [];
-
-export interface StyleCardHoverPreview {
-  id: string;
-  name: string;
-  category: string;
-  packName: string;
-  aesthetic: string;
-  imageSrc: string | null;
-}
 
 export interface StylePresetVisualState {
   presetPackName: string;
@@ -60,7 +51,6 @@ export interface StylePresetCardProps {
   onUsePrompt?: (preset: StyleRuntimePreset) => void;
   onCopy: (e: React.MouseEvent, preset: StyleRuntimePreset) => void;
   onToggleFavorite: (presetId: string) => void;
-  onHoverPreviewChange: (preview: StyleCardHoverPreview | null) => void;
 }
 
 function resolveStyleCardImageDiagnostics({
@@ -150,10 +140,7 @@ export const StylePresetCard = React.memo(function StylePresetCard({
   onCopy,
   onUsePrompt,
   onToggleFavorite,
-  onHoverPreviewChange,
 }: StylePresetCardProps) {
-  const [imageIndex, setImageIndex] = useState(0);
-  const isHoveredRef = useRef(false);
   const resultImages = visualState?.resultImages ?? EMPTY_IMAGES;
   const cardImages = useMemo(
     () =>
@@ -170,48 +157,15 @@ export const StylePresetCard = React.memo(function StylePresetCard({
       visualState?.previewImage,
     ],
   );
-  const activeCardImage = cardImages[imageIndex] ?? cardImages[0] ?? null;
+  const activeCardImage = cardImages[0] ?? null;
   const presetDisplayName = getStyleRuntimePresetDisplayName(preset);
   const imageDiagnostics = resolveStyleCardImageDiagnostics({
     activeCardImage,
   });
 
-  useLayoutEffect(() => {
-    setImageIndex(0);
-  }, [cardImages.length]);
-
-  const applyHoverPreview = useCallback(
-    (imageSrc: string | null) => {
-      onHoverPreviewChange({
-        id: preset.id,
-        name: presetDisplayName,
-        category: preset.category || 'General',
-        packName: visualState?.presetPackName ?? 'Styles',
-        aesthetic: preset.style.aesthetic,
-        imageSrc,
-      });
-    },
-    [onHoverPreviewChange, preset, presetDisplayName, visualState?.presetPackName],
-  );
-
-  const syncHoverPreview = useCallback(
-    (nextIndex: number) => {
-      applyHoverPreview(cardImages[nextIndex]?.src || visualState?.exampleImageSrc || null);
-    },
-    [applyHoverPreview, cardImages, visualState?.exampleImageSrc],
-  );
-
   return (
     <>
       <div
-        onPointerEnter={() => {
-          isHoveredRef.current = true;
-          syncHoverPreview(imageIndex);
-        }}
-        onPointerLeave={() => {
-          isHoveredRef.current = false;
-          onHoverPreviewChange(null);
-        }}
         data-style-preset-card={preset.id}
         data-style-pack-id={packId}
         data-style-category={preset.category || 'General'}
@@ -258,47 +212,73 @@ export const StylePresetCard = React.memo(function StylePresetCard({
             </button>
           }
         >
-          <div className="style-card-actions catalog-hover-actions">
-            <button
-              type="button"
-              aria-label={`${favorite ? 'Unfavorite' : 'Favorite'} ${presetDisplayName}`}
-              aria-pressed={favorite}
-              onClick={() => onToggleFavorite(preset.id)}
-            >
-              <Heart width={14} height={14} fill={favorite ? 'currentColor' : 'none'} />
-            </button>
-            <button
-              type="button"
-              aria-label={`Information about ${presetDisplayName}`}
-              onClick={(event) => {
-                event.stopPropagation();
-                onInspect(preset);
-              }}
-            >
-              <Eye width={16} height={16} />
-            </button>
-            <button
-              type="button"
-              aria-label={copied ? 'Prompt copied' : 'Copy prompt'}
-              onClick={(event) => onCopy(event, preset)}
-            >
-              {copied ? <Check width={16} height={16} /> : <Copy width={16} height={16} />}
-            </button>
-            {onUsePrompt && (
-              <button
-                type="button"
-                aria-label="Use as prompt"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onUsePrompt(preset);
-                }}
-              >
-                <TextPlus width={16} height={16} />
-              </button>
-            )}
-          </div>
+          <StylePresetCardActions
+            preset={preset}
+            favorite={favorite}
+            copied={copied}
+            onToggleFavorite={onToggleFavorite}
+            onInspect={onInspect}
+            onCopy={onCopy}
+            onUsePrompt={onUsePrompt}
+          />
         </CatalogCardBackdrop>
       </div>
     </>
   );
 });
+
+function StylePresetCardActions({
+  preset,
+  favorite,
+  copied,
+  onToggleFavorite,
+  onInspect,
+  onCopy,
+  onUsePrompt,
+}: Pick<
+  StylePresetCardProps,
+  'preset' | 'favorite' | 'copied' | 'onToggleFavorite' | 'onInspect' | 'onCopy' | 'onUsePrompt'
+>) {
+  const presetDisplayName = getStyleRuntimePresetDisplayName(preset);
+  return (
+    <div className="style-card-actions catalog-hover-actions">
+      <button
+        type="button"
+        aria-label={`${favorite ? 'Unfavorite' : 'Favorite'} ${presetDisplayName}`}
+        aria-pressed={favorite}
+        onClick={() => onToggleFavorite(preset.id)}
+      >
+        <Heart width={14} height={14} fill={favorite ? 'currentColor' : 'none'} />
+      </button>
+      <button
+        type="button"
+        aria-label={`Information about ${presetDisplayName}`}
+        onClick={(event) => {
+          event.stopPropagation();
+          onInspect(preset);
+        }}
+      >
+        <Eye width={16} height={16} />
+      </button>
+      <button
+        type="button"
+        aria-label={copied ? 'Prompt copied' : 'Copy prompt'}
+        onClick={(event) => onCopy(event, preset)}
+      >
+        {copied ? <Check width={16} height={16} /> : <Copy width={16} height={16} />}
+      </button>
+      {onUsePrompt && (
+        <button
+          type="button"
+          aria-label="Use as prompt"
+          onClick={(event) => {
+            event.stopPropagation();
+            onUsePrompt(preset);
+          }}
+        >
+          <TextPlus width={16} height={16} />
+        </button>
+      )}
+    </div>
+  );
+}

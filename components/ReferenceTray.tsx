@@ -15,7 +15,7 @@ export function ReferenceTray({
   onFiles: (files: File[], replaceId?: string) => void;
   density?: 'default' | 'compact' | 'thumbs';
 }) {
-  const [failed, setFailed] = useState<string[]>([]);
+  const [failed, setFailed] = useState<Set<string>>(() => new Set());
   const isCompact = density === 'compact';
   const isThumbs = density === 'thumbs';
   return (
@@ -24,7 +24,7 @@ export function ReferenceTray({
         const roleLabel = index === 0 ? 'Source image' : `Detail reference ${index}`;
         const statusLabel = attachment.isProcessing
           ? 'Uploading…'
-          : failed.includes(attachment.id)
+          : failed.has(attachment.id)
             ? 'Preview unavailable · replace this image'
             : roleLabel;
         return (
@@ -45,7 +45,7 @@ export function ReferenceTray({
                 alt=""
                 onError={() =>
                   setFailed((current) =>
-                    current.includes(attachment.id) ? current : [...current, attachment.id],
+                    current.has(attachment.id) ? current : new Set(current).add(attachment.id),
                   )
                 }
               />

@@ -45,9 +45,9 @@ const LAYOUT_SHOTS: Partial<Record<string, readonly string[]>> = {
 
 function getShotOptions(layout: string) {
   const allowed = LAYOUT_SHOTS[layout];
-  return allowed
-    ? CONTROL_OPTIONS.shot.filter((shot) => allowed.includes(shot))
-    : CONTROL_OPTIONS.shot;
+  if (!allowed) return CONTROL_OPTIONS.shot;
+  const allowedShots = new Set(allowed);
+  return CONTROL_OPTIONS.shot.filter((shot) => allowedShots.has(shot));
 }
 
 function withCompatibleShot<T extends Record<SheetParamKey, string>>(params: T): T {

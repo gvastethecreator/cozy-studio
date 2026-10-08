@@ -342,7 +342,3 @@ export function readGrokRuntimeDoctor({ maxAgeMs = DEFAULT_DOCTOR_CACHE_MS } = {
   cachedReport = { report, expiresAt: now + maxAgeMs };
   return report;
 }
-
-export function clearGrokRuntimeDoctorCache() {
-  cachedReport = null;
-}

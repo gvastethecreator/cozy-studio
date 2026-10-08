@@ -14,7 +14,7 @@ import type {
   SubscriptionAuthStatus,
   SubscriptionProviderId,
 } from '../../../../packages/shared/src';
-import { resolveUserHome } from '../platformHome';
+import { isAbsolutePlatformPath, resolveUserHome } from '../platformHome';
 import { STUDIO_OAUTH_FILE_NAME, STUDIO_OAUTH_STORE_VERSION } from './constants';
 
 export interface StoredSubscriptionTokens {
@@ -184,12 +184,9 @@ function parseFile(raw: string, now: Date): SubscriptionAuthFile {
   };
 }
 
-function absoluteEnvPath(
-  value: string | undefined,
-  pathApi: Pick<typeof path, 'isAbsolute' | 'join'>,
-) {
+function absoluteEnvPath(value: string | undefined, platform: NodeJS.Platform) {
   const trimmed = value?.trim();
-  return trimmed && pathApi.isAbsolute(trimmed) ? trimmed : null;
+  return trimmed && isAbsolutePlatformPath(trimmed, platform) ? trimmed : null;
 }
 
 export function resolveSubscriptionAuthFilePath({
@@ -201,7 +198,7 @@ export function resolveSubscriptionAuthFilePath({
   let privateStateRoot: string;
   if (platform === 'win32') {
     privateStateRoot =
-      absoluteEnvPath(env.LOCALAPPDATA, pathApi) ?? pathApi.join(homeDir, 'AppData', 'Local');
+      absoluteEnvPath(env.LOCALAPPDATA, platform) ?? pathApi.join(homeDir, 'AppData', 'Local');
     return pathApi.join(privateStateRoot, 'Cozy Studio', 'auth', STUDIO_OAUTH_FILE_NAME);
   }
   if (platform === 'darwin') {
@@ -215,7 +212,7 @@ export function resolveSubscriptionAuthFilePath({
     );
   }
   privateStateRoot =
-    absoluteEnvPath(env.XDG_STATE_HOME, pathApi) ?? pathApi.join(homeDir, '.local', 'state');
+    absoluteEnvPath(env.XDG_STATE_HOME, platform) ?? pathApi.join(homeDir, '.local', 'state');
   return pathApi.join(privateStateRoot, 'cozy-studio', 'auth', STUDIO_OAUTH_FILE_NAME);
 }
 
@@ -343,10 +340,6 @@ let defaultStore: SubscriptionAuthStore | null = null;
 export function getSubscriptionAuthStore() {
   defaultStore ??= createSubscriptionAuthStore();
   return defaultStore;
-}
-
-export function resetSubscriptionAuthStoreForTests() {
-  defaultStore = null;
 }
 
 export function isSubscriptionLoggedIn(

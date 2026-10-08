@@ -64,13 +64,12 @@ artifacts/
 !artifacts/.gitkeep
 port-this/
 
-# Interface handoff runtime (keep config.json)
-.interface-handoff/state.json
-.interface-handoff/reconciliation.json
-.interface-handoff/inputs.*.json
-.interface-handoff/runs/
-.interface-handoff/cache/
-.interface-handoff/*.lock
+# Local development tools, not part of the public app
+.interface-handoff/
+skills/imagegen/
+skills/sprite-atlas-builder/
+doctor.config.json
+SKILLS.md
 
 # Project-specific generated style data
 components/recipes/styleRuntimePacks.generated/*.check.*.tmp.ts
@@ -98,7 +97,6 @@ test-files/
 
 # Third-party agent / IDE workspace dirs (local-only)
 .agents/
-!.agents/skills/
 .claude/
 .code-review-graph/
 .codebuddy/
@@ -111,10 +109,8 @@ test-files/
 .mux/
 .neovate/
 .openhands/
-.react-doctor/*
-!.react-doctor/false-positives.md
+.react-doctor/
 .vite-hooks/
-!.vite-hooks/pre-commit
 
 # Editor directories and files
 .vscode/*

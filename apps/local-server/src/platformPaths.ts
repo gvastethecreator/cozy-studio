@@ -1,16 +1,12 @@
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
-import { resolveUserHome } from './platformHome';
+import { isAbsolutePlatformPath, resolveUserHome } from './platformHome';
 
 export type PlatformPathKey =
   | 'codex-binary'
   | 'codex-skills-dir'
   | 'codex-generated-images'
   | 'codex-config-dir';
-
-function homeDir() {
-  return resolveUserHome();
-}
 
 function firstExisting(paths: string[], fallback: string) {
   return paths.find((candidate) => existsSync(candidate)) ?? fallback;
@@ -22,11 +18,11 @@ export interface PlatformPathCandidate {
 }
 
 function windowsOpenAiRuntimeCandidates(localAppData: string): PlatformPathCandidate[] {
-  const runtimeRoot = path.join(localAppData, 'OpenAI', 'Codex', 'bin');
+  const runtimeRoot = path.win32.join(localAppData, 'OpenAI', 'Codex', 'bin');
   try {
     return readdirSync(runtimeRoot, { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
-      .map((entry) => path.join(runtimeRoot, entry.name, 'codex.exe'))
+      .map((entry) => path.win32.join(runtimeRoot, entry.name, 'codex.exe'))
       .filter((candidate) => existsSync(candidate))
       .toSorted((left, right) => {
         try {
@@ -44,70 +40,68 @@ function windowsOpenAiRuntimeCandidates(localAppData: string): PlatformPathCandi
   }
 }
 
-function windowsCodexBinaryCandidates() {
-  const home = homeDir();
-  const appData = process.env.APPDATA || path.join(home, 'AppData', 'Roaming');
-  const localAppData = process.env.LOCALAPPDATA || path.join(home, 'AppData', 'Local');
-  const pathCandidates = (process.env.PATH || '')
-    .split(path.delimiter)
+function windowsCodexBinaryCandidates(env: NodeJS.ProcessEnv) {
+  const home = resolveUserHome({ env, platform: 'win32' });
+  const appData = env.APPDATA || path.win32.join(home, 'AppData', 'Roaming');
+  const localAppData = env.LOCALAPPDATA || path.win32.join(home, 'AppData', 'Local');
+  const pathCandidates = (env.PATH || '')
+    .split(path.win32.delimiter)
     .filter(Boolean)
     .flatMap((dir) => [
       {
-        path: path.join(dir, 'codex.exe'),
+        path: path.win32.join(dir, 'codex.exe'),
         source: 'PATH executable',
       },
       {
-        path: path.join(dir, 'codex.cmd'),
+        path: path.win32.join(dir, 'codex.cmd'),
         source: 'PATH command shim',
       },
       {
-        path: path.join(dir, 'codex'),
+        path: path.win32.join(dir, 'codex'),
         source: 'PATH shell shim',
       },
     ])
     .filter((candidate) => existsSync(candidate.path));
 
   return [
-    ...(process.env.STUDIO_CODEX_CLI_PATH
-      ? [{ path: process.env.STUDIO_CODEX_CLI_PATH, source: 'STUDIO_CODEX_CLI_PATH' }]
+    ...(env.STUDIO_CODEX_CLI_PATH
+      ? [{ path: env.STUDIO_CODEX_CLI_PATH, source: 'STUDIO_CODEX_CLI_PATH' }]
       : []),
     ...windowsOpenAiRuntimeCandidates(localAppData),
-    ...(process.env.CODEX_CLI_PATH
-      ? [{ path: process.env.CODEX_CLI_PATH, source: 'CODEX_CLI_PATH' }]
-      : []),
+    ...(env.CODEX_CLI_PATH ? [{ path: env.CODEX_CLI_PATH, source: 'CODEX_CLI_PATH' }] : []),
     {
-      path: path.join(localAppData, 'Programs', 'OpenAI', 'Codex', 'bin', 'codex.exe'),
+      path: path.win32.join(localAppData, 'Programs', 'OpenAI', 'Codex', 'bin', 'codex.exe'),
       source: 'OpenAI desktop install',
     },
     {
-      path: path.join(home, 'AppData', 'Roaming', 'npm', 'codex.cmd'),
+      path: path.win32.join(home, 'AppData', 'Roaming', 'npm', 'codex.cmd'),
       source: 'npm command shim',
     },
     {
-      path: path.join(appData, 'npm', 'codex.cmd'),
+      path: path.win32.join(appData, 'npm', 'codex.cmd'),
       source: 'npm command shim',
     },
     {
-      path: path.join(appData, 'npm', 'codex.exe'),
+      path: path.win32.join(appData, 'npm', 'codex.exe'),
       source: 'npm executable shim',
     },
     {
-      path: path.join(appData, 'npm', 'codex'),
+      path: path.win32.join(appData, 'npm', 'codex'),
       source: 'npm shell shim',
     },
     {
-      path: path.join(home, '.bun', 'bin', 'codex.exe'),
+      path: path.win32.join(home, '.bun', 'bin', 'codex.exe'),
       source: 'Bun global executable shim',
     },
     {
-      path: path.join(localAppData, 'Microsoft', 'WindowsApps', 'codex.exe'),
+      path: path.win32.join(localAppData, 'Microsoft', 'WindowsApps', 'codex.exe'),
       source: 'WindowsApps alias',
     },
     ...pathCandidates,
     // Package-internal vendor paths are recovery fallbacks only. Their layout
     // changes across Codex releases, while the launchers above are stable.
     {
-      path: path.join(
+      path: path.win32.join(
         appData,
         'npm',
         'node_modules',
@@ -123,7 +117,7 @@ function windowsCodexBinaryCandidates() {
       source: 'npm package vendor binary',
     },
     {
-      path: path.join(
+      path: path.win32.join(
         appData,
         'npm',
         'node_modules',
@@ -146,53 +140,55 @@ function windowsCodexBinaryCandidates() {
   ] satisfies PlatformPathCandidate[];
 }
 
-function unixCodexBinaryCandidates() {
-  const home = homeDir();
+function unixCodexBinaryCandidates(env: NodeJS.ProcessEnv, platform: NodeJS.Platform) {
+  const home = resolveUserHome({ env, platform });
   return [
-    { path: path.join(home, '.local', 'bin', 'codex'), source: 'local bin' },
-    { path: path.join(home, '.local', 'share', 'npm', 'bin', 'codex'), source: 'npm local bin' },
-    { path: path.join(home, '.npm-global', 'bin', 'codex'), source: 'npm global bin' },
+    ...(env.STUDIO_CODEX_CLI_PATH
+      ? [{ path: env.STUDIO_CODEX_CLI_PATH, source: 'STUDIO_CODEX_CLI_PATH' }]
+      : []),
+    ...(env.CODEX_CLI_PATH ? [{ path: env.CODEX_CLI_PATH, source: 'CODEX_CLI_PATH' }] : []),
+    { path: path.posix.join(home, '.local', 'bin', 'codex'), source: 'local bin' },
+    { path: path.posix.join(home, '.bun', 'bin', 'codex'), source: 'Bun global executable shim' },
+    {
+      path: path.posix.join(home, '.local', 'share', 'npm', 'bin', 'codex'),
+      source: 'npm local bin',
+    },
+    { path: path.posix.join(home, '.npm-global', 'bin', 'codex'), source: 'npm global bin' },
     { path: 'codex', source: 'PATH fallback' },
   ] satisfies PlatformPathCandidate[];
 }
 
-function resolveWindowsPath(key: PlatformPathKey) {
-  const home = homeDir();
-  const codexConfig = path.join(home, '.codex');
+export function resolvePlatformPath(
+  key: PlatformPathKey,
+  env: NodeJS.ProcessEnv = process.env,
+  platform: NodeJS.Platform = process.platform,
+) {
+  if (key === 'codex-binary') {
+    return firstExisting(
+      listPlatformPathCandidates(key, env, platform)
+        .map((candidate) => candidate.path)
+        .filter((candidate) => candidate !== 'codex'),
+      'codex',
+    );
+  }
+  const pathApi = platform === 'win32' ? path.win32 : path.posix;
+  const configured = env.CODEX_HOME?.trim() || undefined;
+  if (configured && !isAbsolutePlatformPath(configured, platform)) {
+    throw new Error('CODEX_HOME must be an absolute path for this operating system.');
+  }
+  const codexConfig = configured ?? pathApi.join(resolveUserHome({ env, platform }), '.codex');
   if (key === 'codex-config-dir') return codexConfig;
-  if (key === 'codex-skills-dir') return path.join(codexConfig, 'skills');
-  if (key === 'codex-generated-images') return path.join(codexConfig, 'generated_images');
-
-  return firstExisting(
-    windowsCodexBinaryCandidates()
-      .map((candidate) => candidate.path)
-      .filter((candidate) => candidate !== 'codex'),
-    'codex',
-  );
+  return pathApi.join(codexConfig, key === 'codex-skills-dir' ? 'skills' : 'generated_images');
 }
 
-function resolveUnixPath(key: PlatformPathKey) {
-  const home = homeDir();
-  const codexConfig = path.join(home, '.codex');
-  if (key === 'codex-config-dir') return codexConfig;
-  if (key === 'codex-skills-dir') return path.join(codexConfig, 'skills');
-  if (key === 'codex-generated-images') return path.join(codexConfig, 'generated_images');
-
-  return firstExisting(
-    unixCodexBinaryCandidates()
-      .map((candidate) => candidate.path)
-      .filter((candidate) => candidate !== 'codex'),
-    'codex',
-  );
-}
-
-export function resolvePlatformPath(key: PlatformPathKey) {
-  return process.platform === 'win32' ? resolveWindowsPath(key) : resolveUnixPath(key);
-}
-
-export function listPlatformPathCandidates(key: PlatformPathKey): PlatformPathCandidate[] {
-  if (key !== 'codex-binary') return [{ path: resolvePlatformPath(key), source: 'resolved path' }];
-  return process.platform === 'win32'
-    ? windowsCodexBinaryCandidates()
-    : unixCodexBinaryCandidates();
+export function listPlatformPathCandidates(
+  key: PlatformPathKey,
+  env: NodeJS.ProcessEnv = process.env,
+  platform: NodeJS.Platform = process.platform,
+): PlatformPathCandidate[] {
+  if (key !== 'codex-binary')
+    return [{ path: resolvePlatformPath(key, env, platform), source: 'resolved path' }];
+  return platform === 'win32'
+    ? windowsCodexBinaryCandidates(env)
+    : unixCodexBinaryCandidates(env, platform);
 }

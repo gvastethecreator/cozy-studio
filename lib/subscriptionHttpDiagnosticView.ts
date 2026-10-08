@@ -43,11 +43,6 @@ export function readLatestSubscriptionHttpDiagnostic(
   return null;
 }
 
-export function subscriptionHttpDiagnosticCopyText(value: unknown) {
-  const diagnostic = projectSubscriptionHttpDiagnostic(value);
-  return diagnostic ? JSON.stringify(diagnostic, null, 2) : null;
-}
-
 function formatReportedInstant(iso: string) {
   const utc = `${iso} UTC`;
   try {

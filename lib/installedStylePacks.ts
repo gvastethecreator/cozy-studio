@@ -64,12 +64,6 @@ export function isHiddenStylePreset(packId: string, presetId: string) {
 }
 
 let loading: Promise<void> | null = null;
-let loadError: Error | null = null;
-
-/** Why the installed extensions could not be listed, or null. */
-export function getInstalledStylePacksError() {
-  return loadError;
-}
 
 const LIST_ATTEMPTS = 4;
 const LIST_RETRY_MS = 600;
@@ -91,15 +85,13 @@ async function listWithRetry() {
 export function loadInstalledStylePacks() {
   loading ??= listWithRetry()
     .then(({ extensions, installedLayers }) => {
-      loadError = null;
       registerInstalledStylePacks(extensions, installedLayers);
       // A new Studio has no style pack yet: the backend installs Essentials once in the background.
       if (!extensions.some((extension) => extension.kind === 'style-pack'))
         void requestDefaultStylePack().catch(() => undefined);
     })
-    .catch((error: unknown) => {
+    .catch(() => {
       loading = null;
-      loadError = error instanceof Error ? error : new Error(String(error));
     });
   return loading;
 }

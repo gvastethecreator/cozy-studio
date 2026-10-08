@@ -13,7 +13,7 @@
     "includePrefixes": [
       "assets/brand/",
       "assets/providers/",
-      "assets/recipes/onboarding/",
+      "assets/workflow-cards/",
       "assets/recipes/cards/",
       "assets/recipes/styles/previews/"
     ]

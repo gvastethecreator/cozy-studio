@@ -972,7 +972,3 @@ export const STYLE_COLLECTIONS = [
 ] as const satisfies StyleCollection[];
 
 export const STYLE_COLLECTIONS_BY_ID = new Map(STYLE_COLLECTIONS.map((item) => [item.id, item]));
-
-export const STYLE_COLLECTION_FAMILIES_BY_ID = new Map(
-  STYLE_COLLECTION_FAMILIES.map((item) => [item.id, item]),
-);

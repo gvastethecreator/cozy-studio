@@ -6,35 +6,12 @@ import sharp from 'sharp';
 const root = process.cwd();
 const checkOnly = process.argv.includes('--check');
 
-const onboardingPresetIds = [
-  'SP01-005',
-  'SP02-001',
-  'SP02-003',
-  'SP02-004',
-  'SP06-082',
-  'SP06-095',
-  'SP11-047',
-  'SP11-050',
-] as const;
-
 interface ResponsiveImageJob {
   source: string;
   output: string;
   width: number;
   height: number;
   quality: number;
-}
-
-function onboardingJobs(): ResponsiveImageJob[] {
-  return onboardingPresetIds.flatMap((presetId) =>
-    [384, 768].map((width) => ({
-      source: path.join(root, 'assets', 'recipes', 'styles', 'defaults', `${presetId}.webp`),
-      output: path.join(root, 'assets', 'recipes', 'onboarding', String(width), `${presetId}.webp`),
-      width,
-      height: Math.round(width * 1.5),
-      quality: 92,
-    })),
-  );
 }
 
 function recipeCardJobs(): ResponsiveImageJob[] {
@@ -85,7 +62,7 @@ async function renderJob(job: ResponsiveImageJob) {
   return output.length;
 }
 
-const jobs = [...onboardingJobs(), ...recipeCardJobs()];
+const jobs = recipeCardJobs();
 let outputBytes = 0;
 for (const job of jobs) outputBytes += await renderJob(job);
 

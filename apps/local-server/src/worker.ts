@@ -479,11 +479,6 @@ export function createWorkerController({
         updateJobStatusFn(job.id, 'running');
         publishEventFn('job.running', getJobFn(job.id));
         if (job.finalization) {
-          if (job.finalization.state === 'completed') {
-            updateJobStatusFn(job.id, 'completed');
-            publishEventFn('job.completed', getJobFn(job.id));
-            return;
-          }
           const resumePath = job.finalization.filePath ?? job.finalization.sourcePath;
           if (!resumePath) {
             throw new Error(`Job ${job.id} has an incomplete finalization checkpoint.`);

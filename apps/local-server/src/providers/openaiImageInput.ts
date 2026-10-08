@@ -195,6 +195,9 @@ function buildCodexPromptText(sourceSpec: GenerationTaskSpec, providerId: 'codex
 
   if (sourceSpec.output.aspectRatio) {
     parts.push(`Aspect ratio: ${sourceSpec.output.aspectRatio}`);
+    parts.push(
+      `Output canvas: use the requested ${sourceSpec.output.aspectRatio} aspect ratio${sourceSpec.output.imageSize ? ` and ${sourceSpec.output.imageSize} size` : ''}. This takes precedence over reference dimensions and instructions to preserve framing or composition. Preserve subject identity and proportions; adapt the framing and extend the background to fit the requested canvas. Do not stretch the subject or copy the reference canvas size.`,
+    );
   }
 
   if (providerId === 'codex' && shouldAddCodexDenoise(sourceSpec, parts.join('\n')))

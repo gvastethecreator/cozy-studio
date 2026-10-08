@@ -110,6 +110,25 @@ export function createWorkerAssetFinalizer({
           });
           const organizedImagePath = moveGeneratedAssetToPath(sourcePath, targetPath);
           const mimeType = inferGeneratedAssetMimeType(organizedImagePath);
+          const httpImage =
+            job.execution?.providerOptions?.chatgpt?.image ??
+            (job.execution?.providerOptions?.codex?.transport === 'subscription_http'
+              ? job.execution.providerOptions.codex.image
+              : undefined);
+          let width = options.width ?? null;
+          let height = options.height ?? null;
+          let outputWarning: string | null = null;
+          if (httpImage) {
+            const metadata = yield* providerPromise(() =>
+              authoringSharp(readFileSync(organizedImagePath)).metadata(),
+            );
+            width = metadata.width ?? null;
+            height = metadata.height ?? null;
+            if (!width || !height) throw new Error('Could not read generated image dimensions.');
+            if (`${width}x${height}` !== httpImage.size) {
+              outputWarning = `Requested ${httpImage.size}, but the provider returned ${width}x${height}. The original image was saved in Library without resizing. Review it before generating again.`;
+            }
+          }
           if (job.sourceSpec?.output.background === 'transparent') {
             const stats = Result.getOrThrowWith(
               yield* Effect.result(
@@ -164,8 +183,8 @@ export function createWorkerAssetFinalizer({
                 ? toPublicAssetUrl(organizedImagePath, assetLibrary)
                 : toPublicAssetUrl(organizedImagePath),
               prompt: job.finalPromptUsed,
-              width: options.width ?? null,
-              height: options.height ?? null,
+              width,
+              height,
               mimeType,
             });
           updateJobFinalization(job.id, {
@@ -234,8 +253,8 @@ export function createWorkerAssetFinalizer({
               negativePrompt: parsedPrompt.negativePrompt || null,
               aspectRatio: parsedPrompt.aspectRatio,
               imageSize: parsedPrompt.imageSize,
-              width: asset.width,
-              height: asset.height,
+              width: width ?? asset.width,
+              height: height ?? asset.height,
               mimeType: asset.mimeType,
               fileSizeBytes,
               jobId: asset.jobId,
@@ -269,12 +288,23 @@ export function createWorkerAssetFinalizer({
             assetId: asset.id,
             catalogId: catalogImage.id,
           });
-          updateJobStatus(job.id, 'completed');
-          publishEvent('job.completed', getJob(job.id));
+          if (outputWarning) {
+            addJobEvent(job.id, 'job.needs_review', outputWarning, {
+              requestedSize: httpImage?.size,
+              actualSize: `${width}x${height}`,
+              catalogId: catalogImage.id,
+            });
+            updateJobStatus(job.id, 'needs_review', outputWarning);
+            publishEvent('job.needs_review', getJob(job.id));
+          } else {
+            updateJobStatus(job.id, 'completed');
+            publishEvent('job.completed', getJob(job.id));
+          }
           logger(
-            'info',
+            outputWarning ? 'warn' : 'info',
             'worker',
-            `${options.logPrefix} job completed. Asset: ${path.basename(asset.filePath)}`,
+            outputWarning ??
+              `${options.logPrefix} job completed. Asset: ${path.basename(asset.filePath)}`,
             job.id,
           );
         }),

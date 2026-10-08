@@ -127,6 +127,10 @@ describe('ChatGPT responses image executor and captured Codex HTTP jobs', () => 
     });
     expect(payload).not.toHaveProperty('reasoning');
     expect(payload).not.toHaveProperty('service_tier');
+    expect(JSON.stringify(payload?.input)).toContain(
+      'requested 16:9 aspect ratio and 1536x864 size',
+    );
+    expect(JSON.stringify(payload?.input)).toContain('takes precedence over reference dimensions');
     const transcript = writes.find((write) => String(write.filePath).includes('transcripts'));
     expect(String(transcript?.content)).not.toContain('codex-secret');
   });
@@ -482,6 +486,7 @@ describe('ChatGPT responses image executor and captured Codex HTTP jobs', () => 
   it('records submission before POST and prevents resending after restart or lost acknowledgement', async () => {
     let stored: JobRemoteExecution | null = null;
     const checkpointRemoteExecution = (value: JobRemoteExecution) => {
+      // react-doctor-disable-next-line react-doctor/no-json-parse-stringify-clone -- Model the durable JSON checkpoint after a restart, not an in-memory clone.
       stored = JSON.parse(JSON.stringify(value)) as JobRemoteExecution;
     };
     const fetch = vi.fn(async () => {

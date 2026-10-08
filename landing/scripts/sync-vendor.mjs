@@ -33,7 +33,7 @@ export async function syncVendor() {
     if (existsSync(join(DEST, "hero-shade.js"))) {
       console.log("Hero shade bundle failed. Kept kit/vendor/hero-shade.js.");
     } else {
-      console.error("[sync-vendor] Could not bundle kit/vendor/hero-shade.js. Run pnpm install.");
+      console.error("[sync-vendor] Could not bundle kit/vendor/hero-shade.js. Run bun install.");
       console.error(error);
       process.exit(1);
     }
@@ -50,7 +50,7 @@ export async function syncVendor() {
     if (GSAP_FILES.every((file) => existsSync(join(DEST, file)))) {
       console.log("GSAP is not installed. Kept kit/vendor copies.");
     } else {
-      console.error("[sync-vendor] Missing node_modules/gsap/dist. Run pnpm install.");
+      console.error("[sync-vendor] Missing node_modules/gsap/dist. Run bun install.");
       process.exit(1);
     }
   } else {
@@ -71,7 +71,7 @@ export async function syncVendor() {
     if (pretextDestReady) {
       console.log("Pretext is not installed. Kept kit/vendor/pretext copies.");
     } else {
-      console.error("[sync-vendor] Missing node_modules/@chenglou/pretext/dist. Run pnpm install.");
+      console.error("[sync-vendor] Missing node_modules/@chenglou/pretext/dist. Run bun install.");
       process.exit(1);
     }
   } else {

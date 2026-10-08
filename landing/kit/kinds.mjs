@@ -19,6 +19,7 @@ export function loadKinds(directory = DIR) {
 
 export function kindForPreset(preset, kinds = loadKinds()) {
   const id = String(preset ?? "").trim();
+  // react-doctor-disable-next-line react-doctor/js-set-map-lookups -- Each kind has its own small alias array, searched once; a Set per kind adds work.
   return Object.values(kinds).find((kind) => (kind.mapsFromPresets ?? []).includes(id)) ?? null;
 }
 

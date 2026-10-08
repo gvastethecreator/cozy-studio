@@ -59,13 +59,13 @@
 
   async function boot() {
     if (document.documentElement.hasAttribute("data-accent-cycle")) {
-      import(new URL("accent-cycle.js", vendorBase)).catch((error) => report("accent-cycle", error));
+      import("./accent-cycle.js").catch((error) => report("accent-cycle", error));
     }
     if (document.documentElement.hasAttribute("data-sound")) {
-      import(new URL("sound.js", vendorBase)).catch((error) => report("sound", error));
+      import("./sound.js").catch((error) => report("sound", error));
     }
     if (document.querySelector("canvas[data-card-fx]")) {
-      import(new URL("card-fx.js", vendorBase)).catch((error) => report("card-fx", error));
+      import("./card-fx.js").catch((error) => report("card-fx", error));
     }
 
     const hasTypeSurface = Boolean(
@@ -74,11 +74,11 @@
       ),
     );
     if (hasTypeSurface) {
-      import(new URL("type-fit.js", vendorBase)).catch((error) => report("type-fit", error));
+      import("./type-fit.js").catch((error) => report("type-fit", error));
     }
 
     if (hasShadeSurface) {
-      window.__gvasteHeroShade = import(new URL("hero-shade.js", vendorBase)).catch((error) => {
+      window.__gvasteHeroShade = import("./hero-shade.js").catch((error) => {
         report("hero-shade", error);
         return null;
       });
@@ -88,7 +88,7 @@
       try {
         await Promise.all([
           loadStylesheet(new URL("github-signal.css", vendorBase)),
-          import(new URL("github-signal.js", vendorBase)),
+          import("./github-signal.js"),
         ]);
       } catch (error) {
         report("github-signal", error);
@@ -109,7 +109,7 @@
 
     if (hasProfileSurface) {
       try {
-        await import(new URL("profile.js", vendorBase));
+        await import("./profile.js");
       } catch (error) {
         report("profile", error);
       }
@@ -117,7 +117,7 @@
 
     if (hasDemoSurface) {
       try {
-        await import(new URL("demo-workbench.js", vendorBase));
+        await import("./demo-workbench.js");
       } catch (error) {
         report("demo-workbench", error);
       }
@@ -132,7 +132,7 @@
 
     if (hasStageSurface) {
       try {
-        await import(new URL("stage-motion.js", vendorBase));
+        await import("./stage-motion.js");
       } catch (error) {
         report("stage-motion", error);
       }

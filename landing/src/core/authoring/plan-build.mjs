@@ -44,9 +44,11 @@ export function buildGuidedPlan({
 }) {
   const current = Array.isArray(site.sections) ? site.sections.map(String) : [];
   const wanted = Array.isArray(sectionIds) ? sectionIds.map(String) : current.slice();
-  const kept = wanted.filter((id) => current.includes(id));
-  const hidden = current.filter((id) => !wanted.includes(id));
-  const pending = wanted.filter((id) => !current.includes(id));
+  const currentIds = new Set(current);
+  const wantedIds = new Set(wanted);
+  const kept = wanted.filter((id) => currentIds.has(id));
+  const hidden = current.filter((id) => !wantedIds.has(id));
+  const pending = wanted.filter((id) => !currentIds.has(id));
   const sections = [
     ...kept.map((id) => decision(id, "preserve")),
     ...hidden.map((id) => decision(id, "omit")),
@@ -73,7 +75,7 @@ export function buildGuidedPlan({
     });
   }
   for (const id of hidden) operations.push({ op: "hide-section", sectionId: id, reasonCode: "guided-hide" });
-  if (kept.length === wanted.filter((id) => current.includes(id)).length && kept.length > 0) {
+  if (kept.length > 0) {
     operations.push({ op: "reorder-sections", order: kept, reasonCode: "guided-order" });
   }
   return {

@@ -1,20 +1,20 @@
 # Code map: cozy-studio
 
-Generated: 2026-10-08T03:14:15Z | Commit: `40a8434b93b9` | Schema: 2
-Generation: `3455276bebb4085b9cc10d016d617b5a8b71baa8bddf2fa20f34527af5c54c0c`
+Generated: 2026-10-08T05:42:01Z | Commit: `bc8bdd74e867` | Schema: 2
+Generation: `e2358061b9f30c070d848fb79ecae950c2a62afa3b2891ab20bad38043935af5`
 Scope: . | Inventory: working-tree
-Nodes: 1070 | Edges: 6690 | Flows: 5
+Nodes: 1016 | Edges: 6520 | Flows: 0
 
 ## Coverage
 
-- Analysis: **partial**; 984 analyzed of 999 included files.
+- Analysis: **partial**; 959 analyzed of 974 included files.
 - Configuration files: 7; omitted untracked files: 0.
-- Unresolved references and analysis limits: 4431.
+- Unresolved references and analysis limits: 4357.
 - Static references and call paths do not prove runtime execution or test coverage.
 
 ## Modules
 
-- `App.tsx` | module | Repository | callers: main.tsx, review/entry.tsx | callees: components/AppContent.tsx, contexts/GenerationContext.tsx, contexts/GlobalContext.tsx, contexts/ImageConversionContext.tsx | tests: 0 | entry: none
+- `App.tsx` | module | Repository | callers: main.tsx | callees: components/AppContent.tsx, contexts/GenerationContext.tsx, contexts/GlobalContext.tsx, contexts/ImageConversionContext.tsx | tests: 0 | entry: none
 - `apps/local-server/src/animationGifEncoder.test.ts` | module | Repository | callers: none | callees: apps/local-server/src/animationGifEncoder.ts, apps/local-server/src/animationGifEncoder.ts, external:javascript:sharp, external:javascript:sharp | tests: 0 | entry: none
 - `apps/local-server/src/animationGifEncoder.ts` | module | Repository | callers: apps/local-server/src/animationGifEncoder.test.ts, apps/local-server/src/animationGifEncoder.test.ts, apps/local-server/src/animationSequenceService.ts, apps/local-server/src/animationSequenceService.ts | callees: none | tests: 1 | entry: none
 - `apps/local-server/src/animationSequenceRoutes.test.ts` | module | Repository | callers: none | callees: apps/local-server/src/animationSequenceRoutes.ts, apps/local-server/src/animationSequenceRoutes.ts, external:javascript:node:fs, external:javascript:node:fs | tests: 0 | entry: none
@@ -34,7 +34,7 @@ Nodes: 1070 | Edges: 6690 | Flows: 5
 - `apps/local-server/src/auth/authRoutes.ts` | module | Repository | callers: apps/local-server/src/appFactory.ts, apps/local-server/src/appFactory.ts, apps/local-server/src/auth/authRoutes.test.ts, apps/local-server/src/auth/authRoutes.test.ts | callees: apps/local-server/src/auth/controller.ts, apps/local-server/src/auth/oauthHttp.ts, apps/local-server/src/auth/oauthHttp.ts, external:javascript:hono | tests: 1 | entry: none
 - `apps/local-server/src/auth/constants.ts` | module | Repository | callers: apps/local-server/src/auth/authRoutes.test.ts, apps/local-server/src/auth/deviceCode.test.ts, apps/local-server/src/auth/deviceCode.ts, apps/local-server/src/auth/deviceCode.ts | callees: none | tests: 3 | entry: none
 - `apps/local-server/src/auth/controller.ts` | module | Repository | callers: apps/local-server/src/auth/authRoutes.test.ts, apps/local-server/src/auth/authRoutes.test.ts, apps/local-server/src/auth/authRoutes.ts, apps/local-server/src/reset.ts | callees: apps/local-server/src/auth/deviceCode.ts, apps/local-server/src/auth/googleAuthorizationCode.ts, apps/local-server/src/auth/oauthHttp.ts, apps/local-server/src/auth/oauthHttp.ts | tests: 1 | entry: none
-- Showing 20 of 1070 nodes. Query `impact --module <path>` or open the HTML hierarchy for the rest.
+- Showing 20 of 1016 nodes. Query `impact --module <path>` or open the HTML hierarchy for the rest.
 
 ## Edges
 
@@ -88,7 +88,7 @@ Nodes: 1070 | Edges: 6690 | Flows: 5
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/animationGifEncoder.ts` | calls
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/animationGifEncoder.ts` | imports
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/db/jobs.ts` | imports
-- Showing 50 of 6690 edges; JSON contains every edge and its evidence.
+- Showing 50 of 6520 edges; JSON contains every edge and its evidence.
 
 ## Unknown
 
@@ -107,15 +107,11 @@ Nodes: 1070 | Edges: 6690 | Flows: 5
 
 ## Flows
 
-- Python __main__: `skills/imagegen/scripts/remove_chroma_key.py` -> `external:python:argparse` | Static call path reaches external:python:argparse:ArgumentParser
-- Python __main__: `skills/imagegen/scripts/remove_chroma_key.py` -> `external:python:re` | Static call path reaches external:python:re:fullmatch
-- Python __main__: `skills/imagegen/scripts/remove_chroma_key.py` -> `external:python:statistics` | Static call path reaches external:python:statistics:median
-- Python __main__: `skills/imagegen/scripts/remove_chroma_key.py` -> `external:python:pathlib` | Static call path reaches external:python:pathlib:Path
-- Python __main__: `skills/imagegen/scripts/remove_chroma_key.py` -> `external:python:io` | Static call path reaches external:python:io:BytesIO
+- no source-backed call path from a recognized trigger
 
 ## Architecture changes
 
-- Nodes: +0 / -0; edges: +5 / -0.
+- Nodes: +0 / -0; edges: +0 / -0.
 - Boundary changes: 0; new cycles: 0.
 
 ## Read next

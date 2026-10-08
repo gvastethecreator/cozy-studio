@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { captureWorkflowOutput } from './outputDestination';
 import {
   formatOutputRelativePath,
@@ -127,6 +128,17 @@ describe('workerAssetPathing', () => {
       writeFileSync(first, 'keep');
       expect(captureWorkflowOutput(context, input)).toBe(first);
       expect(readFileSync(first, 'utf8')).toBe('keep');
+      const reservation = path.join(
+        root,
+        '.studio',
+        'state',
+        'output-reservations',
+        `${createHash('sha256').update(first.toLowerCase()).digest('hex')}.json`,
+      );
+      writeFileSync(reservation, JSON.stringify({ jobId: 'one' }));
+      expect(() => captureWorkflowOutput(context, input)).toThrow('Invalid output reservation');
+      expect(readFileSync(first, 'utf8')).toBe('keep');
+
       expect(validateOutputTemplate('{unknown}')).toContain('Unknown');
       expect(validateOutputTemplate('../escape')).not.toBeNull();
     } finally {

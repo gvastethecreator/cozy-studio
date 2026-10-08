@@ -1,3 +1,5 @@
+export const FAVORITES_PACK_ID = 'favorites';
+export const ALL_STYLE_CARDS_TAB_ID = 'all_cards';
 export const STYLE_PACKS_TAB_ID = 'packs';
 export const STYLE_RECIPE_HASH_PREFIX = 'recipes';
 export const STYLE_COLLECTION_TAB_PREFIX = 'collection/';

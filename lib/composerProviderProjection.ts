@@ -288,14 +288,14 @@ export function buildComposerProviderProjection({
       selectedImageModel,
       imageSizeOptions,
       selectedImageSize,
-      showImageSizeControl: isHttp,
+      // Subscription output dimensions are not reliably honored by the provider.
+      showImageSizeControl: false,
       reasoningOptions: isHttp ? [CODEX_HTTP_REASONING] : getCodexReasoningOptions(selectedModel),
       speedOptions: isHttp ? ['standard'] : getCodexSpeedOptions(selectedModel),
       summary: [
         modelLabel,
         transportSummary,
         isHttp ? selectedImageModel?.shortName : null,
-        isHttp ? selectedImageSizeTier : null,
         isHttp ? 'AUTO' : executionReasoningEffort?.toUpperCase(),
         !isHttp && executionSpeed !== 'standard' ? formatCodexSpeedLabel(executionSpeed) : null,
       ]

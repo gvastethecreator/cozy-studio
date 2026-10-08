@@ -1,6 +1,11 @@
 import { projectGenerationBackgroundParams } from '../../lib/generationBackground';
 import { CozyLoader as Loader2 } from '../CozyMascot';
-import { RecipeControls, RecipePrimaryAction, RecipeOptionsPanel } from './RecipeWorkbenchContext';
+import {
+  RecipeControls,
+  useWorkflowPrompt,
+  RecipePrimaryAction,
+  RecipeOptionsPanel,
+} from './RecipeWorkbenchContext';
 import React from 'react';
 import {
   WarningTriangle as AlertTriangle,
@@ -266,7 +271,58 @@ function buildPipeline(run: SpriteAtlasRun | null) {
   ] as const;
 }
 
-export const SpriteAtlasRecipe: React.FC<SpriteAtlasRecipeProps> = ({
+function useAtlasRowPrompt(selectedRunId: string | null, selectedRowKey: string | null) {
+  const [rowPrompt, setRowPrompt] = React.useState<{
+    key: string;
+    prompt: string;
+    error: string | null;
+  } | null>(null);
+  const promptKey = selectedRunId && selectedRowKey ? `${selectedRunId}/${selectedRowKey}` : null;
+  // A prompt fetched for another row never counts as the selected row's prompt.
+  const currentRowPrompt = rowPrompt?.key === promptKey ? rowPrompt : null;
+  const isPromptLoading = Boolean(promptKey) && !currentRowPrompt;
+  const selectedPrompt = currentRowPrompt?.prompt ?? '';
+  const promptError = currentRowPrompt?.error ?? null;
+  React.useEffect(() => {
+    if (!selectedRunId || !selectedRowKey) return;
+    const key = `${selectedRunId}/${selectedRowKey}`;
+    let cancelled = false;
+    void getSpriteAtlasRowPrompt(selectedRunId, selectedRowKey)
+      .then((payload) => {
+        if (!cancelled) setRowPrompt({ key, prompt: payload.prompt, error: null });
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setRowPrompt({
+            key,
+            prompt: '',
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedRowKey, selectedRunId]);
+  return { isPromptLoading, selectedPrompt, promptError };
+}
+
+function getPrepareRequirement(
+  contract: ReturnType<typeof createSpriteAtlasContract>,
+  config: ImageGenerationConfig,
+) {
+  const hasPrepareInput = Boolean(config.prompt?.trim()) || config.attachments.length > 0;
+  const prepareRequirement =
+    contract.rows.length === 0
+      ? 'This preset has no rows. Choose a preset with rows to prepare a run.'
+      : !hasPrepareInput
+        ? 'Add a prompt or a reference image to prepare a run.'
+        : null;
+  return prepareRequirement;
+}
+
+function useSpriteAtlasRecipeController({
   images = [],
   workspaceId,
   config,
@@ -274,7 +330,7 @@ export const SpriteAtlasRecipe: React.FC<SpriteAtlasRecipeProps> = ({
   onGenerate,
   activeProviderId = null,
   isGenerating,
-}) => {
+}: SpriteAtlasRecipeProps) {
   const [presets, setPresets] = React.useState<SpriteAtlasPresetSummary[]>([]);
   const [runs, setRuns] = React.useState<SpriteAtlasRun[]>([]);
   const [activeRun, setActiveRun] = React.useState<SpriteAtlasRun | null>(null);
@@ -289,11 +345,6 @@ export const SpriteAtlasRecipe: React.FC<SpriteAtlasRecipeProps> = ({
   const [rowStatusFilter, setRowStatusFilter] =
     React.useState<(typeof ROW_STATUS_FILTERS)[number]>('all');
   const [inspectorTab, setInspectorTab] = React.useState<InspectorTab>('guide');
-  const [rowPrompt, setRowPrompt] = React.useState<{
-    key: string;
-    prompt: string;
-    error: string | null;
-  } | null>(null);
   const [isBusy, setIsBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [message, setMessage] = React.useState<string | null>(null);
@@ -315,12 +366,10 @@ export const SpriteAtlasRecipe: React.FC<SpriteAtlasRecipeProps> = ({
     activeRun?.rows.find((row) => row.id === selectedRowId) ?? activeRun?.rows[0] ?? null;
   const selectedRunId = activeRun?.id ?? null;
   const selectedRowKey = selectedRow?.id ?? null;
-  const promptKey = selectedRunId && selectedRowKey ? `${selectedRunId}/${selectedRowKey}` : null;
-  // A prompt fetched for another row never counts as the selected row's prompt.
-  const currentRowPrompt = rowPrompt?.key === promptKey ? rowPrompt : null;
-  const isPromptLoading = Boolean(promptKey) && !currentRowPrompt;
-  const selectedPrompt = currentRowPrompt?.prompt ?? '';
-  const promptError = currentRowPrompt?.error ?? null;
+  const { isPromptLoading, selectedPrompt, promptError } = useAtlasRowPrompt(
+    selectedRunId,
+    selectedRowKey,
+  );
   const rowCounts = React.useMemo(() => getRowCounts(activeRun?.rows ?? []), [activeRun]);
   const pipeline = React.useMemo(() => buildPipeline(activeRun), [activeRun]);
   const currentPreset = presets.find((preset) => preset.id === contract.presetId);
@@ -397,29 +446,6 @@ export const SpriteAtlasRecipe: React.FC<SpriteAtlasRecipeProps> = ({
     };
   }, []);
 
-  React.useEffect(() => {
-    if (!selectedRunId || !selectedRowKey) return;
-    const key = `${selectedRunId}/${selectedRowKey}`;
-    let cancelled = false;
-    void getSpriteAtlasRowPrompt(selectedRunId, selectedRowKey)
-      .then((payload) => {
-        if (!cancelled) setRowPrompt({ key, prompt: payload.prompt, error: null });
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setRowPrompt({
-            key,
-            prompt: '',
-            error: err instanceof Error ? err.message : String(err),
-          });
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedRowKey, selectedRunId]);
-
   const applyRun = React.useCallback((run: SpriteAtlasRun) => {
     setActiveRun((current) => (current?.id === run.id ? run : current));
     setRuns((current) => current.map((item) => (item.id === run.id ? run : item)));
@@ -494,13 +520,13 @@ export const SpriteAtlasRecipe: React.FC<SpriteAtlasRecipeProps> = ({
     [refreshRuns],
   );
 
-  const hasPrepareInput = Boolean(config.prompt?.trim()) || config.attachments.length > 0;
-  const prepareRequirement =
-    contract.rows.length === 0
-      ? 'This preset has no rows. Choose a preset with rows to prepare a run.'
-      : !hasPrepareInput
-        ? 'Add a prompt or a reference image to prepare a run.'
-        : null;
+  useWorkflowPrompt({
+    value: config.prompt ?? '',
+    onChange: (value) => updateConfig('prompt', value),
+    label: 'Atlas prompt',
+    placeholder: 'Describe the character, appearance, and actions for this atlas…',
+  });
+  const prepareRequirement = getPrepareRequirement(contract, config);
 
   const handleCreateRun = () => {
     if (prepareRequirement) return;
@@ -642,666 +668,179 @@ export const SpriteAtlasRecipe: React.FC<SpriteAtlasRecipeProps> = ({
     });
   };
 
+  return {
+    activeRun,
+    selectedRow,
+    setInspectorTab,
+    inspectorTab,
+    handleQueueRow,
+    canQueue,
+    activeProviderId,
+    handleBlockRow,
+    busy,
+    rowCatalogImageId,
+    setRowCatalogImageId,
+    images,
+    handleImportRow,
+    isPromptLoading,
+    promptError,
+    selectedPrompt,
+    contract,
+    assetKindFilter,
+    setAssetKindFilter,
+    filteredPresets,
+    selectPreset,
+    setRecipeParam,
+    currentPreset,
+    handleCreateRun,
+    prepareRequirement,
+    runAction,
+    refreshRuns,
+    handleSyncRun,
+    handleComposeFixture,
+    handleCompose,
+    canCompose,
+    handleRunQa,
+    pipeline,
+    error,
+    message,
+    rowQuery,
+    setRowQuery,
+    rowStatusFilter,
+    setRowStatusFilter,
+    rowCounts,
+    missingJobRows,
+    setStageMatte,
+    stageMatte,
+    playbackFrame,
+    setPlaybackFrame,
+    visibleRows,
+    setSelectedRowId,
+    runs,
+    setActiveRun,
+  };
+}
+
+type SpriteAtlasRecipeViewModel = ReturnType<typeof useSpriteAtlasRecipeController>;
+
+function SpriteAtlasRecipeView({
+  activeRun,
+  selectedRow,
+  setInspectorTab,
+  inspectorTab,
+  handleQueueRow,
+  canQueue,
+  activeProviderId,
+  handleBlockRow,
+  busy,
+  rowCatalogImageId,
+  setRowCatalogImageId,
+  images,
+  handleImportRow,
+  isPromptLoading,
+  promptError,
+  selectedPrompt,
+  contract,
+  assetKindFilter,
+  setAssetKindFilter,
+  filteredPresets,
+  selectPreset,
+  setRecipeParam,
+  currentPreset,
+  handleCreateRun,
+  prepareRequirement,
+  runAction,
+  refreshRuns,
+  handleSyncRun,
+  handleComposeFixture,
+  handleCompose,
+  canCompose,
+  handleRunQa,
+  pipeline,
+  error,
+  message,
+  rowQuery,
+  setRowQuery,
+  rowStatusFilter,
+  setRowStatusFilter,
+  rowCounts,
+  missingJobRows,
+  setStageMatte,
+  stageMatte,
+  playbackFrame,
+  setPlaybackFrame,
+  visibleRows,
+  setSelectedRowId,
+  runs,
+  setActiveRun,
+}: SpriteAtlasRecipeViewModel) {
   return (
     <div className="studio-surface flex h-full min-h-0 flex-col bg-[color:var(--wb-panel)] text-[color:var(--wb-ink)]">
       <div className="recipe-run-stage">
-        <RecipeOptionsPanel title="Row details">
-          <aside className="flex min-h-0 flex-col overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] shadow-2xl xl:row-span-2">
-            {activeRun && selectedRow ? (
-              <>
-                <div className="border-b border-[color:var(--wb-line)] p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                        Row Inspector
-                      </div>
-                      <h3 className="mt-1 truncate text-base font-semibold text-[color:var(--wb-ink)]">
-                        {selectedRow.id}
-                      </h3>
-                    </div>
-                    <span
-                      className={`shrink-0 rounded-[var(--wb-radius)] border px-2 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal ${getRowTone(
-                        selectedRow,
-                      )}`}
-                    >
-                      {ROW_STATUS_LABELS[selectedRow.status]}
-                    </span>
-                  </div>
+        <AtlasRowDetails
+          activeRun={activeRun}
+          selectedRow={selectedRow}
+          setInspectorTab={setInspectorTab}
+          inspectorTab={inspectorTab}
+          handleQueueRow={handleQueueRow}
+          canQueue={canQueue}
+          activeProviderId={activeProviderId}
+          handleBlockRow={handleBlockRow}
+          busy={busy}
+          rowCatalogImageId={rowCatalogImageId}
+          setRowCatalogImageId={setRowCatalogImageId}
+          images={images}
+          handleImportRow={handleImportRow}
+          isPromptLoading={isPromptLoading}
+          promptError={promptError}
+          selectedPrompt={selectedPrompt}
+        />
+        <AtlasConfiguration
+          activeRun={activeRun}
+          contract={contract}
+          assetKindFilter={assetKindFilter}
+          setAssetKindFilter={setAssetKindFilter}
+          filteredPresets={filteredPresets}
+          selectPreset={selectPreset}
+          setRecipeParam={setRecipeParam}
+          currentPreset={currentPreset}
+          handleCreateRun={handleCreateRun}
+          busy={busy}
+          prepareRequirement={prepareRequirement}
+        />
 
-                  <div className="mt-3 grid grid-cols-3 gap-1.5 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] p-1.5">
-                    {(['guide', 'prompt', 'artifacts'] as const).map((tab) => (
-                      <button
-                        key={tab}
-                        type="button"
-                        onClick={() => setInspectorTab(tab)}
-                        aria-pressed={inspectorTab === tab}
-                        className={`min-h-8 rounded-[var(--wb-radius)] px-2 text-[length:var(--wbp-label)] font-semibold tracking-normal transition ${
-                          inspectorTab === tab
-                            ? 'bg-white/12 text-[color:var(--wb-ink)]'
-                            : 'text-[color:var(--wb-muted)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] hover:text-[color:var(--wb-ink)]'
-                        }`}
-                      >
-                        {tab}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
-                  {inspectorTab === 'guide' && (
-                    <div className="grid gap-3">
-                      <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] p-2">
-                        <div className="mb-2 flex items-center justify-between gap-2">
-                          <span className="text-xs font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                            Layout Guide
-                          </span>
-                          <FileText
-                            width={14}
-                            height={14}
-                            className="text-[color:var(--wb-muted)]"
-                          />
-                        </div>
-                        <img
-                          src={getSpriteAtlasLayoutGuideUrl(activeRun.id, selectedRow.id)}
-                          alt=""
-                          className="h-auto w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-black object-contain"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={handleQueueRow}
-                          disabled={!canQueue}
-                          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[var(--wb-radius)] border border-sky-400/2 bg-sky-500/10 px-3 text-xs font-semibold tracking-normal text-[color:var(--wb-info)]  hover:bg-sky-500/15 disabled:opacity-50"
-                        >
-                          <ClipboardList width={15} height={15} />
-                          {activeProviderId
-                            ? `${selectedRow.status === 'blocked' ? 'Retry' : 'Queue'} with ${activeProviderId}`
-                            : 'Choose a provider'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleBlockRow}
-                          disabled={busy}
-                          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[var(--wb-radius)] border border-rose-400/2 bg-rose-500/10 px-3 text-xs font-bold tracking-normal text-[color:var(--wb-danger)]  hover:bg-rose-500/15 disabled:opacity-50"
-                        >
-                          <AlertTriangle width={15} height={15} />
-                          Block
-                        </button>
-                      </div>
-
-                      <div className="flex items-end gap-2">
-                        <label className="grid min-w-0 flex-1 gap-1">
-                          <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                            Source image
-                          </span>
-                          <select
-                            aria-label="Row source image"
-                            value={rowCatalogImageId}
-                            onChange={(event) => setRowCatalogImageId(event.target.value)}
-                            className="min-h-10 w-full rounded-[var(--wb-radius)] bg-[color:var(--wb-panel)] px-2 text-sm text-[color:var(--wb-ink)]"
-                          >
-                            <option value="">Choose a library image</option>
-                            {images.map((image) => (
-                              <option key={image.id} value={image.id}>
-                                {formatSourceImageLabel(image)}
-                              </option>
-                            ))}
-                          </select>
-                          <span className="text-xs text-[color:var(--wb-muted)]">
-                            Import external images through Settings → Library &amp; imports.
-                          </span>
-                        </label>
-                        <button
-                          type="button"
-                          onClick={handleImportRow}
-                          disabled={busy || !rowCatalogImageId}
-                          className="inline-flex min-h-10 items-center justify-center rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_4%,transparent)] px-3 text-[color:var(--wb-ink)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] disabled:opacity-50"
-                          aria-label="Import selected row"
-                        >
-                          <FileImport width={15} height={15} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {inspectorTab === 'prompt' && (
-                    <div className="grid gap-3">
-                      <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] p-3">
-                        <div className="mb-2 flex items-center justify-between gap-2">
-                          <span className="text-xs font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                            Prompt
-                          </span>
-                          {isPromptLoading && <Loader2 size={14} className="animate-spin" />}
-                        </div>
-                        {promptError ? (
-                          <p role="alert" className="text-xs text-[color:var(--wb-danger)]">
-                            Prompt unavailable: {promptError}
-                          </p>
-                        ) : (
-                          <pre className="custom-scrollbar max-h-[420px] overflow-y-auto whitespace-pre-wrap rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3 text-[11px] leading-relaxed text-[color:var(--wb-ink)]">
-                            {isPromptLoading ? 'Loading prompt…' : selectedPrompt}
-                          </pre>
-                        )}
-                      </div>
-                      {activeRun.contract.rows.find((row) => row.id === selectedRow.id)
-                        ?.mirrorPair ? (
-                        <p className="text-xs text-[color:var(--wb-muted)]">
-                          This app does not mirror the paired row.
-                        </p>
-                      ) : null}
-                    </div>
-                  )}
-
-                  {inspectorTab === 'artifacts' && (
-                    <div className="grid gap-2 text-xs text-[color:var(--wb-ink)]">
-                      <p>Source hash: {selectedRow.sourceSha256 ?? 'not imported'}</p>
-                      {selectedRow.blocked ? (
-                        <p>
-                          {selectedRow.blocked.userMessage} {selectedRow.blocked.suggestion}
-                        </p>
-                      ) : (
-                        <p>No blocked reason on this row.</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="grid h-full place-items-center p-3">
-                <EmptyState
-                  icon={<FileText width={32} height={32} />}
-                  title="Select a row"
-                  copy="No row loaded."
-                />
-              </div>
-            )}
-          </aside>
-        </RecipeOptionsPanel>
-        <RecipeControls>
-          <details open={!activeRun} className="recipe-draft-settings">
-            <summary>New atlas configuration</summary>
-            <aside className="flex min-h-0 flex-col overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] shadow-2xl">
-              <div className="border-b border-[color:var(--wb-line)] p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-info)] ">
-                      Atlas Recipe
-                    </div>
-                    <h2 className="mt-1 truncate text-base font-semibold text-[color:var(--wb-ink)]">
-                      Sprite Atlas
-                    </h2>
-                    <p className="mt-1 truncate text-xs text-[color:var(--wb-muted)]">
-                      {contract.assetKind} / {contract.extractionMode}
-                    </p>
-                  </div>
-                  <span className="grid size-10 shrink-0 place-items-center rounded-[var(--wb-radius)] border border-sky-400/2 bg-sky-500/10 text-[color:var(--wb-info)] ">
-                    <Package width={20} height={20} />
-                  </span>
-                </div>
-
-                <div className="mt-3 grid grid-cols-3 gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] p-2">
-                  <Metric label="Rows" value={String(contract.rows.length)} />
-                  <Metric label="Frames" value={String(getFrameTotal(contract.rows))} />
-                  <Metric label="Cell" value={`${contract.cell.width}px`} />
-                </div>
-              </div>
-
-              <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
-                <div className="mb-3 flex flex-wrap gap-1.5">
-                  {(['all', ...SPRITE_ATLAS_ASSET_KINDS] as const).map((kind) => (
-                    <FilterChip
-                      key={kind}
-                      active={assetKindFilter === kind}
-                      onClick={() => setAssetKindFilter(kind)}
-                    >
-                      {kind}
-                    </FilterChip>
-                  ))}
-                </div>
-
-                <div className="grid gap-2">
-                  {filteredPresets.map((preset) => {
-                    const active = preset.id === contract.presetId;
-                    return (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        onClick={() => selectPreset(preset)}
-                        aria-pressed={active}
-                        className={`group grid gap-2 rounded-[var(--wb-radius)] border p-3 text-left transition-[background-color,border-color,transform] duration-150 hover:-translate-y-0.5 hover:border-[color:var(--wb-border)] ${
-                          active
-                            ? 'border-sky-400/2 bg-sky-500/10'
-                            : 'border-[color:var(--wb-line)] bg-white/[0.035]'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold text-[color:var(--wb-ink)]">
-                              {preset.label}
-                            </div>
-                            <div className="mt-0.5 text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-dim)]">
-                              {preset.rows} rows / {preset.frames} frames / {preset.cell.width}px
-                            </div>
-                          </div>
-                          <span
-                            className={`shrink-0 rounded-[var(--wb-radius)] border px-1.5 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal ${getPresetTone(
-                              preset.assetKind,
-                            )}`}
-                          >
-                            {preset.assetKind}
-                          </span>
-                        </div>
-                        <p className="line-clamp-2 text-xs leading-relaxed text-[color:var(--wb-muted)]">
-                          {preset.description}
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  <SelectField
-                    label="Style"
-                    value={contract.stylePreset}
-                    onChange={(value) => setRecipeParam('stylePreset', value)}
-                    options={[
-                      'pixel-art',
-                      'illustration',
-                      'painterly',
-                      'realistic',
-                      'anime',
-                      'vector',
-                      'custom',
-                    ]}
-                  />
-                  <div className="col-span-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] px-2 py-2 text-xs text-[color:var(--wb-muted)]">
-                    {contract.workflowLane === 'static-items'
-                      ? ' Irregular items stay in spritesheet-expert.'
-                      : ` Lane: ${contract.workflowLane}.`}
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t border-[color:var(--wb-line)] p-3">
-                {currentPreset && (
-                  <div className="mb-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] p-2 text-xs leading-relaxed text-[color:var(--wb-muted)]">
-                    {currentPreset.description}
-                  </div>
-                )}
-                <RecipePrimaryAction>
-                  <button
-                    type="button"
-                    onClick={handleCreateRun}
-                    disabled={busy || Boolean(prepareRequirement)}
-                    aria-describedby={
-                      prepareRequirement ? 'sprite-atlas-prepare-requirement' : undefined
-                    }
-                    className="studio-primary-control min-h-11 w-full disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {busy ? (
-                      <Loader2 size={15} className="animate-spin" />
-                    ) : (
-                      <Plus width={15} height={15} />
-                    )}
-                    Prepare Run
-                  </button>
-                  {prepareRequirement && (
-                    <p
-                      id="sprite-atlas-prepare-requirement"
-                      className="mt-2 text-xs text-[color:var(--wb-muted)]"
-                    >
-                      {prepareRequirement}
-                    </p>
-                  )}
-                </RecipePrimaryAction>
-              </div>
-            </aside>
-          </details>
-        </RecipeControls>
-
-        <main
-          data-recipe-stage
-          className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-canvas)] xl:row-span-2"
-        >
-          <div className="border-b border-[color:var(--wb-line)] p-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`rounded-[var(--wb-radius)] border px-2 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal ${getRunTone(
-                      activeRun?.status,
-                    )}`}
-                  >
-                    {activeRun ? STAGE_LABELS[activeRun.status] : 'No Run'}
-                  </span>
-                  <h3 className="truncate text-sm font-semibold tracking-normal text-[color:var(--wb-ink)]">
-                    {activeRun?.title ?? 'Sprite Atlas Workbench'}
-                  </h3>
-                </div>
-                {activeRun ? (
-                  <p className="mt-1 truncate font-mono text-[11px] text-[color:var(--wb-muted)]">
-                    {activeRun.qa?.mode === 'fixture_smoke'
-                      ? 'Fixture check only. Generated rows still require import and validation.'
-                      : `${activeRun.contract.workflowLane} · ${activeRun.contract.frameSemantics} · ${activeRun.contract.camera}`}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-xs text-[color:var(--wb-muted)]">
-                    Prepare {contract.rows.length} rows · {getFrameTotal(contract.rows)} frames ·{' '}
-                    {contract.cell.width}px cells.
-                  </p>
-                )}
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <IconButton
-                  label="Refresh"
-                  onClick={() => void runAction(refreshRuns, 'Runs refreshed.')}
-                  disabled={busy}
-                >
-                  <RefreshCw width={14} height={14} />
-                </IconButton>
-                <IconButton label="Sync" onClick={handleSyncRun} disabled={busy || !activeRun}>
-                  <DataTransferBoth width={14} height={14} />
-                </IconButton>
-                <IconButton
-                  label={
-                    activeProviderId
-                      ? `Queue selected row with ${activeProviderId}`
-                      : 'Choose a provider'
-                  }
-                  onClick={handleQueueRow}
-                  disabled={!canQueue}
-                  tone="sky"
-                >
-                  <ClipboardList width={14} height={14} />
-                </IconButton>
-                <details className="relative">
-                  <summary className="cursor-pointer rounded-[var(--wb-radius)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-3 py-2 text-xs">
-                    Diagnostics
-                  </summary>
-                  <div className="absolute right-0 z-50 mt-2 w-60 rounded-[var(--wb-radius)] bg-[color:var(--wb-bar)] p-3">
-                    <p className="mb-2 text-xs text-[color:var(--wb-ink)]">
-                      Creates test art to check the pipeline. This does not compose your imported
-                      rows.
-                    </p>
-                    <IconButton
-                      label="Compose fixture"
-                      onClick={handleComposeFixture}
-                      disabled={busy || !activeRun}
-                      tone="amber"
-                    >
-                      <Package width={14} height={14} />
-                    </IconButton>
-                  </div>
-                </details>
-                <IconButton
-                  label="Compose imported rows"
-                  onClick={handleCompose}
-                  disabled={busy || !activeRun || !canCompose}
-                  tone="sky"
-                >
-                  <Package width={14} height={14} />
-                </IconButton>
-                <IconButton
-                  label="Accept visual check"
-                  onClick={() => {
-                    if (!activeRun) return;
-                    void runAction(
-                      () => acceptSpriteAtlasVisualReview(activeRun.id),
-                      'Visual check accepted.',
-                    );
-                  }}
-                  disabled={
-                    busy || !activeRun || !['composed', 'qa_passed'].includes(activeRun.status)
-                  }
-                  tone="emerald"
-                >
-                  <Check width={14} height={14} />
-                </IconButton>
-                <IconButton
-                  label="Technical check"
-                  onClick={handleRunQa}
-                  disabled={
-                    busy || !activeRun || !['composed', 'qa_passed'].includes(activeRun.status)
-                  }
-                  tone="emerald"
-                >
-                  <Check width={14} height={14} />
-                </IconButton>
-              </div>
-            </div>
-
-            <p className="mt-3 text-sm font-semibold">
-              Current step:{' '}
-              {pipeline.find((stage) => stage.state !== 'complete')?.label ?? 'Review'}
-            </p>
-            {activeRun && (
-              <p className="mt-3 text-sm text-[color:var(--wb-ink)]">
-                {activeRun.rows.some((row) => !row.rawPath)
-                  ? 'Next: generate and import the missing row images. Select a row to see its prompt and import controls.'
-                  : activeRun.status === 'composed' || activeRun.status === 'qa_passed'
-                    ? 'Atlas composed. Review the extracted cells, then validate the artifact.'
-                    : 'Rows imported. Compose them into atlas.png and manifest.json.'}
-              </p>
-            )}
-            <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(90px,1fr))] gap-1.5">
-              {pipeline.map((stage) => (
-                <PipelineStep key={stage.id} stage={stage} />
-              ))}
-            </div>
-          </div>
-
-          {error && (
-            <div className="m-3 flex items-start gap-2 rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-500/10 p-3 text-sm text-[color:var(--wb-danger)] ">
-              <AlertTriangle width={16} height={16} className="mt-0.5 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-          {message && (
-            <div className="m-3 rounded-[var(--wb-radius)] border border-emerald-500/2 bg-emerald-500/10 p-3 text-sm text-[color:var(--wb-success)] ">
-              {message}
-            </div>
-          )}
-
-          <div className="min-h-0 flex-1 overflow-hidden">
-            {activeRun ? (
-              <section className="flex h-full min-h-0 flex-col">
-                <div className="flex flex-wrap items-end gap-2 border-b border-[color:var(--wb-line)] p-3">
-                  <label className="grid min-w-[min(100%,14rem)] flex-1 basis-56 gap-1">
-                    <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                      Search rows
-                    </span>
-                    <span className="relative min-w-0">
-                      <Search
-                        width={14}
-                        height={14}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--wb-dim)]"
-                        aria-hidden="true"
-                      />
-                      <input
-                        value={rowQuery}
-                        onChange={(event) => setRowQuery(event.target.value)}
-                        placeholder="Names, jobs, paths"
-                        className="h-9 w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] pl-9 pr-3 text-xs text-[color:var(--wb-ink)] outline-none placeholder:text-[color:var(--wb-dim)] transition focus:border-sky-400/2"
-                      />
-                    </span>
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {ROW_STATUS_FILTERS.map((status) => (
-                      <FilterChip
-                        key={status}
-                        active={rowStatusFilter === status}
-                        onClick={() => setRowStatusFilter(status)}
-                      >
-                        {status === 'all' ? 'all' : ROW_STATUS_LABELS[status]}
-                      </FilterChip>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-4 gap-2 border-b border-[color:var(--wb-line)] p-3">
-                  <Metric label="Handoff" value={String(rowCounts.handoff_ready)} />
-                  <Metric label="Imported" value={String(rowCounts.raw_imported)} />
-                  <Metric label="Blocked" value={String(rowCounts.blocked)} />
-                  <Metric label="Open" value={String(missingJobRows.length)} />
-                </div>
-
-                <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
-                  <section className="mb-3 grid gap-3" aria-label="Atlas output">
-                    <div className="flex flex-wrap gap-1.5">
-                      {(['checker', 'black', 'gray', 'white'] as const).map((matte) => (
-                        <button
-                          key={matte}
-                          type="button"
-                          onClick={() => setStageMatte(matte)}
-                          aria-pressed={stageMatte === matte}
-                          className={`min-h-8 rounded-[var(--wb-radius)] border px-2 text-xs ${
-                            stageMatte === matte
-                              ? 'border-sky-400/40 text-[color:var(--wb-ink)]'
-                              : 'border-[color:var(--wb-line)] text-[color:var(--wb-muted)]'
-                          }`}
-                        >
-                          {matte}
-                        </button>
-                      ))}
-                    </div>
-                    {selectedRow &&
-                    (selectedRow.status === 'extracted' || activeRun.status === 'qa_passed') ? (
-                      <div
-                        className={`rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] p-2 ${stageMatteClass(stageMatte)}`}
-                      >
-                        <div className="mb-2 flex items-center justify-between gap-2 text-xs text-[color:var(--wb-muted)]">
-                          <span>
-                            {selectedRow.id} frame {playbackFrame}
-                            {activeRun.qa?.mode === 'fixture_smoke' ? ' · Fixture' : ''}
-                          </span>
-                          <button
-                            type="button"
-                            className="min-h-8 px-2"
-                            onClick={() =>
-                              setPlaybackFrame((frame) => (frame % selectedRow.frames) + 1)
-                            }
-                          >
-                            Step
-                          </button>
-                        </div>
-                        <img
-                          src={getSpriteAtlasFrameUrl(activeRun.id, selectedRow.id, playbackFrame)}
-                          alt={`${selectedRow.id} frame ${playbackFrame}`}
-                          className={`mx-auto h-auto max-h-80 w-auto object-contain ${
-                            activeRun.contract.stylePreset === 'pixel-art'
-                              ? '[image-rendering:pixelated]'
-                              : ''
-                          }`}
-                        />
-                      </div>
-                    ) : activeRun.status === 'composed' || activeRun.status === 'qa_passed' ? (
-                      <div
-                        className={`rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] p-2 ${stageMatteClass(stageMatte)}`}
-                      >
-                        <img
-                          src={getSpriteAtlasAtlasUrl(activeRun.id)}
-                          alt="Composed atlas"
-                          className={`h-auto w-full object-contain ${
-                            activeRun.contract.stylePreset === 'pixel-art'
-                              ? '[image-rendering:pixelated]'
-                              : ''
-                          }`}
-                        />
-                      </div>
-                    ) : (
-                      <EmptyState
-                        icon={<Package width={28} height={28} />}
-                        title="Atlas not composed"
-                        copy="Queue a row, import the result, then compose the row strips."
-                      />
-                    )}
-
-                    {activeRun.qa && (
-                      <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] p-3 text-xs text-[color:var(--wb-ink)]">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                            QA Report
-                          </span>
-                          <span className="font-mono text-[color:var(--wb-muted)]">
-                            {activeRun.qa.mode}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-[color:var(--wb-ink)]">{activeRun.qa.summary}</p>
-                        {activeRun.qa.issues.length > 0 && (
-                          <ul className="mt-2 grid gap-1 text-[color:var(--wb-warning)] ">
-                            {activeRun.qa.issues.map((issue) => (
-                              <li key={issue}>{issue}</li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    )}
-                  </section>
-                  {visibleRows.length > 0 ? (
-                    <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-2">
-                      {visibleRows.map((row) => (
-                        <button
-                          type="button"
-                          key={row.id}
-                          onClick={() => {
-                            setSelectedRowId(row.id);
-                            setInspectorTab('guide');
-                          }}
-                          aria-pressed={selectedRow?.id === row.id}
-                          className={`group flex min-h-[96px] flex-col justify-between rounded-[var(--wb-radius)] border p-3 text-left transition-[background-color,border-color,transform] duration-150 hover:-translate-y-0.5 hover:border-[color:var(--wb-border)] ${
-                            selectedRow?.id === row.id
-                              ? 'border-sky-400/2 bg-sky-500/10'
-                              : 'border-[color:var(--wb-line)] bg-white/[0.035]'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-semibold text-[color:var(--wb-ink)]">
-                                {row.id}
-                              </div>
-                              <div className="mt-1 font-mono text-[length:var(--wbp-label)] text-[color:var(--wb-dim)]">
-                                {row.frames} frames / {ROW_STATUS_LABELS[row.status]}
-                              </div>
-                            </div>
-                            <span
-                              className={`shrink-0 rounded-[var(--wb-radius)] border px-2 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal ${getRowTone(
-                                row,
-                              )}`}
-                            >
-                              {ROW_STATUS_LABELS[row.status]}
-                            </span>
-                          </div>
-                          {row.blocked && (
-                            <p className="mt-2 line-clamp-2 text-xs text-[color:var(--wb-danger)] ">
-                              {row.blocked.userMessage}
-                            </p>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <EmptyState
-                      icon={<Search width={30} height={30} />}
-                      title="No matching rows"
-                      copy="Clear search or status filter."
-                    />
-                  )}
-                </div>
-              </section>
-            ) : (
-              <div className="grid h-full place-items-center p-3">
-                <EmptyState
-                  icon={<Folder width={34} height={34} />}
-                  title="No Sprite Atlas run"
-                  copy="Prepare Run writes the row contract. Queue sends one row to the selected provider."
-                />
-              </div>
-            )}
-          </div>
-        </main>
+        <AtlasStage
+          activeRun={activeRun}
+          contract={contract}
+          runAction={runAction}
+          refreshRuns={refreshRuns}
+          busy={busy}
+          handleSyncRun={handleSyncRun}
+          activeProviderId={activeProviderId}
+          handleQueueRow={handleQueueRow}
+          canQueue={canQueue}
+          handleComposeFixture={handleComposeFixture}
+          handleCompose={handleCompose}
+          canCompose={canCompose}
+          handleRunQa={handleRunQa}
+          pipeline={pipeline}
+          error={error}
+          message={message}
+          rowQuery={rowQuery}
+          setRowQuery={setRowQuery}
+          rowStatusFilter={rowStatusFilter}
+          setRowStatusFilter={setRowStatusFilter}
+          rowCounts={rowCounts}
+          missingJobRows={missingJobRows}
+          setStageMatte={setStageMatte}
+          stageMatte={stageMatte}
+          selectedRow={selectedRow}
+          playbackFrame={playbackFrame}
+          setPlaybackFrame={setPlaybackFrame}
+          visibleRows={visibleRows}
+          setSelectedRowId={setSelectedRowId}
+          setInspectorTab={setInspectorTab}
+        />
 
         <RecipeControls>
           <aside className="min-h-0 overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] xl:col-start-1 xl:row-start-2">
@@ -1361,6 +900,11 @@ export const SpriteAtlasRecipe: React.FC<SpriteAtlasRecipeProps> = ({
       </div>
     </div>
   );
+}
+
+export const SpriteAtlasRecipe: React.FC<SpriteAtlasRecipeProps> = (props) => {
+  const view = useSpriteAtlasRecipeController(props);
+  return <SpriteAtlasRecipeView {...view} />;
 };
 
 const Metric: React.FC<{ label: string; value: string }> = ({ label, value }) => (
@@ -1549,3 +1093,945 @@ const EmptyState: React.FC<{
     </div>
   </div>
 );
+
+function AtlasRowDetails({
+  activeRun,
+  selectedRow,
+  setInspectorTab,
+  inspectorTab,
+  handleQueueRow,
+  canQueue,
+  activeProviderId,
+  handleBlockRow,
+  busy,
+  rowCatalogImageId,
+  setRowCatalogImageId,
+  images,
+  handleImportRow,
+  isPromptLoading,
+  promptError,
+  selectedPrompt,
+}: Pick<
+  SpriteAtlasRecipeViewModel,
+  | 'activeRun'
+  | 'selectedRow'
+  | 'setInspectorTab'
+  | 'inspectorTab'
+  | 'handleQueueRow'
+  | 'canQueue'
+  | 'activeProviderId'
+  | 'handleBlockRow'
+  | 'busy'
+  | 'rowCatalogImageId'
+  | 'setRowCatalogImageId'
+  | 'images'
+  | 'handleImportRow'
+  | 'isPromptLoading'
+  | 'promptError'
+  | 'selectedPrompt'
+>) {
+  return (
+    <RecipeOptionsPanel title="Row details">
+      <aside className="flex min-h-0 flex-col overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] shadow-2xl xl:row-span-2">
+        {activeRun && selectedRow ? (
+          <>
+            <div className="border-b border-[color:var(--wb-line)] p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
+                    Row Inspector
+                  </div>
+                  <h3 className="mt-1 truncate text-base font-semibold text-[color:var(--wb-ink)]">
+                    {selectedRow.id}
+                  </h3>
+                </div>
+                <span
+                  className={`shrink-0 rounded-[var(--wb-radius)] border px-2 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal ${getRowTone(
+                    selectedRow,
+                  )}`}
+                >
+                  {ROW_STATUS_LABELS[selectedRow.status]}
+                </span>
+              </div>
+
+              <div className="mt-3 grid grid-cols-3 gap-1.5 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] p-1.5">
+                {(['guide', 'prompt', 'artifacts'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setInspectorTab(tab)}
+                    aria-pressed={inspectorTab === tab}
+                    className={`min-h-8 rounded-[var(--wb-radius)] px-2 text-[length:var(--wbp-label)] font-semibold tracking-normal transition ${
+                      inspectorTab === tab
+                        ? 'bg-white/12 text-[color:var(--wb-ink)]'
+                        : 'text-[color:var(--wb-muted)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] hover:text-[color:var(--wb-ink)]'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
+              {inspectorTab === 'guide' && (
+                <div className="grid gap-3">
+                  <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] p-2">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold tracking-normal text-[color:var(--wb-muted)]">
+                        Layout Guide
+                      </span>
+                      <FileText width={14} height={14} className="text-[color:var(--wb-muted)]" />
+                    </div>
+                    <img
+                      src={getSpriteAtlasLayoutGuideUrl(activeRun.id, selectedRow.id)}
+                      alt=""
+                      className="h-auto w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-black object-contain"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={handleQueueRow}
+                      disabled={!canQueue}
+                      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[var(--wb-radius)] border border-sky-400/2 bg-sky-500/10 px-3 text-xs font-semibold tracking-normal text-[color:var(--wb-info)]  hover:bg-sky-500/15 disabled:opacity-50"
+                    >
+                      <ClipboardList width={15} height={15} />
+                      {activeProviderId
+                        ? `${selectedRow.status === 'blocked' ? 'Retry' : 'Queue'} with ${activeProviderId}`
+                        : 'Choose a provider'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleBlockRow}
+                      disabled={busy}
+                      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[var(--wb-radius)] border border-rose-400/2 bg-rose-500/10 px-3 text-xs font-bold tracking-normal text-[color:var(--wb-danger)]  hover:bg-rose-500/15 disabled:opacity-50"
+                    >
+                      <AlertTriangle width={15} height={15} />
+                      Block
+                    </button>
+                  </div>
+
+                  <div className="flex items-end gap-2">
+                    <label className="grid min-w-0 flex-1 gap-1">
+                      <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
+                        Source image
+                      </span>
+                      <select
+                        aria-label="Row source image"
+                        value={rowCatalogImageId}
+                        onChange={(event) => setRowCatalogImageId(event.target.value)}
+                        className="min-h-10 w-full rounded-[var(--wb-radius)] bg-[color:var(--wb-panel)] px-2 text-sm text-[color:var(--wb-ink)]"
+                      >
+                        <option value="">Choose a library image</option>
+                        {images.map((image) => (
+                          <option key={image.id} value={image.id}>
+                            {formatSourceImageLabel(image)}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="text-xs text-[color:var(--wb-muted)]">
+                        Import external images through Settings → Library &amp; imports.
+                      </span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleImportRow}
+                      disabled={busy || !rowCatalogImageId}
+                      className="inline-flex min-h-10 items-center justify-center rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_4%,transparent)] px-3 text-[color:var(--wb-ink)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] disabled:opacity-50"
+                      aria-label="Import selected row"
+                    >
+                      <FileImport width={15} height={15} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {inspectorTab === 'prompt' && (
+                <AtlasRowPrompt
+                  activeRun={activeRun}
+                  selectedRow={selectedRow}
+                  isPromptLoading={isPromptLoading}
+                  promptError={promptError}
+                  selectedPrompt={selectedPrompt}
+                />
+              )}
+
+              {inspectorTab === 'artifacts' && (
+                <div className="grid gap-2 text-xs text-[color:var(--wb-ink)]">
+                  <p>Source hash: {selectedRow.sourceSha256 ?? 'not imported'}</p>
+                  {selectedRow.blocked ? (
+                    <p>
+                      {selectedRow.blocked.userMessage} {selectedRow.blocked.suggestion}
+                    </p>
+                  ) : (
+                    <p>No blocked reason on this row.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="grid h-full place-items-center p-3">
+            <EmptyState
+              icon={<FileText width={32} height={32} />}
+              title="Select a row"
+              copy="No row loaded."
+            />
+          </div>
+        )}
+      </aside>
+    </RecipeOptionsPanel>
+  );
+}
+
+function AtlasConfiguration({
+  activeRun,
+  contract,
+  assetKindFilter,
+  setAssetKindFilter,
+  filteredPresets,
+  selectPreset,
+  setRecipeParam,
+  currentPreset,
+  handleCreateRun,
+  busy,
+  prepareRequirement,
+}: Pick<
+  SpriteAtlasRecipeViewModel,
+  | 'activeRun'
+  | 'contract'
+  | 'assetKindFilter'
+  | 'setAssetKindFilter'
+  | 'filteredPresets'
+  | 'selectPreset'
+  | 'setRecipeParam'
+  | 'currentPreset'
+  | 'handleCreateRun'
+  | 'busy'
+  | 'prepareRequirement'
+>) {
+  return (
+    <RecipeControls>
+      <details open={!activeRun} className="recipe-draft-settings">
+        <summary>New atlas configuration</summary>
+        <aside className="flex min-h-0 flex-col overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] shadow-2xl">
+          <div className="border-b border-[color:var(--wb-line)] p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-info)] ">
+                  Atlas Recipe
+                </div>
+                <h2 className="mt-1 truncate text-base font-semibold text-[color:var(--wb-ink)]">
+                  Sprite Atlas
+                </h2>
+                <p className="mt-1 truncate text-xs text-[color:var(--wb-muted)]">
+                  {contract.assetKind} / {contract.extractionMode}
+                </p>
+              </div>
+              <span className="grid size-10 shrink-0 place-items-center rounded-[var(--wb-radius)] border border-sky-400/2 bg-sky-500/10 text-[color:var(--wb-info)] ">
+                <Package width={20} height={20} />
+              </span>
+            </div>
+
+            <div className="mt-3 grid grid-cols-3 gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] p-2">
+              <Metric label="Rows" value={String(contract.rows.length)} />
+              <Metric label="Frames" value={String(getFrameTotal(contract.rows))} />
+              <Metric label="Cell" value={`${contract.cell.width}px`} />
+            </div>
+          </div>
+
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {(['all', ...SPRITE_ATLAS_ASSET_KINDS] as const).map((kind) => (
+                <FilterChip
+                  key={kind}
+                  active={assetKindFilter === kind}
+                  onClick={() => setAssetKindFilter(kind)}
+                >
+                  {kind}
+                </FilterChip>
+              ))}
+            </div>
+
+            <div className="grid gap-2">
+              {filteredPresets.map((preset) => {
+                const active = preset.id === contract.presetId;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => selectPreset(preset)}
+                    aria-pressed={active}
+                    className={`group grid gap-2 rounded-[var(--wb-radius)] border p-3 text-left transition-[background-color,border-color,transform] duration-150 hover:-translate-y-0.5 hover:border-[color:var(--wb-border)] ${
+                      active
+                        ? 'border-sky-400/2 bg-sky-500/10'
+                        : 'border-[color:var(--wb-line)] bg-white/[0.035]'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-[color:var(--wb-ink)]">
+                          {preset.label}
+                        </div>
+                        <div className="mt-0.5 text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-dim)]">
+                          {preset.rows} rows / {preset.frames} frames / {preset.cell.width}px
+                        </div>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-[var(--wb-radius)] border px-1.5 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal ${getPresetTone(
+                          preset.assetKind,
+                        )}`}
+                      >
+                        {preset.assetKind}
+                      </span>
+                    </div>
+                    <p className="line-clamp-2 text-xs leading-relaxed text-[color:var(--wb-muted)]">
+                      {preset.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <SelectField
+                label="Style"
+                value={contract.stylePreset}
+                onChange={(value) => setRecipeParam('stylePreset', value)}
+                options={[
+                  'pixel-art',
+                  'illustration',
+                  'painterly',
+                  'realistic',
+                  'anime',
+                  'vector',
+                  'custom',
+                ]}
+              />
+              <div className="col-span-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] px-2 py-2 text-xs text-[color:var(--wb-muted)]">
+                {contract.workflowLane === 'static-items'
+                  ? ' Irregular items stay in spritesheet-expert.'
+                  : ` Lane: ${contract.workflowLane}.`}
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-[color:var(--wb-line)] p-3">
+            {currentPreset && (
+              <div className="mb-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] p-2 text-xs leading-relaxed text-[color:var(--wb-muted)]">
+                {currentPreset.description}
+              </div>
+            )}
+            <RecipePrimaryAction
+              execute={handleCreateRun}
+              disabled={busy || Boolean(prepareRequirement)}
+            >
+              <button
+                type="button"
+                onClick={handleCreateRun}
+                disabled={busy || Boolean(prepareRequirement)}
+                aria-describedby={
+                  prepareRequirement ? 'sprite-atlas-prepare-requirement' : undefined
+                }
+                className="studio-primary-control min-h-11 w-full disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {busy ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <Plus width={15} height={15} />
+                )}
+                Prepare Run
+              </button>
+              {prepareRequirement && (
+                <p
+                  id="sprite-atlas-prepare-requirement"
+                  className="mt-2 text-xs text-[color:var(--wb-muted)]"
+                >
+                  {prepareRequirement}
+                </p>
+              )}
+            </RecipePrimaryAction>
+          </div>
+        </aside>
+      </details>
+    </RecipeControls>
+  );
+}
+
+function AtlasRunOutput({
+  rowQuery,
+  setRowQuery,
+  rowStatusFilter,
+  setRowStatusFilter,
+  rowCounts,
+  missingJobRows,
+  setStageMatte,
+  stageMatte,
+  selectedRow,
+  activeRun,
+  playbackFrame,
+  setPlaybackFrame,
+  visibleRows,
+  setSelectedRowId,
+  setInspectorTab,
+}: Pick<
+  SpriteAtlasRecipeViewModel,
+  | 'rowQuery'
+  | 'setRowQuery'
+  | 'rowStatusFilter'
+  | 'setRowStatusFilter'
+  | 'rowCounts'
+  | 'missingJobRows'
+  | 'setStageMatte'
+  | 'stageMatte'
+  | 'selectedRow'
+  | 'activeRun'
+  | 'playbackFrame'
+  | 'setPlaybackFrame'
+  | 'visibleRows'
+  | 'setSelectedRowId'
+  | 'setInspectorTab'
+>) {
+  if (!activeRun) return null;
+  return (
+    <section className="flex h-full min-h-0 flex-col">
+      <div className="flex flex-wrap items-end gap-2 border-b border-[color:var(--wb-line)] p-3">
+        <label className="grid min-w-[min(100%,14rem)] flex-1 basis-56 gap-1">
+          <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
+            Search rows
+          </span>
+          <span className="relative min-w-0">
+            <Search
+              width={14}
+              height={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--wb-dim)]"
+              aria-hidden="true"
+            />
+            <input
+              value={rowQuery}
+              onChange={(event) => setRowQuery(event.target.value)}
+              placeholder="Names, jobs, paths"
+              className="h-9 w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] pl-9 pr-3 text-xs text-[color:var(--wb-ink)] outline-none placeholder:text-[color:var(--wb-dim)] transition focus:border-sky-400/2"
+            />
+          </span>
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          {ROW_STATUS_FILTERS.map((status) => (
+            <FilterChip
+              key={status}
+              active={rowStatusFilter === status}
+              onClick={() => setRowStatusFilter(status)}
+            >
+              {status === 'all' ? 'all' : ROW_STATUS_LABELS[status]}
+            </FilterChip>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2 border-b border-[color:var(--wb-line)] p-3">
+        <Metric label="Handoff" value={String(rowCounts.handoff_ready)} />
+        <Metric label="Imported" value={String(rowCounts.raw_imported)} />
+        <Metric label="Blocked" value={String(rowCounts.blocked)} />
+        <Metric label="Open" value={String(missingJobRows.length)} />
+      </div>
+
+      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
+        <AtlasOutputPreview
+          activeRun={activeRun}
+          selectedRow={selectedRow}
+          stageMatte={stageMatte}
+          setStageMatte={setStageMatte}
+          playbackFrame={playbackFrame}
+          setPlaybackFrame={setPlaybackFrame}
+        />
+        {visibleRows.length > 0 ? (
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-2">
+            {visibleRows.map((row) => (
+              <button
+                type="button"
+                key={row.id}
+                onClick={() => {
+                  setSelectedRowId(row.id);
+                  setInspectorTab('guide');
+                }}
+                aria-pressed={selectedRow?.id === row.id}
+                className={`group flex min-h-[96px] flex-col justify-between rounded-[var(--wb-radius)] border p-3 text-left transition-[background-color,border-color,transform] duration-150 hover:-translate-y-0.5 hover:border-[color:var(--wb-border)] ${
+                  selectedRow?.id === row.id
+                    ? 'border-sky-400/2 bg-sky-500/10'
+                    : 'border-[color:var(--wb-line)] bg-white/[0.035]'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-[color:var(--wb-ink)]">
+                      {row.id}
+                    </div>
+                    <div className="mt-1 font-mono text-[length:var(--wbp-label)] text-[color:var(--wb-dim)]">
+                      {row.frames} frames / {ROW_STATUS_LABELS[row.status]}
+                    </div>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-[var(--wb-radius)] border px-2 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal ${getRowTone(
+                      row,
+                    )}`}
+                  >
+                    {ROW_STATUS_LABELS[row.status]}
+                  </span>
+                </div>
+                {row.blocked && (
+                  <p className="mt-2 line-clamp-2 text-xs text-[color:var(--wb-danger)] ">
+                    {row.blocked.userMessage}
+                  </p>
+                )}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={<Search width={30} height={30} />}
+            title="No matching rows"
+            copy="Clear search or status filter."
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+function AtlasStage({
+  activeRun,
+  contract,
+  runAction,
+  refreshRuns,
+  busy,
+  handleSyncRun,
+  activeProviderId,
+  handleQueueRow,
+  canQueue,
+  handleComposeFixture,
+  handleCompose,
+  canCompose,
+  handleRunQa,
+  pipeline,
+  error,
+  message,
+  rowQuery,
+  setRowQuery,
+  rowStatusFilter,
+  setRowStatusFilter,
+  rowCounts,
+  missingJobRows,
+  setStageMatte,
+  stageMatte,
+  selectedRow,
+  playbackFrame,
+  setPlaybackFrame,
+  visibleRows,
+  setSelectedRowId,
+  setInspectorTab,
+}: Pick<
+  SpriteAtlasRecipeViewModel,
+  | 'activeRun'
+  | 'contract'
+  | 'runAction'
+  | 'refreshRuns'
+  | 'busy'
+  | 'handleSyncRun'
+  | 'activeProviderId'
+  | 'handleQueueRow'
+  | 'canQueue'
+  | 'handleComposeFixture'
+  | 'handleCompose'
+  | 'canCompose'
+  | 'handleRunQa'
+  | 'pipeline'
+  | 'error'
+  | 'message'
+  | 'rowQuery'
+  | 'setRowQuery'
+  | 'rowStatusFilter'
+  | 'setRowStatusFilter'
+  | 'rowCounts'
+  | 'missingJobRows'
+  | 'setStageMatte'
+  | 'stageMatte'
+  | 'selectedRow'
+  | 'playbackFrame'
+  | 'setPlaybackFrame'
+  | 'visibleRows'
+  | 'setSelectedRowId'
+  | 'setInspectorTab'
+>) {
+  return (
+    <main
+      data-recipe-stage
+      className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-canvas)] xl:row-span-2"
+    >
+      <div className="border-b border-[color:var(--wb-line)] p-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <AtlasRunHeading activeRun={activeRun} contract={contract} />
+
+          <AtlasRunActions
+            activeRun={activeRun}
+            runAction={runAction}
+            refreshRuns={refreshRuns}
+            busy={busy}
+            handleSyncRun={handleSyncRun}
+            activeProviderId={activeProviderId}
+            handleQueueRow={handleQueueRow}
+            canQueue={canQueue}
+            handleComposeFixture={handleComposeFixture}
+            handleCompose={handleCompose}
+            canCompose={canCompose}
+            handleRunQa={handleRunQa}
+          />
+        </div>
+
+        <p className="mt-3 text-sm font-semibold">
+          Current step: {pipeline.find((stage) => stage.state !== 'complete')?.label ?? 'Review'}
+        </p>
+        {activeRun && (
+          <p className="mt-3 text-sm text-[color:var(--wb-ink)]">
+            {activeRun.rows.some((row) => !row.rawPath)
+              ? 'Next: generate and import the missing row images. Select a row to see its prompt and import controls.'
+              : activeRun.status === 'composed' || activeRun.status === 'qa_passed'
+                ? 'Atlas composed. Review the extracted cells, then validate the artifact.'
+                : 'Rows imported. Compose them into atlas.png and manifest.json.'}
+          </p>
+        )}
+        <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(90px,1fr))] gap-1.5">
+          {pipeline.map((stage) => (
+            <PipelineStep key={stage.id} stage={stage} />
+          ))}
+        </div>
+      </div>
+
+      {error && (
+        <div className="m-3 flex items-start gap-2 rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-500/10 p-3 text-sm text-[color:var(--wb-danger)] ">
+          <AlertTriangle width={16} height={16} className="mt-0.5 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+      {message && (
+        <div className="m-3 rounded-[var(--wb-radius)] border border-emerald-500/2 bg-emerald-500/10 p-3 text-sm text-[color:var(--wb-success)] ">
+          {message}
+        </div>
+      )}
+
+      <div className="min-h-0 flex-1 overflow-hidden">
+        {activeRun ? (
+          <AtlasRunOutput
+            rowQuery={rowQuery}
+            setRowQuery={setRowQuery}
+            rowStatusFilter={rowStatusFilter}
+            setRowStatusFilter={setRowStatusFilter}
+            rowCounts={rowCounts}
+            missingJobRows={missingJobRows}
+            setStageMatte={setStageMatte}
+            stageMatte={stageMatte}
+            selectedRow={selectedRow}
+            activeRun={activeRun}
+            playbackFrame={playbackFrame}
+            setPlaybackFrame={setPlaybackFrame}
+            visibleRows={visibleRows}
+            setSelectedRowId={setSelectedRowId}
+            setInspectorTab={setInspectorTab}
+          />
+        ) : (
+          <div className="grid h-full place-items-center p-3">
+            <EmptyState
+              icon={<Folder width={34} height={34} />}
+              title="No Sprite Atlas run"
+              copy="Prepare Run writes the row contract. Queue sends one row to the selected provider."
+            />
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
+
+function AtlasRowPrompt({
+  activeRun,
+  selectedRow,
+  isPromptLoading,
+  promptError,
+  selectedPrompt,
+}: Pick<
+  SpriteAtlasRecipeViewModel,
+  'activeRun' | 'selectedRow' | 'isPromptLoading' | 'promptError' | 'selectedPrompt'
+>) {
+  if (!activeRun || !selectedRow) return null;
+  return (
+    <div className="grid gap-3">
+      <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] p-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold tracking-normal text-[color:var(--wb-muted)]">
+            Prompt
+          </span>
+          {isPromptLoading && <Loader2 size={14} className="animate-spin" />}
+        </div>
+        {promptError ? (
+          <p role="alert" className="text-xs text-[color:var(--wb-danger)]">
+            Prompt unavailable: {promptError}
+          </p>
+        ) : (
+          <pre className="custom-scrollbar max-h-[420px] overflow-y-auto whitespace-pre-wrap rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3 text-[11px] leading-relaxed text-[color:var(--wb-ink)]">
+            {isPromptLoading ? 'Loading prompt…' : selectedPrompt}
+          </pre>
+        )}
+      </div>
+      {activeRun.contract.rows.find((row) => row.id === selectedRow.id)?.mirrorPair ? (
+        <p className="text-xs text-[color:var(--wb-muted)]">
+          This app does not mirror the paired row.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function AtlasRunHeading({
+  activeRun,
+  contract,
+}: Pick<SpriteAtlasRecipeViewModel, 'activeRun' | 'contract'>) {
+  return (
+    <div className="min-w-0">
+      <div className="flex items-center gap-2">
+        <span
+          className={`rounded-[var(--wb-radius)] border px-2 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal ${getRunTone(
+            activeRun?.status,
+          )}`}
+        >
+          {activeRun ? STAGE_LABELS[activeRun.status] : 'No Run'}
+        </span>
+        <h3 className="truncate text-sm font-semibold tracking-normal text-[color:var(--wb-ink)]">
+          {activeRun?.title ?? 'Sprite Atlas Workbench'}
+        </h3>
+      </div>
+      {activeRun ? (
+        <p className="mt-1 truncate font-mono text-[11px] text-[color:var(--wb-muted)]">
+          {activeRun.qa?.mode === 'fixture_smoke'
+            ? 'Fixture check only. Generated rows still require import and validation.'
+            : `${activeRun.contract.workflowLane} · ${activeRun.contract.frameSemantics} · ${activeRun.contract.camera}`}
+        </p>
+      ) : (
+        <p className="mt-1 text-xs text-[color:var(--wb-muted)]">
+          Prepare {contract.rows.length} rows · {getFrameTotal(contract.rows)} frames ·{' '}
+          {contract.cell.width}px cells.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function AtlasRunActions({
+  activeRun,
+  runAction,
+  refreshRuns,
+  busy,
+  handleSyncRun,
+  activeProviderId,
+  handleQueueRow,
+  canQueue,
+  handleComposeFixture,
+  handleCompose,
+  canCompose,
+  handleRunQa,
+}: Pick<
+  SpriteAtlasRecipeViewModel,
+  | 'activeRun'
+  | 'runAction'
+  | 'refreshRuns'
+  | 'busy'
+  | 'handleSyncRun'
+  | 'activeProviderId'
+  | 'handleQueueRow'
+  | 'canQueue'
+  | 'handleComposeFixture'
+  | 'handleCompose'
+  | 'canCompose'
+  | 'handleRunQa'
+>) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <IconButton
+        label="Refresh"
+        onClick={() => void runAction(refreshRuns, 'Runs refreshed.')}
+        disabled={busy}
+      >
+        <RefreshCw width={14} height={14} />
+      </IconButton>
+      <IconButton label="Sync" onClick={handleSyncRun} disabled={busy || !activeRun}>
+        <DataTransferBoth width={14} height={14} />
+      </IconButton>
+      <IconButton
+        label={
+          activeProviderId ? `Queue selected row with ${activeProviderId}` : 'Choose a provider'
+        }
+        onClick={handleQueueRow}
+        disabled={!canQueue}
+        tone="sky"
+      >
+        <ClipboardList width={14} height={14} />
+      </IconButton>
+      <details className="relative">
+        <summary className="cursor-pointer rounded-[var(--wb-radius)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-3 py-2 text-xs">
+          Diagnostics
+        </summary>
+        <div className="absolute right-0 z-50 mt-2 w-60 rounded-[var(--wb-radius)] bg-[color:var(--wb-bar)] p-3">
+          <p className="mb-2 text-xs text-[color:var(--wb-ink)]">
+            Creates test art to check the pipeline. This does not compose your imported rows.
+          </p>
+          <IconButton
+            label="Compose fixture"
+            onClick={handleComposeFixture}
+            disabled={busy || !activeRun}
+            tone="amber"
+          >
+            <Package width={14} height={14} />
+          </IconButton>
+        </div>
+      </details>
+      <IconButton
+        label="Compose imported rows"
+        onClick={handleCompose}
+        disabled={busy || !activeRun || !canCompose}
+        tone="sky"
+      >
+        <Package width={14} height={14} />
+      </IconButton>
+      <IconButton
+        label="Accept visual check"
+        onClick={() => {
+          if (!activeRun) return;
+          void runAction(
+            () => acceptSpriteAtlasVisualReview(activeRun.id),
+            'Visual check accepted.',
+          );
+        }}
+        disabled={busy || !activeRun || !['composed', 'qa_passed'].includes(activeRun.status)}
+        tone="emerald"
+      >
+        <Check width={14} height={14} />
+      </IconButton>
+      <IconButton
+        label="Technical check"
+        onClick={handleRunQa}
+        disabled={busy || !activeRun || !['composed', 'qa_passed'].includes(activeRun.status)}
+        tone="emerald"
+      >
+        <Check width={14} height={14} />
+      </IconButton>
+    </div>
+  );
+}
+
+function AtlasOutputPreview({
+  activeRun,
+  selectedRow,
+  stageMatte,
+  setStageMatte,
+  playbackFrame,
+  setPlaybackFrame,
+}: Pick<
+  SpriteAtlasRecipeViewModel,
+  | 'activeRun'
+  | 'selectedRow'
+  | 'stageMatte'
+  | 'setStageMatte'
+  | 'playbackFrame'
+  | 'setPlaybackFrame'
+>) {
+  if (!activeRun) return null;
+  return (
+    <section className="mb-3 grid gap-3" aria-label="Atlas output">
+      <div className="flex flex-wrap gap-1.5">
+        {(['checker', 'black', 'gray', 'white'] as const).map((matte) => (
+          <button
+            key={matte}
+            type="button"
+            onClick={() => setStageMatte(matte)}
+            aria-pressed={stageMatte === matte}
+            className={`min-h-8 rounded-[var(--wb-radius)] border px-2 text-xs ${
+              stageMatte === matte
+                ? 'border-sky-400/40 text-[color:var(--wb-ink)]'
+                : 'border-[color:var(--wb-line)] text-[color:var(--wb-muted)]'
+            }`}
+          >
+            {matte}
+          </button>
+        ))}
+      </div>
+      {selectedRow && (selectedRow.status === 'extracted' || activeRun.status === 'qa_passed') ? (
+        <div
+          className={`rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] p-2 ${stageMatteClass(stageMatte)}`}
+        >
+          <div className="mb-2 flex items-center justify-between gap-2 text-xs text-[color:var(--wb-muted)]">
+            <span>
+              {selectedRow.id} frame {playbackFrame}
+              {activeRun.qa?.mode === 'fixture_smoke' ? ' · Fixture' : ''}
+            </span>
+            <button
+              type="button"
+              className="min-h-8 px-2"
+              onClick={() => setPlaybackFrame((frame) => (frame % selectedRow.frames) + 1)}
+            >
+              Step
+            </button>
+          </div>
+          <img
+            src={getSpriteAtlasFrameUrl(activeRun.id, selectedRow.id, playbackFrame)}
+            alt={`${selectedRow.id} frame ${playbackFrame}`}
+            className={`mx-auto h-auto max-h-80 w-auto object-contain ${
+              activeRun.contract.stylePreset === 'pixel-art' ? '[image-rendering:pixelated]' : ''
+            }`}
+          />
+        </div>
+      ) : activeRun.status === 'composed' || activeRun.status === 'qa_passed' ? (
+        <div
+          className={`rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] p-2 ${stageMatteClass(stageMatte)}`}
+        >
+          <img
+            src={getSpriteAtlasAtlasUrl(activeRun.id)}
+            alt="Composed atlas"
+            className={`h-auto w-full object-contain ${
+              activeRun.contract.stylePreset === 'pixel-art' ? '[image-rendering:pixelated]' : ''
+            }`}
+          />
+        </div>
+      ) : (
+        <EmptyState
+          icon={<Package width={28} height={28} />}
+          title="Atlas not composed"
+          copy="Queue a row, import the result, then compose the row strips."
+        />
+      )}
+
+      <AtlasQaReport activeRun={activeRun} />
+    </section>
+  );
+}
+
+function AtlasQaReport({ activeRun }: Pick<SpriteAtlasRecipeViewModel, 'activeRun'>) {
+  if (!activeRun?.qa) return null;
+  return (
+    <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] p-3 text-xs text-[color:var(--wb-ink)]">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-semibold tracking-normal text-[color:var(--wb-muted)]">
+          QA Report
+        </span>
+        <span className="font-mono text-[color:var(--wb-muted)]">{activeRun.qa.mode}</span>
+      </div>
+      <p className="mt-2 text-[color:var(--wb-ink)]">{activeRun.qa.summary}</p>
+      {activeRun.qa.issues.length > 0 && (
+        <ul className="mt-2 grid gap-1 text-[color:var(--wb-warning)] ">
+          {activeRun.qa.issues.map((issue) => (
+            <li key={issue}>{issue}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

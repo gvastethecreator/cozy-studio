@@ -71,6 +71,34 @@ export default function StyleDetailPreview({
           <X width={18} height={18} />
         </button>
       </header>
+      <div className="style-detail-actions">
+        <button
+          type="button"
+          className="studio-primary-control"
+          aria-pressed={selected}
+          disabled={selectionDisabled}
+          onClick={onApply}
+        >
+          {selected ? <Check width={15} height={15} /> : <Plus width={15} height={15} />}
+          {selected ? 'Remove style' : 'Add style'}
+        </button>
+        <button type="button" onClick={onCopy}>
+          <Copy width={15} height={15} />
+          {copied ? 'Copied' : 'Copy prompt'}
+        </button>
+        <button type="button" onClick={onUsePrompt}>
+          Use prompt
+        </button>
+        {onEdit ? (
+          <button type="button" onClick={onEdit}>
+            Edit custom style
+          </button>
+        ) : (
+          <button type="button" onClick={onClone}>
+            Create custom copy
+          </button>
+        )}
+      </div>
       <div className="style-detail-body">
         <div className="style-detail-examples" aria-label="Style examples">
           {[0, 1, 2].map((index) => (
@@ -92,34 +120,6 @@ export default function StyleDetailPreview({
           ))}
         </div>
         <aside className="style-detail-information">
-          <div className="style-detail-actions">
-            <button
-              type="button"
-              className="studio-primary-control"
-              aria-pressed={selected}
-              disabled={selectionDisabled}
-              onClick={onApply}
-            >
-              {selected ? <Check width={15} height={15} /> : <Plus width={15} height={15} />}
-              {selected ? 'Remove style' : 'Add style'}
-            </button>
-            <button type="button" onClick={onCopy}>
-              <Copy width={15} height={15} />
-              {copied ? 'Copied' : 'Copy prompt'}
-            </button>
-            <button type="button" onClick={onUsePrompt}>
-              Use prompt
-            </button>
-            {onEdit ? (
-              <button type="button" onClick={onEdit}>
-                Edit custom style
-              </button>
-            ) : (
-              <button type="button" onClick={onClone}>
-                Create custom copy
-              </button>
-            )}
-          </div>
           <h3>Visual DNA</h3>
           <dl>
             {Object.entries(preset.style).map(([key, value]) =>

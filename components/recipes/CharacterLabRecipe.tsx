@@ -46,6 +46,7 @@ import { resolveRecipeAlias, type RecipeAliasId } from '../../lib/recipeAliases'
 import { normalizeImageGenRatio } from '../../utils/imageGenSizing';
 import {
   RecipeControls,
+  useWorkflowPrompt,
   RecipePrimaryAction,
   RecipeOptionsPanel,
   RecipeResults,
@@ -778,46 +779,11 @@ function ActionButton({
   );
 }
 
-const CharacterLabRecipeSession: React.FC<
-  CharacterLabRecipeProps & {
-    setConfig: React.Dispatch<React.SetStateAction<ImageGenerationConfig>>;
-  }
-> = ({ recipeAliasId = null, config, updateConfig, onGenerate, isGenerating, setConfig }) => {
-  const [actionBrowserOpen, setActionBrowserOpen] = useState(false);
-  const actionToggleRef = useRef<HTMLButtonElement>(null);
-  const aliasMode = resolveRecipeAlias(recipeAliasId)?.characterLabMode;
-  const { draft, mode: selectedMode, view } = getCharacterLabView(config, aliasMode);
-  const workflow = CHARACTER_LAB_WORKFLOWS[selectedMode];
-  const selectedActionId = view.actionId;
-  const { style, clothing, bodyType, expression, backgroundColor, labAspectRatio } = view;
-  const subject = draft.subject;
-  const [search, setSearch] = useState('');
-  const [capabilityNotice, setCapabilityNotice] = useState('');
-
-  useEffect(() => {
-    setConfig((current) => activateCharacterLabView(current, aliasMode));
-  }, [aliasMode, setConfig]);
-
-  const patchView = (patch: Partial<CharacterLabViewDraft>) =>
-    setConfig((current) => updateCharacterLabView(current, selectedMode, patch));
-  const setSubject = (value: string) =>
-    setConfig((current) => updateCharacterLabView(current, selectedMode, {}, value));
-  const sourceInputRef = useRef<HTMLInputElement>(null);
-  const referenceInputRef = useRef<HTMLInputElement>(null);
-
-  const source = config.attachments[0] ?? null;
-  const references = config.attachments.slice(1, 4);
-  const selectedAction =
-    characterLabActions.find((action) => action.id === selectedActionId) ?? FIRST_READY_ACTION;
-  const selectedAccent = getAccent(selectedAction.accent);
-  const selectedModeMeta =
-    characterLabModes.find((mode) => mode.id === selectedMode) ?? characterLabModes[0];
-  const selectedModeActions = characterLabActions.filter((action) => action.mode === selectedMode);
-  const selectedModeReadyActions = selectedModeActions.filter(
-    (action) => action.capability === 'ready',
-  );
-  const hasCharacterBrief = subject.trim().length > 0;
-  const sourceRequired = workflow.requiresSource && !source;
+function describeCharacterSource(
+  source: boolean,
+  sourceRequired: boolean,
+  hasCharacterBrief: boolean,
+) {
   const sourceLabel = source
     ? 'Source locked'
     : sourceRequired
@@ -837,6 +803,115 @@ const CharacterLabRecipeSession: React.FC<
       : hasCharacterBrief
         ? 'Prompt-guided generation will use your character brief.'
         : 'Prompt-guided works now; a source image improves identity consistency.';
+
+  return { sourceLabel, workflowStateTitle, workflowStateCopy };
+}
+
+function useCharacterActionCatalog(selectedMode: CharacterLabModeId) {
+  const [search, setSearch] = useState('');
+  const selectedModeActions = characterLabActions.filter((action) => action.mode === selectedMode);
+  const selectedModeReadyActions = selectedModeActions.filter(
+    (action) => action.capability === 'ready',
+  );
+  const filteredCategoryGroups = useMemo(() => {
+    const query = normalizeSearch(search);
+    return characterLabCategories
+      .filter((category) => category.mode === selectedMode)
+      .map((category) => ({
+        category,
+        actions: characterLabActions.filter(
+          (action) =>
+            action.mode === selectedMode &&
+            action.category === category.label &&
+            actionMatches(action, query),
+        ),
+      }))
+      .filter((group) => group.actions.length > 0);
+  }, [search, selectedMode]);
+
+  return {
+    search,
+    setSearch,
+    filteredCategoryGroups,
+    selectedModeActions,
+    selectedModeReadyActions,
+  };
+}
+
+function describeCharacterCapability(capability: CharacterLabAction['capability']) {
+  const capabilityLabel =
+    capability === 'ready'
+      ? 'Ready'
+      : capability === 'planned-video'
+        ? 'Video planned'
+        : capability === 'planned-live'
+          ? 'Live planned'
+          : 'Analysis planned';
+  const unavailableMessage =
+    capability === 'ready'
+      ? ''
+      : capability === 'planned-video'
+        ? 'Video generation is not yet available. Choose an image action to generate.'
+        : capability === 'planned-live'
+          ? 'Live interviews are not yet available. Choose an image action to generate.'
+          : 'Character analysis is not yet available. Choose an image action to generate.';
+  return { capabilityLabel, unavailableMessage };
+}
+
+function useCharacterLabRecipeSessionController({
+  recipeAliasId = null,
+  config,
+  updateConfig,
+  onGenerate,
+  isGenerating,
+  setConfig,
+}: CharacterLabRecipeProps & {
+  setConfig: React.Dispatch<React.SetStateAction<ImageGenerationConfig>>;
+}) {
+  const [actionBrowserOpen, setActionBrowserOpen] = useState(false);
+  const actionToggleRef = useRef<HTMLButtonElement>(null);
+  const aliasMode = resolveRecipeAlias(recipeAliasId)?.characterLabMode;
+  const { draft, mode: selectedMode, view } = getCharacterLabView(config, aliasMode);
+  const workflow = CHARACTER_LAB_WORKFLOWS[selectedMode];
+  const selectedActionId = view.actionId;
+  const { style, clothing, bodyType, expression, backgroundColor, labAspectRatio } = view;
+  const subject = draft.subject;
+  const {
+    search,
+    setSearch,
+    filteredCategoryGroups,
+    selectedModeActions,
+    selectedModeReadyActions,
+  } = useCharacterActionCatalog(selectedMode);
+  const [capabilityNotice, setCapabilityNotice] = useState('');
+
+  const patchView = (patch: Partial<CharacterLabViewDraft>) =>
+    setConfig((current) => updateCharacterLabView(current, selectedMode, patch));
+  const setSubject = (value: string) =>
+    setConfig((current) => updateCharacterLabView(current, selectedMode, {}, value));
+  useWorkflowPrompt({
+    value: view.prompt,
+    onChange: (prompt) => patchView({ prompt }),
+    label: 'Additional instructions',
+    placeholder: 'Details for this workflow only…',
+  });
+  const sourceInputRef = useRef<HTMLInputElement>(null);
+  const referenceInputRef = useRef<HTMLInputElement>(null);
+
+  const source = config.attachments[0] ?? null;
+  const references = config.attachments.slice(1, 4);
+  const selectedAction =
+    characterLabActions.find((action) => action.id === selectedActionId) ?? FIRST_READY_ACTION;
+  const selectedAccent = getAccent(selectedAction.accent);
+  const selectedModeMeta =
+    characterLabModes.find((mode) => mode.id === selectedMode) ?? characterLabModes[0];
+  const hasCharacterBrief = subject.trim().length > 0;
+  const sourceRequired = workflow.requiresSource && !source;
+  const { sourceLabel, workflowStateTitle, workflowStateCopy } = describeCharacterSource(
+    Boolean(source),
+    sourceRequired,
+    hasCharacterBrief,
+  );
 
   const promptOptions = useMemo(
     () => ({
@@ -892,22 +967,9 @@ const CharacterLabRecipeSession: React.FC<
     [selectedAction],
   );
 
-  const capabilityLabel =
-    selectedAction.capability === 'ready'
-      ? 'Ready'
-      : selectedAction.capability === 'planned-video'
-        ? 'Video planned'
-        : selectedAction.capability === 'planned-live'
-          ? 'Live planned'
-          : 'Analysis planned';
-  const unavailableMessage =
-    selectedAction.capability === 'ready'
-      ? ''
-      : selectedAction.capability === 'planned-video'
-        ? 'Video generation is not yet available. Choose an image action to generate.'
-        : selectedAction.capability === 'planned-live'
-          ? 'Live interviews are not yet available. Choose an image action to generate.'
-          : 'Character analysis is not yet available. Choose an image action to generate.';
+  const { capabilityLabel, unavailableMessage } = describeCharacterCapability(
+    selectedAction.capability,
+  );
   const previewControlItems = useMemo(
     () =>
       (
@@ -931,22 +993,6 @@ const CharacterLabRecipeSession: React.FC<
       }),
     [bodyType, clothing, expression, labAspectRatio, style],
   );
-
-  const filteredCategoryGroups = useMemo(() => {
-    const query = normalizeSearch(search);
-    return characterLabCategories
-      .filter((category) => category.mode === selectedMode)
-      .map((category) => ({
-        category,
-        actions: characterLabActions.filter(
-          (action) =>
-            action.mode === selectedMode &&
-            action.category === category.label &&
-            actionMatches(action, query),
-        ),
-      }))
-      .filter((group) => group.actions.length > 0);
-  }, [search, selectedMode]);
 
   const setAction = (action: CharacterLabAction) => {
     setConfig((current) => updateCharacterLabView(current, action.mode, { actionId: action.id }));
@@ -1040,314 +1086,85 @@ const CharacterLabRecipeSession: React.FC<
     actionId: selectedAction.id,
     category: selectedAction.category,
   });
+  const allowedControlSet = new Set(allowedControls);
   const primaryControls = workflow.primaryControls.filter((control) =>
-    allowedControls.includes(control),
+    allowedControlSet.has(control),
   );
-  const secondaryControls = allowedControls.filter((control) => !primaryControls.includes(control));
+  const primaryControlSet = new Set(primaryControls);
+  const secondaryControls = allowedControls.filter((control) => !primaryControlSet.has(control));
   const renderControl = (
     control: CharacterLabControl,
     _index: number,
     controls: CharacterLabControl[],
-  ) => {
-    if (control === 'backgroundColor')
-      return (
-        <fieldset
-          key={control}
-          className="col-span-2 disabled:opacity-50"
-          disabled={
-            config.outputBackground === 'transparent' ||
-            (Boolean(source) && selectedMode !== 'spritesheets')
-          }
-        >
-          <legend className="mb-1.5 text-xs font-semibold text-[color:var(--wb-muted)]">
-            Background Color
-          </legend>
-          <div className="grid grid-cols-4 gap-1.5">
-            {characterLabGlobalOptions.palettes.map((palette) => (
-              <button
-                key={palette.name}
-                type="button"
-                aria-label={`Background ${palette.name}`}
-                aria-pressed={backgroundColor === palette.backgroundColor}
-                onClick={() => patchView({ backgroundColor: palette.backgroundColor })}
-                className={`flex h-8 items-center justify-center rounded-[var(--wb-radius)] border bg-[color:var(--wb-well)] ${backgroundColor === palette.backgroundColor ? 'border-[color:var(--wb-ink)]' : 'border-[color:var(--wb-line)]'}`}
-              >
-                <span className="flex -space-x-1">
-                  {palette.swatches.map((swatch) => (
-                    <span
-                      key={swatch}
-                      className="size-3.5 rounded-full border border-black/20"
-                      style={{ backgroundColor: swatch }}
-                    />
-                  ))}
-                </span>
-              </button>
-            ))}
-          </div>
-        </fieldset>
-      );
-    const fields = {
-      expression: {
-        label: 'Expression',
-        kind: 'expression' as const,
-        options: ['', ...characterLabGlobalOptions.expressions],
-      },
-      labAspectRatio: {
-        label: 'Aspect Ratio',
-        kind: 'ratio' as const,
-        options: characterLabGlobalOptions.aspectRatios.flatMap((group) => group.ratios),
-      },
-      style: {
-        label: 'Artistic Style',
-        kind: 'style' as const,
-        options: characterLabGlobalOptions.styles,
-      },
-      clothing: {
-        label: 'Clothing',
-        kind: 'clothing' as const,
-        options: characterLabGlobalOptions.clothing,
-      },
-      bodyType: {
-        label: 'Body Type',
-        kind: 'body' as const,
-        options: characterLabGlobalOptions.bodyTypes,
-      },
-    };
-    const field = fields[control];
-    return (
-      <SelectField
-        key={control}
-        {...field}
-        value={view[control]}
-        onChange={(value) => patchView({ [control]: value })}
-        className={
-          control === 'style' ||
-          control === 'clothing' ||
-          control === 'bodyType' ||
-          controls.filter((field) => field === 'expression' || field === 'labAspectRatio')
-            .length === 1
-            ? 'col-span-2'
-            : undefined
-        }
-      />
-    );
+  ) => (
+    <CharacterLabControlField
+      key={control}
+      control={control}
+      controls={controls}
+      outputBackground={config.outputBackground}
+      sourceAttached={Boolean(source)}
+      selectedMode={selectedMode}
+      view={view}
+      onChange={patchView}
+    />
+  );
+
+  return {
+    isGenerating,
+    actionBrowserOpen,
+    setActionBrowserOpen,
+    actionToggleRef,
+    aliasMode,
+    selectedMode,
+    setConfig,
+    setSearch,
+    search,
+    selectedModeActions,
+    selectedModeReadyActions,
+    filteredCategoryGroups,
+    runCategoryBatch,
+    selectedAction,
+    setAction,
+    workflow,
+    sourceLabel,
+    selectedAccent,
+    capabilityLabel,
+    subject,
+    setSubject,
+    primaryControls,
+    renderControl,
+    secondaryControls,
+    patchView,
+    setCapabilityNotice,
+    workflowStateTitle,
+    workflowStateCopy,
+    selectedPrompt,
+    capabilityNotice,
+    runAction,
+    sourceRequired,
+    unavailableMessage,
+    config,
   };
+}
+
+type CharacterLabRecipeSessionViewModel = ReturnType<typeof useCharacterLabRecipeSessionController>;
+
+function CharacterLabRecipeSessionView({ model }: { model: CharacterLabRecipeSessionViewModel }) {
+  const {
+    isGenerating,
+    selectedAction,
+    selectedAccent,
+    workflowStateTitle,
+    workflowStateCopy,
+    selectedPrompt,
+    capabilityNotice,
+  } = model;
 
   return (
     <RecipeLayout isGenerating={isGenerating} className="character-lab-shell flex min-h-0 flex-col">
       <div className="flex size-full min-h-0 flex-col">
-        <RecipeOptionsPanel
-          title="Choose action"
-          open={actionBrowserOpen}
-          onOpenChange={setActionBrowserOpen}
-          triggerRef={actionToggleRef}
-        >
-          <div className="character-action-catalog flex min-h-0 flex-col" data-panel="main">
-            <div className="shrink-0 border-b border-[color:var(--wb-line)] p-2.5">
-              <div className="custom-scrollbar flex gap-1 overflow-x-auto pb-1">
-                {characterLabModes
-                  .filter((mode) => !aliasMode || mode.id === aliasMode)
-                  .map((mode) => {
-                    const active = selectedMode === mode.id;
-                    return (
-                      <button
-                        key={mode.id}
-                        type="button"
-                        aria-pressed={active}
-                        data-tooltip={mode.description}
-                        onClick={() => {
-                          setConfig((current) => activateCharacterLabView(current, mode.id));
-                          setSearch('');
-                        }}
-                        className={`character-lab-control-card flex h-10 min-w-[76px] flex-none items-center justify-center gap-1.5 rounded-[var(--wb-radius)] border px-2 text-[length:var(--wbp-label)] font-semibold transition-[background-color,border-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
-                          active
-                            ? 'border-violet-400/2 bg-violet-500/10 text-[color:var(--wb-ink)]'
-                            : 'border-[color:var(--wb-line)] bg-black/25 text-[color:var(--wb-muted)] hover:border-[color:var(--wb-border)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_4%,transparent)] hover:text-[color:var(--wb-ink)]'
-                        }`}
-                      >
-                        <CharacterLabIcon id={MODE_ICON_IDS[mode.id]} size={18} />
-                        <span className="min-w-0 truncate">
-                          {mode.label.replace(' Sheets', '')}
-                        </span>
-                      </button>
-                    );
-                  })}
-              </div>
-              <div className="mt-2 flex items-center gap-2">
-                <div className="relative min-w-0 flex-1">
-                  <Search
-                    width={14}
-                    height={14}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--wb-dim)]"
-                    aria-hidden="true"
-                  />
-                  <input
-                    name="character-lab-action-search"
-                    aria-label="Search character actions"
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder={`Search ${selectedModeActions.length} actions`}
-                    className="h-9 w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] pl-9 pr-3 text-[12px] text-[color:var(--wb-ink)] outline-none placeholder:text-[color:var(--wb-dim)] transition-[border-color,background-color] duration-150 focus:border-violet-500/2 focus-visible:ring-2 focus-visible:ring-violet-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-                  />
-                </div>
-                <div className="shrink-0 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-2 py-1.5 text-right">
-                  <div className="text-[length:var(--wbp-label)] font-semibold tabular-nums text-[color:var(--wb-ink)]">
-                    {selectedModeReadyActions.length} actions available
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto p-2.5 custom-scrollbar">
-              {filteredCategoryGroups.map(({ category, actions }) => {
-                const firstAction = actions[0];
-                const accent = firstAction ? getAccent(firstAction.accent) : getAccent('zinc');
-                const batchCount = actions.filter((action) => action.batchRecommended).length;
-
-                return (
-                  <section key={category.id} className="mb-4 last:mb-0">
-                    <div className="mb-1.5 flex items-center gap-2">
-                      <div className={`flex min-w-0 flex-1 items-center gap-2 ${accent.text}`}>
-                        {firstAction && <CharacterLabIcon id={firstAction.id} size={22} />}
-                        <span className="truncate text-[length:var(--wbp-label)] font-semibold tracking-normal">
-                          {category.label}
-                        </span>
-                        <span className="text-[length:var(--wbp-label)] font-bold tabular-nums text-[color:var(--wb-dim)]">
-                          {actions.length}
-                        </span>
-                      </div>
-                      {batchCount > 0 && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            runCategoryBatch(
-                              filteredCategoryGroups.find(
-                                (group) => group.category.id === category.id,
-                              )?.actions ?? actions,
-                            )
-                          }
-                          className="flex h-7 items-center gap-1 rounded-[var(--wb-radius)] border border-violet-400/2 bg-violet-500/15 px-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-violet-100 transition-[background-color,border-color] duration-150 hover:border-violet-300/2 hover:bg-violet-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-                        >
-                          <CharacterLabIcon id="control:batch" size={16} />
-                          Batch
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-[repeat(auto-fit,minmax(124px,1fr))] gap-2">
-                      {actions.map((action) => (
-                        <ActionButton
-                          key={action.id}
-                          action={action}
-                          selected={action.id === selectedAction.id}
-                          onSelect={(action) => {
-                            setAction(action);
-                            setActionBrowserOpen(false);
-                            actionToggleRef.current?.focus();
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                );
-              })}
-
-              {filteredCategoryGroups.length === 0 && (
-                <div className="rounded-[var(--wb-radius)] border border-dashed border-[color:var(--wb-line)] p-6 text-center text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-dim)]">
-                  No matching actions
-                </div>
-              )}
-            </div>
-          </div>
-        </RecipeOptionsPanel>
-        <RecipeControls>
-          <aside
-            className="character-lab-panel z-20 flex min-h-0 flex-col overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] shadow-2xl"
-            data-panel="left"
-          >
-            <div className="shrink-0 border-b border-[color:var(--wb-line)] p-3">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <h2 className="text-[12px] font-semibold tracking-normal text-[color:var(--wb-ink)]">
-                    {workflow.title}
-                  </h2>
-                  <p className="mt-1 text-[length:var(--wbp-label)] font-semibold text-[color:var(--wb-dim)]">
-                    {selectedAction.label} · {sourceLabel}
-                  </p>
-                </div>
-                <span
-                  className={`rounded-[var(--wb-radius)] border px-2 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal ${selectedAccent.border} ${selectedAccent.text}`}
-                >
-                  {capabilityLabel}
-                </span>
-              </div>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto p-3 custom-scrollbar">
-              <p className="mb-3 text-xs leading-relaxed text-[color:var(--wb-muted)]">
-                {workflow.output}
-              </p>
-              {selectedAction.frames && (
-                <p className="mb-3 text-xs font-semibold">
-                  {selectedAction.frames} frames · {selectedAction.label}
-                </p>
-              )}
-              <label className="flex flex-col gap-1.5">
-                <span className="text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-muted)]">
-                  Character Brief
-                </span>
-                <textarea
-                  name="character-lab-brief"
-                  value={subject}
-                  onChange={(event) => setSubject(event.target.value)}
-                  placeholder="e.g. Brave elven ranger, scar over left eye..."
-                  className="h-20 resize-none rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-2.5 text-[12px] leading-relaxed text-[color:var(--wb-ink)] outline-none placeholder:text-[color:var(--wb-dim)] transition-[border-color,background-color] duration-150 focus:border-violet-500/2 focus-visible:ring-2 focus-visible:ring-violet-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-                />
-              </label>
-
-              <label className="mt-3 flex flex-col gap-1.5 text-xs text-[color:var(--wb-muted)]">
-                Additional instructions
-                <textarea
-                  name="character-lab-additional-prompt"
-                  value={view.prompt}
-                  onChange={(event) => patchView({ prompt: event.target.value })}
-                  placeholder="Details for this workflow only…"
-                  className="h-16 resize-none rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-2.5 text-[color:var(--wb-ink)]"
-                />
-              </label>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {primaryControls.map(renderControl)}
-              </div>
-              {secondaryControls.length > 0 && (
-                <details className="mt-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] p-2.5">
-                  <summary className="cursor-pointer text-xs font-semibold text-[color:var(--wb-muted)]">
-                    More options
-                  </summary>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    {secondaryControls.map(renderControl)}
-                  </div>
-                </details>
-              )}
-              <div className="mt-3 flex flex-wrap gap-3 text-xs">
-                <button
-                  type="button"
-                  className="studio-control px-2 py-1"
-                  onClick={() => {
-                    patchView(createCharacterLabViewDraft(selectedMode));
-                    setSearch('');
-                    setCapabilityNotice('');
-                  }}
-                >
-                  Reset view
-                </button>
-                {aliasMode && (
-                  <a className="self-center underline" href="#recipe-character-lab">
-                    Open full Character Lab
-                  </a>
-                )}
-              </div>
-            </div>
-          </aside>
-        </RecipeControls>
+        <CharacterActionCatalog model={model} />
+        <CharacterSubjectControls model={model} />
 
         <RecipeResults />
 
@@ -1395,58 +1212,21 @@ const CharacterLabRecipeSession: React.FC<
               )}
             </div>
 
-            <RecipePrimaryAction>
-              {(unavailableMessage || sourceRequired) && (
-                <p className="mb-2 text-xs leading-relaxed text-[color:var(--wb-muted)]">
-                  {unavailableMessage || SOURCE_REQUIRED_MESSAGE}
-                </p>
-              )}
-              {!unavailableMessage &&
-                !sourceRequired &&
-                config.outputBackground !== 'transparent' &&
-                resolveCharacterLabOutputBackground(selectedAction.id, config.outputBackground) ===
-                  'transparent' && (
-                  <p className="mb-2 text-xs leading-relaxed text-[color:var(--wb-muted)]">
-                    Exports a transparent PNG. Native transparency needs the ChatGPT provider.
-                  </p>
-                )}
-              <button
-                type="button"
-                onClick={() => runAction(selectedAction)}
-                disabled={selectedAction.capability !== 'ready' || sourceRequired}
-                data-character-lab-generate-button
-                data-generate-active={isGenerating ? 'true' : 'false'}
-                className="studio-primary-control group relative min-h-11 w-full gap-2 py-2 text-left"
-              >
-                <span className="grid size-8 shrink-0 place-items-center rounded-[var(--wb-radius)] bg-black">
-                  {isGenerating ? (
-                    <Loader2 size={15} className="animate-spin" />
-                  ) : (
-                    <CharacterLabIcon id="control:generate" size={22} />
-                  )}
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-[length:var(--wbp-label)] font-semibold tracking-normal">
-                    {unavailableMessage
-                      ? 'Unavailable:'
-                      : sourceRequired
-                        ? 'Needs source:'
-                        : isGenerating
-                          ? 'Queue'
-                          : 'Generate'}{' '}
-                    {selectedAction.label}
-                  </span>
-                  <span className="mt-0.5 block truncate text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-on-fill)]">
-                    {workflow.title}
-                  </span>
-                </span>
-              </button>
-            </RecipePrimaryAction>
+            <CharacterExecutionControls model={model} />
           </aside>
         </RecipeControls>
       </div>
     </RecipeLayout>
   );
+}
+
+const CharacterLabRecipeSession: React.FC<
+  CharacterLabRecipeProps & {
+    setConfig: React.Dispatch<React.SetStateAction<ImageGenerationConfig>>;
+  }
+> = (props) => {
+  const view = useCharacterLabRecipeSessionController(props);
+  return <CharacterLabRecipeSessionView model={view} />;
 };
 
 export const CharacterLabRecipe: React.FC<CharacterLabRecipeProps> = (props) => {
@@ -1461,3 +1241,455 @@ export const CharacterLabRecipe: React.FC<CharacterLabRecipeProps> = (props) => 
     />
   );
 };
+
+function CharacterActionCatalog({
+  model,
+}: {
+  model: Pick<
+    CharacterLabRecipeSessionViewModel,
+    | 'actionBrowserOpen'
+    | 'setActionBrowserOpen'
+    | 'actionToggleRef'
+    | 'aliasMode'
+    | 'selectedMode'
+    | 'setConfig'
+    | 'setSearch'
+    | 'search'
+    | 'selectedModeActions'
+    | 'selectedModeReadyActions'
+    | 'filteredCategoryGroups'
+    | 'runCategoryBatch'
+    | 'selectedAction'
+    | 'setAction'
+  >;
+}) {
+  const {
+    actionBrowserOpen,
+    setActionBrowserOpen,
+    actionToggleRef,
+    aliasMode,
+    selectedMode,
+    setConfig,
+    setSearch,
+    search,
+    selectedModeActions,
+    selectedModeReadyActions,
+    filteredCategoryGroups,
+    runCategoryBatch,
+    selectedAction,
+    setAction,
+  } = model;
+
+  return (
+    <RecipeOptionsPanel
+      title="Choose action"
+      open={actionBrowserOpen}
+      onOpenChange={setActionBrowserOpen}
+      triggerRef={actionToggleRef}
+    >
+      <div className="character-action-catalog flex min-h-0 flex-col" data-panel="main">
+        <div className="shrink-0 border-b border-[color:var(--wb-line)] p-2.5">
+          <div className="custom-scrollbar flex gap-1 overflow-x-auto pb-1">
+            {characterLabModes
+              .filter((mode) => !aliasMode || mode.id === aliasMode)
+              .map((mode) => {
+                const active = selectedMode === mode.id;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    aria-pressed={active}
+                    data-tooltip={mode.description}
+                    onClick={() => {
+                      setConfig((current) => activateCharacterLabView(current, mode.id));
+                      setSearch('');
+                    }}
+                    className={`character-lab-control-card flex h-10 min-w-[76px] flex-none items-center justify-center gap-1.5 rounded-[var(--wb-radius)] border px-2 text-[length:var(--wbp-label)] font-semibold transition-[background-color,border-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                      active
+                        ? 'border-violet-400/2 bg-violet-500/10 text-[color:var(--wb-ink)]'
+                        : 'border-[color:var(--wb-line)] bg-black/25 text-[color:var(--wb-muted)] hover:border-[color:var(--wb-border)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_4%,transparent)] hover:text-[color:var(--wb-ink)]'
+                    }`}
+                  >
+                    <CharacterLabIcon id={MODE_ICON_IDS[mode.id]} size={18} />
+                    <span className="min-w-0 truncate">{mode.label.replace(' Sheets', '')}</span>
+                  </button>
+                );
+              })}
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search
+                width={14}
+                height={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--wb-dim)]"
+                aria-hidden="true"
+              />
+              <input
+                name="character-lab-action-search"
+                aria-label="Search character actions"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder={`Search ${selectedModeActions.length} actions`}
+                className="h-9 w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] pl-9 pr-3 text-[12px] text-[color:var(--wb-ink)] outline-none placeholder:text-[color:var(--wb-dim)] transition-[border-color,background-color] duration-150 focus:border-violet-500/2 focus-visible:ring-2 focus-visible:ring-violet-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              />
+            </div>
+            <div className="shrink-0 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-2 py-1.5 text-right">
+              <div className="text-[length:var(--wbp-label)] font-semibold tabular-nums text-[color:var(--wb-ink)]">
+                {selectedModeReadyActions.length} actions available
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-2.5 custom-scrollbar">
+          {filteredCategoryGroups.map(({ category, actions }) => {
+            const firstAction = actions[0];
+            const accent = firstAction ? getAccent(firstAction.accent) : getAccent('zinc');
+            const batchCount = actions.filter((action) => action.batchRecommended).length;
+
+            return (
+              <section key={category.id} className="mb-4 last:mb-0">
+                <div className="mb-1.5 flex items-center gap-2">
+                  <div className={`flex min-w-0 flex-1 items-center gap-2 ${accent.text}`}>
+                    {firstAction && <CharacterLabIcon id={firstAction.id} size={22} />}
+                    <span className="truncate text-[length:var(--wbp-label)] font-semibold tracking-normal">
+                      {category.label}
+                    </span>
+                    <span className="text-[length:var(--wbp-label)] font-bold tabular-nums text-[color:var(--wb-dim)]">
+                      {actions.length}
+                    </span>
+                  </div>
+                  {batchCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        runCategoryBatch(
+                          filteredCategoryGroups.find((group) => group.category.id === category.id)
+                            ?.actions ?? actions,
+                        )
+                      }
+                      className="flex h-7 items-center gap-1 rounded-[var(--wb-radius)] border border-violet-400/2 bg-violet-500/15 px-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-violet-100 transition-[background-color,border-color] duration-150 hover:border-violet-300/2 hover:bg-violet-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                    >
+                      <CharacterLabIcon id="control:batch" size={16} />
+                      Batch
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(124px,1fr))] gap-2">
+                  {actions.map((action) => (
+                    <ActionButton
+                      key={action.id}
+                      action={action}
+                      selected={action.id === selectedAction.id}
+                      onSelect={(action) => {
+                        setAction(action);
+                        setActionBrowserOpen(false);
+                        actionToggleRef.current?.focus();
+                      }}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+
+          {filteredCategoryGroups.length === 0 && (
+            <div className="rounded-[var(--wb-radius)] border border-dashed border-[color:var(--wb-line)] p-6 text-center text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-dim)]">
+              No matching actions
+            </div>
+          )}
+        </div>
+      </div>
+    </RecipeOptionsPanel>
+  );
+}
+
+function CharacterSubjectControls({
+  model,
+}: {
+  model: Pick<
+    CharacterLabRecipeSessionViewModel,
+    | 'workflow'
+    | 'selectedAction'
+    | 'sourceLabel'
+    | 'selectedAccent'
+    | 'capabilityLabel'
+    | 'subject'
+    | 'setSubject'
+    | 'primaryControls'
+    | 'renderControl'
+    | 'secondaryControls'
+    | 'patchView'
+    | 'selectedMode'
+    | 'setSearch'
+    | 'setCapabilityNotice'
+    | 'aliasMode'
+  >;
+}) {
+  const {
+    workflow,
+    selectedAction,
+    sourceLabel,
+    selectedAccent,
+    capabilityLabel,
+    subject,
+    setSubject,
+    primaryControls,
+    renderControl,
+    secondaryControls,
+    patchView,
+    selectedMode,
+    setSearch,
+    setCapabilityNotice,
+    aliasMode,
+  } = model;
+
+  return (
+    <RecipeControls>
+      <aside
+        className="character-lab-panel z-20 flex min-h-0 flex-col overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] shadow-2xl"
+        data-panel="left"
+      >
+        <div className="shrink-0 border-b border-[color:var(--wb-line)] p-3">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h2 className="text-[12px] font-semibold tracking-normal text-[color:var(--wb-ink)]">
+                {workflow.title}
+              </h2>
+              <p className="mt-1 text-[length:var(--wbp-label)] font-semibold text-[color:var(--wb-dim)]">
+                {selectedAction.label} · {sourceLabel}
+              </p>
+            </div>
+            <span
+              className={`rounded-[var(--wb-radius)] border px-2 py-1 text-[length:var(--wbp-label)] font-semibold tracking-normal ${selectedAccent.border} ${selectedAccent.text}`}
+            >
+              {capabilityLabel}
+            </span>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-3 custom-scrollbar">
+          <p className="mb-3 text-xs leading-relaxed text-[color:var(--wb-muted)]">
+            {workflow.output}
+          </p>
+          {selectedAction.frames && (
+            <p className="mb-3 text-xs font-semibold">
+              {selectedAction.frames} frames · {selectedAction.label}
+            </p>
+          )}
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-muted)]">
+              Character Brief
+            </span>
+            <textarea
+              name="character-lab-brief"
+              value={subject}
+              onChange={(event) => setSubject(event.target.value)}
+              placeholder="e.g. Brave elven ranger, scar over left eye..."
+              className="h-20 resize-none rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-2.5 text-[12px] leading-relaxed text-[color:var(--wb-ink)] outline-none placeholder:text-[color:var(--wb-dim)] transition-[border-color,background-color] duration-150 focus:border-violet-500/2 focus-visible:ring-2 focus-visible:ring-violet-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+            />
+          </label>
+
+          <div className="mt-3 grid grid-cols-2 gap-2">{primaryControls.map(renderControl)}</div>
+          {secondaryControls.length > 0 && (
+            <details className="mt-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] p-2.5">
+              <summary className="cursor-pointer text-xs font-semibold text-[color:var(--wb-muted)]">
+                More options
+              </summary>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {secondaryControls.map(renderControl)}
+              </div>
+            </details>
+          )}
+          <div className="mt-3 flex flex-wrap gap-3 text-xs">
+            <button
+              type="button"
+              className="studio-control px-2 py-1"
+              onClick={() => {
+                patchView(createCharacterLabViewDraft(selectedMode));
+                setSearch('');
+                setCapabilityNotice('');
+              }}
+            >
+              Reset view
+            </button>
+            {aliasMode && (
+              // react-doctor-disable-next-line react-doctor/anchor-target-exists -- useHashRouter resolves recipe-* hashes as app routes, not element IDs.
+              <a className="self-center underline" href="#recipe-character-lab">
+                Open full Character Lab
+              </a>
+            )}
+          </div>
+        </div>
+      </aside>
+    </RecipeControls>
+  );
+}
+
+function CharacterExecutionControls({
+  model,
+}: {
+  model: React.ComponentProps<typeof CharacterLabRecipeSessionView>['model'];
+}) {
+  const {
+    isGenerating,
+    selectedAction,
+    workflow,
+    runAction,
+    sourceRequired,
+    unavailableMessage,
+    config,
+  } = model;
+  return (
+    <RecipePrimaryAction
+      execute={() => runAction(selectedAction)}
+      disabled={selectedAction.capability !== 'ready' || sourceRequired}
+    >
+      {(unavailableMessage || sourceRequired) && (
+        <p className="mb-2 text-xs leading-relaxed text-[color:var(--wb-muted)]">
+          {unavailableMessage || SOURCE_REQUIRED_MESSAGE}
+        </p>
+      )}
+      {!unavailableMessage &&
+        !sourceRequired &&
+        config.outputBackground !== 'transparent' &&
+        resolveCharacterLabOutputBackground(selectedAction.id, config.outputBackground) ===
+          'transparent' && (
+          <p className="mb-2 text-xs leading-relaxed text-[color:var(--wb-muted)]">
+            Exports a transparent PNG. Native transparency needs the ChatGPT provider.
+          </p>
+        )}
+      <button
+        type="button"
+        onClick={() => runAction(selectedAction)}
+        disabled={selectedAction.capability !== 'ready' || sourceRequired}
+        data-character-lab-generate-button
+        data-generate-active={isGenerating ? 'true' : 'false'}
+        className="studio-primary-control group relative min-h-11 w-full gap-2 py-2 text-left"
+      >
+        <span className="grid size-8 shrink-0 place-items-center rounded-[var(--wb-radius)] bg-black">
+          {isGenerating ? (
+            <Loader2 size={15} className="animate-spin" />
+          ) : (
+            <CharacterLabIcon id="control:generate" size={22} />
+          )}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-[length:var(--wbp-label)] font-semibold tracking-normal">
+            {unavailableMessage
+              ? 'Unavailable:'
+              : sourceRequired
+                ? 'Needs source:'
+                : isGenerating
+                  ? 'Queue'
+                  : 'Generate'}{' '}
+            {selectedAction.label}
+          </span>
+          <span className="mt-0.5 block truncate text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-on-fill)]">
+            {workflow.title}
+          </span>
+        </span>
+      </button>
+    </RecipePrimaryAction>
+  );
+}
+
+function CharacterLabControlField({
+  control,
+  controls,
+  outputBackground,
+  sourceAttached,
+  selectedMode,
+  view,
+  onChange,
+}: {
+  control: CharacterLabControl;
+  controls: CharacterLabControl[];
+  outputBackground: ImageGenerationConfig['outputBackground'];
+  sourceAttached: boolean;
+  selectedMode: CharacterLabModeId;
+  view: CharacterLabViewDraft;
+  onChange: (patch: Partial<CharacterLabViewDraft>) => void;
+}) {
+  if (control === 'backgroundColor')
+    return (
+      <fieldset
+        key={control}
+        className="col-span-2 disabled:opacity-50"
+        disabled={
+          outputBackground === 'transparent' || (sourceAttached && selectedMode !== 'spritesheets')
+        }
+      >
+        <legend className="mb-1.5 text-xs font-semibold text-[color:var(--wb-muted)]">
+          Background Color
+        </legend>
+        <div className="grid grid-cols-4 gap-1.5">
+          {characterLabGlobalOptions.palettes.map((palette) => (
+            <button
+              key={palette.name}
+              type="button"
+              aria-label={`Background ${palette.name}`}
+              aria-pressed={view.backgroundColor === palette.backgroundColor}
+              onClick={() => onChange({ backgroundColor: palette.backgroundColor })}
+              className={`flex h-8 items-center justify-center rounded-[var(--wb-radius)] border bg-[color:var(--wb-well)] ${view.backgroundColor === palette.backgroundColor ? 'border-[color:var(--wb-ink)]' : 'border-[color:var(--wb-line)]'}`}
+            >
+              <span className="flex -space-x-1">
+                {palette.swatches.map((swatch) => (
+                  <span
+                    key={swatch}
+                    className="size-3.5 rounded-full border border-black/20"
+                    style={{ backgroundColor: swatch }}
+                  />
+                ))}
+              </span>
+            </button>
+          ))}
+        </div>
+      </fieldset>
+    );
+  const fields = {
+    expression: {
+      label: 'Expression',
+      kind: 'expression' as const,
+      options: ['', ...characterLabGlobalOptions.expressions],
+    },
+    labAspectRatio: {
+      label: 'Aspect Ratio',
+      kind: 'ratio' as const,
+      options: characterLabGlobalOptions.aspectRatios.flatMap((group) => group.ratios),
+    },
+    style: {
+      label: 'Artistic Style',
+      kind: 'style' as const,
+      options: characterLabGlobalOptions.styles,
+    },
+    clothing: {
+      label: 'Clothing',
+      kind: 'clothing' as const,
+      options: characterLabGlobalOptions.clothing,
+    },
+    bodyType: {
+      label: 'Body Type',
+      kind: 'body' as const,
+      options: characterLabGlobalOptions.bodyTypes,
+    },
+  };
+  const field = fields[control];
+  return (
+    <SelectField
+      key={control}
+      {...field}
+      value={view[control]}
+      onChange={(value) => onChange({ [control]: value })}
+      className={
+        control === 'style' ||
+        control === 'clothing' ||
+        control === 'bodyType' ||
+        controls.filter((field) => field === 'expression' || field === 'labAspectRatio').length ===
+          1
+          ? 'col-span-2'
+          : undefined
+      }
+    />
+  );
+}

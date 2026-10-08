@@ -62,7 +62,6 @@ describe('StylePresetCard', () => {
         onCopy={onCopy}
         onUsePrompt={onUsePrompt}
         onToggleFavorite={() => {}}
-        onHoverPreviewChange={() => {}}
       />,
     );
 
@@ -112,7 +111,6 @@ describe('StylePresetCard', () => {
         onInspect={onInspect}
         onCopy={() => {}}
         onToggleFavorite={() => {}}
-        onHoverPreviewChange={() => {}}
       />,
     );
 

@@ -3,6 +3,8 @@ import { ArrowRight } from 'iconoir-react';
 import type { RecipeAliasId } from '../../lib/recipeAliases';
 import type { RecipeCatalogDisplayEntry } from '../../lib/recipeCatalog';
 import { RECIPE_CARD_IMAGES } from '../../lib/recipeCardCatalog';
+import { isPreferredWorkflow } from '../../packages/shared/src/workflowCatalog';
+import { WorkflowCardArt, WorkflowCardDescription } from '../create/WorkflowCardArt';
 import {
   createRecipesGridProjection,
   groupRecipeDiscoveryEntries,
@@ -31,13 +33,22 @@ export const RecipeDiscoveryList: React.FC<RecipeDiscoveryListProps> = ({
     [entries],
   );
   const isCompact = density === 'compact';
+  const listRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (isCompact)
+      listRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]')?.focus();
+  }, [isCompact, selectedId]);
+  const groups = groupRecipeDiscoveryEntries(recipeDiscovery.entries);
+  if (onSelectDefault && !groups.some((group) => group.id === 'create')) {
+    groups.unshift({ id: 'create', label: 'Create & Edit', entries: [] });
+  }
 
   return (
-    <div className={isCompact ? 'create-workflow-options' : 'grid gap-2'}>
-      {groupRecipeDiscoveryEntries(recipeDiscovery.entries).map((group) => (
+    <div ref={listRef} className={isCompact ? 'create-workflow-options' : 'grid gap-2'}>
+      {groups.map((group) => (
         <div
-          key={group.label ?? group.entries[0].id}
-          className={isCompact ? 'grid min-w-0 gap-1' : 'grid min-w-0 gap-2'}
+          key={group.id}
+          className={isCompact ? 'create-workflow-card-group' : 'grid min-w-0 gap-2'}
           role={group.label ? 'group' : undefined}
           aria-label={group.label ?? undefined}
         >
@@ -62,20 +73,24 @@ export const RecipeDiscoveryList: React.FC<RecipeDiscoveryListProps> = ({
               className={isCompact ? 'create-workflow-option' : 'studio-control text-left'}
               onClick={onSelectDefault}
             >
+              {isCompact && <WorkflowCardArt id="default" />}
               <span className="create-workflow-option-text">
                 <strong>Default</strong>
-                <small className="block">Create or edit with a prompt</small>
+                <small className="block">
+                  <WorkflowCardDescription id="default" />
+                </small>
               </span>
             </button>
           )}
           {group.entries.map((recipe) => {
             const image = RECIPE_CARD_IMAGES[recipe.cardImageKey];
+            const cardId = isPreferredWorkflow(recipe.id) ? recipe.id : null;
             const title =
               recipe.id === 'character'
                 ? 'Character Sheet'
                 : recipe.id === 'character-lab'
-                  ? 'Character Lab (all modes)'
-                  : recipe.title;
+                  ? 'Character Lab'
+                  : recipe.title.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
             return (
               <button
                 key={recipe.id}
@@ -93,37 +108,43 @@ export const RecipeDiscoveryList: React.FC<RecipeDiscoveryListProps> = ({
                     : 'flex min-w-0 items-center gap-3 rounded-xl bg-white/[0.035] p-2 text-left transition-colors hover:bg-white/[0.08] focus-visible:outline-2 focus-visible:outline-accent-400'
                 }
               >
-                {image && (
-                  <img
-                    src={image.src}
-                    srcSet={image.srcSet}
-                    sizes={isCompact ? '32px' : '48px'}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    className={
-                      isCompact
-                        ? 'create-workflow-option-thumbnail'
-                        : 'size-12 shrink-0 rounded-lg object-cover'
-                    }
-                  />
+                {isCompact && cardId ? (
+                  <WorkflowCardArt id={cardId} />
+                ) : (
+                  image && (
+                    <img
+                      src={image.src}
+                      srcSet={image.srcSet}
+                      sizes="48px"
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="size-12 shrink-0 rounded-lg object-cover"
+                    />
+                  )
                 )}
                 <span className={isCompact ? 'create-workflow-option-text' : 'min-w-0 flex-1'}>
-                  <span className="block truncate text-sm font-semibold capitalize">{title}</span>
-                  <span className="mt-0.5 block truncate text-xs text-[color:var(--wb-muted)]">
-                    {recipe.description}
-                  </span>
+                  <strong>{title}</strong>
+                  <small
+                    className={
+                      isCompact ? undefined : 'mt-0.5 block text-xs text-[color:var(--wb-muted)]'
+                    }
+                  >
+                    {isCompact && cardId ? (
+                      <WorkflowCardDescription id={cardId} />
+                    ) : (
+                      recipe.description
+                    )}
+                  </small>
                 </span>
-                <ArrowRight
-                  width={16}
-                  height={16}
-                  className={
-                    isCompact
-                      ? 'create-workflow-option-arrow'
-                      : 'shrink-0 text-[color:var(--wb-muted)]'
-                  }
-                  aria-hidden="true"
-                />
+                {!isCompact && (
+                  <ArrowRight
+                    width={16}
+                    height={16}
+                    className="shrink-0 text-[color:var(--wb-muted)]"
+                    aria-hidden="true"
+                  />
+                )}
               </button>
             );
           })}

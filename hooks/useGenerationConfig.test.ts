@@ -56,13 +56,19 @@ describe('reference upload lifecycle', () => {
     await act(async () => {});
 
     act(() =>
-      result.current.handlePastedFiles([new File(['first'], 'first.png', { type: 'image/png' })]),
+      result.current.handlePastedFiles(
+        [new File(['first'], 'first.png', { type: 'image/png' })],
+        undefined,
+        { strength: 1 },
+      ),
     );
     expect(result.current.generationConfig.attachments[0]).toMatchObject({
       name: 'first.png',
       isProcessing: true,
+      strength: 1,
     });
     await waitFor(() => expect(createReferenceHandoff).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(createReferenceHandoff).mock.calls[0]![0].references[0]!.strength).toBe(1);
     const firstId = result.current.generationConfig.attachments[0]!.id;
     const detail = { id: 'detail', name: 'detail.webp', dataUrl: '/detail.webp', strength: 0.3 };
     act(() =>
@@ -395,7 +401,13 @@ describe('workspace recipe drafts', () => {
     });
     expect(result.current.generationConfig.attachments[0]?.id).toBe('source');
     rerender({ scopeKey: 'another:character-lab' });
-    expect(result.current.generationConfig.characterLabDraft).toBeUndefined();
+    expect(result.current.generationConfig.characterLabDraft?.subject).toBe('');
+    expect(result.current.generationConfig.prompt).toBe('');
+    expect(result.current.generationConfig.characterLabDraft?.views.poses).toMatchObject({
+      prompt: '',
+      expression: '',
+    });
+    expect(result.current.generationConfig.characterLabDraft?.views.scenes).toBeUndefined();
     expect(result.current.generationConfig.attachments).toEqual([]);
     act(() =>
       result.current.setGenerationConfig((current) => activateCharacterLabView(current, 'effects')),
@@ -454,5 +466,61 @@ describe('workspace recipe drafts', () => {
     act(() => result.current.handleRemoveAttachment('reference'));
     rerender({ scopeKey: 'workspace:camera' });
     expect(result.current.generationConfig.attachments).toEqual([]);
+  });
+});
+
+describe('Remaster source ratio ownership', () => {
+  it('matches a new source after dimensions arrive and preserves a manual ratio across workflow and reload', async () => {
+    const stored = new Map<IDBValidKey, unknown>();
+    vi.mocked(get).mockImplementation(async (key) => structuredClone(stored.get(key)) as never);
+    vi.mocked(set).mockImplementation(async (key, value) => {
+      stored.set(key, structuredClone(value));
+    });
+    const { result, rerender, unmount } = renderHook(
+      ({ scopeKey }) => useGenerationConfig({ log: vi.fn(), scopeKey }),
+      { initialProps: { scopeKey: 'ratio:studio' } },
+    );
+    await waitFor(() => expect(result.current.isDraftReady).toBe(true));
+    act(() =>
+      result.current.updateGenerationConfig('attachments', [
+        { id: 'ratio-source', name: 'photo.webp', dataUrl: '/photo.webp', strength: 1 },
+      ]),
+    );
+    rerender({ scopeKey: 'ratio:remaster' });
+    act(() => result.current.updateAttachment('ratio-source', { width: 1536, height: 1024 }));
+    expect(result.current.generationConfig.aspectRatio).toBe('3:2');
+    act(() => result.current.updateGenerationConfig('aspectRatio', '1:1'));
+    rerender({ scopeKey: 'ratio:studio' });
+    rerender({ scopeKey: 'ratio:remaster' });
+    expect(result.current.generationConfig.aspectRatio).toBe('1:1');
+    await waitFor(() =>
+      expect(
+        (stored.get('generation-drafts') as Record<string, ImageGenerationConfig>)?.[
+          'ratio:remaster'
+        ].aspectRatio,
+      ).toBe('1:1'),
+    );
+    unmount();
+    const reloaded = renderHook(() =>
+      useGenerationConfig({ log: vi.fn(), scopeKey: 'ratio:remaster' }),
+    );
+    await waitFor(() => expect(reloaded.result.current.isDraftReady).toBe(true));
+    expect(reloaded.result.current.generationConfig.aspectRatio).toBe('1:1');
+    act(() =>
+      reloaded.result.current.updateGenerationConfig('attachments', [
+        {
+          id: 'portrait-source',
+          name: 'portrait.webp',
+          dataUrl: '/portrait.webp',
+          strength: 1,
+          width: 1024,
+          height: 1536,
+        },
+      ]),
+    );
+    expect(reloaded.result.current.generationConfig.aspectRatio).toBe('2:3');
+    reloaded.unmount();
+    vi.mocked(get).mockImplementation(async () => undefined);
+    vi.mocked(set).mockImplementation(async () => undefined);
   });
 });

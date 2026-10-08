@@ -10,7 +10,7 @@ import {
 } from '../../services/studio-api/updates';
 import { ConfirmationModal } from '../ConfirmationModal';
 
-export function SettingsUpdatesPanel({ hasUnsavedChanges }: { hasUnsavedChanges: boolean }) {
+function useRepositoryUpdates() {
   const [status, setStatus] = useState<RepositoryUpdateStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,21 +76,71 @@ export function SettingsUpdatesPanel({ hasUnsavedChanges }: { hasUnsavedChanges:
     }
   }
 
+  return {
+    status,
+    busy,
+    error,
+    connectionError,
+    confirmation,
+    setConfirmation,
+    updating,
+    check,
+    confirm,
+  };
+}
+
+function updateStatusText(status: RepositoryUpdateStatus | null, busy: boolean) {
+  const updating = status?.phase === 'updating' || status?.phase === 'restarting';
+  return updating
+    ? status.phase === 'updating'
+      ? 'Updating Studio and installing dependencies…'
+      : 'Restarting Studio… This page will reconnect automatically.'
+    : status?.phase === 'checking' || busy
+      ? 'Checking for updates…'
+      : status?.behind
+        ? `${status.behind} new commit${status.behind === 1 ? '' : 's'} available on main.`
+        : status?.checkedAt && !status.error
+          ? 'Studio is up to date with main.'
+          : 'Check for Studio updates.';
+}
+
+function UpdateConfirmation({
+  confirmation,
+  setConfirmation,
+  confirm,
+}: Pick<ReturnType<typeof useRepositoryUpdates>, 'confirmation' | 'setConfirmation' | 'confirm'>) {
   return (
-    <section className="settings-form-stack" aria-label="Studio updates">
-      <h3 className="studio-dialog-title">Studio updates</h3>
+    <ConfirmationModal
+      isOpen={confirmation !== null}
+      title={confirmation === 'update' ? 'Update and restart Studio?' : 'Restart Studio?'}
+      description={
+        confirmation === 'update'
+          ? 'Studio will download the new commits, install dependencies, and restart. This page will reconnect automatically.'
+          : 'Studio will restart and this page will reconnect automatically.'
+      }
+      confirmLabel={confirmation === 'update' ? 'Update and restart' : 'Restart Studio'}
+      tone="accent"
+      onClose={() => setConfirmation(null)}
+      onConfirm={confirm}
+    />
+  );
+}
+
+function UpdateStatusSummary({
+  status,
+  busy,
+  error,
+  connectionError,
+  updating,
+}: Pick<
+  ReturnType<typeof useRepositoryUpdates>,
+  'status' | 'busy' | 'error' | 'connectionError' | 'updating'
+>) {
+  const displayedError = error || status?.error || connectionError;
+  return (
+    <>
       <p className="studio-muted text-sm" role="status">
-        {updating
-          ? status.phase === 'updating'
-            ? 'Updating Studio and installing dependencies…'
-            : 'Restarting Studio… This page will reconnect automatically.'
-          : status?.phase === 'checking' || busy
-            ? 'Checking for updates…'
-            : status?.behind
-              ? `${status.behind} new commit${status.behind === 1 ? '' : 's'} available on main.`
-              : status?.checkedAt && !status.error
-                ? 'Studio is up to date with main.'
-                : 'Check for Studio updates.'}
+        {updateStatusText(status, busy)}
       </p>
       {status?.currentCommit && (
         <p className="studio-muted text-xs">
@@ -100,12 +150,40 @@ export function SettingsUpdatesPanel({ hasUnsavedChanges }: { hasUnsavedChanges:
             : ''}
         </p>
       )}
-      {!updating && (error || status?.error || connectionError) && (
+      {!updating && displayedError && (
         <p role="alert" className="text-sm text-[color:var(--wb-danger)]">
-          {error || status?.error || connectionError}
+          {displayedError}
         </p>
       )}
       {!updating && status?.blocker && <p className="studio-muted text-sm">{status.blocker}</p>}
+    </>
+  );
+}
+
+export function SettingsUpdatesPanel({ hasUnsavedChanges }: { hasUnsavedChanges: boolean }) {
+  const {
+    status,
+    busy,
+    error,
+    connectionError,
+    confirmation,
+    setConfirmation,
+    updating,
+    check,
+    confirm,
+  } = useRepositoryUpdates();
+
+  const controlsDisabled = busy || updating || hasUnsavedChanges;
+  return (
+    <section className="settings-form-stack" aria-label="Studio updates">
+      <h3 className="studio-dialog-title">Studio updates</h3>
+      <UpdateStatusSummary
+        status={status}
+        busy={busy}
+        error={error}
+        connectionError={connectionError}
+        updating={updating}
+      />
       {hasUnsavedChanges && (
         <p className="studio-muted text-sm">Save your settings before updating or restarting.</p>
       )}
@@ -122,7 +200,7 @@ export function SettingsUpdatesPanel({ hasUnsavedChanges }: { hasUnsavedChanges:
         <button
           type="button"
           className="studio-primary-control disabled:opacity-60"
-          disabled={busy || updating || hasUnsavedChanges || !status?.canUpdate}
+          disabled={controlsDisabled || !status?.canUpdate}
           onClick={() => setConfirmation('update')}
         >
           Update and restart
@@ -130,24 +208,16 @@ export function SettingsUpdatesPanel({ hasUnsavedChanges }: { hasUnsavedChanges:
         <button
           type="button"
           className="studio-ghost-control px-4 disabled:opacity-60"
-          disabled={busy || updating || hasUnsavedChanges || !status?.canRestart}
+          disabled={controlsDisabled || !status?.canRestart}
           onClick={() => setConfirmation('restart')}
         >
           Restart Studio
         </button>
       </div>
-      <ConfirmationModal
-        isOpen={confirmation !== null}
-        title={confirmation === 'update' ? 'Update and restart Studio?' : 'Restart Studio?'}
-        description={
-          confirmation === 'update'
-            ? 'Studio will download the new commits, install dependencies, and restart. This page will reconnect automatically.'
-            : 'Studio will restart and this page will reconnect automatically.'
-        }
-        confirmLabel={confirmation === 'update' ? 'Update and restart' : 'Restart Studio'}
-        tone="accent"
-        onClose={() => setConfirmation(null)}
-        onConfirm={confirm}
+      <UpdateConfirmation
+        confirmation={confirmation}
+        setConfirmation={setConfirmation}
+        confirm={confirm}
       />
     </section>
   );

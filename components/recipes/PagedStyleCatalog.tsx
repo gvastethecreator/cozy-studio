@@ -105,10 +105,11 @@ export function PagedStyleCatalog({
   }, [attempt]);
   const results = useMemo(() => {
     const search = query.trim().toLowerCase();
+    const favoriteIds = new Set(favorites);
     const entries = [...(extraIndex?.presets ?? []), ...(index?.presets ?? [])].filter(
       (entry) =>
         (!search || entry.searchableText.includes(search)) &&
-        (!favoritesOnly || favorites.includes(entry.id)),
+        (!favoritesOnly || favoriteIds.has(entry.id)),
     );
     if (sortOrder === 'az' || sortOrder === 'za')
       entries.sort(

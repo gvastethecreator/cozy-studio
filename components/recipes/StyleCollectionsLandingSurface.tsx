@@ -59,7 +59,6 @@ interface StyleFolderCardProps {
   eyebrow: string;
   sourcePackIds: string[];
   imageCandidates?: StyleFolderImageCandidate[];
-  index: number;
   tabHash: string;
   dataAttributes: Record<string, string>;
   isHighlighted: boolean;
@@ -94,7 +93,6 @@ function StyleFolderCard({
   eyebrow,
   sourcePackIds,
   imageCandidates,
-  index,
   tabHash,
   dataAttributes,
   isHighlighted,
@@ -115,12 +113,9 @@ function StyleFolderCard({
       onClick={onOpen}
       onPointerEnter={onPrefetch}
       onFocus={onPrefetch}
-      className={`style-folder-card catalog-art-card style-folder-enter group relative z-0 block aspect-[3/4] w-full cursor-pointer overflow-visible rounded-[var(--wb-radius)] text-left outline-none hover:z-20 focus-visible:z-20 focus-visible:ring-2 focus-visible:ring-white/35 ${
+      className={`style-folder-card catalog-art-card group relative z-0 block aspect-[3/4] w-full cursor-pointer overflow-visible rounded-[var(--wb-radius)] text-left outline-none hover:z-20 focus-visible:z-20 focus-visible:ring-2 focus-visible:ring-white/35 ${
         isHighlighted ? 'z-30 brightness-[1.08]' : ''
       }`}
-      style={
-        { '--style-folder-enter-delay': `${Math.min(0.42, index * 0.026)}s` } as React.CSSProperties
-      }
       {...dataAttributes}
     >
       {isHighlighted && (
@@ -256,7 +251,6 @@ function StyleCollectionCard({
   countLabel,
   familyLabel,
   targetId,
-  index,
   tabId,
   isHighlighted,
   onOpen,
@@ -268,7 +262,6 @@ function StyleCollectionCard({
   countLabel: string;
   familyLabel: string;
   targetId: string;
-  index: number;
   tabId: string;
   isHighlighted: boolean;
   onOpen: () => void;
@@ -294,7 +287,6 @@ function StyleCollectionCard({
       eyebrow={familyLabel}
       sourcePackIds={collection.sourcePackIds}
       imageCandidates={imageCandidates}
-      index={index}
       tabHash={getStyleTabHash(tabId)}
       dataAttributes={{ 'data-style-collection-card': collection.id }}
       isHighlighted={isHighlighted}
@@ -307,7 +299,6 @@ function StyleCollectionCard({
 function SourcePackCard({
   pack,
   targetId,
-  index,
   getStyleTabHash,
   isHighlighted,
   onOpen,
@@ -316,7 +307,6 @@ function SourcePackCard({
 }: {
   pack: (typeof STYLE_RUNTIME_PACK_SUMMARIES)[number];
   targetId: string;
-  index: number;
   getStyleTabHash: (tabId: string) => string;
   isHighlighted: boolean;
   onOpen: () => void;
@@ -340,7 +330,6 @@ function SourcePackCard({
       eyebrow="Source pack"
       sourcePackIds={[pack.id]}
       imageCandidates={imageCandidates}
-      index={index}
       tabHash={getStyleTabHash(pack.id)}
       dataAttributes={{ 'data-style-pack-card': pack.id }}
       isHighlighted={isHighlighted}
@@ -469,7 +458,7 @@ function StyleCollectionFamilySection({
         <div className="h-px flex-1 bg-white/6" />
       </div>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3">
-        {collections.map((collection, index) => {
+        {collections.map((collection) => {
           const tabId = getCollectionTabId(collection.id);
           const targetId = `collection:${collection.id}`;
           const sharedProps = {
@@ -486,7 +475,6 @@ function StyleCollectionFamilySection({
               collection={collection}
               countLabel={`${getLandingFolderPresetCount(collection.id, collection.sourcePackIds.length)}`}
               familyLabel={family.title}
-              index={index}
               tabId={tabId}
               getStyleTabHash={getStyleTabHash}
               thumbnailRevision={thumbnailRevision}
@@ -542,7 +530,7 @@ function StyleSourcePacksSection({
         </span>
       </div>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3 border-t border-[color:var(--wb-line)] p-3">
-        {STYLE_RUNTIME_PACK_SUMMARIES.map((pack, index) => {
+        {STYLE_RUNTIME_PACK_SUMMARIES.map((pack) => {
           const targetId = `source:${pack.id}`;
           const sharedProps = {
             targetId,
@@ -555,7 +543,6 @@ function StyleSourcePacksSection({
               key={pack.id}
               {...sharedProps}
               pack={pack}
-              index={index}
               getStyleTabHash={getStyleTabHash}
               thumbnailRevision={thumbnailRevision}
             />
@@ -870,7 +857,7 @@ export function StyleCollectionsLandingSurface({
                 <div className="h-px flex-1 bg-white/6" />
               </div>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3">
-                {personalStyleCollections.map((collection, index) => {
+                {personalStyleCollections.map((collection) => {
                   const tabId =
                     collection.id === 'my_styles' ? USER_STYLE_PACK_ID : FAVORITES_PACK_ID;
                   const isUserStyles = collection.id === 'my_styles';
@@ -894,7 +881,6 @@ export function StyleCollectionsLandingSurface({
                       countLabel={`${isUserStyles ? userStyleCount : favoritesCount}`}
                       familyLabel="Personal"
                       targetId={targetId}
-                      index={index}
                       tabId={tabId}
                       isHighlighted={activeNavigationTargetId === targetId}
                       getStyleTabHash={getStyleTabHash}

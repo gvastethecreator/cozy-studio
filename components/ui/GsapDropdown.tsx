@@ -125,9 +125,7 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
       }
     };
 
-    useEffect(() => {
-      if (open) setIsMounted(true);
-    }, [open]);
+    if (open && !isMounted) setIsMounted(true);
 
     useEffect(() => {
       const pointer = () => {
@@ -183,7 +181,7 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
         window.removeEventListener('resize', updatePortalPosition);
         window.removeEventListener('scroll', updatePortalPosition, true);
       };
-    }, [isMounted, portal, updatePortalPosition]);
+    }, [isMounted, portal, triggerRef, updatePortalPosition]);
 
     const closeFromDocument = useEffectEvent((restoreFocus: boolean) => {
       onOpenChange?.(false);
@@ -272,6 +270,8 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
               transformOrigin: resolveTransformOrigin(placement),
               willChange: 'transform, opacity',
             });
+          // Opening controls must be focusable before the first animation frame.
+          gsap.set(panel, { visibility: 'inherit' });
           gsap.to(panel, {
             autoAlpha: 1,
             scale: 1,
@@ -305,6 +305,14 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
       if (!panel || !isMounted) return;
       if (!open) {
         if (panel.contains(document.activeElement)) triggerRef?.current?.focus();
+        return;
+      }
+      if (role === 'dialog') {
+        panel
+          .querySelector<HTMLElement>(
+            'input:not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled)',
+          )
+          ?.focus({ preventScroll: true });
         return;
       }
       if (!keyboardInput.current || (role !== 'menu' && role !== 'listbox')) return;
@@ -341,7 +349,12 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
     );
 
     if (portal && typeof document !== 'undefined') {
-      return createPortal(dropdown, document.body);
+      const fullscreen = document.fullscreenElement;
+      const owner =
+        fullscreen && fullscreen.contains(triggerRef?.current ?? null)
+          ? fullscreen
+          : (triggerRef?.current?.closest('dialog[open]') ?? document.body);
+      return createPortal(dropdown, owner);
     }
 
     return dropdown;

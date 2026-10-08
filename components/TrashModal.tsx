@@ -27,12 +27,18 @@ export const TrashModal: React.FC<TrashModalProps> = ({
   onRestoreAll,
   onEmpty,
 }) => {
-  const dialogRef = useDialogFocus(isOpen, onClose);
+  const dialogRef = useDialogFocus<HTMLDialogElement>(isOpen, onClose);
   if (!isOpen) return null;
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-4 md:p-8">
+      <dialog
+        ref={dialogRef}
+        aria-modal="true"
+        aria-label="Archive"
+        tabIndex={-1}
+        className="studio-modal fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-4 md:p-8"
+      >
         <MotionDiv
           aria-label="Close archive"
           initial={{ opacity: 0 }}
@@ -43,11 +49,6 @@ export const TrashModal: React.FC<TrashModalProps> = ({
         />
 
         <MotionDiv
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Archive"
-          tabIndex={-1}
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -179,7 +180,7 @@ export const TrashModal: React.FC<TrashModalProps> = ({
             </p>
           </div>
         </MotionDiv>
-      </div>
+      </dialog>
     </AnimatePresence>
   );
 };

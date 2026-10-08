@@ -48,6 +48,282 @@ const fieldClass = 'studio-field min-h-10 w-full px-3 py-2 text-sm';
 const buttonClass =
   'min-h-10 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed';
 
+function ConversionOptionsFields({
+  started,
+  options,
+  setOptions,
+  destination,
+  setDestination,
+}: {
+  started: boolean;
+  options: ImageConversionOptions;
+  setOptions: React.Dispatch<React.SetStateAction<ImageConversionOptions>>;
+  destination: ImageConversionRequest['destination'];
+  setDestination: React.Dispatch<React.SetStateAction<ImageConversionRequest['destination']>>;
+}) {
+  return (
+    <fieldset disabled={started} className="space-y-5 disabled:opacity-70">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="space-y-2 text-sm">
+          <span className="block">Format</span>
+          <select
+            name="conversion-format"
+            className={fieldClass}
+            value={options.format}
+            onChange={(event) =>
+              setOptions((current) => ({
+                ...current,
+                format: event.target.value as ImageConversionOptions['format'],
+              }))
+            }
+          >
+            <option value="jpeg">JPG</option>
+            <option value="webp">WebP</option>
+            <option value="png">PNG</option>
+          </select>
+        </label>
+        <label className="space-y-2 text-sm">
+          <span className="block">Destination</span>
+          <select
+            className={fieldClass}
+            value={destination}
+            onChange={(event) =>
+              setDestination(event.target.value as ImageConversionRequest['destination'])
+            }
+          >
+            <option value="library">Save copies in Library</option>
+            <option value="download">Download</option>
+          </select>
+        </label>
+      </div>
+      {options.format === 'webp' && (
+        <label className="flex items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            checked={options.lossless}
+            onChange={(event) =>
+              setOptions((current) => ({ ...current, lossless: event.target.checked }))
+            }
+          />{' '}
+          Lossless WebP
+        </label>
+      )}
+      {options.format === 'jpeg' || (options.format === 'webp' && !options.lossless) ? (
+        <div className="space-y-2">
+          <Slider
+            label="Image quality"
+            value={options.quality}
+            min={1}
+            max={100}
+            onChange={(quality) => setOptions((current) => ({ ...current, quality }))}
+          />
+          <p className="text-xs text-[color:var(--wb-muted)]">
+            Lower quality usually produces smaller files and changes image detail.
+          </p>
+        </div>
+      ) : null}
+      {options.format === 'png' && (
+        <div className="space-y-2">
+          <Slider
+            label="PNG compression"
+            value={options.pngCompressionLevel}
+            min={0}
+            max={9}
+            onChange={(pngCompressionLevel) =>
+              setOptions((current) => ({ ...current, pngCompressionLevel }))
+            }
+          />
+          <p className="text-xs text-[color:var(--wb-muted)]">
+            Lossless: preserves image detail and transparency. Level 9 uses more time to compress.
+            An already optimized PNG may not get smaller.
+          </p>
+        </div>
+      )}
+      {options.format === 'webp' && options.lossless && (
+        <p className="text-xs text-[color:var(--wb-muted)]">
+          Lossless WebP preserves image detail and transparency in 8-bit images. Choose PNG to
+          preserve 16-bit images.
+        </p>
+      )}
+      {options.format === 'jpeg' && (
+        <label className="flex flex-wrap items-center gap-3 text-sm">
+          <span>JPG background</span>
+          <input
+            type="color"
+            aria-label="JPG background"
+            value={options.background}
+            onChange={(event) =>
+              setOptions((current) => ({ ...current, background: event.target.value }))
+            }
+            className="h-9 w-14 cursor-pointer rounded"
+          />
+          <span className="text-xs text-[color:var(--wb-muted)]">
+            Fills transparent areas. JPG does not support transparency.
+          </span>
+        </label>
+      )}
+      <label className="flex items-start gap-3 text-sm">
+        <input
+          type="checkbox"
+          checked={options.preserveMetadata}
+          onChange={(event) =>
+            setOptions((current) => ({ ...current, preserveMetadata: event.target.checked }))
+          }
+          className="mt-1"
+        />
+        <span>
+          Preserve image metadata
+          <span className="mt-1 block text-xs text-[color:var(--wb-muted)]">
+            Keeps the embedded prompt, model, EXIF and descriptive metadata when available. Turn off
+            to remove them. The color profile is always kept to preserve appearance.
+          </span>
+        </span>
+      </label>
+    </fieldset>
+  );
+}
+
+function ConversionResults({
+  started,
+  stopping,
+  busy,
+  completedCount,
+  items,
+  destination,
+}: {
+  started: boolean;
+  stopping: boolean;
+  busy: boolean;
+  completedCount: number;
+  items: ConversionItem[];
+  destination: ImageConversionRequest['destination'];
+}) {
+  return (
+    <>
+      {started && (
+        <div className="space-y-3">
+          <p role="status" className="text-sm">
+            {stopping
+              ? 'Stopping after the current image…'
+              : busy
+                ? `Converting… ${completedCount} of ${items.length} complete.`
+                : `${completedCount} of ${items.length} ${destination === 'library' ? 'copies saved' : 'images ready to download'}.`}
+          </p>
+          <ul aria-label="Conversion results" className="space-y-3">
+            {items.map((item) => (
+              <li
+                key={item.image.id}
+                className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] p-3 text-sm"
+              >
+                <p className="break-all font-medium">{item.filename ?? imageName(item.image)}</p>
+                {item.status === 'complete' ? (
+                  <p className="mt-1 text-xs text-[color:var(--wb-muted)]">
+                    {sizeChange(item.sourceBytes!, item.outputBytes!)}
+                  </p>
+                ) : item.status === 'error' ? (
+                  <p role="alert" className="mt-1 text-xs text-[color:var(--wb-danger)]">
+                    {item.error}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-[color:var(--wb-muted)]">
+                    {item.status === 'processing' ? 'Converting…' : 'Waiting'}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
+  );
+}
+
+function conversionActionLabel(
+  busy: boolean,
+  started: boolean,
+  failed: ConversionItem[],
+  remaining: ConversionItem[],
+  destination: ImageConversionRequest['destination'],
+  imageCount: number,
+) {
+  return busy
+    ? 'Converting…'
+    : started
+      ? failed.length === remaining.length
+        ? 'Retry failed images'
+        : 'Continue conversion'
+      : destination === 'library'
+        ? imageCount === 1
+          ? 'Save copy'
+          : 'Save copies'
+        : 'Convert for download';
+}
+
+function ConversionActions({
+  busy,
+  started,
+  stopping,
+  preparingDownload,
+  destination,
+  completed,
+  failed,
+  remaining,
+  imageCount,
+  close,
+  download,
+  convert,
+}: {
+  busy: boolean;
+  started: boolean;
+  stopping: boolean;
+  preparingDownload: boolean;
+  destination: ImageConversionRequest['destination'];
+  completed: ConversionItem[];
+  failed: ConversionItem[];
+  remaining: ConversionItem[];
+  imageCount: number;
+  close: () => void;
+  download: () => Promise<void>;
+  convert: () => Promise<void>;
+}) {
+  return (
+    <div className="flex flex-wrap justify-end gap-3 border-t border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-6">
+      <button
+        type="button"
+        onClick={close}
+        disabled={stopping || preparingDownload}
+        className={buttonClass}
+      >
+        {busy ? 'Stop after current' : started ? 'Done' : 'Cancel'}
+      </button>
+      {destination === 'download' && completed.length > 0 && !busy && (
+        <button
+          type="button"
+          onClick={() => void download()}
+          disabled={preparingDownload}
+          className={buttonClass}
+        >
+          {preparingDownload
+            ? 'Preparing download…'
+            : completed.length === 1
+              ? 'Download image'
+              : `Download ${completed.length} images (ZIP)`}
+        </button>
+      )}
+      {remaining.length > 0 && (
+        <button
+          type="button"
+          onClick={() => void convert()}
+          disabled={busy || preparingDownload}
+          className={`${buttonClass} bg-accent-500/15 text-accent-100`}
+        >
+          {conversionActionLabel(busy, started, failed, remaining, destination, imageCount)}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function ImageConversionModal({
   images,
   onClose,
@@ -75,7 +351,12 @@ export default function ImageConversionModal({
       setStopping(true);
     } else if (!preparingDownload) onClose();
   };
-  const dialogRef = useDialogFocus(true, close, undefined, '[name="conversion-format"]');
+  const dialogRef = useDialogFocus<HTMLDialogElement>(
+    true,
+    close,
+    undefined,
+    '[name="conversion-format"]',
+  );
   const completed = items.filter((item) => item.status === 'complete');
   const failed = items.filter((item) => item.status === 'error');
   const remaining = items.filter((item) => item.status !== 'complete');
@@ -93,15 +374,15 @@ export default function ImageConversionModal({
     setStarted(true);
     setStopping(false);
     setDownloadError(null);
+    const convertImage =
+      destination === 'library' ? convertCatalogImage : downloadConvertedCatalogImage;
     try {
       for (const item of remaining) {
         if (stopRef.current) break;
         patchItem(item.image.id, { status: 'processing', error: undefined });
         try {
-          const result =
-            destination === 'library'
-              ? await convertCatalogImage(item.image.id, options)
-              : await downloadConvertedCatalogImage(item.image.id, options);
+          // react-doctor-disable-next-line react-doctor/async-await-in-loop -- one full-image conversion at a time bounds memory and preserves Stop after current
+          const result = await convertImage(item.image.id, options);
           patchItem(item.image.id, {
             status: 'complete',
             filename: result.filename,
@@ -149,15 +430,14 @@ export default function ImageConversionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-110 flex items-center justify-center p-4 studio-scrim backdrop-blur-md">
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="conversion-title"
-        tabIndex={-1}
-        className="studio-dialog flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden text-[color:var(--wb-ink)]"
-      >
+    <dialog
+      aria-modal="true"
+      ref={dialogRef}
+      aria-labelledby="conversion-title"
+      tabIndex={-1}
+      className="studio-modal fixed inset-0 z-110 flex items-center justify-center p-4 studio-scrim backdrop-blur-md"
+    >
+      <div className="studio-dialog flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden text-[color:var(--wb-ink)]">
         <div className="flex items-start justify-between gap-4 border-b border-[color:var(--wb-line)] p-6">
           <div>
             <h2 id="conversion-title" className="text-base font-semibold">
@@ -179,211 +459,42 @@ export default function ImageConversionModal({
           </button>
         </div>
         <div className="min-h-0 overflow-y-auto p-6 space-y-5">
-          <fieldset disabled={started} className="space-y-5 disabled:opacity-70">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2 text-sm">
-                <span className="block">Format</span>
-                <select
-                  name="conversion-format"
-                  className={fieldClass}
-                  value={options.format}
-                  onChange={(event) =>
-                    setOptions((current) => ({
-                      ...current,
-                      format: event.target.value as ImageConversionOptions['format'],
-                    }))
-                  }
-                >
-                  <option value="jpeg">JPG</option>
-                  <option value="webp">WebP</option>
-                  <option value="png">PNG</option>
-                </select>
-              </label>
-              <label className="space-y-2 text-sm">
-                <span className="block">Destination</span>
-                <select
-                  className={fieldClass}
-                  value={destination}
-                  onChange={(event) =>
-                    setDestination(event.target.value as ImageConversionRequest['destination'])
-                  }
-                >
-                  <option value="library">Save copies in Library</option>
-                  <option value="download">Download</option>
-                </select>
-              </label>
-            </div>
-            {options.format === 'webp' && (
-              <label className="flex items-center gap-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={options.lossless}
-                  onChange={(event) =>
-                    setOptions((current) => ({ ...current, lossless: event.target.checked }))
-                  }
-                />{' '}
-                Lossless WebP
-              </label>
-            )}
-            {options.format === 'jpeg' || (options.format === 'webp' && !options.lossless) ? (
-              <div className="space-y-2">
-                <Slider
-                  label="Image quality"
-                  value={options.quality}
-                  min={1}
-                  max={100}
-                  onChange={(quality) => setOptions((current) => ({ ...current, quality }))}
-                />
-                <p className="text-xs text-[color:var(--wb-muted)]">
-                  Lower quality usually produces smaller files and changes image detail.
-                </p>
-              </div>
-            ) : null}
-            {options.format === 'png' && (
-              <div className="space-y-2">
-                <Slider
-                  label="PNG compression"
-                  value={options.pngCompressionLevel}
-                  min={0}
-                  max={9}
-                  onChange={(pngCompressionLevel) =>
-                    setOptions((current) => ({ ...current, pngCompressionLevel }))
-                  }
-                />
-                <p className="text-xs text-[color:var(--wb-muted)]">
-                  Lossless: preserves image detail and transparency. Level 9 uses more time to
-                  compress. An already optimized PNG may not get smaller.
-                </p>
-              </div>
-            )}
-            {options.format === 'webp' && options.lossless && (
-              <p className="text-xs text-[color:var(--wb-muted)]">
-                Lossless WebP preserves image detail and transparency in 8-bit images. Choose PNG to
-                preserve 16-bit images.
-              </p>
-            )}
-            {options.format === 'jpeg' && (
-              <label className="flex flex-wrap items-center gap-3 text-sm">
-                <span>JPG background</span>
-                <input
-                  type="color"
-                  aria-label="JPG background"
-                  value={options.background}
-                  onChange={(event) =>
-                    setOptions((current) => ({ ...current, background: event.target.value }))
-                  }
-                  className="h-9 w-14 cursor-pointer rounded"
-                />
-                <span className="text-xs text-[color:var(--wb-muted)]">
-                  Fills transparent areas. JPG does not support transparency.
-                </span>
-              </label>
-            )}
-            <label className="flex items-start gap-3 text-sm">
-              <input
-                type="checkbox"
-                checked={options.preserveMetadata}
-                onChange={(event) =>
-                  setOptions((current) => ({ ...current, preserveMetadata: event.target.checked }))
-                }
-                className="mt-1"
-              />
-              <span>
-                Preserve image metadata
-                <span className="mt-1 block text-xs text-[color:var(--wb-muted)]">
-                  Keeps the embedded prompt, model, EXIF and descriptive metadata when available.
-                  Turn off to remove them. The color profile is always kept to preserve appearance.
-                </span>
-              </span>
-            </label>
-          </fieldset>
-          {started && (
-            <div className="space-y-3">
-              <p role="status" className="text-sm">
-                {stopping
-                  ? 'Stopping after the current image…'
-                  : busy
-                    ? `Converting… ${completed.length} of ${items.length} complete.`
-                    : `${completed.length} of ${items.length} ${destination === 'library' ? 'copies saved' : 'images ready to download'}.`}
-              </p>
-              <ul aria-label="Conversion results" className="space-y-3">
-                {items.map((item) => (
-                  <li
-                    key={item.image.id}
-                    className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] p-3 text-sm"
-                  >
-                    <p className="break-all font-medium">
-                      {item.filename ?? imageName(item.image)}
-                    </p>
-                    {item.status === 'complete' ? (
-                      <p className="mt-1 text-xs text-[color:var(--wb-muted)]">
-                        {sizeChange(item.sourceBytes!, item.outputBytes!)}
-                      </p>
-                    ) : item.status === 'error' ? (
-                      <p role="alert" className="mt-1 text-xs text-[color:var(--wb-danger)]">
-                        {item.error}
-                      </p>
-                    ) : (
-                      <p className="mt-1 text-xs text-[color:var(--wb-muted)]">
-                        {item.status === 'processing' ? 'Converting…' : 'Waiting'}
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <ConversionOptionsFields
+            started={started}
+            options={options}
+            setOptions={setOptions}
+            destination={destination}
+            setDestination={setDestination}
+          />
+          <ConversionResults
+            started={started}
+            stopping={stopping}
+            busy={busy}
+            completedCount={completed.length}
+            items={items}
+            destination={destination}
+          />
           {downloadError && (
             <p role="alert" className="text-sm text-[color:var(--wb-danger)]">
               {downloadError}
             </p>
           )}
         </div>
-        <div className="flex flex-wrap justify-end gap-3 border-t border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-6">
-          <button
-            type="button"
-            onClick={close}
-            disabled={stopping || preparingDownload}
-            className={buttonClass}
-          >
-            {busy ? 'Stop after current' : started ? 'Done' : 'Cancel'}
-          </button>
-          {destination === 'download' && completed.length > 0 && !busy && (
-            <button
-              type="button"
-              onClick={() => void download()}
-              disabled={preparingDownload}
-              className={buttonClass}
-            >
-              {preparingDownload
-                ? 'Preparing download…'
-                : completed.length === 1
-                  ? 'Download image'
-                  : `Download ${completed.length} images (ZIP)`}
-            </button>
-          )}
-          {remaining.length > 0 && (
-            <button
-              type="button"
-              onClick={() => void convert()}
-              disabled={busy || preparingDownload}
-              className={`${buttonClass} bg-accent-500/15 text-accent-100`}
-            >
-              {busy
-                ? 'Converting…'
-                : started
-                  ? failed.length === remaining.length
-                    ? 'Retry failed images'
-                    : 'Continue conversion'
-                  : destination === 'library'
-                    ? images.length === 1
-                      ? 'Save copy'
-                      : 'Save copies'
-                    : 'Convert for download'}
-            </button>
-          )}
-        </div>
+        <ConversionActions
+          busy={busy}
+          started={started}
+          stopping={stopping}
+          preparingDownload={preparingDownload}
+          destination={destination}
+          completed={completed}
+          failed={failed}
+          remaining={remaining}
+          imageCount={images.length}
+          close={close}
+          download={download}
+          convert={convert}
+        />
       </div>
-    </div>
+    </dialog>
   );
 }

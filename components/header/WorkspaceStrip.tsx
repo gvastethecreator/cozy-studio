@@ -122,76 +122,19 @@ export function WorkspaceStrip({
   onRenameWorkspace,
   layout = 'desktop',
 }: WorkspaceStripProps) {
-  const [workspaceUi, setWorkspaceUi] = React.useState<{
-    editingWorkspaceId: string | null;
-    contextMenuWorkspaceId: string | null;
-  }>({
-    editingWorkspaceId: null,
-    contextMenuWorkspaceId: null,
-  });
-  const { editingWorkspaceId, contextMenuWorkspaceId } = workspaceUi;
-  const [editingName, setEditingName] = React.useState('');
-  const [contextMenuPosition, setContextMenuPosition] = React.useState<{
-    left: number;
-    top: number;
-  } | null>(null);
-  const workspacesContainerRef = React.useRef<HTMLDivElement>(null);
+  const {
+    editingWorkspaceId,
+    contextMenuWorkspaceId,
+    editingName,
+    contextMenuPosition,
+    workspacesContainerRef,
+    setWorkspaceUi,
+    setContextMenuPosition,
+    setEditingName,
+    openContextMenu,
+    handleRenameSubmit,
+  } = useWorkspaceMenus(onRenameWorkspace);
   const isCompact = layout === 'compact';
-
-  React.useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (
-        (editingWorkspaceId || contextMenuWorkspaceId) &&
-        workspacesContainerRef.current &&
-        !workspacesContainerRef.current.contains(event.target as Node)
-      ) {
-        setWorkspaceUi({ editingWorkspaceId: null, contextMenuWorkspaceId: null });
-        setContextMenuPosition(null);
-      }
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setWorkspaceUi({ editingWorkspaceId: null, contextMenuWorkspaceId: null });
-        setContextMenuPosition(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [contextMenuWorkspaceId, editingWorkspaceId]);
-
-  const openContextMenu = React.useCallback(
-    (workspaceId: string, anchor: HTMLElement | { clientX: number; clientY: number }) => {
-      const menuWidth = 320;
-      const margin = 8;
-      const viewportWidth = typeof window === 'undefined' ? 1280 : window.innerWidth;
-      const rawPosition =
-        'getBoundingClientRect' in anchor
-          ? (() => {
-              const rect = anchor.getBoundingClientRect();
-              return { left: rect.left, top: rect.bottom + 6 };
-            })()
-          : { left: anchor.clientX, top: anchor.clientY };
-
-      setWorkspaceUi({ editingWorkspaceId: null, contextMenuWorkspaceId: workspaceId });
-      setContextMenuPosition({
-        left: Math.max(margin, Math.min(rawPosition.left, viewportWidth - menuWidth - margin)),
-        top: Math.max(margin, rawPosition.top),
-      });
-    },
-    [],
-  );
-
-  const handleRenameSubmit = (id: string) => {
-    if (editingName.trim()) {
-      onRenameWorkspace(id, editingName.trim());
-    }
-    setWorkspaceUi((prev) => ({ ...prev, editingWorkspaceId: null }));
-  };
 
   return (
     <div
@@ -349,31 +292,13 @@ export function WorkspaceStrip({
               </button>
             </Tooltip>
             {editingWorkspaceId === workspace.id && (
-              <DemandMountedGsapDropdown
-                open={editingWorkspaceId === workspace.id}
-                onOpenChange={(open) => {
-                  if (!open) setWorkspaceUi((prev) => ({ ...prev, editingWorkspaceId: null }));
-                }}
-                placement="bottom-right"
-                role="dialog"
-                aria-label="Rename workspace"
-                className="absolute left-1/2 top-full z-50 mt-1.5 flex -translate-x-1/2 gap-2 rounded-[var(--wb-radius)] p-1.5"
-              >
-                <input
-                  ref={(el) => el?.focus()}
-                  value={editingName}
-                  onChange={(event) => setEditingName(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') handleRenameSubmit(workspace.id);
-                    if (event.key === 'Escape') {
-                      setWorkspaceUi((prev) => ({ ...prev, editingWorkspaceId: null }));
-                    }
-                  }}
-                  aria-label="Rename workspace"
-                  className="w-36 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-2 py-1.5 text-xs text-[color:var(--wb-ink)] outline-none focus:border-accent-500/2"
-                  placeholder="Workspace name"
-                />
-              </DemandMountedGsapDropdown>
+              <WorkspaceRename
+                workspaceId={workspace.id}
+                editingName={editingName}
+                setEditingName={setEditingName}
+                onSubmit={handleRenameSubmit}
+                onClose={() => setWorkspaceUi((prev) => ({ ...prev, editingWorkspaceId: null }))}
+              />
             )}
             {contextMenuWorkspaceId === workspace.id && (
               <DemandMountedGsapDropdown
@@ -392,76 +317,16 @@ export function WorkspaceStrip({
                   top: contextMenuPosition?.top ?? 44,
                 }}
               >
-                <div className="border-b border-[color:var(--wb-line)] pb-2">
-                  <div className="truncate text-[11px] font-semibold tracking-normal text-[color:var(--wb-ink)]">
-                    {workspaceName}
-                  </div>
-                  <div className="mt-1 truncate text-[length:var(--wbp-label)] font-semibold text-[color:var(--wb-muted)]">
-                    {workspace.id}
-                  </div>
-                </div>
-                <div className="space-y-1 py-2 text-[length:var(--wbp-label)] font-semibold text-[color:var(--wb-ink)]">
-                  <div className="flex items-start gap-2 rounded-[var(--wb-radius)] bg-white/[0.025] px-2 py-1.5">
-                    <Folder
-                      width={13}
-                      height={13}
-                      className="mt-0.5 shrink-0 text-[color:var(--wb-muted)]"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                        Location
-                      </div>
-                      <div
-                        className="truncate text-[color:var(--wb-ink)]"
-                        data-tooltip={workspaceLocation}
-                      >
-                        {workspaceLocation}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1">
-                    <div className="rounded-[var(--wb-radius)] bg-white/[0.025] px-2 py-1.5">
-                      <div className="flex items-center gap-1.5 font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                        <Photo width={12} height={12} />
-                        Images
-                      </div>
-                      <div className="mt-1 text-[color:var(--wb-ink)] tabular-nums">
-                        {formattedImageCount}
-                      </div>
-                    </div>
-                    <div className="rounded-[var(--wb-radius)] bg-white/[0.025] px-2 py-1.5">
-                      <div className="flex items-center gap-1.5 font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                        <Database width={12} height={12} />
-                        Storage
-                      </div>
-                      <div className="mt-1 truncate text-[color:var(--wb-ink)]">{storageLabel}</div>
-                    </div>
-                    <div className="rounded-[var(--wb-radius)] bg-white/[0.025] px-2 py-1.5">
-                      <div className="flex items-center gap-1.5 font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                        <Clock width={12} height={12} />
-                        Updated
-                      </div>
-                      <div className="mt-1 text-[color:var(--wb-ink)]">{updatedLabel}</div>
-                    </div>
-                    <div className="rounded-[var(--wb-radius)] bg-white/[0.025] px-2 py-1.5">
-                      <div className="font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                        Created
-                      </div>
-                      <div className="mt-1 text-[color:var(--wb-ink)]">{createdLabel}</div>
-                    </div>
-                  </div>
-                  <div className="rounded-[var(--wb-radius)] bg-white/[0.025] px-2 py-1.5">
-                    <div className="font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                      Libraries
-                    </div>
-                    <div
-                      className="mt-1 truncate text-[color:var(--wb-ink)]"
-                      data-tooltip={workspace.libraryIds?.join(', ')}
-                    >
-                      {librariesLabel}
-                    </div>
-                  </div>
-                </div>
+                <WorkspaceInformation
+                  workspace={workspace}
+                  workspaceName={workspaceName}
+                  formattedImageCount={formattedImageCount}
+                  workspaceLocation={workspaceLocation}
+                  storageLabel={storageLabel}
+                  librariesLabel={librariesLabel}
+                  updatedLabel={updatedLabel}
+                  createdLabel={createdLabel}
+                />
                 <button
                   type="button"
                   role="menuitem"
@@ -499,4 +364,220 @@ export function WorkspaceStrip({
       </Tooltip>
     </div>
   );
+}
+
+function WorkspaceInformation({
+  workspace,
+  workspaceName,
+  formattedImageCount,
+  workspaceLocation,
+  storageLabel,
+  librariesLabel,
+  updatedLabel,
+  createdLabel,
+}: {
+  workspace: WorkspaceStripProps['workspaces'][number];
+  workspaceName: string;
+  formattedImageCount: string;
+  workspaceLocation: string;
+  storageLabel: string;
+  librariesLabel: string;
+  updatedLabel: string;
+  createdLabel: string;
+}) {
+  return (
+    <>
+      {' '}
+      <div className="border-b border-[color:var(--wb-line)] pb-2">
+        <div className="truncate text-[11px] font-semibold tracking-normal text-[color:var(--wb-ink)]">
+          {workspaceName}
+        </div>
+        <div className="mt-1 truncate text-[length:var(--wbp-label)] font-semibold text-[color:var(--wb-muted)]">
+          {workspace.id}
+        </div>
+      </div>
+      <div className="space-y-1 py-2 text-[length:var(--wbp-label)] font-semibold text-[color:var(--wb-ink)]">
+        <div className="flex items-start gap-2 rounded-[var(--wb-radius)] bg-white/[0.025] px-2 py-1.5">
+          <Folder width={13} height={13} className="mt-0.5 shrink-0 text-[color:var(--wb-muted)]" />
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold tracking-normal text-[color:var(--wb-muted)]">
+              Location
+            </div>
+            <div className="truncate text-[color:var(--wb-ink)]" data-tooltip={workspaceLocation}>
+              {workspaceLocation}
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-1">
+          <div className="rounded-[var(--wb-radius)] bg-white/[0.025] px-2 py-1.5">
+            <div className="flex items-center gap-1.5 font-semibold tracking-normal text-[color:var(--wb-muted)]">
+              <Photo width={12} height={12} />
+              Images
+            </div>
+            <div className="mt-1 text-[color:var(--wb-ink)] tabular-nums">
+              {formattedImageCount}
+            </div>
+          </div>
+          <div className="rounded-[var(--wb-radius)] bg-white/[0.025] px-2 py-1.5">
+            <div className="flex items-center gap-1.5 font-semibold tracking-normal text-[color:var(--wb-muted)]">
+              <Database width={12} height={12} />
+              Storage
+            </div>
+            <div className="mt-1 truncate text-[color:var(--wb-ink)]">{storageLabel}</div>
+          </div>
+          <div className="rounded-[var(--wb-radius)] bg-white/[0.025] px-2 py-1.5">
+            <div className="flex items-center gap-1.5 font-semibold tracking-normal text-[color:var(--wb-muted)]">
+              <Clock width={12} height={12} />
+              Updated
+            </div>
+            <div className="mt-1 text-[color:var(--wb-ink)]">{updatedLabel}</div>
+          </div>
+          <div className="rounded-[var(--wb-radius)] bg-white/[0.025] px-2 py-1.5">
+            <div className="font-semibold tracking-normal text-[color:var(--wb-muted)]">
+              Created
+            </div>
+            <div className="mt-1 text-[color:var(--wb-ink)]">{createdLabel}</div>
+          </div>
+        </div>
+        <div className="rounded-[var(--wb-radius)] bg-white/[0.025] px-2 py-1.5">
+          <div className="font-semibold tracking-normal text-[color:var(--wb-muted)]">
+            Libraries
+          </div>
+          <div
+            className="mt-1 truncate text-[color:var(--wb-ink)]"
+            data-tooltip={workspace.libraryIds?.join(', ')}
+          >
+            {librariesLabel}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function WorkspaceRename({
+  workspaceId,
+  editingName,
+  setEditingName,
+  onSubmit,
+  onClose,
+}: {
+  workspaceId: string;
+  editingName: string;
+  setEditingName: (name: string) => void;
+  onSubmit: (id: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <DemandMountedGsapDropdown
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      placement="bottom-right"
+      role="dialog"
+      aria-label="Rename workspace"
+      className="absolute left-1/2 top-full z-50 mt-1.5 flex -translate-x-1/2 gap-2 rounded-[var(--wb-radius)] p-1.5"
+    >
+      <input
+        ref={(el) => el?.focus()}
+        value={editingName}
+        onChange={(event) => setEditingName(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') onSubmit(workspaceId);
+          if (event.key === 'Escape') {
+            onClose();
+          }
+        }}
+        aria-label="Rename workspace"
+        className="w-36 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-2 py-1.5 text-xs text-[color:var(--wb-ink)] outline-none focus:border-accent-500/2"
+        placeholder="Workspace name"
+      />
+    </DemandMountedGsapDropdown>
+  );
+}
+
+function useWorkspaceMenus(onRenameWorkspace: WorkspaceStripProps['onRenameWorkspace']) {
+  const [workspaceUi, setWorkspaceUi] = React.useState<{
+    editingWorkspaceId: string | null;
+    contextMenuWorkspaceId: string | null;
+  }>({
+    editingWorkspaceId: null,
+    contextMenuWorkspaceId: null,
+  });
+  const { editingWorkspaceId, contextMenuWorkspaceId } = workspaceUi;
+  const [editingName, setEditingName] = React.useState('');
+  const [contextMenuPosition, setContextMenuPosition] = React.useState<{
+    left: number;
+    top: number;
+  } | null>(null);
+  const workspacesContainerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        (editingWorkspaceId || contextMenuWorkspaceId) &&
+        workspacesContainerRef.current &&
+        !workspacesContainerRef.current.contains(event.target as Node)
+      ) {
+        setWorkspaceUi({ editingWorkspaceId: null, contextMenuWorkspaceId: null });
+        setContextMenuPosition(null);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setWorkspaceUi({ editingWorkspaceId: null, contextMenuWorkspaceId: null });
+        setContextMenuPosition(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [contextMenuWorkspaceId, editingWorkspaceId]);
+
+  const openContextMenu = React.useCallback(
+    (workspaceId: string, anchor: HTMLElement | { clientX: number; clientY: number }) => {
+      const menuWidth = 320;
+      const margin = 8;
+      const viewportWidth = typeof window === 'undefined' ? 1280 : window.innerWidth;
+      const rawPosition =
+        'getBoundingClientRect' in anchor
+          ? (() => {
+              const rect = anchor.getBoundingClientRect();
+              return { left: rect.left, top: rect.bottom + 6 };
+            })()
+          : { left: anchor.clientX, top: anchor.clientY };
+
+      setWorkspaceUi({ editingWorkspaceId: null, contextMenuWorkspaceId: workspaceId });
+      setContextMenuPosition({
+        left: Math.max(margin, Math.min(rawPosition.left, viewportWidth - menuWidth - margin)),
+        top: Math.max(margin, rawPosition.top),
+      });
+    },
+    [],
+  );
+
+  const handleRenameSubmit = (id: string) => {
+    if (editingName.trim()) {
+      onRenameWorkspace(id, editingName.trim());
+    }
+    setWorkspaceUi((prev) => ({ ...prev, editingWorkspaceId: null }));
+  };
+
+  return {
+    editingWorkspaceId,
+    contextMenuWorkspaceId,
+    editingName,
+    contextMenuPosition,
+    workspacesContainerRef,
+    setWorkspaceUi,
+    setContextMenuPosition,
+    setEditingName,
+    openContextMenu,
+    handleRenameSubmit,
+  };
 }

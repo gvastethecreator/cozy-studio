@@ -92,7 +92,7 @@ describe('composerProviderProjection', () => {
       'gpt-image-2.5-sunburst',
       'gpt-image-2',
     ]);
-    expect(projection.execution.showImageSizeControl).toBe(true);
+    expect(projection.execution.showImageSizeControl).toBe(false);
     expect(projection.execution.imageSizeOptions.map((option) => option.tier)).toEqual([
       '1K',
       '2K',
@@ -102,7 +102,7 @@ describe('composerProviderProjection', () => {
       tier: '1K',
       size: '1536x864',
     });
-    expect(projection.execution.summary).toContain('1K');
+    expect(projection.execution.summary).not.toContain('1K');
     expect(projection.execution.reasoningOptions).toEqual(['provider_default']);
     expect(projection.execution.speedOptions).toEqual(['standard']);
     expect(projection.execution.availableTransports).toEqual(['subscription_http']);

@@ -29,6 +29,8 @@ export function LivePromptTextarea({
   onDrop,
   onDragOver,
   id,
+  label = 'Prompt input',
+  placeholder,
   variant = 'dock',
 }: {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
@@ -43,6 +45,8 @@ export function LivePromptTextarea({
   onDrop: React.DragEventHandler<HTMLTextAreaElement>;
   onDragOver: React.DragEventHandler<HTMLTextAreaElement>;
   id?: string;
+  label?: string;
+  placeholder?: string;
   variant?: 'dock' | 'rail';
 }) {
   const [scrambleTick, setScrambleTick] = useState(0);
@@ -60,13 +64,24 @@ export function LivePromptTextarea({
   }, [isScrambling, prompt, scrambleTick]);
 
   useLayoutEffect(() => {
-    if (variant === 'rail') return;
     const target = textareaRef.current;
     if (!target) return;
-    const scrollPosition = target.scrollTop;
-    target.style.height = '28px';
-    target.style.height = `${Math.min(Math.max(target.scrollHeight, 28), 320)}px`;
-    target.scrollTop = scrollPosition;
+    const resize = () => {
+      const scrollPosition = target.scrollTop;
+      const minimum = variant === 'rail' ? 192 : 28;
+      target.style.height = `${minimum}px`;
+      target.style.height = `${Math.min(Math.max(target.scrollHeight, minimum), 320)}px`;
+      target.scrollTop = scrollPosition;
+    };
+    resize();
+    let width = target.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (target.clientWidth === width) return;
+      width = target.clientWidth;
+      resize();
+    });
+    observer.observe(target);
+    return () => observer.disconnect();
   }, [displayedPrompt, textareaRef, variant]);
 
   return (
@@ -76,7 +91,7 @@ export function LivePromptTextarea({
       value={displayedPrompt}
       readOnly={isScrambling}
       onFocus={onFocus}
-      aria-label="Prompt input"
+      aria-label={label}
       onBlur={onBlur}
       onChange={onChange}
       onKeyDown={onKeyDown}
@@ -84,9 +99,10 @@ export function LivePromptTextarea({
       onDrop={onDrop}
       onDragOver={onDragOver}
       placeholder={
-        variant === 'rail'
+        placeholder ??
+        (variant === 'rail'
           ? 'Describe the image you want to create…'
-          : 'Describe what you want to create...'
+          : 'Describe what you want to create...')
       }
       rows={variant === 'rail' ? 6 : 1}
       className={

@@ -24,6 +24,12 @@ const Tooltip: React.FC<TooltipProps> = ({
   const [open, setOpen] = useState(false);
   const id = useId();
   useEffect(() => {
+    const root = ref.current;
+    const close = () => setOpen(false);
+    root?.addEventListener('click', close);
+    return () => root?.removeEventListener('click', close);
+  }, []);
+  useEffect(() => {
     if (!open) return;
     const close = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -43,7 +49,6 @@ const Tooltip: React.FC<TooltipProps> = ({
       onPointerLeave={() => {
         if (!ref.current?.contains(document.activeElement)) setOpen(false);
       }}
-      onClick={() => setOpen(false)}
       onFocus={() => setOpen(true)}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);

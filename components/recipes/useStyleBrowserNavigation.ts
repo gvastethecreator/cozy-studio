@@ -18,12 +18,14 @@ export function useStyleBrowserNavigation({
   defaultPackId,
   allCategoriesTabId,
   allCardsTabId,
+  syncRoute = true,
 }: {
   routeOptions: StyleTabRouteOptions;
   scopeKey?: string;
   defaultPackId: string;
   allCategoriesTabId: string;
   allCardsTabId: string;
+  syncRoute?: boolean;
 }) {
   const [lastTab, setLastTab] = useLocalStorage<StyleTabId>(
     `style-browser-tab:${scopeKey}`,
@@ -53,6 +55,7 @@ export function useStyleBrowserNavigation({
   const [favorites, setFavorites] = useLocalStorage<string[]>('style-favorites', []);
   const writeStyleTabHash = useCallback(
     (tabId: StyleTabId, mode: 'push' | 'replace' = 'push') => {
+      if (!syncRoute) return;
       const nextHash = `#${getStyleTabHashForRoute(tabId, routeOptions)}`;
       if (window.location.hash === nextHash) return;
 
@@ -64,7 +67,7 @@ export function useStyleBrowserNavigation({
 
       window.location.hash = nextHash.slice(1);
     },
-    [routeOptions],
+    [routeOptions, syncRoute],
   );
   const applyStyleTab = useCallback(
     (
@@ -114,7 +117,7 @@ export function useStyleBrowserNavigation({
         }
       });
     },
-    [routeOptions, allCategoriesTabId, allCardsTabId, setLastTab],
+    [routeOptions, allCategoriesTabId, allCardsTabId, setLastTab, setBrowserState],
   );
 
   const navigateToStyleTab = useCallback(
@@ -127,6 +130,7 @@ export function useStyleBrowserNavigation({
   );
 
   useEffect(() => {
+    if (!syncRoute) return;
     const syncStyleTabFromHash = () => {
       const hashTabId = readStyleTabIdFromRouteHash(window.location.hash, routeOptions);
       if (!hashTabId) return;
@@ -137,7 +141,7 @@ export function useStyleBrowserNavigation({
     syncStyleTabFromHash();
     window.addEventListener('hashchange', syncStyleTabFromHash);
     return () => window.removeEventListener('hashchange', syncStyleTabFromHash);
-  }, [applyStyleTab, routeOptions]);
+  }, [applyStyleTab, routeOptions, syncRoute]);
 
   const toggleFavorite = useCallback(
     (presetId: string) => {
@@ -151,16 +155,16 @@ export function useStyleBrowserNavigation({
   const updateFilters = useCallback(
     (patch: Partial<Pick<typeof browserState, 'searchQuery' | 'sortOrder' | 'viewMode'>>) =>
       setBrowserState((current) => ({ ...current, ...patch })),
-    [],
+    [setBrowserState],
   );
   const setCatalogOpen = useCallback(
     (open: boolean) => setBrowserState((current) => ({ ...current, isCatalogSearchOpen: open })),
-    [],
+    [setBrowserState],
   );
   const toggleFavoritesOnly = useCallback(
     () =>
       setBrowserState((current) => ({ ...current, showFavoritesOnly: !current.showFavoritesOnly })),
-    [],
+    [setBrowserState],
   );
   return {
     currentPackId,

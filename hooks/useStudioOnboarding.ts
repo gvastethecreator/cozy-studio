@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { HealthResponse } from '../packages/shared/src';
 import type { Toast } from '../types';
 import { getStudioApiBase } from '../services/studio-api/http';
@@ -33,7 +33,9 @@ export function useStudioOnboarding({
     'studio-onboarding-complete',
     false,
   );
-  const [isOpen, setIsOpen] = useState(false);
+  const [opening, setOpening] = useState<'none' | 'auto' | 'manual' | 'complete'>('none');
+  const [autoOpened, setAutoOpened] = useState(false);
+  const isOpen = opening === 'auto' || opening === 'manual';
   const [isStartingAppServer, setIsStartingAppServer] = useState(false);
 
   const runtime = useMemo(() => resolveStudioRuntime(), []);
@@ -41,44 +43,40 @@ export function useStudioOnboarding({
   const isDesktopRuntime = runtime.isDesktop;
   const isReady = Boolean(health?.ok && health.checks.onboardingReady);
 
-  const manuallyOpenedRef = useRef(false);
   const openOnboarding = useCallback(() => {
-    manuallyOpenedRef.current = true;
-    setIsOpen(true);
+    setOpening('manual');
     void refreshHealth();
   }, [refreshHealth]);
 
   const closeOnboarding = useCallback(() => {
     setHasSeenOnboarding(true);
-    setIsOpen(false);
+    setOpening('none');
   }, [setHasSeenOnboarding]);
 
   const completeOnboarding = useCallback(() => {
     setHasSeenOnboarding(true);
-    setIsOpen(false);
+    setOpening('none');
   }, [setHasSeenOnboarding]);
 
-  const autoOpenedRef = useRef(false);
+  if (
+    opening === 'none' &&
+    !autoOpened &&
+    shouldAutoOpenOnboarding({
+      hasSeenOnboarding,
+      shouldAutoOpen,
+      isReady,
+      hasHealthSnapshot: health !== null,
+    })
+  ) {
+    setAutoOpened(true);
+    setOpening('auto');
+  }
+  if (opening === 'auto' && shouldCloseOnboardingBecauseReady(isReady, isOpen)) {
+    setOpening('complete');
+  }
   useEffect(() => {
-    if (
-      autoOpenedRef.current ||
-      !shouldAutoOpenOnboarding({
-        hasSeenOnboarding,
-        shouldAutoOpen,
-        isReady,
-        hasHealthSnapshot: health !== null,
-      })
-    ) {
-      return;
-    }
-    autoOpenedRef.current = true;
-    setIsOpen(true);
-  }, [hasSeenOnboarding, health, isReady, shouldAutoOpen]);
-
-  useEffect(() => {
-    if (manuallyOpenedRef.current || !shouldCloseOnboardingBecauseReady(isReady, isOpen)) return;
-    completeOnboarding();
-  }, [completeOnboarding, isOpen, isReady]);
+    if (opening === 'complete') setHasSeenOnboarding(true);
+  }, [opening, setHasSeenOnboarding]);
 
   const ensureAppServer = useCallback(async () => {
     setIsStartingAppServer(true);

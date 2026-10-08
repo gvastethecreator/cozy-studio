@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   SunLight as Sun,
   Camera,
@@ -7,8 +7,7 @@ import {
   Fingerprint,
   Text as TextIcon,
 } from 'iconoir-react';
-import { RATIO_MAP } from '../../constants';
-import type { AspectRatio, ImageGenerationConfig } from '../../types';
+import type { ImageGenerationConfig } from '../../types';
 import { useRecipeContextRegistration } from '../../hooks/useRecipeContextRegistration';
 import { RecipeLayout } from './RecipeLayout';
 import { RecipeResults } from './RecipeWorkbenchContext';
@@ -65,17 +64,6 @@ const REINTERPRET_PARAMS: Partial<RemasterParams> = {
   fidelity: 35,
 };
 
-/** Sources whose ratio was already applied, so a later manual ratio survives remounts. */
-const ratioAppliedSources = new Set<string>();
-
-function nearestAspectRatio(width: number, height: number): AspectRatio {
-  const target = Math.log(width / height);
-  const distance = (ratio: AspectRatio) => Math.abs(Math.log(RATIO_MAP[ratio]) - target);
-  return (Object.keys(RATIO_MAP) as AspectRatio[]).reduce((best, ratio) =>
-    distance(ratio) < distance(best) ? ratio : best,
-  );
-}
-
 function readRemasterParams(config: ImageGenerationConfig): RemasterParams {
   const stored = config.recipeId === 'remaster' ? (config.recipeParams ?? {}) : {};
   const text = (key: Exclude<keyof RemasterParams, 'fidelity'>) => {
@@ -99,17 +87,6 @@ export const RemasterRecipe: React.FC<RemasterRecipeProps> = ({
   isGenerating,
 }) => {
   const stored = readRemasterParams(config);
-  const source = config.attachments[0];
-  const sourceId = source?.id;
-  const sourceRatio =
-    source?.width && source.height ? nearestAspectRatio(source.width, source.height) : null;
-
-  useEffect(() => {
-    if (!sourceId || !sourceRatio || ratioAppliedSources.has(sourceId)) return;
-    ratioAppliedSources.add(sourceId);
-    updateConfig('aspectRatio', sourceRatio);
-  }, [sourceId, sourceRatio, updateConfig]);
-
   const params = useMemo(
     () => ({
       style: stored.style,

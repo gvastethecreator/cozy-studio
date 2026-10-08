@@ -40,6 +40,7 @@ export function usePreferredWorkflow(
     return () => window.removeEventListener('studio-navigation', cancel);
   }, []);
   useEffect(() => {
+    // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- one-time startup restoration writes the external URL hash; user navigation cancels it
     if (preferred && waiting.current && window.location.hash === initialHash.current) open();
   }, [preferred, open]);
   return open;

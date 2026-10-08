@@ -1,6 +1,6 @@
 import { CozyLoader as LoaderCircle } from '../CozyMascot';
 import { MediaImage as FileImage, FolderPlus, Upload } from 'iconoir-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type {
   ExternalOutputSourceCandidate,
   ExternalOutputSourceFile,
@@ -41,8 +41,9 @@ export function SettingsOutputSourcesPanel({
   onRegisterOutputSource,
 }: SettingsOutputSourcesPanelProps) {
   const [selectedOutputFiles, setSelectedOutputFiles] = useState<Record<string, string[]>>({});
-
-  useEffect(() => {
+  const [previousFiles, setPreviousFiles] = useState(outputSourceFiles);
+  if (previousFiles !== outputSourceFiles) {
+    setPreviousFiles(outputSourceFiles);
     setSelectedOutputFiles((current) => {
       let changed = false;
       const next = { ...current };
@@ -58,7 +59,7 @@ export function SettingsOutputSourcesPanel({
       }
       return changed ? next : current;
     });
-  }, [outputSourceFiles]);
+  }
 
   const registeredOutputPaths = new Set(
     outputSources?.registry.sources.map((source) => source.path) ?? [],

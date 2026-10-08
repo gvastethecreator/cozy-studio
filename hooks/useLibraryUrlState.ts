@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useState } from 'react';
 import { parseAsBoolean, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
 import type { ImageGridSortOption } from '../lib/imageGridPresentation';
 
@@ -24,14 +24,13 @@ export interface LibraryFilters {
 
 export function useLibraryUrlState() {
   // Capture intent before hydration writes the effective workspace into a plain startup URL.
-  const initialLibraryLink = useRef(
-    Object.keys(libraryQueryParsers).some((key) =>
-      new URLSearchParams(window.location.search).has(key),
-    ),
-  );
+  const [hasInitialLibraryLink] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return Object.keys(libraryQueryParsers).some((key) => params.has(key));
+  });
   const [query, setQuery] = useQueryStates(libraryQueryParsers, {
     history: 'replace',
     clearOnDefault: true,
   });
-  return { query, setQuery, hasInitialLibraryLink: initialLibraryLink.current };
+  return { query, setQuery, hasInitialLibraryLink };
 }

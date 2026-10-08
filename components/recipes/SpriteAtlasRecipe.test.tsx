@@ -10,7 +10,7 @@ import {
 } from '../../packages/shared/src';
 import * as atlasApi from '../../services/studio-api/spriteAtlas';
 import { SpriteAtlasRecipe } from './SpriteAtlasRecipe';
-import { RecipeWorkbenchContext } from './RecipeWorkbenchContext';
+import { RecipeWorkbenchContext } from './recipeWorkbenchContextState';
 
 const workflowRunListeners = new Set<(payload: WorkflowRunUpdatedEventPayload) => void>();
 

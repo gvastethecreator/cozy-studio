@@ -8,7 +8,7 @@
   --wba-accent: #fcb247;
   --wb-accent-fill: color-mix(in srgb, var(--wb-accent) 50%, #0a0a0a);
   --wb-on-fill: #f4f4f4;
-  --studio-action-height: 32px;
+  --studio-action-height: var(--wb-control-height);
 }
 
 :root,
@@ -23,18 +23,19 @@
   --wb-muted: #a6a6a6;
   --wb-dim: #a0a0a0;
   --wb-disabled: #777;
-  --wb-line: #1f1f1f;
-  --wb-border: #2e2e2e;
-  --wb-control-border: color-mix(in srgb, var(--wb-muted) 50%, var(--wb-panel));
+  --wb-line: var(--wb-border);
+  --wb-border: color-mix(in srgb, var(--wb-ink) 5%, transparent);
+  --wb-control-border: var(--wb-border);
+  --wb-border-width: 2px;
   --wb-selection: #626262;
   --wb-radius: 4px;
-  --wb-control-height: 30px;
+  --wb-control-height: 32px;
   --wb-font-size: 12px;
   --wb-success: #8fd5ae;
   --wb-warning: #edc47d;
   --wb-danger: #f5a3b1;
   --wb-info: #a0c9f5;
-  --wb-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --wb-font: var(--wbp-font-ui, system-ui, sans-serif);
   --wb-mono: ui-monospace, 'SF Mono', Consolas, monospace;
   --wb-fast: 100ms;
   --wb-ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -72,8 +73,8 @@
   --wb-muted: #a6a6a6;
   --wb-dim: #a0a0a0;
   --wb-disabled: #777;
-  --wb-line: #1f1f1f;
-  --wb-border: #2e2e2e;
+  --wb-line: var(--wb-border);
+  --wb-border: color-mix(in srgb, var(--wb-ink) 5%, transparent);
   --wba-bg: #0a0a0a;
   --wba-panel-albedo: #161616;
   --wba-control-albedo: #2a2a2a;
@@ -94,8 +95,8 @@
   --wb-muted: #5e5b54;
   --wb-dim: #655f55;
   --wb-disabled: #8a857c;
-  --wb-line: #d4cfc4;
-  --wb-border: #c9c2b4;
+  --wb-line: var(--wb-border);
+  --wb-border: color-mix(in srgb, var(--wb-ink) 5%, transparent);
   --wb-selection: #c9c2b4;
   --wb-success: #24683f;
   --wb-warning: #805500;
@@ -131,15 +132,15 @@
 }
 
 .wb-ambient[data-theme='carbon'][data-ambient-enabled='true'] {
-  --wb-border: #ffffff12;
-  --wb-line: #ffffff0d;
+  --wb-border: color-mix(in srgb, var(--wb-ink) 5%, transparent);
+  --wb-line: var(--wb-border);
   --wb-ink: #eee;
   --wb-muted: #acacac;
 }
 
 .wb-ambient[data-theme='paper'][data-ambient-enabled='true'] {
-  --wb-border: #c9c2b4;
-  --wb-line: #d4cfc4;
+  --wb-border: color-mix(in srgb, var(--wb-ink) 5%, transparent);
+  --wb-line: var(--wb-border);
   --wb-ink: #1c1b18;
   --wb-muted: #5e5b54;
 }

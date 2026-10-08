@@ -1,3 +1,4 @@
+import { RecipeWorkbenchContext } from './recipes/recipeWorkbenchContextState';
 /** @vitest-environment jsdom */
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -9,6 +10,8 @@ vi.mock('../contexts/GlobalContext', () => ({
   useToastUi: () => ({ addToast: vi.fn() }),
   useWorkspaceState: () => workspaceState,
 }));
+
+vi.mock('../contexts/GenerationContext', () => ({ useGenerationDraft: vi.fn() }));
 
 vi.mock('../services/studio-api/catalog', () => ({
   getCatalogImageDetail: vi.fn(async (id) => ({
@@ -46,6 +49,8 @@ import { getCatalogImageDetail } from '../services/studio-api/catalog';
 import type { StudioCommandCenterProjection } from '../lib/commandCenterProjection';
 import type { ImageGenerationConfig } from '../types';
 import { Toolbar, type ToolbarProps } from './Toolbar';
+import { StudioGenerationDock, type StudioGenerationDockProps } from './shell/StudioGenerationDock';
+import { useGenerationDraft } from '../contexts/GenerationContext';
 
 afterEach(() => {
   cleanup();
@@ -140,6 +145,34 @@ function renderToolbar(overrides: Partial<ToolbarProps> = {}) {
 }
 
 describe('Toolbar composer chrome', () => {
+  it('keeps prompt edits debounced and discards a pending edit when a saved prompt is loaded', () => {
+    vi.useFakeTimers();
+    try {
+      const updateConfig = vi.fn();
+      const view = renderToolbar({ updateConfig });
+      const prompt = screen.getByRole('textbox', { name: 'Prompt input' });
+      fireEvent.change(prompt, { target: { value: 'Pending edit' } });
+      expect(prompt).toHaveProperty('value', 'Pending edit');
+      expect(updateConfig).not.toHaveBeenCalledWith('prompt', 'Pending edit');
+      view.rerender(
+        <Toolbar {...view.props} generationConfig={config({ prompt: 'Saved prompt' })} />,
+      );
+      expect(prompt).toHaveProperty('value', 'Saved prompt');
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(updateConfig).not.toHaveBeenCalledWith('prompt', 'Pending edit');
+      fireEvent.change(prompt, { target: { value: 'New edit' } });
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(updateConfig).toHaveBeenCalledWith('prompt', 'New edit');
+      view.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('opens a different workflow at the start of the tool rail', () => {
     const view = renderToolbar({ interactionScope: 'recipes:character-sheet' });
     const rail = view.container.querySelector<HTMLElement>('.create-tool-scroll')!;
@@ -209,25 +242,22 @@ describe('Toolbar composer chrome', () => {
     });
     expect(onGenerate).not.toHaveBeenCalled();
     expect(screen.getAllByText('Add a source image to restore.').length).toBeGreaterThan(0);
-    view.unmount();
-    renderToolbar({
-      activeRecipe: 'remaster',
-      activeProviderId: 'chatgpt',
-      codexTransport: 'subscription_http',
-      codexAvailableTransports: ['subscription_http'],
-      generationConfig: config({
-        recipeId: 'remaster',
-        attachments: [
-          {
-            id: 'source',
-            name: 'original.png',
-            dataUrl: 'data:image/png;base64,aaaa',
-            strength: 1,
-          },
-        ],
-      }),
-      onGenerate,
-    });
+    view.rerender(
+      <Toolbar
+        {...view.props}
+        generationConfig={config({
+          recipeId: 'remaster',
+          attachments: [
+            {
+              id: 'source',
+              name: 'original.png',
+              dataUrl: 'data:image/png;base64,aaaa',
+              strength: 1,
+            },
+          ],
+        })}
+      />,
+    );
     fireEvent.click(screen.getByRole('button', { name: /generate 4 images/i }));
     expect(onGenerate).toHaveBeenCalledOnce();
     fireEvent.keyDown(screen.getByRole('textbox', { name: 'Prompt input' }), {
@@ -237,26 +267,68 @@ describe('Toolbar composer chrome', () => {
     expect(onGenerate).toHaveBeenCalledTimes(2);
   });
 
-  it('uses the workflow action for the shortcut in context-only mode', () => {
+  it('uses the registered workflow prompt and action, including disabled and absent actions', () => {
     const onGenerate = vi.fn();
     const onPrepare = vi.fn();
-    const { container } = renderToolbar({
+    const onPrompt = vi.fn();
+    const initial = renderToolbar({
       mode: 'context-only',
-      generationConfig: config({ prompt: '' }),
+      generationConfig: config({ prompt: 'Generic prompt' }),
       onGenerate,
-      railAction: (
-        <div className="recipe-primary-action">
-          <button onClick={onPrepare}>Prepare Run</button>
-        </div>
-      ),
     });
-    expect(container.querySelector('.create-footer-meta')).toBeNull();
+    initial.unmount();
+    const value = {
+      controls: null,
+      action: null,
+      overlay: null,
+      sidePanel: null,
+      compare: null,
+      setCompare: () => {},
+      prompt: {
+        value: 'Motion only',
+        label: 'Motion prompt',
+        placeholder: 'Motion',
+        onChange: onPrompt,
+      },
+      primaryAction: { execute: onPrepare, disabled: false },
+    };
+    const view = render(
+      <RecipeWorkbenchContext value={value}>
+        <Toolbar {...initial.props} railAction={<button onClick={onPrepare}>Prepare Run</button>} />
+      </RecipeWorkbenchContext>,
+    );
+    const input = screen.getByRole('textbox', { name: 'Motion prompt' });
+    expect(input).toHaveProperty('value', 'Motion only');
+    fireEvent.change(input, { target: { value: 'New motion' } });
+    expect(onPrompt).toHaveBeenCalledWith('New motion');
+    expect(screen.getAllByRole('button', { name: 'Prepare Run' })).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Prepare Run' }));
     fireEvent.keyDown(document, { key: 'Enter', ctrlKey: true });
-    expect(onPrepare).toHaveBeenCalledOnce();
+    expect(onPrepare).toHaveBeenCalledTimes(2);
+    const dialog = document.createElement('dialog');
+    dialog.setAttribute('open', '');
+    document.body.append(dialog);
+    fireEvent.keyDown(document, { key: 'Enter', ctrlKey: true });
+    expect(onPrepare).toHaveBeenCalledTimes(2);
+    dialog.remove();
+    view.rerender(
+      <RecipeWorkbenchContext
+        value={{ ...value, primaryAction: { execute: onPrepare, disabled: true } }}
+      >
+        <Toolbar {...initial.props} railAction={<button disabled>Prepare Run</button>} />
+      </RecipeWorkbenchContext>,
+    );
+    fireEvent.keyDown(document, { key: 'Enter', ctrlKey: true });
+    expect(onPrepare).toHaveBeenCalledTimes(2);
+    view.rerender(
+      <RecipeWorkbenchContext value={{ ...value, primaryAction: null }}>
+        <Toolbar {...initial.props} />
+      </RecipeWorkbenchContext>,
+    );
+    fireEvent.keyDown(document, { key: 'Enter', ctrlKey: true });
+    expect(screen.queryByRole('button', { name: 'Prepare Run' })).toBeNull();
+    expect(onPrepare).toHaveBeenCalledTimes(2);
     expect(onGenerate).not.toHaveBeenCalled();
-    screen.getByRole('button', { name: 'Prepare Run' }).setAttribute('disabled', '');
-    fireEvent.keyDown(document, { key: 'Enter', ctrlKey: true });
-    expect(onPrepare).toHaveBeenCalledOnce();
   });
 
   it('shows one generate requirement next to Generate and keeps the action usable', () => {
@@ -286,7 +358,7 @@ describe('Toolbar composer chrome', () => {
     fireEvent.click(generate);
     expect(onGenerate).toHaveBeenCalledWith(
       'A lantern with no style preset',
-      { recipeId: null, codexTransport: 'subscription_http' },
+      { recipeId: null, codexTransport: 'subscription_http', imageSize: undefined, batchCount: 4 },
       { preventModal: true },
     );
   });
@@ -415,7 +487,7 @@ describe('Toolbar composer chrome', () => {
 
   it('clamps Grok batch to 1 and restores prompt tools on the rail', () => {
     const updateConfig = vi.fn();
-    renderToolbar({
+    const view = renderToolbar({
       activeProviderId: 'grok',
       grokCanExecute: true,
       generationConfig: config({ batchCount: 4 }),
@@ -433,10 +505,63 @@ describe('Toolbar composer chrome', () => {
     expect(screen.queryByRole('button', { name: 'Analyze references' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Add refine notes' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Add quality notes' })).toBeNull();
+    view.unmount();
+    const draft: ReturnType<typeof useGenerationDraft> = {
+      generationConfig: config({ batchCount: 4 }),
+      setGenerationConfig: vi.fn(),
+      setRecipeDraft: vi.fn(),
+      isDraftReady: true,
+      updateGenerationConfig: updateConfig,
+      updateAttachment: vi.fn(),
+      handleFileSelect: vi.fn(),
+      handlePastedFiles: vi.fn(),
+      handleRemoveAttachment: vi.fn(),
+      handleAddToContext: vi.fn(),
+      maxAttachments: 4,
+      codexModelCatalog: null,
+      isLoadingCodexModelCatalog: false,
+      codexModelCatalogError: null,
+    };
+    vi.mocked(useGenerationDraft).mockReturnValue(draft);
+    const dockProps: StudioGenerationDockProps = {
+      isModalOpen: false,
+      isUiChromeSuppressed: false,
+      currentView: 'recipes',
+      activeRecipe: null,
+      isDragging: false,
+      layout: 'rail',
+      toolbarArgs: {
+        actions: { onGenerate: vi.fn(), isGenerating: false, generationStartTime: null },
+        ui: {
+          setPreviewRatio: vi.fn(),
+          setIsInteracting: vi.fn(),
+          isKeyPopoverOpen: false,
+          setIsKeyPopoverOpen: vi.fn(),
+        },
+        editor: { openEditor: vi.fn(), openEditorRoute: vi.fn() },
+        sync: { verifyCodexSession: vi.fn() },
+        provider: { activeProviderId: 'grok', grokCanExecute: true },
+      },
+    };
+    const connected = render(<StudioGenerationDock {...dockProps} />);
     expect(updateConfig).toHaveBeenCalledWith('batchCount', 1);
+    updateConfig.mockClear();
+    // A provider change from any settings surface reaches the same draft owner.
+    draft.generationConfig = config({ batchCount: 8 });
+    const falProps = {
+      ...dockProps,
+      toolbarArgs: { ...dockProps.toolbarArgs, provider: { activeProviderId: 'fal' as const } },
+    };
+    connected.rerender(<StudioGenerationDock {...falProps} />);
+    expect(updateConfig).toHaveBeenCalledWith('batchCount', 4);
+    updateConfig.mockClear();
+    // An externally restored draft is normalized even if the provider stays the same.
+    draft.generationConfig = config({ batchCount: 9 });
+    connected.rerender(<StudioGenerationDock {...falProps} railTools={<span />} />);
+    expect(updateConfig).toHaveBeenCalledWith('batchCount', 4);
   });
 
-  it('shows 1K, 2K, and 4K when ChatGPT Sign in is selected', () => {
+  it('hides unreliable size controls while keeping ChatGPT model selection', () => {
     const updateConfig = vi.fn();
     renderToolbar({
       activeProviderId: 'chatgpt',
@@ -453,11 +578,8 @@ describe('Toolbar composer chrome', () => {
       updateConfig,
     });
 
-    const sizeTrigger = screen.getByRole('button', { name: 'Image size: 1K' });
-    fireEvent.click(sizeTrigger);
-    fireEvent.scroll(sizeTrigger.closest('.create-tool-scroll')!);
-    fireEvent.click(screen.getByRole('option', { name: '4K: 3840×2160' }));
-    expect(updateConfig).toHaveBeenCalledWith('imageSize', '4K');
+    expect(screen.queryByRole('button', { name: /Image size:/ })).toBeNull();
+    expect(updateConfig).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: /chatgpt task execution/i }));
     expect(screen.queryByRole('heading', { name: 'Connection' })).toBeNull();
@@ -465,8 +587,8 @@ describe('Toolbar composer chrome', () => {
     expect(screen.getByRole('heading', { name: 'Image model' })).toBeTruthy();
     expect(screen.getByText('Managed by ChatGPT')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Reasoning: Managed' })).toBeNull();
-    expect(screen.getByRole('group', { name: 'ChatGPT image size' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '2K: 2048×1152' })).toBeTruthy();
+    expect(screen.queryByRole('group', { name: 'ChatGPT image size' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Output size' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Close generation settings' }));
     expect(screen.queryByRole('dialog', { name: 'Image generation settings' })).toBeNull();
   });

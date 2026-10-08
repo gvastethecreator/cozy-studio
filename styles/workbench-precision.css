@@ -19,7 +19,7 @@
   --wbp-track: var(--wb-well, #0d0d0d);
   --wbp-ink: var(--wb-ink, #e3e3e3);
   --wbp-muted: var(--wb-muted, #a4a4a4);
-  --wbp-row: 30px;
+  --wbp-row: 32px;
   --wbp-dial: 86px;
   --wbp-text: 13px;
   --wbp-label: 12px;

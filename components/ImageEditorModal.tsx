@@ -135,16 +135,13 @@ function ImageEditorControlsPanel({
   );
 }
 
-export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
+function useImageEditor({
   isOpen,
   onClose,
   image,
   onGenerate,
   isGenerating,
-  notice,
-  requireMask = true,
-  backgroundControl,
-}) => {
+}: Pick<ImageEditorModalProps, 'isOpen' | 'onClose' | 'image' | 'onGenerate' | 'isGenerating'>) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const brushCursorRef = useRef<HTMLDivElement>(null);
@@ -362,7 +359,56 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
     saveHistory();
   }, [saveHistory]);
 
-  const dialogRef = useDialogFocus(
+  return {
+    canvasRef,
+    containerRef,
+    brushCursorRef,
+    editPrompt,
+    setEditPrompt,
+    brushSize,
+    setBrushSize,
+    historyIndex,
+    textareaRef,
+    handleClose,
+    handleGenerate,
+    handleUndo,
+    handleReset,
+    startDrawing,
+    draw,
+    stopDrawing,
+  };
+}
+
+export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
+  isOpen,
+  onClose,
+  image,
+  onGenerate,
+  isGenerating,
+  notice,
+  requireMask = true,
+  backgroundControl,
+}) => {
+  const {
+    canvasRef,
+    containerRef,
+    brushCursorRef,
+    editPrompt,
+    setEditPrompt,
+    brushSize,
+    setBrushSize,
+    historyIndex,
+    textareaRef,
+    handleClose,
+    handleGenerate,
+    handleUndo,
+    handleReset,
+    startDrawing,
+    draw,
+    stopDrawing,
+  } = useImageEditor({ isOpen, onClose, image, onGenerate, isGenerating });
+
+  const dialogRef = useDialogFocus<HTMLDialogElement>(
     isOpen,
     handleClose,
     image ? `[aria-label="Edit ${CSS.escape(image.name)}"]` : undefined,
@@ -370,13 +416,12 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div
+    <dialog
       ref={dialogRef}
-      role="dialog"
       aria-modal="true"
       tabIndex={-1}
       aria-label="Image editor"
-      className="fixed inset-0 z-100 m-0 flex h-full w-full flex-col border-none bg-[color:var(--wba-bg)] p-0 backdrop-blur-3xl studio-image-editor"
+      className="studio-modal fixed inset-0 z-100 m-0 flex h-full w-full flex-col border-none bg-[color:var(--wba-bg)] p-0 backdrop-blur-3xl studio-image-editor"
     >
       <div className="studio-bar flex shrink-0 min-h-16 w-full items-center justify-between gap-3 border-b border-[color:var(--wb-line)] px-4 py-3 sm:h-20 sm:px-10 sm:py-0">
         <div className="flex min-w-0 items-center gap-3 sm:gap-5">
@@ -454,6 +499,6 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
           backgroundControl={backgroundControl}
         />
       </div>
-    </div>
+    </dialog>
   );
 };

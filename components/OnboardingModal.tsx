@@ -261,6 +261,20 @@ function ImagesFolderRow({ isOpen }: { isOpen: boolean }) {
 }
 
 /** Style packs are installed separately (ADR 0011), so a new Studio starts with an empty Styles. */
+function describeStylePacks(
+  summary: { packs: number; styles: number } | 'loading' | 'error',
+  installing: boolean,
+  installed: boolean,
+) {
+  if (summary === 'loading') return 'Checking installed style packs.';
+  if (summary === 'error') return 'Studio could not read your style packs.';
+  if (installing) return 'Installing Essentials, a starter set of about a hundred styles.';
+  if (installed) return 'Essentials is installed. Reload Studio to start using it.';
+  if (summary.packs === 0)
+    return 'No style packs yet. Add a pack to fill Styles with looks to pick from.';
+  return `${summary.packs.toLocaleString('en-US')} ${summary.packs === 1 ? 'pack' : 'packs'} · ${summary.styles.toLocaleString('en-US')} styles ready to use.`;
+}
+
 function StylePacksRow({ isOpen, onOpen }: { isOpen: boolean; onOpen: () => void }) {
   const [summary, setSummary] = React.useState<
     { packs: number; styles: number } | 'loading' | 'error'
@@ -288,18 +302,7 @@ function StylePacksRow({ isOpen, onOpen }: { isOpen: boolean; onOpen: () => void
   const defaultPack = useDefaultStylePack(isOpen && empty);
   const installing = empty && defaultPack?.state === 'installing';
   const installed = empty && defaultPack?.state === 'installed';
-  const detail =
-    summary === 'loading'
-      ? 'Checking installed style packs.'
-      : summary === 'error'
-        ? 'Studio could not read your style packs.'
-        : installing
-          ? 'Installing Essentials, a starter set of about a hundred styles.'
-          : installed
-            ? 'Essentials is installed. Reload Studio to start using it.'
-            : summary.packs === 0
-              ? 'No style packs yet. Add a pack to fill Styles with looks to pick from.'
-              : `${summary.packs.toLocaleString('en-US')} ${summary.packs === 1 ? 'pack' : 'packs'} · ${summary.styles.toLocaleString('en-US')} styles ready to use.`;
+  const detail = describeStylePacks(summary, installing, installed);
 
   return (
     <div className="onboarding-connection">
@@ -667,34 +670,16 @@ function checkTone(ready: boolean, backendReachable: boolean): CheckTone {
   return ready ? 'ready' : 'warning';
 }
 
-export const OnboardingModal: React.FC<OnboardingModalProps> = ({
+function useOnboardingSetup({
   apiBase,
-  error,
   health,
-  probe,
+  isDesktopRuntime,
   localCodexSession,
   readiness,
-  status,
-  isDesktopRuntime,
+  probe,
   isOpen,
-  onClose,
-  onComplete,
   onRefresh,
-  onStartAppServer,
-  onOpenSettings,
-  onOpenStylePacks,
-}) => {
-  const isChecking = status === 'checking';
-  const isReady = status === 'ready';
-  const isStartingAppServer = status === 'starting';
-  const dialogRef = useDialogFocus(isOpen, onClose, '[aria-label^="Open runtime status:"]');
-  const backendReachable = !error && Boolean(health);
-  const codexRuntimeBlocked = Boolean(health?.codexRuntime && !health.codexRuntime.canRunJobs);
-  const canStartAppServer = backendReachable && !health?.appServer.running && !codexRuntimeBlocked;
-  const subscriptionReady = Boolean(probe?.facts.codexSubscriptionReady);
-  const libraryReady = Boolean(health?.checks.libraryReady);
-  const codexReady = Boolean(localCodexSession?.canRunLocalJobs || subscriptionReady);
-  const appServerReady = Boolean(health?.appServer.running || subscriptionReady);
+}: OnboardingModalProps) {
   const [libraryPathDraft, setLibraryPathDraft] = React.useState('');
   const [consent, setConsent] = React.useState(false);
   const [confirmCloudSync, setConfirmCloudSync] = React.useState(false);
@@ -703,41 +688,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   const [hostBusy, setHostBusy] = React.useState(false);
   const [hostError, setHostError] = React.useState<string | null>(null);
   const [logLines, setLogLines] = React.useState<OnboardingLogLine[]>([]);
-  const lastProbePath = React.useRef<string | null>(null);
-  const primaryAction = probe ? resolveOnboardingPrimaryAction(probe.primaryCta) : null;
-  const connectedProvider = probe?.facts.selectedProviderId ?? 'chatgpt';
-  // app-server serves only the Codex connection; ChatGPT and other providers never need it.
-  const showLegacyStartAppServer =
-    connectedProvider === 'codex' &&
-    canStartAppServer &&
-    primaryAction?.type !== 'start_app_server';
-  const showInAppSetup = primaryAction?.type === 'in_app_setup';
-  const cloudProvider = inAppSetupCloudProvider(libraryPathDraft);
-  const canSubmitSetup = inAppSetupCanSubmit({
-    consent,
-    libraryPath: libraryPathDraft,
-    confirmCloudSync,
-  });
-  const showAskCodex = shouldShowAskCodex(probe?.facts);
-
-  const libraryTone: CheckTone = !backendReachable ? 'pending' : libraryReady ? 'ready' : 'warning';
-  const sessionTone: CheckTone = !backendReachable
-    ? 'pending'
-    : codexReady
-      ? 'ready'
-      : localCodexSession?.state === 'unsupported_auth'
-        ? 'error'
-        : 'warning';
-  const serverTone: CheckTone = !backendReachable
-    ? 'pending'
-    : appServerReady
-      ? 'ready'
-      : codexRuntimeBlocked
-        ? 'error'
-        : 'warning';
-  const runtimeLabel = isDesktopRuntime ? 'Desktop runtime' : 'Web runtime';
-  const headline = isReady ? 'Ready for your next idea.' : 'Make yourself at home.';
-  const intro = 'Describe it, add a reference, and make it yours.';
+  const [lastProbePath, setLastProbePath] = React.useState<string | null>(null);
   const setupPrompt = React.useMemo(
     () =>
       buildCozyStudioSetupPrompt({
@@ -749,27 +700,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       }),
     [apiBase, health, isDesktopRuntime, localCodexSession, readiness],
   );
-  const sessionDetail = codexReady
-    ? 'You are signed in and ready to generate.'
-    : codexRuntimeBlocked
-      ? (health?.codexRuntime.recommendedAction ?? 'Repair the local Codex runtime.')
-      : localCodexSession?.reason === 'chatgpt_login_required'
-        ? 'Sign in with ChatGPT. A local Codex session is only for the Codex connection.'
-        : localCodexSession?.error || 'Connect your local Codex session.';
-  const appServerDetail = appServerReady
-    ? 'Codex app-server is running and reachable.'
-    : codexRuntimeBlocked
-      ? (health?.codexRuntime.recommendedAction ?? 'Repair the local Codex runtime.')
-      : 'Start the local app-server when the backend is ready.';
-
-  React.useEffect(() => {
-    const next = resolveInAppSetupDraftPath(probe);
-    if (lastProbePath.current === next) return;
-    lastProbePath.current = next;
-    setLibraryPathDraft(next);
+  const probePath = resolveInAppSetupDraftPath(probe);
+  if (lastProbePath !== probePath) {
+    setLastProbePath(probePath);
+    setLibraryPathDraft(probePath);
     setConfirmCloudSync(false);
     setSetupError(null);
-  }, [probe]);
+  }
 
   React.useEffect(() => {
     if (!isOpen) return;
@@ -842,6 +779,440 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     [onRefresh, setupPrompt],
   );
 
+  return {
+    libraryPathDraft,
+    setLibraryPathDraft,
+    consent,
+    setConsent,
+    confirmCloudSync,
+    setConfirmCloudSync,
+    setupBusy,
+    setupError,
+    hostBusy,
+    hostError,
+    logLines,
+    setupPrompt,
+    runSetup,
+    runHostAction,
+  };
+}
+
+function onboardingCheckState({
+  error,
+  health,
+  probe,
+  localCodexSession,
+}: Pick<OnboardingModalProps, 'error' | 'health' | 'probe' | 'localCodexSession'>) {
+  const subscriptionReady = Boolean(probe?.facts.codexSubscriptionReady);
+  const backendReachable = !error && Boolean(health);
+  const codexRuntimeBlocked = Boolean(health?.codexRuntime && !health.codexRuntime.canRunJobs);
+  const libraryReady = Boolean(health?.checks.libraryReady);
+  const codexReady = Boolean(localCodexSession?.canRunLocalJobs || subscriptionReady);
+  const appServerReady = Boolean(health?.appServer.running || subscriptionReady);
+  const libraryTone: CheckTone = !backendReachable ? 'pending' : libraryReady ? 'ready' : 'warning';
+  const sessionTone: CheckTone = !backendReachable
+    ? 'pending'
+    : codexReady
+      ? 'ready'
+      : localCodexSession?.state === 'unsupported_auth'
+        ? 'error'
+        : 'warning';
+  const serverTone: CheckTone = !backendReachable
+    ? 'pending'
+    : appServerReady
+      ? 'ready'
+      : codexRuntimeBlocked
+        ? 'error'
+        : 'warning';
+  const sessionDetail = codexReady
+    ? 'You are signed in and ready to generate.'
+    : codexRuntimeBlocked
+      ? (health?.codexRuntime.recommendedAction ?? 'Repair the local Codex runtime.')
+      : localCodexSession?.reason === 'chatgpt_login_required'
+        ? 'Sign in with ChatGPT. A local Codex session is only for the Codex connection.'
+        : localCodexSession?.error || 'Connect your local Codex session.';
+  const appServerDetail = appServerReady
+    ? 'Codex app-server is running and reachable.'
+    : codexRuntimeBlocked
+      ? (health?.codexRuntime.recommendedAction ?? 'Repair the local Codex runtime.')
+      : 'Start the local app-server when the backend is ready.';
+  return {
+    backendReachable,
+    codexRuntimeBlocked,
+    libraryReady,
+    codexReady,
+    appServerReady,
+    libraryTone,
+    sessionTone,
+    serverTone,
+    sessionDetail,
+    appServerDetail,
+  };
+}
+
+function OnboardingChecks({
+  apiBase,
+  error,
+  health,
+  probe,
+  localCodexSession,
+}: OnboardingModalProps) {
+  const {
+    backendReachable,
+    codexRuntimeBlocked,
+    libraryReady,
+    codexReady,
+    appServerReady,
+    libraryTone,
+    sessionTone,
+    serverTone,
+    sessionDetail,
+    appServerDetail,
+  } = onboardingCheckState({ error, health, probe, localCodexSession });
+  return (
+    <div className="mt-4 xl:mt-3">
+      {probe ? (
+        probe.checks.map((row) => (
+          <CheckRow
+            key={row.id}
+            icon={checkIcon(row.id)}
+            title={row.label}
+            detail={row.detail}
+            meta={row.meta}
+            status={
+              row.requirement === 'not_required'
+                ? row.ready
+                  ? 'Available'
+                  : 'Not required'
+                : row.ready
+                  ? 'Ready'
+                  : 'Needs attention'
+            }
+            tone={
+              row.requirement === 'not_required'
+                ? row.ready
+                  ? 'ready'
+                  : 'pending'
+                : checkTone(row.ready, backendReachable)
+            }
+          />
+        ))
+      ) : (
+        <>
+          <CheckRow
+            icon={<Folder width={18} height={18} />}
+            title="Studio Library"
+            detail={
+              libraryReady
+                ? 'Your assets and generations are stored locally.'
+                : 'Repair the local library path or permissions.'
+            }
+            meta={health?.libraryDir || 'path not set'}
+            status={libraryReady ? 'Ready' : 'Needs attention'}
+            tone={libraryTone}
+          />
+          <CheckRow
+            icon={<Sparkles width={18} height={18} />}
+            title="ChatGPT Codex login"
+            detail={sessionDetail}
+            meta={localCodexSession?.authLabel}
+            status={codexReady ? 'Ready' : 'Action needed'}
+            tone={sessionTone}
+          />
+          <CheckRow
+            icon={<Terminal width={18} height={18} />}
+            title="app-server connection"
+            detail={appServerDetail}
+            meta={appServerReady ? health?.appServer.wsUrl : apiBase}
+            status={appServerReady ? 'Running' : codexRuntimeBlocked ? 'Blocked' : 'Not running'}
+            tone={serverTone}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+function onboardingPrimaryState(
+  primaryAction: ReturnType<typeof resolveOnboardingPrimaryAction> | null,
+  isStartingAppServer: boolean,
+  canSubmitSetup: boolean,
+  setupBusy: boolean,
+  isReady: boolean,
+) {
+  if (primaryAction?.type === 'start_app_server' && isStartingAppServer)
+    return { disabled: true, label: 'Starting' };
+  if (primaryAction?.type === 'in_app_setup')
+    return {
+      disabled: !canSubmitSetup || setupBusy,
+      label: setupBusy ? 'Setting up' : primaryAction.label,
+    };
+  return { disabled: false, label: primaryAction?.label ?? (isReady ? 'Open Studio' : 'Got it') };
+}
+
+function OnboardingPrimaryAction({
+  primaryAction,
+  isStartingAppServer,
+  canSubmitSetup,
+  setupBusy,
+  isReady,
+  onAction,
+}: {
+  primaryAction: ReturnType<typeof resolveOnboardingPrimaryAction> | null;
+  isStartingAppServer: boolean;
+  canSubmitSetup: boolean;
+  setupBusy: boolean;
+  isReady: boolean;
+  onAction: () => void;
+}) {
+  if (primaryAction?.type === 'connect_chatgpt') return null;
+  const { disabled, label } = onboardingPrimaryState(
+    primaryAction,
+    isStartingAppServer,
+    canSubmitSetup,
+    setupBusy,
+    isReady,
+  );
+  return (
+    <button
+      type="button"
+      onClick={onAction}
+      disabled={disabled}
+      className="studio-primary-control onboarding-start disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {label}
+      <ArrowRight width={17} height={17} />
+    </button>
+  );
+}
+
+function OnboardingActions({
+  primaryAction,
+  isStartingAppServer,
+  canSubmitSetup,
+  setupBusy,
+  isReady,
+  handlePrimaryCta,
+  onClose,
+  showAskCodex,
+  runHostAction,
+  hostBusy,
+  showLegacyStartAppServer,
+  onStartAppServer,
+  hostError,
+}: {
+  primaryAction: ReturnType<typeof resolveOnboardingPrimaryAction> | null;
+  isStartingAppServer: boolean;
+  canSubmitSetup: boolean;
+  setupBusy: boolean;
+  isReady: boolean;
+  handlePrimaryCta: () => void;
+  onClose: () => void;
+  showAskCodex: boolean;
+  runHostAction: ReturnType<typeof useOnboardingSetup>['runHostAction'];
+  hostBusy: boolean;
+  showLegacyStartAppServer: boolean;
+  onStartAppServer: () => void;
+  hostError: string | null;
+}) {
+  return (
+    <footer className="onboarding-footer shrink-0 border-t border-[color:var(--wb-line)] px-5 py-4 sm:px-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <OnboardingPrimaryAction
+            primaryAction={primaryAction}
+            isStartingAppServer={isStartingAppServer}
+            canSubmitSetup={canSubmitSetup}
+            setupBusy={setupBusy}
+            isReady={isReady}
+            onAction={handlePrimaryCta}
+          />
+          {!isReady && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="studio-ghost-control onboarding-start"
+            >
+              Explore first
+            </button>
+          )}
+          {showAskCodex && !isReady ? (
+            <button
+              type="button"
+              onClick={() => void runHostAction('ask_codex')}
+              disabled={hostBusy}
+              className="inline-flex items-center justify-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-5 py-3 text-sm font-semibold text-[color:var(--wb-ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)] disabled:cursor-not-allowed disabled:opacity-60 xl:px-4 xl:py-2.5"
+            >
+              <ProviderBrandMark providerId="codex" size="xs" />
+              {hostBusy ? 'Opening terminal' : ONBOARDING_ASK_CODEX_LABEL}
+            </button>
+          ) : null}
+          {showLegacyStartAppServer ? (
+            <button
+              type="button"
+              onClick={onStartAppServer}
+              disabled={isStartingAppServer}
+              className="inline-flex items-center justify-center gap-2 rounded-[var(--wb-radius)] border border-blue-500/2 bg-blue-500/10 px-5 py-3 text-sm font-semibold text-[color:var(--wb-ink)] transition-colors hover:bg-blue-500/18 disabled:cursor-not-allowed disabled:opacity-60 xl:px-4 xl:py-2.5"
+            >
+              <Play width={16} height={16} />
+              {isStartingAppServer ? 'Starting' : 'Start app-server'}
+            </button>
+          ) : null}
+        </div>
+        {hostError ? (
+          <p className="rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-500/8 px-3 py-2 text-sm leading-6 text-[color:var(--wb-danger)]   ">
+            {hostError}
+          </p>
+        ) : (
+          <div className="hidden items-center gap-2 text-sm text-[color:var(--wb-muted)] md:flex">
+            <Folder width={15} height={15} />
+            Files stay on this device.
+          </div>
+        )}
+      </div>
+    </footer>
+  );
+}
+
+function onboardingConnectionState({
+  error,
+  health,
+  probe,
+}: Pick<OnboardingModalProps, 'error' | 'health' | 'probe'>) {
+  const canStartAppServer =
+    !error &&
+    Boolean(health) &&
+    !health?.appServer.running &&
+    health?.codexRuntime?.canRunJobs !== false;
+  const subscriptionReady = Boolean(probe?.facts.codexSubscriptionReady);
+
+  const primaryAction = probe ? resolveOnboardingPrimaryAction(probe.primaryCta) : null;
+  const connectedProvider = probe?.facts.selectedProviderId ?? 'chatgpt';
+  // app-server serves only the Codex connection; ChatGPT and other providers never need it.
+  const showLegacyStartAppServer =
+    connectedProvider === 'codex' &&
+    canStartAppServer &&
+    primaryAction?.type !== 'start_app_server';
+  return { subscriptionReady, primaryAction, connectedProvider, showLegacyStartAppServer };
+}
+
+function OnboardingDiagnostics({
+  modal,
+  setup,
+}: {
+  modal: OnboardingModalProps;
+  setup: ReturnType<typeof useOnboardingSetup>;
+}) {
+  const { error, health, probe, onRefresh, onOpenSettings } = modal;
+  const {
+    libraryPathDraft,
+    setLibraryPathDraft,
+    consent,
+    setConsent,
+    confirmCloudSync,
+    setConfirmCloudSync,
+    setupError,
+    logLines,
+    setupPrompt,
+  } = setup;
+  const isReady = modal.status === 'ready';
+  const showInAppSetup =
+    (probe ? resolveOnboardingPrimaryAction(probe.primaryCta).type : null) === 'in_app_setup';
+  const subscriptionReady = Boolean(probe?.facts.codexSubscriptionReady);
+  const cloudProvider = inAppSetupCloudProvider(libraryPathDraft);
+  return (
+    <div className="onboarding-diagnostics min-w-0">
+      <details open={showInAppSetup || Boolean(error)}>
+        <summary className="cursor-pointer text-sm text-[color:var(--wb-muted)]">
+          {isReady ? 'Setup details' : 'Check setup'}
+        </summary>
+
+        <OnboardingChecks {...modal} />
+        <OnboardingLogPanel lines={logLines} />
+        <CodexRuntimeRepairCard
+          health={health}
+          subscriptionReady={subscriptionReady}
+          onRefresh={onRefresh}
+        />
+        {probe?.grok ? (
+          <OptionalGrokRow
+            row={probe.grok}
+            busy={false}
+            onInstall={() => {
+              window.open(ONBOARDING_GROK_INSTALL_URL, '_blank', 'noopener,noreferrer');
+            }}
+            onLogin={onOpenSettings}
+          />
+        ) : null}
+        {showInAppSetup ? (
+          <InAppSetupForm
+            libraryPath={libraryPathDraft}
+            consent={consent}
+            confirmCloudSync={confirmCloudSync}
+            cloudProvider={cloudProvider}
+            error={setupError}
+            onLibraryPathChange={setLibraryPathDraft}
+            onConsentChange={setConsent}
+            onConfirmCloudSyncChange={setConfirmCloudSync}
+          />
+        ) : null}
+        {!isReady && <SetupPromptCard prompt={setupPrompt} />}
+      </details>
+    </div>
+  );
+}
+
+export const OnboardingModal: React.FC<OnboardingModalProps> = (props) => {
+  const {
+    error,
+    health,
+    probe,
+    status,
+    isDesktopRuntime,
+    isOpen,
+    onClose,
+    onComplete,
+    onRefresh,
+    onStartAppServer,
+    onOpenSettings,
+    onOpenStylePacks,
+  } = props;
+  const setup = useOnboardingSetup(props);
+  const {
+    libraryPathDraft,
+    consent,
+    confirmCloudSync,
+    setupBusy,
+    hostBusy,
+    hostError,
+    runSetup,
+    runHostAction,
+  } = setup;
+  const isChecking = status === 'checking';
+  const isReady = status === 'ready';
+  const isStartingAppServer = status === 'starting';
+  const dialogRef = useDialogFocus<HTMLDialogElement>(
+    isOpen,
+    onClose,
+    '[aria-label^="Open runtime status:"]',
+  );
+
+  const { primaryAction, connectedProvider, showLegacyStartAppServer } = onboardingConnectionState({
+    error,
+    health,
+    probe,
+  });
+  const canSubmitSetup = inAppSetupCanSubmit({
+    consent,
+    libraryPath: libraryPathDraft,
+    confirmCloudSync,
+  });
+  const showAskCodex = shouldShowAskCodex(probe?.facts);
+
+  const runtimeLabel = isDesktopRuntime ? 'Desktop runtime' : 'Web runtime';
+  const headline = isReady ? 'Ready for your next idea.' : 'Make yourself at home.';
+  const intro = 'Describe it, add a reference, and make it yours.';
+
   const handlePrimaryCta = React.useCallback(() => {
     if (!primaryAction) {
       onComplete();
@@ -871,7 +1242,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen ? (
-        <div className="fixed inset-0 z-120 grid place-items-center p-3 sm:p-4">
+        <dialog
+          aria-modal="true"
+          ref={dialogRef}
+          aria-label="Cozy Studio"
+          tabIndex={-1}
+          className="studio-modal fixed inset-0 z-120 grid place-items-center p-3 sm:p-4"
+        >
           <MotionDiv
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -881,11 +1258,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           />
 
           <MotionDiv
-            ref={dialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Cozy Studio"
-            tabIndex={-1}
             initial={{ opacity: 0, scale: 0.98, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: 16 }}
@@ -1004,186 +1376,28 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   </div>
                   <StylePacksRow isOpen={isOpen} onOpen={onOpenStylePacks} />
                   <ImagesFolderRow isOpen={isOpen} />
-                  <div className="onboarding-diagnostics min-w-0">
-                    <details open={showInAppSetup || Boolean(error)}>
-                      <summary className="cursor-pointer text-sm text-[color:var(--wb-muted)]">
-                        {isReady ? 'Setup details' : 'Check setup'}
-                      </summary>
-
-                      <div className="mt-4 xl:mt-3">
-                        {probe ? (
-                          probe.checks.map((row) => (
-                            <CheckRow
-                              key={row.id}
-                              icon={checkIcon(row.id)}
-                              title={row.label}
-                              detail={row.detail}
-                              meta={row.meta}
-                              status={
-                                row.requirement === 'not_required'
-                                  ? row.ready
-                                    ? 'Available'
-                                    : 'Not required'
-                                  : row.ready
-                                    ? 'Ready'
-                                    : 'Needs attention'
-                              }
-                              tone={
-                                row.requirement === 'not_required'
-                                  ? row.ready
-                                    ? 'ready'
-                                    : 'pending'
-                                  : checkTone(row.ready, backendReachable)
-                              }
-                            />
-                          ))
-                        ) : (
-                          <>
-                            <CheckRow
-                              icon={<Folder width={18} height={18} />}
-                              title="Studio Library"
-                              detail={
-                                libraryReady
-                                  ? 'Your assets and generations are stored locally.'
-                                  : 'Repair the local library path or permissions.'
-                              }
-                              meta={health?.libraryDir || 'path not set'}
-                              status={libraryReady ? 'Ready' : 'Needs attention'}
-                              tone={libraryTone}
-                            />
-                            <CheckRow
-                              icon={<Sparkles width={18} height={18} />}
-                              title="ChatGPT Codex login"
-                              detail={sessionDetail}
-                              meta={localCodexSession?.authLabel}
-                              status={codexReady ? 'Ready' : 'Action needed'}
-                              tone={sessionTone}
-                            />
-                            <CheckRow
-                              icon={<Terminal width={18} height={18} />}
-                              title="app-server connection"
-                              detail={appServerDetail}
-                              meta={appServerReady ? health?.appServer.wsUrl : apiBase}
-                              status={
-                                appServerReady
-                                  ? 'Running'
-                                  : codexRuntimeBlocked
-                                    ? 'Blocked'
-                                    : 'Not running'
-                              }
-                              tone={serverTone}
-                            />
-                          </>
-                        )}
-                      </div>
-                      <OnboardingLogPanel lines={logLines} />
-                      <CodexRuntimeRepairCard
-                        health={health}
-                        subscriptionReady={subscriptionReady}
-                        onRefresh={onRefresh}
-                      />
-                      {probe?.grok ? (
-                        <OptionalGrokRow
-                          row={probe.grok}
-                          busy={false}
-                          onInstall={() => {
-                            window.open(
-                              ONBOARDING_GROK_INSTALL_URL,
-                              '_blank',
-                              'noopener,noreferrer',
-                            );
-                          }}
-                          onLogin={onOpenSettings}
-                        />
-                      ) : null}
-                      {showInAppSetup ? (
-                        <InAppSetupForm
-                          libraryPath={libraryPathDraft}
-                          consent={consent}
-                          confirmCloudSync={confirmCloudSync}
-                          cloudProvider={cloudProvider}
-                          error={setupError}
-                          onLibraryPathChange={setLibraryPathDraft}
-                          onConsentChange={setConsent}
-                          onConfirmCloudSyncChange={setConfirmCloudSync}
-                        />
-                      ) : null}
-                      {!isReady && <SetupPromptCard prompt={setupPrompt} />}
-                    </details>
-                  </div>
+                  <OnboardingDiagnostics modal={props} setup={setup} />
                 </section>
               </div>
             </main>
 
-            <footer className="onboarding-footer shrink-0 border-t border-[color:var(--wb-line)] px-5 py-4 sm:px-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  {primaryAction?.type === 'connect_chatgpt' ? null : (
-                    <button
-                      type="button"
-                      onClick={handlePrimaryCta}
-                      disabled={
-                        (primaryAction?.type === 'start_app_server' && isStartingAppServer) ||
-                        (primaryAction?.type === 'in_app_setup' && (!canSubmitSetup || setupBusy))
-                      }
-                      className="studio-primary-control onboarding-start disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {primaryAction?.type === 'start_app_server' && isStartingAppServer
-                        ? 'Starting'
-                        : primaryAction?.type === 'in_app_setup' && setupBusy
-                          ? 'Setting up'
-                          : primaryAction?.type === 'codex_login'
-                            ? primaryAction.label
-                            : (primaryAction?.label ?? (isReady ? 'Open Studio' : 'Got it'))}
-                      <ArrowRight width={17} height={17} />
-                    </button>
-                  )}
-                  {!isReady && (
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      className="studio-ghost-control onboarding-start"
-                    >
-                      Explore first
-                    </button>
-                  )}
-                  {showAskCodex && !isReady ? (
-                    <button
-                      type="button"
-                      onClick={() => void runHostAction('ask_codex')}
-                      disabled={hostBusy}
-                      className="inline-flex items-center justify-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-5 py-3 text-sm font-semibold text-[color:var(--wb-ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)] disabled:cursor-not-allowed disabled:opacity-60 xl:px-4 xl:py-2.5"
-                    >
-                      <ProviderBrandMark providerId="codex" size="xs" />
-                      {hostBusy ? 'Opening terminal' : ONBOARDING_ASK_CODEX_LABEL}
-                    </button>
-                  ) : null}
-                  {showLegacyStartAppServer ? (
-                    <button
-                      type="button"
-                      onClick={onStartAppServer}
-                      disabled={isStartingAppServer}
-                      className="inline-flex items-center justify-center gap-2 rounded-[var(--wb-radius)] border border-blue-500/2 bg-blue-500/10 px-5 py-3 text-sm font-semibold text-[color:var(--wb-ink)] transition-colors hover:bg-blue-500/18 disabled:cursor-not-allowed disabled:opacity-60 xl:px-4 xl:py-2.5"
-                    >
-                      <Play width={16} height={16} />
-                      {isStartingAppServer ? 'Starting' : 'Start app-server'}
-                    </button>
-                  ) : null}
-                </div>
-                {hostError ? (
-                  <p className="rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-500/8 px-3 py-2 text-sm leading-6 text-[color:var(--wb-danger)]   ">
-                    {hostError}
-                  </p>
-                ) : (
-                  <div className="hidden items-center gap-2 text-sm text-[color:var(--wb-muted)] md:flex">
-                    <Folder width={15} height={15} />
-                    Files stay on this device.
-                  </div>
-                )}
-              </div>
-            </footer>
+            <OnboardingActions
+              primaryAction={primaryAction}
+              isStartingAppServer={isStartingAppServer}
+              canSubmitSetup={canSubmitSetup}
+              setupBusy={setupBusy}
+              isReady={isReady}
+              handlePrimaryCta={handlePrimaryCta}
+              onClose={onClose}
+              showAskCodex={showAskCodex}
+              runHostAction={runHostAction}
+              hostBusy={hostBusy}
+              showLegacyStartAppServer={showLegacyStartAppServer}
+              onStartAppServer={onStartAppServer}
+              hostError={hostError}
+            />
           </MotionDiv>
-        </div>
+        </dialog>
       ) : null}
     </AnimatePresence>
   );

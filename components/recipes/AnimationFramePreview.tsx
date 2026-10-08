@@ -14,7 +14,8 @@ interface PreviewFrame {
  */
 export function AnimationFramePreview({ frames, fps }: { frames: PreviewFrame[]; fps: number }) {
   const [playing, setPlaying] = useState(false);
-  const [previewFps, setPreviewFps] = useState(fps);
+  const [fpsOverride, setPreviewFps] = useState<number | null>(null);
+  const previewFps = fpsOverride ?? fps;
   const previewFpsInput = useBoundedNumberInput(previewFps, 1, 60, setPreviewFps);
   const [loop, setLoop] = useState(true);
   const [index, setIndex] = useState(0);

@@ -59,7 +59,7 @@ it('keeps edits across sections, previews DNA and saves the complete custom styl
   );
 });
 
-it('isolates the editor from shell controls and releases the modal lock on close', () => {
+it('opens a native modal, handles cancel and releases the scroll lock on close', () => {
   vi.spyOn(HTMLElement.prototype, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
   const onClose = vi.fn();
   const previousOverflow = document.body.style.overflow;
@@ -82,16 +82,16 @@ it('isolates the editor from shell controls and releases the modal lock on close
       <footer aria-label="Studio status">Studio status</footer>
     </div>,
   );
-  const header = screen.getByRole('banner', { name: 'Studio toolbar' });
-  const footer = screen.getByRole('contentinfo', { name: 'Studio status' });
-  expect(header.inert).toBe(true);
-  expect(footer.inert).toBe(true);
+  const dialog = screen.getByRole('dialog') as HTMLDialogElement;
+  expect(dialog.open).toBe(true);
+  expect(dialog.getAttribute('aria-modal')).toBe('true');
   expect(document.body.style.overflow).toBe('hidden');
   expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close style editor' }));
-  fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+  const cancel = new Event('cancel', { cancelable: true });
+  fireEvent(dialog, cancel);
+  expect(cancel.defaultPrevented).toBe(true);
   expect(onClose).toHaveBeenCalledTimes(1);
   unmount();
-  expect(header.inert).toBeFalsy();
-  expect(footer.inert).toBeFalsy();
+  expect(dialog.open).toBe(false);
   expect(document.body.style.overflow).toBe(previousOverflow);
 });

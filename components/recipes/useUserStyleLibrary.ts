@@ -61,6 +61,7 @@ export function useUserStyleLibrary(callbacks: {
       if (!controller.signal.aborted)
         setReadError(failure instanceof Error ? failure.message : 'Could not load user styles.');
     } finally {
+      // react-doctor-disable-next-line react-doctor/no-loading-flag-reset-outside-finally -- This is the finally path; an aborted older read must not clear the current read's loading flag.
       if (!controller.signal.aborted) setLoading(false);
     }
   }, []);

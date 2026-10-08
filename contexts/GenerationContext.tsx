@@ -12,6 +12,7 @@ import { useGenerationPipeline } from '../hooks/useGenerationPipeline';
 import { useRuntimeLogActions, useToastUi, useWorkspaceState } from './GlobalContext';
 import { useModalManager } from '../hooks/useModalManager';
 import { useLatestRef } from '../hooks/useLatestRef';
+import { useHashRouter } from '../hooks/useHashRouter';
 
 interface GenerationContextType {
   config: {
@@ -25,7 +26,11 @@ interface GenerationContextType {
     ) => void;
     updateAttachment: (id: string, updates: Partial<Attachment>) => void;
     handleFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    handlePastedFiles: (files: File[], replaceId?: string) => void;
+    handlePastedFiles: (
+      files: File[],
+      replaceId?: string,
+      options?: Pick<Attachment, 'strength'>,
+    ) => void;
     handleRemoveAttachment: (id: string) => void;
     handleAddToContext: (img: GeneratedImageWithConfig) => void;
     maxAttachments: number;
@@ -90,6 +95,7 @@ interface GenerationProviderProps {
 }
 
 export const GenerationProvider: React.FC<GenerationProviderProps> = ({ children }) => {
+  const { route } = useHashRouter();
   const { activeWorkspaceId } = useWorkspaceState();
   const { log } = useRuntimeLogActions();
   const { addToast } = useToastUi();
@@ -111,6 +117,7 @@ export const GenerationProvider: React.FC<GenerationProviderProps> = ({ children
 
   const configHook = useGenerationConfig({
     log,
+    recipeAliasId: route.activeRecipeAliasId,
     scopeKey: `${activeWorkspaceId}:${activeRecipe === 'styles' ? 'studio' : (activeRecipe ?? 'studio')}`,
   });
   const generationConfigRef = useLatestRef(configHook.generationConfig);

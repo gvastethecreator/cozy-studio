@@ -104,6 +104,44 @@ export interface StudioShellController {
  * Materialize the full Studio Shell from context + runtime seams so AppContent
  * only renders the shell instead of stitching the whole Studio inline.
  */
+function useCodexTransports(studioSettings: ReturnType<typeof useStudioSettings>) {
+  const codexAvailableTransports = useMemo<readonly CodexExecutionTransport[] | undefined>(() => {
+    const preflight = studioSettings.data.providerDomain.runtimePreflight?.providers.find(
+      (provider) =>
+        provider.providerId ===
+        (studioSettings.data.settingsDomain.settings?.defaultProviderId ?? 'chatgpt'),
+    );
+    if (!preflight?.availableRuntimeKinds) return undefined;
+    return preflight.availableRuntimeKinds.filter(
+      (runtimeKind): runtimeKind is CodexExecutionTransport =>
+        runtimeKind === 'codex_app_server' || runtimeKind === 'subscription_http',
+    );
+  }, [
+    studioSettings.data.providerDomain.runtimePreflight,
+    studioSettings.data.settingsDomain.settings?.defaultProviderId,
+  ]);
+
+  const codexDefaultTransport: CodexExecutionTransport | undefined =
+    codexAvailableTransports?.includes('codex_app_server')
+      ? 'codex_app_server'
+      : (codexAvailableTransports?.[0] ??
+        (studioSettings.data.providerDomain.capabilities?.providers.find(
+          (provider) => provider.providerId === 'codex',
+        )?.runtimeKind === 'subscription_http'
+          ? 'subscription_http'
+          : studioSettings.data.providerDomain.capabilities?.providers.some(
+                (provider) => provider.providerId === 'codex',
+              )
+            ? 'codex_app_server'
+            : undefined));
+  return { codexAvailableTransports, codexDefaultTransport };
+}
+
+function historyRecipeFilter(showWorkspaceHistory: boolean | undefined, activeRecipe: RecipeId) {
+  if (showWorkspaceHistory !== false) return undefined;
+  return activeRecipe === 'styles' ? null : (activeRecipe ?? null);
+}
+
 export function useStudioShell(): StudioShellController {
   const [isSupportOpen, setSupportOpen] = useState(false);
   // Selective subscriptions: workspace + toast + stable log actions only.
@@ -179,12 +217,10 @@ export function useStudioShell(): StudioShellController {
     query: route.view === 'studio' ? deferredCatalogQuery : '',
     historyEnabled: route.view !== 'studio',
     historySelectedId,
-    historyRecipeId:
-      studioSettings.data.settingsDomain.settings?.showWorkspaceHistoryInCarousel === false
-        ? recipe.activeRecipe === 'styles'
-          ? null
-          : (recipe.activeRecipe ?? null)
-        : undefined,
+    historyRecipeId: historyRecipeFilter(
+      studioSettings.data.settingsDomain.settings?.showWorkspaceHistoryInCarousel,
+      recipe.activeRecipe,
+    ),
     activeWorkspaceId,
     isTrashOpen: viewState.overlays.trash.isOpen,
     addToast,
@@ -217,35 +253,7 @@ export function useStudioShell(): StudioShellController {
     };
   }, [jobsAttentionClearedAt, jobsListClearedAt, studioRuntime.activity.studioJobs]);
 
-  const codexAvailableTransports = useMemo<readonly CodexExecutionTransport[] | undefined>(() => {
-    const preflight = studioSettings.data.providerDomain.runtimePreflight?.providers.find(
-      (provider) =>
-        provider.providerId ===
-        (studioSettings.data.settingsDomain.settings?.defaultProviderId ?? 'chatgpt'),
-    );
-    if (!preflight?.availableRuntimeKinds) return undefined;
-    return preflight.availableRuntimeKinds.filter(
-      (runtimeKind): runtimeKind is CodexExecutionTransport =>
-        runtimeKind === 'codex_app_server' || runtimeKind === 'subscription_http',
-    );
-  }, [
-    studioSettings.data.providerDomain.runtimePreflight,
-    studioSettings.data.settingsDomain.settings?.defaultProviderId,
-  ]);
-
-  const codexDefaultTransport: CodexExecutionTransport | undefined =
-    codexAvailableTransports?.includes('codex_app_server')
-      ? 'codex_app_server'
-      : (codexAvailableTransports?.[0] ??
-        (studioSettings.data.providerDomain.capabilities?.providers.find(
-          (provider) => provider.providerId === 'codex',
-        )?.runtimeKind === 'subscription_http'
-          ? 'subscription_http'
-          : studioSettings.data.providerDomain.capabilities?.providers.some(
-                (provider) => provider.providerId === 'codex',
-              )
-            ? 'codex_app_server'
-            : undefined));
+  const { codexAvailableTransports, codexDefaultTransport } = useCodexTransports(studioSettings);
 
   const activitySession = useStudioActivitySession({
     studioJobs: studioRuntime.activity.studioJobs,

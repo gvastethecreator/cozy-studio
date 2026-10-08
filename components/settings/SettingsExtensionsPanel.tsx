@@ -180,6 +180,155 @@ function WorkflowModulesSection({ onChanged }: { onChanged: () => void }) {
  * Shows the style packs Studio reads as a browsable cover grid, installs more from remote
  * Extension Sources and turns workflow modules on or off (ADR 0011).
  */
+function packInstallState(extension: AvailableExtension, withCards: Record<string, boolean>) {
+  const canInstall = !extension.installedVersion || extension.updateAvailable;
+  const cardsLayer = extension.layers?.find((layer) => layer.name === 'cards');
+  const hasCards = extension.installedLayers.includes('cards');
+  const wantsCards = withCards[extension.id] ?? hasCards;
+  const layers: 'cards'[] = cardsLayer && wantsCards ? ['cards'] : [];
+  const canAddCards =
+    Boolean(cardsLayer) &&
+    extension.installedFrom === 'download' &&
+    !extension.updateAvailable &&
+    !hasCards;
+  return { canInstall, cardsLayer, wantsCards, layers, canAddCards };
+}
+
+function RemotePackActions({
+  source,
+  extension,
+  busyId,
+  withCards,
+  setWithCards,
+  run,
+}: {
+  source: AvailableExtensionSource;
+  extension: AvailableExtension;
+  busyId: string | null;
+  withCards: Record<string, boolean>;
+  setWithCards: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  run: (id: string, action: () => Promise<unknown>) => Promise<void>;
+}) {
+  const busy = busyId === extension.id;
+  const { canInstall, cardsLayer, wantsCards, layers, canAddCards } = packInstallState(
+    extension,
+    withCards,
+  );
+  return (
+    <>
+      {cardsLayer && canInstall ? (
+        <label className="flex items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={wantsCards}
+            disabled={busyId !== null}
+            onChange={(event) =>
+              setWithCards((current) => ({ ...current, [extension.id]: event.target.checked }))
+            }
+          />
+          Full-quality cards ({formatBytes(cardsLayer.bytes)})
+        </label>
+      ) : null}
+      {canInstall ? (
+        <button
+          type="button"
+          className="studio-primary-control px-3"
+          disabled={busyId !== null}
+          onClick={() =>
+            void run(extension.id, () => installExtension(source.id, extension.id, layers))
+          }
+        >
+          {busy ? 'Installing…' : extension.installedVersion ? 'Update' : 'Install'}
+        </button>
+      ) : null}
+      {canAddCards && cardsLayer ? (
+        <button
+          type="button"
+          className="studio-ghost-control px-3"
+          disabled={busyId !== null}
+          onClick={() =>
+            void run(extension.id, () => installExtension(source.id, extension.id, ['cards']))
+          }
+        >
+          {busy ? 'Downloading…' : `Add full cards (${formatBytes(cardsLayer.bytes)})`}
+        </button>
+      ) : null}
+    </>
+  );
+}
+
+function AvailablePackSources({
+  sources,
+  remotePacks,
+  onOpen,
+}: {
+  sources: AvailableExtensionSource[] | null;
+  remotePacks: Map<string, BrowsablePack[]>;
+  onOpen: (pack: BrowsablePack) => void;
+}) {
+  return (
+    <>
+      {sources?.map((source) => (
+        <section key={source.id} className="grid gap-2" aria-label={`Source ${source.repo}`}>
+          <h4 className="text-xs font-semibold">{source.repo}</h4>
+          {source.error ? (
+            <p className="text-xs text-[color:var(--wb-danger)]">{source.error}</p>
+          ) : source.extensions.length === 0 ? (
+            <p className="text-xs studio-muted">This source has not published any packs yet.</p>
+          ) : (
+            <PackCoverGrid packs={remotePacks.get(source.id) ?? []} onOpen={onOpen} />
+          )}
+        </section>
+      ))}
+    </>
+  );
+}
+
+function BulkInstallControl({
+  count,
+  bulkBytes,
+  busyId,
+  installAll,
+  bulkWithCards,
+  setBulkWithCards,
+  bulkProgress,
+}: {
+  count: number;
+  bulkBytes: number;
+  busyId: string | null;
+  installAll: () => Promise<void>;
+  bulkWithCards: boolean;
+  setBulkWithCards: React.Dispatch<React.SetStateAction<boolean>>;
+  bulkProgress: string | null;
+}) {
+  return (
+    <>
+      {count > 1 ? (
+        <div className="studio-list-row flex flex-wrap items-center gap-3 p-3 text-xs">
+          <button
+            type="button"
+            className="studio-ghost-control px-3"
+            disabled={busyId !== null}
+            onClick={() => void installAll()}
+          >
+            Install all {count} ({formatBytes(bulkBytes)})
+          </button>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={bulkWithCards}
+              disabled={busyId !== null}
+              onChange={(event) => setBulkWithCards(event.target.checked)}
+            />
+            Include full-quality cards
+          </label>
+          {bulkProgress ? <span role="status">{bulkProgress}</span> : null}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 export function SettingsExtensionsPanel() {
   const [installed, setInstalled] = useState<InstalledListing | null>(null);
   const [sources, setSources] = useState<AvailableExtensionSource[] | null>(null);
@@ -298,6 +447,7 @@ export function SettingsExtensionsPanel() {
     for (const [index, { source, extension }] of installable.entries()) {
       setBulkProgress(`Installing ${index + 1} of ${installable.length}: ${extension.title}`);
       try {
+        // react-doctor-disable-next-line react-doctor/async-await-in-loop -- ordered installs share the extension catalog and preserve one-pack progress and bounded unpacking
         await installExtension(source.id, extension.id, bulkWithCards ? ['cards'] : []);
       } catch (reason) {
         failures.push(`${extension.title}: ${errorText(reason)}`);
@@ -322,61 +472,6 @@ export function SettingsExtensionsPanel() {
       </button>
     ) : null;
 
-  const remoteActions = (source: AvailableExtensionSource, extension: AvailableExtension) => {
-    const busy = busyId === extension.id;
-    const canInstall = !extension.installedVersion || extension.updateAvailable;
-    const cardsLayer = extension.layers?.find((layer) => layer.name === 'cards');
-    const hasCards = extension.installedLayers.includes('cards');
-    const wantsCards = withCards[extension.id] ?? hasCards;
-    const layers: 'cards'[] = cardsLayer && wantsCards ? ['cards'] : [];
-    const canAddCards =
-      Boolean(cardsLayer) &&
-      extension.installedFrom === 'download' &&
-      !extension.updateAvailable &&
-      !hasCards;
-    return (
-      <>
-        {cardsLayer && canInstall ? (
-          <label className="flex items-center gap-2 text-xs">
-            <input
-              type="checkbox"
-              checked={wantsCards}
-              disabled={busyId !== null}
-              onChange={(event) =>
-                setWithCards((current) => ({ ...current, [extension.id]: event.target.checked }))
-              }
-            />
-            Full-quality cards ({formatBytes(cardsLayer.bytes)})
-          </label>
-        ) : null}
-        {canInstall ? (
-          <button
-            type="button"
-            className="studio-primary-control px-3"
-            disabled={busyId !== null}
-            onClick={() =>
-              void run(extension.id, () => installExtension(source.id, extension.id, layers))
-            }
-          >
-            {busy ? 'Installing…' : extension.installedVersion ? 'Update' : 'Install'}
-          </button>
-        ) : null}
-        {canAddCards && cardsLayer ? (
-          <button
-            type="button"
-            className="studio-ghost-control px-3"
-            disabled={busyId !== null}
-            onClick={() =>
-              void run(extension.id, () => installExtension(source.id, extension.id, ['cards']))
-            }
-          >
-            {busy ? 'Downloading…' : `Add full cards (${formatBytes(cardsLayer.bytes)})`}
-          </button>
-        ) : null}
-      </>
-    );
-  };
-
   const openInstalled = installed?.extensions.find(
     (extension) => `installed:${extension.id}` === openKey,
   );
@@ -386,6 +481,19 @@ export function SettingsExtensionsPanel() {
   const openPack =
     installedPacks.find((pack) => pack.key === openKey) ??
     [...remotePacks.values()].flat().find((pack) => pack.key === openKey);
+  let packActions: React.ReactNode = null;
+  if (openInstalled) packActions = installedActions(openInstalled);
+  else if (openRemote)
+    packActions = (
+      <RemotePackActions
+        source={openRemote.source}
+        extension={openRemote.extension}
+        busyId={busyId}
+        withCards={withCards}
+        setWithCards={setWithCards}
+        run={run}
+      />
+    );
 
   return (
     <div className="grid gap-4">
@@ -431,17 +539,7 @@ export function SettingsExtensionsPanel() {
       ) : null}
 
       {openPack ? (
-        <PackDetail
-          pack={openPack}
-          onBack={() => setOpenKey(null)}
-          actions={
-            openInstalled
-              ? installedActions(openInstalled)
-              : openRemote
-                ? remoteActions(openRemote.source, openRemote.extension)
-                : null
-          }
-        />
+        <PackDetail pack={openPack} onBack={() => setOpenKey(null)} actions={packActions} />
       ) : (
         <>
           <InstalledPacksSection
@@ -465,50 +563,25 @@ export function SettingsExtensionsPanel() {
               </p>
             </div>
 
-            {installable.length > 1 ? (
-              <div className="studio-list-row flex flex-wrap items-center gap-3 p-3 text-xs">
-                <button
-                  type="button"
-                  className="studio-ghost-control px-3"
-                  disabled={busyId !== null}
-                  onClick={() => void installAll()}
-                >
-                  Install all {installable.length} ({formatBytes(bulkBytes)})
-                </button>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={bulkWithCards}
-                    disabled={busyId !== null}
-                    onChange={(event) => setBulkWithCards(event.target.checked)}
-                  />
-                  Include full-quality cards
-                </label>
-                {bulkProgress ? <span role="status">{bulkProgress}</span> : null}
-              </div>
-            ) : null}
+            <BulkInstallControl
+              count={installable.length}
+              bulkBytes={bulkBytes}
+              busyId={busyId}
+              installAll={installAll}
+              bulkWithCards={bulkWithCards}
+              setBulkWithCards={setBulkWithCards}
+              bulkProgress={bulkProgress}
+            />
 
             {sources === null && !error ? (
               <p className="text-xs studio-muted">Checking sources…</p>
             ) : null}
 
-            {sources?.map((source) => (
-              <section key={source.id} className="grid gap-2" aria-label={`Source ${source.repo}`}>
-                <h4 className="text-xs font-semibold">{source.repo}</h4>
-                {source.error ? (
-                  <p className="text-xs text-[color:var(--wb-danger)]">{source.error}</p>
-                ) : source.extensions.length === 0 ? (
-                  <p className="text-xs studio-muted">
-                    This source has not published any packs yet.
-                  </p>
-                ) : (
-                  <PackCoverGrid
-                    packs={remotePacks.get(source.id) ?? []}
-                    onOpen={(pack) => setOpenKey(pack.key)}
-                  />
-                )}
-              </section>
-            ))}
+            <AvailablePackSources
+              sources={sources}
+              remotePacks={remotePacks}
+              onOpen={(pack) => setOpenKey(pack.key)}
+            />
           </section>
 
           <WorkflowModulesSection onChanged={() => setNeedsReload(true)} />

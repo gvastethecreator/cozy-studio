@@ -6,29 +6,29 @@
 }
 
 .cs-heading {
-  height: 28px;
+  min-height: var(--wb-control-height);
   margin-bottom: 8px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .cs-heading h2 {
-  font-size: 12px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 600;
   line-height: 1;
   margin: 0;
   color: var(--wb-ink);
 }
 
 .create-recipe-controls .cs-heading h2 {
-  font-size: 12px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
 .cs-count {
-  font-size: 10px;
+  font-size: var(--wbp-label);
   font-variant-numeric: tabular-nums;
   color: var(--wb-muted);
 }
@@ -39,16 +39,12 @@
 
 .cs-browse {
   flex: 0 0 auto;
-  height: 28px;
-  border: 1px solid color-mix(in srgb, var(--wb-accent) 48%, var(--wb-line));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--wb-accent) 14%, var(--wb-well));
+  height: var(--wb-control-height);
   margin-left: auto;
   white-space: nowrap;
-  padding: 0 4px 0 8px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 
 .cs-browse button {
@@ -56,13 +52,13 @@
   align-items: center;
   gap: 5px;
   height: 100%;
-  padding: 0 9px;
+  padding: 0 6px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--wb-radius);
   background: transparent;
   color: var(--wb-ink);
-  font-size: 11px;
-  font-weight: 650;
+  font-size: var(--wb-font-size);
+  font-weight: 600;
 }
 
 .cs-browse button svg {
@@ -103,12 +99,12 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 28px;
+  height: var(--wb-control-height);
   padding: 0 7px 0 8px;
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   background: var(--wb-bar);
   border-radius: var(--wb-radius);
-  font-size: 11px;
+  font-size: var(--wb-font-size);
   color: var(--wb-ink);
 }
 
@@ -132,7 +128,7 @@
   min-height: 60px;
   padding: 5px;
   background: var(--wb-bar);
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: calc(var(--wb-radius) + 2px);
 }
 
@@ -159,7 +155,7 @@
 .cs-name,
 .cs-strength,
 .cs-back,
-.cs-browse,
+.cs-browse-link,
 .cs-search-clear,
 .cs-choice,
 .cs-favorite-option,
@@ -221,7 +217,7 @@
   padding: 0 5px;
   height: 46px;
   text-align: left;
-  font-size: 11.5px;
+  font-size: var(--wb-font-size);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -238,7 +234,7 @@
   padding: 0;
   width: 46px;
   height: 26px;
-  font-size: 10.5px;
+  font-size: var(--wbp-label);
   font-variant-numeric: tabular-nums;
   color: var(--wb-muted);
   border-radius: var(--wb-radius);
@@ -265,11 +261,11 @@
   justify-content: flex-start;
   padding: 0 11px;
   gap: 8px;
-  border: 1px dashed var(--wb-line);
+  border: var(--wb-border-width) dashed var(--wb-line);
   border-radius: calc(var(--wb-radius) + 2px);
   color: var(--wb-muted);
   background: var(--wb-well);
-  font-size: 11.5px;
+  font-size: var(--wb-font-size);
 }
 
 .cs-empty:hover,
@@ -293,7 +289,7 @@
 .cs-preview {
   position: fixed;
   z-index: 60;
-  border: 1px solid var(--wb-border);
+  border: var(--wb-border-width) solid var(--wb-border);
   border-radius: 8px;
   background: var(--wb-panel);
   box-shadow: 0 14px 45px color-mix(in srgb, #000 55%, transparent);
@@ -312,7 +308,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  border-bottom: 1px solid var(--wb-line);
+  border-bottom: var(--wb-border-width) solid var(--wb-line);
   padding: 6px 10px;
   height: 43px;
   background: var(--wb-bar);
@@ -363,9 +359,9 @@
   align-items: center;
   padding: 0 8px;
   color: var(--wb-muted);
-  font-size: 10px;
+  font-size: var(--wbp-label);
   flex: 0 0 auto;
-  border-bottom: 1px solid var(--wb-line);
+  border-bottom: var(--wb-border-width) solid var(--wb-line);
 }
 
 .cs-breadcrumb strong {
@@ -379,10 +375,19 @@
 }
 
 .cs-back,
-.cs-browse {
-  height: 25px;
+.cs-browse-link {
+  height: var(--wb-control-height);
   border-radius: var(--wb-radius);
   color: var(--wb-muted);
+}
+
+.cs-browse-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding-inline: 6px;
+  white-space: nowrap;
 }
 
 .cs-back {
@@ -394,7 +399,7 @@
 }
 
 .cs-back:hover,
-.cs-browse:hover,
+.cs-browse-link:hover,
 .cs-search-clear:hover,
 .cs-done:hover,
 .cs-favorites-view:hover,
@@ -428,7 +433,7 @@
   min-height: 30px;
   padding: 4px 6px;
   background: var(--wb-panel);
-  border-bottom: 1px solid var(--wb-line);
+  border-bottom: var(--wb-border-width) solid var(--wb-line);
 }
 
 .cs-category-accent {
@@ -467,7 +472,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10.5px;
+  font-size: var(--wbp-label);
   font-weight: 650;
 }
 
@@ -478,7 +483,7 @@
 }
 
 .cs-group-heading {
-  font-size: 10px;
+  font-size: var(--wbp-label);
   font-weight: 450;
   color: var(--wb-dim);
   padding: 11px 8px 6px;
@@ -514,7 +519,7 @@
   padding: 6px 8px;
   text-align: left;
   border-radius: 5px;
-  font-size: 11.5px;
+  font-size: var(--wbp-label);
   line-height: 1.4;
   color: var(--wb-ink);
 }
@@ -529,7 +534,7 @@
 
 .cs-option-sub {
   display: block;
-  font-size: 9.5px;
+  font-size: var(--wbp-label);
   color: var(--wb-dim);
   margin-top: 2px;
 }
@@ -546,7 +551,7 @@
 
 .cs-dir-count {
   margin-left: auto;
-  font-size: 10px;
+  font-size: var(--wbp-label);
   color: var(--wb-dim);
   padding: 0 4px;
 }
@@ -583,7 +588,7 @@
   gap: 8px;
   min-height: 36px;
   padding: 3px 7px;
-  border-top: 1px solid var(--wb-line);
+  border-top: var(--wb-border-width) solid var(--wb-line);
   background: var(--wb-bar);
 }
 
@@ -591,7 +596,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 10px;
+  font-size: var(--wbp-label);
   height: 25px;
   border-radius: var(--wb-radius);
   padding: 0 6px;
@@ -600,7 +605,7 @@
 
 .cs-footer-status {
   color: var(--wb-dim);
-  font-size: 9.5px;
+  font-size: var(--wbp-label);
   flex: 1;
   text-align: right;
 }
@@ -608,7 +613,7 @@
 .cs-done {
   padding: 0 8px;
   height: 25px;
-  font-size: 10px;
+  font-size: var(--wbp-label);
   border-radius: var(--wb-radius);
   background: color-mix(in srgb, var(--wb-ink) 8%, transparent);
   color: var(--wb-ink);
@@ -627,18 +632,18 @@
 }
 
 .cs-empty-result p {
-  font-size: 11px;
+  font-size: var(--wbp-label);
   color: var(--wb-muted);
   margin: 0;
   line-height: 1.6;
 }
 
 .cs-limit-note {
-  font-size: 10px;
+  font-size: var(--wbp-label);
   color: var(--wb-accent);
   line-height: 1.5;
   padding: 7px 12px 0;
-  border-top: 1px solid var(--wb-line);
+  border-top: var(--wb-border-width) solid var(--wb-line);
 }
 
 .cs-preview {
@@ -649,7 +654,7 @@
 
 .cs-preview-image {
   position: relative;
-  border: 1px solid color-mix(in srgb, var(--wb-ink) 8%, transparent);
+  border: var(--wb-border-width) solid var(--wb-border);
   background: var(--wb-well);
   border-radius: var(--wb-radius);
   height: 212px;
@@ -669,7 +674,7 @@
   padding: 20px;
   text-align: center;
   color: var(--wb-muted);
-  font-size: 11px;
+  font-size: var(--wbp-label);
   line-height: 1.7;
 }
 
@@ -686,7 +691,7 @@
 }
 
 .cs-preview-body p {
-  font-size: 10px;
+  font-size: var(--wbp-label);
   line-height: 1.6;
   color: var(--wb-muted);
   margin: 0;
@@ -699,7 +704,7 @@
   width: 26px;
   height: 26px;
   background: color-mix(in srgb, var(--wb-panel) 92%, transparent);
-  border: 1px solid var(--wb-border);
+  border: var(--wb-border-width) solid var(--wb-border);
   border-radius: 5px;
   z-index: 1;
   color: var(--wb-ink);
@@ -721,19 +726,19 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-size: 11px;
+  font-size: var(--wbp-label);
   margin-bottom: 10px;
 }
 
 .cs-weight-head button {
-  font-size: 10px;
+  font-size: var(--wbp-label);
   color: var(--wb-muted);
   padding: 2px 4px;
   border-radius: var(--wb-radius);
 }
 
 .cs-weight-name {
-  font-size: 10px;
+  font-size: var(--wbp-label);
   color: var(--wb-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -757,7 +762,7 @@
 }
 
 .cs-range-line output {
-  font-size: 11px;
+  font-size: var(--wbp-label);
   font-variant-numeric: tabular-nums;
   width: 36px;
   flex: 0 0 36px;
@@ -767,13 +772,13 @@
 .cs-range-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 9px;
+  font-size: var(--wbp-label);
   color: var(--wb-dim);
   margin: 4px 47px 0 0;
 }
 
 .cs-weight-bottom {
-  border-top: 1px solid var(--wb-line);
+  border-top: var(--wb-border-width) solid var(--wb-line);
   margin-top: 12px;
   padding-top: 9px;
   display: flex;
@@ -785,7 +790,7 @@
 .cs-pause-button {
   height: 27px;
   padding: 0 7px;
-  font-size: 10px;
+  font-size: var(--wbp-label);
   color: var(--wb-ink);
   display: flex;
   gap: 6px;
@@ -819,7 +824,7 @@
   align-items: center;
   justify-content: space-between;
   color: var(--wb-muted);
-  font-size: 11px;
+  font-size: var(--wbp-label);
 }
 
 .cs-advanced-toggle[aria-expanded='true'] {
@@ -856,7 +861,7 @@
 
 .styles-catalog-chrome {
   flex: 0 0 auto;
-  border-bottom: 1px solid var(--wb-line);
+  border-bottom: var(--wb-border-width) solid var(--wb-line);
   background: var(--wb-panel);
 }
 
@@ -876,7 +881,7 @@
   gap: 8px;
   height: 36px;
   padding: 0 10px;
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: var(--wb-radius);
   background: var(--wb-well);
   color: var(--wb-muted);
@@ -910,7 +915,7 @@
   align-items: center;
   gap: 2px;
   padding: 2px;
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: var(--wb-radius);
   background: var(--wb-panel);
 }
@@ -977,7 +982,7 @@
   gap: 8px;
   min-width: 0;
   color: var(--wb-muted);
-  font-size: 11px;
+  font-size: var(--wb-font-size);
 }
 
 @media (min-width: 1024px) {
@@ -991,7 +996,7 @@
   flex: 1;
   height: 32px;
   padding: 0 8px;
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: var(--wb-radius);
   background: var(--wb-well);
   color: var(--wb-ink);
@@ -1021,7 +1026,7 @@
   height: 32px;
   margin-inline-start: auto;
   padding: 0 10px;
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: var(--wb-radius);
   background: var(--wb-bar);
   color: var(--wb-ink);
@@ -1084,7 +1089,7 @@
   outline-offset: 2px;
 }
 .style-preset-tile {
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   background: var(--wb-panel);
 }
 .style-preset-tile[data-selected='true'] {
@@ -1103,7 +1108,7 @@
   padding: 0;
   min-width: 28px;
   min-height: 28px;
-  border: 1px solid var(--wb-border);
+  border: var(--wb-border-width) solid var(--wb-border);
   border-radius: var(--wb-radius);
   background: var(--wb-bar);
   color: var(--wb-ink);
@@ -1136,13 +1141,13 @@
   text-overflow: ellipsis;
   background: linear-gradient(transparent, rgb(0 0 0 / 85%));
   color: #fff;
-  font-size: 11px;
+  font-size: var(--wbp-label);
   font-weight: 550;
 }
 .style-preset-tile [data-style-active-image-label] {
   top: 42px;
   padding: 2px 6px;
-  font-size: 9px;
+  font-size: var(--wbp-label);
   max-width: calc(100% - 16px);
   opacity: 0;
 }
@@ -1152,7 +1157,7 @@
 }
 
 .style-catalog-control {
-  min-height: 30px;
+  min-height: var(--studio-action-height);
   gap: 6px;
   padding: 0 8px;
   font-size: var(--wbp-label);
@@ -1170,14 +1175,11 @@
   cursor: not-allowed;
 }
 .style-catalog-icon {
-  width: 30px;
+  width: var(--studio-action-height);
   padding: 0;
 }
 .style-catalog-menu-action {
   justify-content: flex-start;
-}
-.style-catalog-sort {
-  width: 156px;
 }
 .style-detail-dialog {
   width: min(440px, calc(100vw - 24px));
@@ -1185,7 +1187,7 @@
   margin: auto;
   padding: 0;
   overflow: auto;
-  border: 1px solid var(--wb-border);
+  border: var(--wb-border-width) solid var(--wb-border);
   border-radius: 10px;
   background: var(--wb-panel);
   color: var(--wb-ink);
@@ -1215,10 +1217,10 @@
   gap: 6px;
   min-height: 30px;
   padding: 5px 8px;
-  border: 1px solid var(--wb-line);
+  border: var(--wb-border-width) solid var(--wb-line);
   border-radius: 5px;
   background: var(--wb-bar);
-  font-size: 11px;
+  font-size: var(--wbp-label);
 }
 .style-detail-image {
   width: 100%;
@@ -1256,7 +1258,7 @@
 }
 .style-detail-copy p:first-child {
   color: var(--wb-muted);
-  font-size: 11px;
+  font-size: var(--wbp-label);
 }
 .style-detail-copy summary {
   cursor: pointer;

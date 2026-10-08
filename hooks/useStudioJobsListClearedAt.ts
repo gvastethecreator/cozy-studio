@@ -9,19 +9,10 @@ import {
 } from '../lib/studioJobsListClear';
 
 export function useStudioJobsListClearedAt(clearReviewJobsOnStartup?: boolean) {
-  const sessionStartedAt = useRef(Date.now());
+  const [sessionStartedAt] = useState(Date.now);
   const appliedStartupPreference = useRef(false);
   const [clearedAt, setClearedAt] = useState(readStudioJobsListClearedAt);
   const [attentionClearedAt, setAttentionClearedAt] = useState(readStudioJobsAttentionClearedAt);
-
-  useEffect(() => {
-    if (clearReviewJobsOnStartup === undefined || appliedStartupPreference.current) return;
-    appliedStartupPreference.current = true;
-    if (clearReviewJobsOnStartup) {
-      writeStudioJobsAttentionClearedAt(sessionStartedAt.current);
-      setAttentionClearedAt(sessionStartedAt.current);
-    }
-  }, [clearReviewJobsOnStartup]);
 
   useEffect(
     () =>
@@ -31,6 +22,13 @@ export function useStudioJobsListClearedAt(clearReviewJobsOnStartup?: boolean) {
       }),
     [],
   );
+  useEffect(() => {
+    if (clearReviewJobsOnStartup === undefined || appliedStartupPreference.current) return;
+    appliedStartupPreference.current = true;
+    if (clearReviewJobsOnStartup) {
+      writeStudioJobsAttentionClearedAt(sessionStartedAt);
+    }
+  }, [clearReviewJobsOnStartup, sessionStartedAt]);
 
   const clearListedJobs = useCallback(() => {
     writeStudioJobsListClearedAt(Date.now());

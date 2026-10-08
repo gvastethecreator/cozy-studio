@@ -101,7 +101,9 @@ export function useStudioViewState({
     const closeBeforeSettingsMounts = (event: KeyboardEvent) => {
       if (!settingsOpenRef.current || event.key !== 'Escape' || event.defaultPrevented) return;
       const activeDialog = Array.from(
-        document.querySelectorAll<HTMLElement>('[aria-modal="true"], dialog[open]'),
+        document.querySelectorAll<HTMLElement>(
+          '[aria-modal="true"], dialog[open]:not([aria-modal="false"])',
+        ),
       ).some((dialog) => !dialog.closest('[inert]') && dialog.getClientRects().length > 0);
       if (activeDialog) return;
       event.preventDefault();

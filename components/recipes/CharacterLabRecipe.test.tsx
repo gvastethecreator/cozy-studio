@@ -2,12 +2,17 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_GENERATION_CONFIG } from '../../constants';
-import { activateCharacterLabView } from '../../lib/characterLabDraft';
+import {
+  activateCharacterLabView,
+  getCharacterLabView,
+  updateCharacterLabView,
+} from '../../lib/characterLabDraft';
 import { CharacterLabRecipe } from './CharacterLabRecipe';
-import { RecipeWorkbenchContext } from './RecipeWorkbenchContext';
+import { RecipeWorkbenchContext } from './recipeWorkbenchContextState';
 
+const draft = vi.hoisted(() => ({ setGenerationConfig: vi.fn() }));
 vi.mock('../../contexts/GenerationContext', () => ({
-  useGenerationDraft: () => ({ isDraftReady: true, setGenerationConfig: vi.fn() }),
+  useGenerationDraft: () => ({ isDraftReady: true, ...draft }),
 }));
 vi.mock('../../contexts/WorkspaceContext', () => ({
   useWorkspaceState: () => ({ activeWorkspaceId: 'character-test' }),
@@ -16,6 +21,49 @@ vi.mock('../../contexts/WorkspaceContext', () => ({
 afterEach(cleanup);
 
 describe('CharacterLabRecipe', () => {
+  it('registers each alias instructions without overwriting another mode', () => {
+    const setPrompt = vi.fn();
+    const config = updateCharacterLabView(
+      activateCharacterLabView(DEFAULT_GENERATION_CONFIG, 'poses'),
+      'poses',
+      { prompt: 'Pose instructions' },
+    );
+    const context = {
+      controls: null,
+      action: null,
+      overlay: null,
+      sidePanel: null,
+      compare: null,
+      setCompare: () => {},
+      setPrompt,
+    };
+    const props = { config, updateConfig: vi.fn(), onGenerate: vi.fn(), isGenerating: false };
+    const view = render(
+      <RecipeWorkbenchContext value={context}>
+        <CharacterLabRecipe {...props} recipeAliasId="character-poses" />
+      </RecipeWorkbenchContext>,
+    );
+    expect(screen.queryByRole('textbox', { name: 'Additional instructions' })).toBeNull();
+    const posePrompt = setPrompt.mock.calls.at(-1)![0];
+    expect(posePrompt.value).toBe('Pose instructions');
+    posePrompt.onChange('Revised pose');
+    const changed = draft.setGenerationConfig.mock.calls.at(-1)![0](config);
+    expect(getCharacterLabView(changed, 'poses').view.prompt).toBe('Revised pose');
+    expect(changed.prompt).toBe('Revised pose');
+    view.rerender(
+      <RecipeWorkbenchContext value={context}>
+        <CharacterLabRecipe {...props} config={changed} recipeAliasId="character-scenes" />
+      </RecipeWorkbenchContext>,
+    );
+    const scenePrompt = setPrompt.mock.calls.at(-1)![0];
+    expect(scenePrompt.value).not.toBe('Revised pose');
+    scenePrompt.onChange('Scene instructions');
+    const sceneChanged = draft.setGenerationConfig.mock.calls.at(-1)![0](changed);
+    expect(getCharacterLabView(sceneChanged, 'scenes').view.prompt).toBe('Scene instructions');
+    expect(getCharacterLabView(sceneChanged, 'poses').view.prompt).toBe('Revised pose');
+    view.unmount();
+    expect(setPrompt).toHaveBeenLastCalledWith(null);
+  });
   it('explains unavailable actions before interaction and restores generation for an image action', () => {
     const onGenerate = vi.fn();
     const props = { updateConfig: vi.fn(), onGenerate, isGenerating: false };

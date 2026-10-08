@@ -15,12 +15,12 @@ import {
   Activity,
   SunLight as Sun,
 } from 'iconoir-react';
-import { AnimatePresence, MotionButton, MotionDiv } from '../../lib/gsapMotion';
+import { AnimatePresence } from '../../lib/gsapMotion';
 import type { Attachment, ImageGenerationConfig, GeneratedImageWithConfig } from '../../types';
 import type { CatalogImage } from '../../packages/shared/src';
 import { RATIO_MAP } from '../../constants';
 import { RecipeLayout } from './RecipeLayout';
-import { RecipeWorkbenchContext } from './RecipeWorkbenchContext';
+import { RecipeWorkbenchContext } from './recipeWorkbenchContextState';
 import { ControlDropdown } from './RecipeUI';
 import { QuickStartText } from './QuickStartText';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
@@ -40,7 +40,7 @@ interface TimelineRecipeProps {
     value: ImageGenerationConfig[K],
   ) => void;
   updateAttachment: (id: string, newProps: Partial<Attachment>) => void;
-  onFileSelect: (files: File[], replaceId?: string) => void;
+  onFileSelect: (files: File[], replaceId?: string, options?: Pick<Attachment, 'strength'>) => void;
   onGenerate: (prompt?: string) => void;
   isGenerating: boolean;
   onSelectImage?: (image: GeneratedImageWithConfig) => void;
@@ -150,7 +150,11 @@ function useTimelineKeyboard(
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || document.querySelector('[aria-modal="true"]')) return;
+      if (
+        e.defaultPrevented ||
+        document.querySelector('[aria-modal="true"], dialog[open]:not([aria-modal="false"])')
+      )
+        return;
       // Only page-level focus or focus on the Timeline stage/strip steers the sequence, so
       // arrows keep working in tablists, menus, and other widgets.
       const target = e.target;
@@ -553,11 +557,9 @@ function TimelineCanvas({
                   const isAnchor = sessionOrigin?.dataUrl === item.src;
 
                   return (
-                    <MotionButton
+                    <button
                       key={item.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
+                      type="button"
                       ref={(el) => {
                         if (el) itemRefs.current.set(item.id, el);
                         else itemRefs.current.delete(item.id);
@@ -588,7 +590,7 @@ function TimelineCanvas({
                       {isAnchor && !isActive && (
                         <div className="absolute inset-0 border-2 border-dashed border-teal-500/2 rounded-[var(--wb-radius)] pointer-events-none" />
                       )}
-                    </MotionButton>
+                    </button>
                   );
                 })}
               </AnimatePresence>
@@ -748,12 +750,12 @@ function useTimelineRecipeController({
       setOriginId(null);
       pendingUploadRef.current = { name: file.name, id: null };
       if (!activeImage) {
-        onFileSelect([file]);
+        onFileSelect([file], undefined, { strength: 1 });
         return;
       }
       // A new keyframe starts a new sequence: drop the Ref/Anchor pair, then replace in place.
       if (config.attachments.length > 1) updateConfig('attachments', [activeImage]);
-      onFileSelect([file], activeImage.id);
+      onFileSelect([file], activeImage.id, { strength: 1 });
     },
     [activeImage, config.attachments.length, onFileSelect, updateConfig],
   );
@@ -764,7 +766,6 @@ function useTimelineRecipeController({
     if (pending.id === null) {
       if (!activeImage?.isProcessing) return;
       pending.id = activeImage.id;
-      updateAttachment(activeImage.id, { strength: 1 });
       return;
     }
     const attachment = config.attachments.find((item) => item.id === pending.id);
@@ -772,7 +773,7 @@ function useTimelineRecipeController({
     pendingUploadRef.current = null;
     // The shared pipeline drops an attachment it could not read.
     if (!attachment) setUploadError(`Could not load ${pending.name}. Try another image.`);
-  }, [activeImage, config.attachments, updateAttachment]);
+  }, [activeImage, config.attachments]);
 
   // 4. Robust Center Scroll Logic
   const scrollToItem = useCallback(

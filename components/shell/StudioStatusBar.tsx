@@ -5,9 +5,10 @@ import type { UseCatalogResult } from '../../hooks/useCatalogPage';
 import type { StudioCommandCenterProjection } from '../../lib/commandCenterProjection';
 import type { StudioUsageSummary } from '../../lib/studioDiagnostics';
 import { cn } from '../../lib/utils';
+import { providerRuntimeStatusDotClass } from '../../lib/providerBrand';
 import { UsageStatusCard } from '../header/UsageStatusCard';
-import { ProviderBrandMark } from '../ProviderBrandMark';
 import { CozyStatusCup } from '../CozyMascot';
+import { ProviderBrandMark } from '../ProviderBrandMark';
 import Tooltip from '../Tooltip';
 
 export interface StudioStatusBarProps {
@@ -49,33 +50,48 @@ export function StudioStatusBar({
                 : provider.id === 'chatgpt'
                   ? providerUsage.chatgpt
                   : undefined;
+            const weeklyLimit = usage?.limits.find((limit) => /weekly/i.test(limit.label));
+            const pillClassName = cn(
+              'studio-status-provider',
+              provider.id === commandCenter.provider.id && 'is-active',
+            );
+            const content = (
+              <>
+                <ProviderBrandMark providerId={provider.id} size="xs" />
+                <span className="studio-status-provider-label">{provider.shortLabel}</span>
+                {weeklyLimit && (
+                  <span className="studio-status-provider-usage">
+                    {Math.round(weeklyLimit.availablePercent)}% left
+                  </span>
+                )}
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'studio-status-provider-dot',
+                    providerRuntimeStatusDotClass(provider),
+                  )}
+                />
+              </>
+            );
             return (
               <li
                 key={provider.id}
                 data-tooltip={provider.tooltip}
                 aria-label={`${provider.shortLabel}: ${provider.statusDetail}`}
-                className={cn(
-                  'studio-status-provider',
-                  provider.id === commandCenter.provider.id && 'is-active',
-                )}
               >
-                <ProviderBrandMark
-                  providerId={provider.id}
-                  size="xs"
-                  canExecute={provider.canExecute}
-                  status={provider.status}
-                />
-                <span className="studio-status-provider-label">{provider.shortLabel}</span>
                 {usage ? (
                   <UsageStatusCard
                     usage={usage}
                     providerLabel={provider.shortLabel}
-                    weeklyOnly
                     onOpenDashboard={onOpenDashboard}
-                    className="relative flex h-7 shrink-0 items-center"
+                    className={pillClassName}
                     popoverPlacement="top"
-                  />
-                ) : null}
+                  >
+                    {content}
+                  </UsageStatusCard>
+                ) : (
+                  <span className={pillClassName}>{content}</span>
+                )}
               </li>
             );
           })}

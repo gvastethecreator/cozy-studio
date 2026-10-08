@@ -11,9 +11,7 @@ export const DemandMountedGsapDropdown = React.forwardRef<HTMLDivElement, GsapDr
   ({ open, ...props }, forwardedRef) => {
     const [hasOpened, setHasOpened] = React.useState(open);
 
-    React.useEffect(() => {
-      if (open) setHasOpened(true);
-    }, [open]);
+    if (open && !hasOpened) setHasOpened(true);
 
     if (!shouldMountDemandDropdown(open, hasOpened)) return null;
 

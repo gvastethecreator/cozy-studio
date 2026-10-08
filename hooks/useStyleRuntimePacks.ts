@@ -72,6 +72,7 @@ export function useStyleRuntimePacks({
     }
   }, []);
 
+  // react-doctor-disable-next-line react-doctor/no-set-state-after-await-in-effect -- Every batch and catch checks cancelled; cleanup marks obsolete requests before either setter can run.
   useEffect(() => {
     if (requestedPackIds.length === 0) return;
     let cancelled = false;

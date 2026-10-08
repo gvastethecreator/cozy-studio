@@ -1,5 +1,13 @@
-import { AnimatePresence } from '../../lib/gsapMotion';
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { NavArrowDown, Network } from 'iconoir-react';
 
 import type { RecipeAliasId } from '../../lib/recipeAliases';
@@ -8,8 +16,12 @@ import { preloadRecipeComponent } from '../../lib/recipeRouteModules';
 import { buildRecipeIntentPreloadPlan } from '../../lib/routePreloadBudget';
 import { preloadStudioViewportSurface } from '../../lib/studioViewportRouteSurfaces';
 import type { RecipeId } from '../../types';
-import { RecipeDiscoveryList } from '../recipes/RecipeDiscoveryList';
 import Tooltip from '../Tooltip';
+
+const loadWorkflowCards = () => import('../recipes/RecipeDiscoveryList');
+const RecipeDiscoveryList = lazy(() =>
+  loadWorkflowCards().then((module) => ({ default: module.RecipeDiscoveryList })),
+);
 
 export interface CreateWorkflowPickerProps {
   onSelectRecipe: (id: RecipeId, aliasId?: RecipeAliasId | null) => void;
@@ -36,7 +48,7 @@ export const CreateWorkflowPicker: React.FC<CreateWorkflowPickerProps> = ({
   selectedLabel = 'Default',
   selectedId,
 }) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<'pointer' | 'keyboard' | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const recipeDiscovery = useMemo(() => createRecipeDiscoveryProjection(), []);
@@ -75,17 +87,15 @@ export const CreateWorkflowPicker: React.FC<CreateWorkflowPickerProps> = ({
   useEffect(() => {
     if (!open) return;
 
-    rootRef.current?.querySelector<HTMLElement>('[role=option][aria-selected=true]')?.focus();
-
     const handlePointerDown = (event: PointerEvent) => {
       if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        setOpen(false);
+        setOpen(null);
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        setOpen(false);
+        setOpen(null);
         rootRef.current?.querySelector<HTMLButtonElement>('[aria-haspopup]')?.focus();
       }
     };
@@ -99,7 +109,7 @@ export const CreateWorkflowPicker: React.FC<CreateWorkflowPickerProps> = ({
   }, [open]);
 
   const closeAndFocus = () => {
-    setOpen(false);
+    setOpen(null);
     rootRef.current?.querySelector<HTMLButtonElement>('[aria-haspopup]')?.focus();
   };
 
@@ -112,13 +122,15 @@ export const CreateWorkflowPicker: React.FC<CreateWorkflowPickerProps> = ({
             className="create-workflow-quiet-select studio-control"
             aria-label={`Workflow: ${selectedLabel}`}
             aria-haspopup="listbox"
-            aria-expanded={open}
+            aria-expanded={Boolean(open)}
             aria-controls="create-workflow-list"
-            onClick={() => setOpen((value) => !value)}
+            onPointerEnter={() => void loadWorkflowCards()}
+            onFocus={() => void loadWorkflowCards()}
+            onClick={(event) => setOpen(open ? null : event.detail === 0 ? 'keyboard' : 'pointer')}
             onKeyDown={(event) => {
               if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                 event.preventDefault();
-                setOpen(true);
+                setOpen('keyboard');
               }
             }}
           >
@@ -132,37 +144,60 @@ export const CreateWorkflowPicker: React.FC<CreateWorkflowPickerProps> = ({
             />
           </button>
         </Tooltip>
-        <AnimatePresence>
-          {open ? (
-            <div
-              ref={popoverRef}
-              id="create-workflow-list"
-              role="listbox"
-              aria-label="Workflows"
-              className="create-workflow-popover custom-scrollbar"
-              onKeyDown={(event) => {
-                const options = Array.from(
-                  event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=option]'),
-                );
-                const index = options.indexOf(document.activeElement as HTMLButtonElement);
-                const last = options.length - 1;
-                const next =
-                  event.key === 'Home'
-                    ? 0
-                    : event.key === 'End'
-                      ? last
-                      : event.key === 'ArrowDown'
-                        ? (index + 1) % options.length
-                        : event.key === 'ArrowUp'
-                          ? (index - 1 + options.length) % options.length
-                          : null;
-                if (next !== null) {
-                  event.preventDefault();
-                  options[next]?.focus();
+        {open ? (
+          <div
+            ref={popoverRef}
+            id="create-workflow-list"
+            role="listbox"
+            aria-label="Workflows"
+            className="create-workflow-popover custom-scrollbar"
+            data-entry={open}
+            onKeyDown={(event) => {
+              const options = Array.from(
+                event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=option]'),
+              );
+              const index = options.indexOf(document.activeElement as HTMLButtonElement);
+              const last = options.length - 1;
+              let next =
+                event.key === 'Home'
+                  ? 0
+                  : event.key === 'End'
+                    ? last
+                    : event.key === 'ArrowDown' || event.key === 'ArrowRight'
+                      ? (index + 1) % options.length
+                      : event.key === 'ArrowUp' || event.key === 'ArrowLeft'
+                        ? (index - 1 + options.length) % options.length
+                        : null;
+              if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                const current = options[index]?.getBoundingClientRect();
+                if (current?.height) {
+                  const direction = event.key === 'ArrowDown' ? 1 : -1;
+                  const rows = options
+                    .map((option, optionIndex) => ({
+                      index: optionIndex,
+                      rect: option.getBoundingClientRect(),
+                    }))
+                    .filter(({ rect }) => direction * (rect.top - current.top) > 1);
+                  rows.sort(
+                    (a, b) =>
+                      direction * (a.rect.top - b.rect.top) ||
+                      Math.abs(a.rect.left - current.left) - Math.abs(b.rect.left - current.left),
+                  );
+                  next = rows[0]?.index ?? index;
                 }
-                if (event.key === 'Tab') setOpen(false);
-              }}
-            >
+              }
+              if (next !== null) {
+                event.preventDefault();
+                options[next]?.focus();
+              }
+              if (event.key === 'Tab') closeAndFocus();
+            }}
+          >
+            <div className="create-workflow-popover-heading">
+              <strong>Choose a workflow</strong>
+              <span>A starting point for your next idea.</span>
+            </div>
+            <Suspense fallback={<p className="create-popover-note">Loading workflows…</p>}>
               <RecipeDiscoveryList
                 entries={recipeDiscovery.entries}
                 selectedId={selectedLabel === 'Default' ? 'default' : activeId}
@@ -177,10 +212,12 @@ export const CreateWorkflowPicker: React.FC<CreateWorkflowPickerProps> = ({
                 }}
                 onPreviewRecipe={handlePreviewRecipe}
               />
-              <div className="create-popover-note">Each workflow adds tools to Create.</div>
+            </Suspense>
+            <div className="create-popover-note">
+              Arrow keys to explore · Enter to select · Esc to close
             </div>
-          ) : null}
-        </AnimatePresence>
+          </div>
+        ) : null}
       </div>
     </section>
   );

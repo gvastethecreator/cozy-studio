@@ -1,13 +1,21 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useRef, useState } from 'react';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { GsapDropdown } from './GsapDropdown';
 
 afterEach(cleanup);
+afterAll(() => vi.unstubAllGlobals());
 
 beforeAll(() => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
     configurable: true,
@@ -25,6 +33,38 @@ beforeAll(() => {
 });
 
 describe('GsapDropdown Workbench Ambient', () => {
+  it('focuses a dialog field after opening and restores the trigger on Escape', async () => {
+    function DisplayOptions() {
+      const triggerRef = useRef<HTMLButtonElement>(null);
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button ref={triggerRef} onClick={() => setOpen(true)}>
+            Display options
+          </button>
+          <GsapDropdown
+            open={open}
+            onOpenChange={setOpen}
+            triggerRef={triggerRef}
+            role="dialog"
+            portal
+          >
+            <select aria-label="Sort">
+              <option>Source</option>
+            </select>
+          </GsapDropdown>
+        </>
+      );
+    }
+    render(<DisplayOptions />);
+    const trigger = screen.getByRole('button', { name: 'Display options' });
+    fireEvent.click(trigger);
+    const field = screen.getByRole('combobox', { name: 'Sort' });
+    await waitFor(() => expect(document.activeElement).toBe(field));
+    fireEvent.keyDown(field, { key: 'Escape' });
+    expect(document.activeElement).toBe(trigger);
+  });
+
   it('keeps Carbon scope and makes a closing menu inert until it reopens', async () => {
     const { container, rerender } = render(
       <GsapDropdown open onOpenChange={() => undefined}>
@@ -64,11 +104,17 @@ describe('GsapDropdown Workbench Ambient', () => {
       const triggerRef = useRef<HTMLButtonElement>(null);
       const [open, setOpen] = useState(false);
       return (
-        <>
+        <div style={{ clipPath: 'inset(0)' }}>
           <button ref={triggerRef} aria-expanded={open} onClick={() => setOpen(!open)}>
             Choose format
           </button>
-          <GsapDropdown open={open} onOpenChange={setOpen} triggerRef={triggerRef} role="listbox">
+          <GsapDropdown
+            open={open}
+            onOpenChange={setOpen}
+            triggerRef={triggerRef}
+            role="listbox"
+            portal
+          >
             <button role="option" aria-selected={false}>
               Square
             </button>
@@ -79,10 +125,10 @@ describe('GsapDropdown Workbench Ambient', () => {
               Landscape
             </button>
           </GsapDropdown>
-        </>
+        </div>
       );
     }
-    render(<Menu />);
+    const { container } = render(<Menu />);
     const trigger = screen.getByRole('button', { name: 'Choose format' });
     trigger.focus();
     fireEvent.keyDown(trigger, { key: 'Enter' });
@@ -90,6 +136,8 @@ describe('GsapDropdown Workbench Ambient', () => {
     await waitFor(() =>
       expect(document.activeElement).toBe(screen.getByRole('option', { name: 'Portrait' })),
     );
+    expect(container.contains(screen.getByRole('listbox'))).toBe(false);
+    expect(screen.getByRole('listbox').parentElement).toBe(document.body);
     fireEvent.keyDown(document.activeElement!, { key: 'End' });
     expect(document.activeElement).toBe(screen.getByRole('option', { name: 'Landscape' }));
     fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' });
@@ -108,5 +156,7 @@ describe('GsapDropdown Workbench Ambient', () => {
     const lastOption = await screen.findByRole('option', { name: 'Landscape' });
     fireEvent.keyDown(trigger, { key: 'ArrowUp' });
     expect(document.activeElement).toBe(lastOption);
+    fireEvent.pointerDown(document.body);
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
   });
 });

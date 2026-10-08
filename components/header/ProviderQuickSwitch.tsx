@@ -37,7 +37,6 @@ export function ProviderQuickSwitch({
 }: ProviderQuickSwitchProps) {
   const [open, setOpen] = React.useState(false);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
-  const providerLabel = provider.id === 'codex' ? 'Codex' : provider.label;
   const isRail = variant === 'rail';
 
   const selectProvider = React.useCallback(
@@ -57,42 +56,16 @@ export function ProviderQuickSwitch({
         hidden={open || isRail}
         className="flex w-full min-w-0"
       >
-        <button
-          ref={triggerRef}
-          type="button"
-          onClick={() => setOpen((value) => !value)}
-          aria-label={`Image generation provider: ${providerLabel}. Change provider`}
-          aria-haspopup="dialog"
-          aria-expanded={open}
-          aria-controls="provider-quick-switch"
-          className={
-            triggerClassName ??
-            `studio-command-surface studio-hit-target flex h-8 w-8 items-center justify-center gap-1 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-1 text-[color:var(--wb-ink)] transition-[color,background-color,border-color,opacity,transform] hover:border-accent-400/2 hover:bg-accent-500/10 hover:text-[color:var(--wb-ink)] lg:w-auto lg:justify-start lg:gap-1.5 lg:px-2 ${compactMode ? 'lg:max-w-20' : 'lg:max-w-32'}`
-          }
-        >
-          <ProviderBrandMark providerId={provider.id} size="xs" />
-          {showLabel ? (
-            <span
-              className={
-                isRail
-                  ? 'create-engine-name'
-                  : `hidden min-w-0 truncate text-[length:var(--wbp-label)] font-semibold tracking-normal lg:inline`
-              }
-            >
-              {isRail ? providerLabel : provider.toolbarLabel}
-            </span>
-          ) : null}
-          <ChevronDown
-            width={12}
-            height={12}
-            aria-hidden="true"
-            className={
-              isRail
-                ? `shrink-0 transition-transform ${open ? 'rotate-180' : ''}`
-                : `hidden shrink-0 transition-transform lg:block ${open ? 'rotate-180' : ''}`
-            }
-          />
-        </button>
+        <ProviderTrigger
+          provider={provider}
+          compactMode={compactMode}
+          triggerClassName={triggerClassName}
+          showLabel={showLabel}
+          isRail={isRail}
+          triggerRef={triggerRef}
+          open={open}
+          onToggle={() => setOpen((value) => !value)}
+        />
       </Tooltip>
       <DemandMountedGsapDropdown
         id="provider-quick-switch"
@@ -114,43 +87,15 @@ export function ProviderQuickSwitch({
           </div>
         </div>
         <div className="space-y-1">
-          {providerOptions.map((option) => {
-            const isSelected = option.id === provider.id;
-            const isUnavailable = !option.canExecute;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                data-dropdown-item
-                aria-pressed={isSelected}
-                aria-label={option.label}
-                disabled={isProviderSaving || isUnavailable}
-                data-tooltip={option.tooltip}
-                onClick={() => selectProvider(option.id)}
-                className={`flex min-h-12 w-full items-center gap-3 rounded-[var(--wb-radius)] border px-3 py-2 text-left transition-[color,background-color,border-color,opacity,transform] ${
-                  isSelected
-                    ? 'border-accent-400/2 bg-accent-500/12 text-[color:var(--wb-ink)]'
-                    : 'border-transparent bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] text-[color:var(--wb-ink)] hover:border-[color:var(--wb-border)] hover:bg-white/[0.07]'
-                } disabled:cursor-not-allowed disabled:opacity-55`}
-              >
-                <ProviderBrandMark
-                  providerId={option.id}
-                  size="sm"
-                  canExecute={option.canExecute}
-                  status={option.status}
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[length:var(--wbp-label)] font-semibold tracking-normal">
-                    {option.label}
-                  </span>
-                  <span className="mt-0.5 block text-[length:var(--wbp-label)] font-bold text-[color:var(--wb-muted)]">
-                    {option.statusDetail}
-                  </span>
-                </span>
-                {isSelected ? <Check width={15} height={15} aria-hidden="true" /> : null}
-              </button>
-            );
-          })}
+          {providerOptions.map((option) => (
+            <ProviderOption
+              key={option.id}
+              option={option}
+              isSelected={option.id === provider.id}
+              isProviderSaving={isProviderSaving}
+              selectProvider={selectProvider}
+            />
+          ))}
         </div>
         {onOpenSettings ? (
           <button
@@ -167,5 +112,107 @@ export function ProviderQuickSwitch({
         ) : null}
       </DemandMountedGsapDropdown>
     </div>
+  );
+}
+
+function ProviderOption({
+  option,
+  isSelected,
+  isProviderSaving,
+  selectProvider,
+}: {
+  option: CommandCenterProviderProjection;
+  isSelected: boolean;
+  isProviderSaving: boolean;
+  selectProvider: (providerId: GenerationProviderId) => void;
+}) {
+  const isUnavailable = !option.canExecute;
+  return (
+    <button
+      type="button"
+      data-dropdown-item
+      aria-pressed={isSelected}
+      aria-label={option.label}
+      disabled={isProviderSaving || isUnavailable}
+      data-tooltip={option.tooltip}
+      onClick={() => selectProvider(option.id)}
+      className={`flex min-h-12 w-full items-center gap-3 rounded-[var(--wb-radius)] border px-3 py-2 text-left transition-[color,background-color,border-color,opacity,transform] ${
+        isSelected
+          ? 'border-accent-400/2 bg-accent-500/12 text-[color:var(--wb-ink)]'
+          : 'border-transparent bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] text-[color:var(--wb-ink)] hover:border-[color:var(--wb-border)] hover:bg-white/[0.07]'
+      } disabled:cursor-not-allowed disabled:opacity-55`}
+    >
+      <ProviderBrandMark
+        providerId={option.id}
+        size="sm"
+        canExecute={option.canExecute}
+        status={option.status}
+      />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[length:var(--wbp-label)] font-semibold tracking-normal">
+          {option.label}
+        </span>
+        <span className="mt-0.5 block text-[length:var(--wbp-label)] font-bold text-[color:var(--wb-muted)]">
+          {option.statusDetail}
+        </span>
+      </span>
+      {isSelected ? <Check width={15} height={15} aria-hidden="true" /> : null}
+    </button>
+  );
+}
+
+function ProviderTrigger({
+  provider,
+  compactMode,
+  triggerClassName,
+  showLabel,
+  isRail,
+  triggerRef,
+  open,
+  onToggle,
+}: Pick<ProviderQuickSwitchProps, 'provider' | 'compactMode' | 'triggerClassName' | 'showLabel'> & {
+  isRail: boolean;
+  triggerRef: React.RefObject<HTMLButtonElement | null>;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const providerLabel = provider.id === 'codex' ? 'Codex' : provider.label;
+  return (
+    <button
+      ref={triggerRef}
+      type="button"
+      onClick={onToggle}
+      aria-label={`Image generation provider: ${providerLabel}. Change provider`}
+      aria-haspopup="dialog"
+      aria-expanded={open}
+      aria-controls="provider-quick-switch"
+      className={
+        triggerClassName ??
+        `studio-command-surface studio-hit-target flex h-8 w-8 items-center justify-center gap-1 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-1 text-[color:var(--wb-ink)] transition-[color,background-color,border-color,opacity,transform] hover:border-accent-400/2 hover:bg-accent-500/10 hover:text-[color:var(--wb-ink)] lg:w-auto lg:justify-start lg:gap-1.5 lg:px-2 ${compactMode ? 'lg:max-w-20' : 'lg:max-w-32'}`
+      }
+    >
+      <ProviderBrandMark providerId={provider.id} size="xs" />
+      {showLabel ? (
+        <span
+          className={
+            isRail
+              ? 'create-engine-name'
+              : `hidden min-w-0 truncate text-[length:var(--wbp-label)] font-semibold tracking-normal lg:inline`
+          }
+        >
+          {isRail ? providerLabel : provider.toolbarLabel}
+        </span>
+      ) : null}
+      <ChevronDown
+        width={12}
+        height={12}
+        aria-hidden="true"
+        className={
+          isRail
+            ? `shrink-0 transition-transform ${open ? 'rotate-180' : ''}`
+            : `hidden shrink-0 transition-transform lg:block ${open ? 'rotate-180' : ''}`
+        }
+      />
+    </button>
   );
 }

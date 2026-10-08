@@ -124,378 +124,10 @@ const CompactActionButton: React.FC<CompactActionButtonProps> = ({
   );
 };
 
-const ImageItem: React.FC<ImageItemProps> = React.memo(
-  ({
-    image,
-    isSelected,
-    onImageClick,
-    onSelectionChange,
-    onRegenerate,
-    onAddToContext,
-    onLoadConfig,
-    onDelete,
-    onToggleFavorite,
-    transitionName,
-    alwaysShowActions = false,
-    priorityLoad = false,
-    viewMode,
-    thumbnailSize,
-  }) => {
-    const itemRef = useRef<HTMLDivElement>(null);
-    const { addToast } = useToastUi();
-    const openConversion = useImageConversion();
-    const [copiedPrompt, setCopiedPrompt] = useState(false);
-    const [isActionSurfaceActive, setIsActionSurfaceActive] = useState(false);
-    const [isActionSurfaceFocused, setIsActionSurfaceFocused] = useState(false);
-    const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
-    const [isCoarsePointer] = useState(
-      () => typeof window !== 'undefined' && !!window.matchMedia?.('(hover: none)').matches,
-    );
-    const timeoutRef = useRef<number | null>(null);
-    const primaryImageSrc = image.thumbnail || image.src;
-    const [failedSrc, setFailedSrc] = useState<string | null>(null);
-    const imageSrc = primaryImageSrc;
-    const imageLoadFailed = failedSrc === primaryImageSrc;
-    const imageAspectRatio = resolveImageGridAspectRatio(image);
-    const imageIntrinsicSize = resolveImageGridIntrinsicSize(image);
-    const shouldMountActions = shouldMountCatalogCardActions({
-      alwaysShowActions,
-      isActionSurfaceActive: isActionSurfaceActive || isActionSurfaceFocused || isActionMenuOpen,
-      isSelected,
-    });
-    const isGridView = viewMode === 'grid';
-    const isListView = viewMode === 'list';
-    const frameAspectRatio = isGridView || isListView ? '1 / 1' : imageAspectRatio;
-    const listThumbnailSize = Math.max(88, Math.min(136, Math.round(thumbnailSize * 0.66)));
-    const promptText = image.config.prompt?.trim() || 'Untitled image';
-    const dimensionsLabel =
-      typeof image.width === 'number' &&
-      Number.isFinite(image.width) &&
-      image.width > 0 &&
-      typeof image.height === 'number' &&
-      Number.isFinite(image.height) &&
-      image.height > 0
-        ? `${image.width}x${image.height}`
-        : null;
-    const metaItems = [
-      image.providerId ? providerBrandChipLabel(image.providerId) : null,
-      dimensionsLabel || image.config.aspectRatio,
-      image.mimeType?.split('/')[1]?.toUpperCase(),
-    ].filter(Boolean);
-
-    React.useEffect(() => {
-      const timeout = timeoutRef.current;
-      return () => {
-        if (timeout) {
-          clearTimeout(timeout);
-        }
-      };
-    }, []);
-
-    const handleImageError = () => {
-      setFailedSrc(primaryImageSrc);
-    };
-
-    const handleSelectClick = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onSelectionChange(image.id, !isSelected);
-    };
-
-    const handleImageClick = () => {
-      if (itemRef.current) {
-        onImageClick(image, itemRef.current.getBoundingClientRect());
-      }
-    };
-
-    const handleFocusCapture = () => {
-      setIsActionSurfaceFocused(true);
-    };
-
-    const handleBlurCapture = (event: React.FocusEvent<HTMLDivElement>) => {
-      if (event.currentTarget.contains(event.relatedTarget)) {
-        return;
-      }
-
-      setIsActionSurfaceFocused(false);
-    };
-
-    const handleDownload = () => {
-      const smartName = generateSmartFilename(
-        image.config.prompt,
-        image.id,
-        image.config.model,
-        image.config.aspectRatio,
-        undefined,
-        image.mimeType,
-        image.localPath,
-      );
-      downloadImage(image.src, smartName);
-    };
-
-    const withFullConfig = async (
-      action: (config: ImageGenerationConfig) => void | Promise<void>,
-    ) => {
-      try {
-        const detail = await getCatalogImageDetail(image.id);
-        await action(buildGenerationConfigFromCatalogImage(detail));
-      } catch {
-        addToast('Could not complete image action. Please try again.', 'error');
-      }
-    };
-
-    const handleCopyPrompt = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (copiedPrompt) return;
-      void withFullConfig(async (config) => {
-        await navigator.clipboard.writeText(config.prompt || '');
-        setCopiedPrompt(true);
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        timeoutRef.current = window.setTimeout(() => setCopiedPrompt(false), 2000);
-      });
-    };
-
-    const renderImageFrame = ({
-      frameClassName,
-      imageClassName = 'block h-full w-full cursor-pointer object-cover',
-      style,
-    }: {
-      frameClassName: string;
-      imageClassName?: string;
-      style?: React.CSSProperties;
-    }) => {
-      const frameStyle = {
-        aspectRatio: frameAspectRatio,
-        viewTransitionName: transitionName,
-        ...style,
-      };
-
-      return imageLoadFailed ? (
-        <div
-          className={`${frameClassName} flex items-center justify-center text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]`}
-          style={frameStyle}
-          aria-label="Image unavailable"
-        >
-          <ImageOff width={20} height={20} aria-hidden="true" />
-        </div>
-      ) : (
-        <span className={frameClassName} style={frameStyle}>
-          <img
-            src={imageSrc}
-            alt=""
-            width={imageIntrinsicSize.width}
-            height={imageIntrinsicSize.height}
-            loading={priorityLoad ? 'eager' : 'lazy'}
-            fetchPriority={priorityLoad ? 'high' : 'auto'}
-            decoding="async"
-            onError={handleImageError}
-            className={imageClassName}
-          />
-        </span>
-      );
-    };
-
-    const metadataLine = (
-      <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]">
-        {metaItems.map((item) => (
-          <span key={String(item)} className="max-w-36 truncate">
-            {item}
-          </span>
-        ))}
-      </div>
-    );
-
-    const renderActionGroup = (compact: boolean) => (
-      <div className="library-card-actions catalog-hover-actions">
-        <CompactActionButton
-          onClick={() => onAddToContext(image)}
-          icon={<PlusCircle width={14} height={14} />}
-          label="Use as reference"
-          variant="primary"
-        />
-        {compact ? null : (
-          <>
-            <CompactActionButton
-              onClick={handleCopyPrompt}
-              icon={
-                copiedPrompt ? (
-                  <Check width={14} height={14} />
-                ) : (
-                  <ClipboardList width={14} height={14} />
-                )
-              }
-              label={copiedPrompt ? 'Prompt copied' : 'Copy prompt'}
-            />
-            <CompactActionButton
-              onClick={handleDownload}
-              icon={<Download width={14} height={14} />}
-              label="Download"
-            />
-          </>
-        )}
-        {
-          <CompactActionButton
-            onClick={() => onToggleFavorite(image.id)}
-            icon={
-              <Heart width={14} height={14} fill={image.isFavorite ? 'currentColor' : 'none'} />
-            }
-            label={image.isFavorite ? 'Remove favorite' : 'Add favorite'}
-            isActive={image.isFavorite}
-          />
-        }
-        {
-          <CompactActionButton
-            onClick={handleSelectClick}
-            icon={<Check width={14} height={14} />}
-            label={isSelected ? 'Deselect' : 'Select'}
-            isActive={isSelected}
-          />
-        }
-        <details
-          className="library-card-menu"
-          onToggle={(event) => setIsActionMenuOpen(event.currentTarget.open)}
-          onClick={(event) => event.stopPropagation()}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              event.currentTarget.open = false;
-              event.currentTarget.querySelector('summary')?.focus();
-            }
-          }}
-        >
-          <summary aria-label="More image actions" data-tooltip="More image actions">
-            •••
-          </summary>
-          <div>
-            {compact ? (
-              <>
-                <button type="button" onClick={handleCopyPrompt}>
-                  {copiedPrompt ? (
-                    <Check width={14} height={14} />
-                  ) : (
-                    <ClipboardList width={14} height={14} />
-                  )}{' '}
-                  {copiedPrompt ? 'Prompt copied' : 'Copy prompt'}
-                </button>
-                <button type="button" onClick={handleDownload}>
-                  <Download width={14} height={14} /> Download
-                </button>
-              </>
-            ) : null}
-            {openConversion && (
-              <button type="button" onClick={() => openConversion([image])}>
-                <Photo width={14} height={14} /> Convert or compress
-              </button>
-            )}
-            <button type="button" onClick={() => void withFullConfig(onLoadConfig)}>
-              <History width={14} height={14} /> Load configuration
-            </button>
-            <button type="button" onClick={() => void withFullConfig(onRegenerate)}>
-              <RefreshCw width={14} height={14} /> Regenerate
-            </button>
-            <button type="button" className="is-danger" onClick={() => onDelete(image.id)}>
-              <Trash2 width={14} height={14} /> Move to trash
-            </button>
-          </div>
-        </details>
-      </div>
-    );
-
-    if (isListView) {
-      return (
-        <div
-          ref={itemRef}
-          onMouseEnter={() => setIsActionSurfaceActive(true)}
-          onMouseLeave={() => setIsActionSurfaceActive(false)}
-          onFocusCapture={handleFocusCapture}
-          onBlurCapture={handleBlurCapture}
-          className={`group flex min-w-0 flex-col gap-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-2 text-left shadow-lg shadow-black/25 transition-[border-color,background-color,opacity,transform,box-shadow] sm:flex-row sm:items-center
-          ${isSelected ? 'ring-2 ring-accent-500 ring-offset-2 ring-offset-black' : 'hover:border-[color:var(--wb-border)] hover:bg-[color:var(--wb-panel)]/85'}
-        `}
-          style={{ contentVisibility: 'auto', containIntrinsicSize: '720px 120px' }}
-        >
-          <button
-            type="button"
-            onClick={handleImageClick}
-            aria-label={`Open image preview: ${image.config.prompt?.slice(0, 80) || image.id}`}
-            className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 appearance-none border-none bg-transparent p-0 text-left"
-          >
-            {renderImageFrame({
-              frameClassName:
-                'block shrink-0 overflow-hidden rounded-[var(--wb-radius)] bg-[color:var(--wb-panel)] ring-1 ring-white/10',
-              style: { width: listThumbnailSize, height: listThumbnailSize },
-            })}
-            <span className="min-w-0 flex-1">
-              <span
-                data-tooltip={promptText}
-                className="line-clamp-2 text-sm font-semibold leading-5 text-[color:var(--wb-ink)]"
-              >
-                {promptText}
-              </span>
-              <span className="mt-2 block">{metadataLine}</span>
-            </span>
-          </button>
-          <div className="flex shrink-0 justify-end sm:max-w-[17.25rem]">
-            {renderActionGroup(false)}
-          </div>
-        </div>
-      );
-    }
-
-    const isMosaicView = viewMode === 'mosaic';
-    const toolbarPlacement = isWideImageGridFrame(image, viewMode) ? 'caption' : 'image';
-
-    return (
-      <div
-        ref={itemRef}
-        onMouseEnter={() => setIsActionSurfaceActive(true)}
-        onMouseLeave={() => setIsActionSurfaceActive(false)}
-        onFocusCapture={handleFocusCapture}
-        onBlurCapture={handleBlurCapture}
-        data-toolbar={toolbarPlacement}
-        className={`catalog-art-card library-card group relative flex min-w-0 flex-col rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] text-left shadow-lg shadow-black/25 transition-[border-color,box-shadow]
-        ${isMosaicView ? 'masonry-item mb-4' : ''}
-        ${isSelected ? 'ring-2 ring-accent-500 ring-offset-2 ring-offset-black z-10' : 'hover:border-[color:var(--wb-border)]'}
-      `}
-        style={{
-          contentVisibility: isActionMenuOpen ? 'visible' : 'auto',
-          ['--library-caption-height' as string]: `${IMAGE_GRID_CAPTION_HEIGHT}px`,
-          containIntrinsicSize: '320px 420px',
-        }}
-      >
-        <div className="relative overflow-hidden rounded-t-[var(--wb-radius)]">
-          <button
-            type="button"
-            onClick={handleImageClick}
-            aria-label={`Open image preview: ${image.config.prompt?.slice(0, 80) || image.id}`}
-            data-tooltip-off
-            className="block w-full cursor-pointer appearance-none border-none bg-transparent p-0 text-left"
-          >
-            {renderImageFrame({
-              frameClassName:
-                'block w-full overflow-hidden bg-[color:var(--wb-well)] ring-1 ring-inset ring-white/10',
-              imageClassName: 'block h-full w-full cursor-pointer object-contain',
-            })}
-          </button>
-          {isSelected ? (
-            <span className="catalog-selected-mark" aria-label="Selected">
-              <Check width={14} height={14} />
-            </span>
-          ) : null}
-        </div>
-        <div className="library-card-toolbar">
-          {shouldMountActions || isCoarsePointer ? renderActionGroup(true) : null}
-        </div>
-        <div
-          className="library-card-caption"
-          style={{ height: IMAGE_GRID_CAPTION_HEIGHT }}
-          data-tooltip={promptText}
-        >
-          <span className="library-card-caption-title">{promptText}</span>
-          {metadataLine}
-        </div>
-      </div>
-    );
-  },
-);
+const ImageItem: React.FC<ImageItemProps> = React.memo((props) => {
+  const model = useImageItem(props);
+  return <ImageItemView model={model} />;
+});
 
 const EMPTY_GENERATION_PLACEHOLDERS: StudioGenerationPlaceholder[] = [];
 const IMAGE_GRID_SORT_OPTIONS = [
@@ -529,7 +161,11 @@ const IMAGE_GRID_SORT_OPTIONS = [
     label: 'Image ID',
     description: 'Stable file/id order',
   },
-] satisfies Array<{ value: ImageGridSortOption; label: string; description: string }>;
+] satisfies Array<{
+  value: ImageGridSortOption;
+  label: string;
+  description: string;
+}>;
 
 const IMAGE_GRID_VIEW_OPTIONS = [
   {
@@ -665,8 +301,523 @@ function getViewportHeightSnapshot() {
   return window.innerHeight;
 }
 
-export const ImageGrid: React.FC<ImageGridProps> = React.memo(
-  ({
+export const ImageGrid: React.FC<ImageGridProps> = React.memo((props) => {
+  const model = useImageGrid(props);
+  return <ImageGridView model={model} />;
+});
+
+function useImageItem(props: ImageItemProps) {
+  const {
+    image,
+    isSelected,
+    onImageClick,
+    onSelectionChange,
+    onRegenerate,
+    onAddToContext,
+    onLoadConfig,
+    onDelete,
+    onToggleFavorite,
+    transitionName,
+    alwaysShowActions = false,
+    priorityLoad = false,
+    viewMode,
+    thumbnailSize,
+  } = props;
+  const itemRef = useRef<HTMLDivElement>(null);
+  const { addToast } = useToastUi();
+  const openConversion = useImageConversion();
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const [isActionSurfaceActive, setIsActionSurfaceActive] = useState(false);
+  const [isActionSurfaceFocused, setIsActionSurfaceFocused] = useState(false);
+  const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+  const actionMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const actionMenuId = React.useId();
+  const [isCoarsePointer] = useState(
+    () => typeof window !== 'undefined' && !!window.matchMedia?.('(hover: none)').matches,
+  );
+  const timeoutRef = useRef<number | null>(null);
+  const primaryImageSrc = image.thumbnail || image.src;
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const imageSrc = primaryImageSrc;
+  const imageLoadFailed = failedSrc === primaryImageSrc;
+  const imageAspectRatio = resolveImageGridAspectRatio(image);
+  const imageIntrinsicSize = resolveImageGridIntrinsicSize(image);
+  const shouldMountActions = shouldMountCatalogCardActions({
+    alwaysShowActions,
+    isActionSurfaceActive: isActionSurfaceActive || isActionSurfaceFocused || isActionMenuOpen,
+    isSelected,
+  });
+  const isGridView = viewMode === 'grid';
+  const isListView = viewMode === 'list';
+  const frameAspectRatio = isGridView || isListView ? '1 / 1' : imageAspectRatio;
+  const listThumbnailSize = Math.max(88, Math.min(136, Math.round(thumbnailSize * 0.66)));
+  const promptText = image.config.prompt?.trim() || 'Untitled image';
+  const dimensionsLabel =
+    typeof image.width === 'number' &&
+    Number.isFinite(image.width) &&
+    image.width > 0 &&
+    typeof image.height === 'number' &&
+    Number.isFinite(image.height) &&
+    image.height > 0
+      ? `${image.width}x${image.height}`
+      : null;
+  const metaItems = [
+    image.providerId ? providerBrandChipLabel(image.providerId) : null,
+    dimensionsLabel || image.config.aspectRatio,
+    image.mimeType?.split('/')[1]?.toUpperCase(),
+  ].filter(Boolean);
+
+  React.useEffect(() => {
+    const timeout = timeoutRef.current;
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    };
+  }, []);
+
+  const handleImageError = () => {
+    setFailedSrc(primaryImageSrc);
+  };
+
+  const handleSelectClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSelectionChange(image.id, !isSelected);
+  };
+
+  const handleImageClick = () => {
+    if (itemRef.current) {
+      onImageClick(image, itemRef.current.getBoundingClientRect());
+    }
+  };
+
+  const handleContextMenu = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsActionMenuOpen(true);
+  };
+
+  const handleCardKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
+      event.preventDefault();
+      actionMenuTriggerRef.current?.focus();
+      setIsActionMenuOpen(true);
+    }
+  };
+
+  const handleFocusCapture = () => {
+    setIsActionSurfaceFocused(true);
+  };
+
+  const handleBlurCapture = (event: React.FocusEvent<HTMLDivElement>) => {
+    if (event.currentTarget.contains(event.relatedTarget)) {
+      return;
+    }
+
+    setIsActionSurfaceFocused(false);
+  };
+
+  const handleDownload = () => {
+    const smartName = generateSmartFilename(
+      image.config.prompt,
+      image.id,
+      image.config.model,
+      image.config.aspectRatio,
+      undefined,
+      image.mimeType,
+      image.localPath,
+    );
+    downloadImage(image.src, smartName);
+  };
+
+  const withFullConfig = async (
+    action: (config: ImageGenerationConfig) => void | Promise<void>,
+  ) => {
+    try {
+      const detail = await getCatalogImageDetail(image.id);
+      await action(buildGenerationConfigFromCatalogImage(detail));
+    } catch {
+      addToast('Could not complete image action. Please try again.', 'error');
+    }
+  };
+
+  const handleCopyPrompt = () => {
+    if (copiedPrompt) return;
+    void withFullConfig(async (config) => {
+      await navigator.clipboard.writeText(config.prompt || '');
+      setCopiedPrompt(true);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = window.setTimeout(() => setCopiedPrompt(false), 2000);
+    });
+  };
+
+  return {
+    frameAspectRatio,
+    transitionName,
+    imageLoadFailed,
+    imageSrc,
+    imageIntrinsicSize,
+    priorityLoad,
+    handleImageError,
+    metaItems,
+    onAddToContext,
+    image,
+    handleCopyPrompt,
+    copiedPrompt,
+    handleDownload,
+    onToggleFavorite,
+    handleSelectClick,
+    isSelected,
+    actionMenuTriggerRef,
+    isActionMenuOpen,
+    actionMenuId,
+    setIsActionMenuOpen,
+    viewMode,
+    openConversion,
+    withFullConfig,
+    onLoadConfig,
+    onRegenerate,
+    onDelete,
+    isListView,
+    itemRef,
+    handleContextMenu,
+    handleCardKeyDown,
+    setIsActionSurfaceActive,
+    handleFocusCapture,
+    handleBlurCapture,
+    handleImageClick,
+    listThumbnailSize,
+    promptText,
+    shouldMountActions,
+    isCoarsePointer,
+  };
+}
+type ImageItemModel = ReturnType<typeof useImageItem>;
+function ImageItemView({ model }: { model: ImageItemModel }) {
+  const {
+    frameAspectRatio,
+    transitionName,
+    imageLoadFailed,
+    imageSrc,
+    imageIntrinsicSize,
+    priorityLoad,
+    handleImageError,
+    metaItems,
+    isListView,
+    itemRef,
+    handleContextMenu,
+    handleCardKeyDown,
+    setIsActionSurfaceActive,
+    handleFocusCapture,
+    handleBlurCapture,
+    isSelected,
+    handleImageClick,
+    image,
+    listThumbnailSize,
+    promptText,
+    viewMode,
+    isActionMenuOpen,
+    shouldMountActions,
+    isCoarsePointer,
+  } = model;
+  const renderImageFrame = ({
+    frameClassName,
+    imageClassName = 'block h-full w-full cursor-pointer object-cover',
+    style,
+  }: {
+    frameClassName: string;
+    imageClassName?: string;
+    style?: React.CSSProperties;
+  }) => {
+    const frameStyle = {
+      aspectRatio: frameAspectRatio,
+      viewTransitionName: transitionName,
+      ...style,
+    };
+
+    return imageLoadFailed ? (
+      <div
+        className={`${frameClassName} flex items-center justify-center text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]`}
+        style={frameStyle}
+        aria-label="Image unavailable"
+      >
+        <ImageOff width={20} height={20} aria-hidden="true" />
+      </div>
+    ) : (
+      <span className={frameClassName} style={frameStyle}>
+        <img
+          src={imageSrc}
+          alt=""
+          width={imageIntrinsicSize.width}
+          height={imageIntrinsicSize.height}
+          loading={priorityLoad ? 'eager' : 'lazy'}
+          fetchPriority={priorityLoad ? 'high' : 'auto'}
+          decoding="async"
+          onError={handleImageError}
+          className={imageClassName}
+        />
+      </span>
+    );
+  };
+
+  const metadataLine = (
+    <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]">
+      {metaItems.map((item) => (
+        <span key={String(item)} className="max-w-36 truncate">
+          {item}
+        </span>
+      ))}
+    </div>
+  );
+
+  if (isListView) {
+    return (
+      <div
+        ref={itemRef}
+        onContextMenu={handleContextMenu}
+        onKeyDown={handleCardKeyDown}
+        onMouseEnter={() => setIsActionSurfaceActive(true)}
+        onMouseLeave={() => setIsActionSurfaceActive(false)}
+        onFocusCapture={handleFocusCapture}
+        onBlurCapture={handleBlurCapture}
+        className={`group flex min-w-0 flex-col gap-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-2 text-left shadow-lg shadow-black/25 transition-[border-color,background-color,opacity,transform,box-shadow] sm:flex-row sm:items-center
+          ${isSelected ? 'ring-2 ring-accent-500 ring-offset-2 ring-offset-black' : 'hover:border-[color:var(--wb-border)] hover:bg-[color:var(--wb-panel)]/85'}
+        `}
+        style={{
+          contentVisibility: 'auto',
+          containIntrinsicSize: '720px 120px',
+        }}
+      >
+        <button
+          type="button"
+          onClick={handleImageClick}
+          aria-label={`Open image preview: ${image.config.prompt?.slice(0, 80) || image.id}`}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 appearance-none border-none bg-transparent p-0 text-left"
+        >
+          {renderImageFrame({
+            frameClassName:
+              'block shrink-0 overflow-hidden rounded-[var(--wb-radius)] bg-[color:var(--wb-panel)] ring-1 ring-white/10',
+            style: { width: listThumbnailSize, height: listThumbnailSize },
+          })}
+          <span className="min-w-0 flex-1">
+            <span
+              data-tooltip={promptText}
+              className="line-clamp-2 text-sm font-semibold leading-5 text-[color:var(--wb-ink)]"
+            >
+              {promptText}
+            </span>
+            <span className="mt-2 block">{metadataLine}</span>
+          </span>
+        </button>
+        <div className="flex shrink-0 justify-end sm:max-w-[17.25rem]">
+          {<ImageItemActions model={model} compact={false} />}
+        </div>
+      </div>
+    );
+  }
+
+  const isMosaicView = viewMode === 'mosaic';
+  const toolbarPlacement = isWideImageGridFrame(image, viewMode) ? 'caption' : 'image';
+
+  return (
+    <div
+      ref={itemRef}
+      onContextMenu={handleContextMenu}
+      onKeyDown={handleCardKeyDown}
+      onMouseEnter={() => setIsActionSurfaceActive(true)}
+      onMouseLeave={() => setIsActionSurfaceActive(false)}
+      onFocusCapture={handleFocusCapture}
+      onBlurCapture={handleBlurCapture}
+      data-toolbar={toolbarPlacement}
+      data-menu-open={isActionMenuOpen}
+      className={`catalog-art-card library-card group relative flex min-w-0 flex-col rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] text-left shadow-lg shadow-black/25 transition-[border-color,box-shadow]
+        ${isMosaicView ? 'masonry-item mb-4' : ''}
+        ${isSelected ? 'ring-2 ring-accent-500 ring-offset-2 ring-offset-black z-10' : 'hover:border-[color:var(--wb-border)]'}
+      `}
+      style={{
+        contentVisibility: isActionMenuOpen ? 'visible' : 'auto',
+        ['--library-caption-height' as string]: `${IMAGE_GRID_CAPTION_HEIGHT}px`,
+        containIntrinsicSize: '320px 420px',
+      }}
+    >
+      <div className="relative overflow-hidden rounded-t-[var(--wb-radius)]">
+        <button
+          type="button"
+          onClick={handleImageClick}
+          aria-label={`Open image preview: ${image.config.prompt?.slice(0, 80) || image.id}`}
+          data-tooltip-off
+          className="block w-full cursor-pointer appearance-none border-none bg-transparent p-0 text-left"
+        >
+          {renderImageFrame({
+            frameClassName:
+              'block w-full overflow-hidden bg-[color:var(--wb-well)] ring-1 ring-inset ring-white/10',
+            imageClassName: 'block h-full w-full cursor-pointer object-contain',
+          })}
+        </button>
+        {isSelected ? (
+          <span className="catalog-selected-mark" aria-label="Selected">
+            <Check width={14} height={14} />
+          </span>
+        ) : null}
+      </div>
+      <div className="library-card-toolbar">
+        {shouldMountActions || isCoarsePointer ? <ImageItemActions model={model} compact /> : null}
+      </div>
+      <div
+        className="library-card-caption"
+        style={{ height: IMAGE_GRID_CAPTION_HEIGHT }}
+        data-tooltip={promptText}
+      >
+        <span className="library-card-caption-title">{promptText}</span>
+        {metadataLine}
+      </div>
+    </div>
+  );
+}
+
+function ImageItemActions({ model, compact }: { model: ImageItemModel; compact: boolean }) {
+  const {
+    onAddToContext,
+    image,
+    handleCopyPrompt,
+    copiedPrompt,
+    handleDownload,
+    onToggleFavorite,
+    handleSelectClick,
+    isSelected,
+    actionMenuTriggerRef,
+    isActionMenuOpen,
+    actionMenuId,
+    setIsActionMenuOpen,
+    viewMode,
+    openConversion,
+    withFullConfig,
+    onLoadConfig,
+    onRegenerate,
+    onDelete,
+  } = model;
+  return (
+    <div className="library-card-actions catalog-hover-actions">
+      <CompactActionButton
+        onClick={() => onAddToContext(image)}
+        icon={<PlusCircle width={14} height={14} />}
+        label="Use as reference"
+        variant="primary"
+      />
+      {compact ? null : (
+        <>
+          <CompactActionButton
+            onClick={handleCopyPrompt}
+            icon={
+              copiedPrompt ? (
+                <Check width={14} height={14} />
+              ) : (
+                <ClipboardList width={14} height={14} />
+              )
+            }
+            label={copiedPrompt ? 'Prompt copied' : 'Copy prompt'}
+          />
+          <CompactActionButton
+            onClick={handleDownload}
+            icon={<Download width={14} height={14} />}
+            label="Download"
+          />
+        </>
+      )}
+      {
+        <CompactActionButton
+          onClick={() => onToggleFavorite(image.id)}
+          icon={<Heart width={14} height={14} fill={image.isFavorite ? 'currentColor' : 'none'} />}
+          label={image.isFavorite ? 'Remove favorite' : 'Add favorite'}
+          isActive={image.isFavorite}
+        />
+      }
+      {
+        <CompactActionButton
+          onClick={handleSelectClick}
+          icon={<Check width={14} height={14} />}
+          label={isSelected ? 'Deselect' : 'Select'}
+          isActive={isSelected}
+        />
+      }
+      <div className="library-card-menu">
+        <button
+          ref={actionMenuTriggerRef}
+          type="button"
+          aria-label="More image actions"
+          aria-haspopup="menu"
+          aria-expanded={isActionMenuOpen}
+          aria-controls={actionMenuId}
+          data-tooltip="More image actions"
+          onClick={(event) => {
+            event.stopPropagation();
+            setIsActionMenuOpen((open) => !open);
+          }}
+        >
+          •••
+        </button>
+        <DemandMountedGsapDropdown
+          id={actionMenuId}
+          open={isActionMenuOpen}
+          onOpenChange={setIsActionMenuOpen}
+          triggerRef={actionMenuTriggerRef}
+          portal
+          placement={isWideImageGridFrame(image, viewMode) ? 'top-right' : 'bottom-right'}
+          className="library-image-menu studio-popover"
+          aria-label="Image actions"
+          onClick={(event) => {
+            event.stopPropagation();
+            if ((event.target as HTMLElement).closest('[role="menuitem"]')) {
+              actionMenuTriggerRef.current?.focus();
+              setIsActionMenuOpen(false);
+            }
+          }}
+        >
+          <button type="button" role="menuitem" onClick={() => onAddToContext(image)}>
+            <PlusCircle width={14} height={14} /> Use as reference
+          </button>
+          {compact ? (
+            <>
+              <button type="button" role="menuitem" onClick={handleCopyPrompt}>
+                {copiedPrompt ? (
+                  <Check width={14} height={14} />
+                ) : (
+                  <ClipboardList width={14} height={14} />
+                )}{' '}
+                {copiedPrompt ? 'Prompt copied' : 'Copy prompt'}
+              </button>
+              <button type="button" role="menuitem" onClick={handleDownload}>
+                <Download width={14} height={14} /> Download
+              </button>
+            </>
+          ) : null}
+          {openConversion && (
+            <button type="button" role="menuitem" onClick={() => openConversion([image])}>
+              <Photo width={14} height={14} /> Convert or compress
+            </button>
+          )}
+          <button type="button" role="menuitem" onClick={() => void withFullConfig(onLoadConfig)}>
+            <History width={14} height={14} /> Load configuration
+          </button>
+          <button type="button" role="menuitem" onClick={() => void withFullConfig(onRegenerate)}>
+            <RefreshCw width={14} height={14} /> Regenerate
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="is-danger"
+            onClick={() => onDelete(image.id)}
+          >
+            <Trash2 width={14} height={14} /> Move to trash
+          </button>
+        </DemandMountedGsapDropdown>
+      </div>
+    </div>
+  );
+}
+
+function useImageGrid(props: ImageGridProps) {
+  const {
     images,
     selectedImageIds,
     onImageClick,
@@ -694,756 +845,934 @@ export const ImageGrid: React.FC<ImageGridProps> = React.memo(
     onLoadMore,
     onRetryCatalog,
     generationPlaceholders = EMPTY_GENERATION_PLACEHOLDERS,
-  }) => {
-    const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
-    const openConversion = useImageConversion();
-    const [thumbnailSize, setThumbnailSize] = useState(DEFAULT_THUMBNAIL_SIZE);
-    const [viewMode, setViewMode] = useState<ImageGridViewMode>(DEFAULT_IMAGE_GRID_VIEW_MODE);
-    const sortButtonRef = useRef<HTMLButtonElement | null>(null);
-    const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-    const autoLoadSentinelRef = useRef<HTMLDivElement | null>(null);
-    const scrollRafRef = useRef<number | null>(null);
-    const autoLoadPendingRef = useRef(false);
-    const sortMenuId = React.useId();
-    const [scrollTop, setScrollTop] = useState(0);
-    const [scrollViewportHeight, setScrollViewportHeight] = useState(getViewportHeightSnapshot);
-    const viewportWidth = useSyncExternalStore(
-      subscribeViewportSize,
-      getViewportWidthSnapshot,
-      () => 1280,
-    );
-    const viewportHeight = useSyncExternalStore(
-      subscribeViewportSize,
-      getViewportHeightSnapshot,
-      () => 900,
-    );
-    const gridMeasureRef = useRef<HTMLDivElement>(null);
-    const [gridMeasuredWidth, setGridMeasuredWidth] = useState(0);
+  } = props;
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+  const openConversion = useImageConversion();
+  const [thumbnailSize, setThumbnailSize] = useState(DEFAULT_THUMBNAIL_SIZE);
+  const [viewMode, setViewMode] = useState<ImageGridViewMode>(DEFAULT_IMAGE_GRID_VIEW_MODE);
+  const sortButtonRef = useRef<HTMLButtonElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const autoLoadSentinelRef = useRef<HTMLDivElement | null>(null);
+  const scrollRafRef = useRef<number | null>(null);
+  const autoLoadPendingRef = useRef(false);
+  const sortMenuId = React.useId();
+  const [scrollTop, setScrollTop] = useState(0);
+  const [scrollViewportHeight, setScrollViewportHeight] = useState(getViewportHeightSnapshot);
+  const viewportWidth = useSyncExternalStore(
+    subscribeViewportSize,
+    getViewportWidthSnapshot,
+    () => 1280,
+  );
+  const viewportHeight = useSyncExternalStore(
+    subscribeViewportSize,
+    getViewportHeightSnapshot,
+    () => 900,
+  );
+  const gridMeasureRef = useRef<HTMLDivElement>(null);
+  const [gridMeasuredWidth, setGridMeasuredWidth] = useState(0);
 
-    const sourceImageCount = images.length;
-    const favoriteCount = useMemo(
-      () => images.reduce((count, image) => count + (image.isFavorite ? 1 : 0), 0),
-      [images],
-    );
-    const visibleImages = useMemo(
-      () => filterImageGridImages(images, showFavoritesOnly),
-      [images, showFavoritesOnly],
-    );
-    const imageCount = visibleImages.length;
-    const alwaysShowCardActions = shouldAlwaysShowCatalogCardActions(viewportWidth);
-    const totalCount = catalogTotal ?? sourceImageCount;
-    const isPartialCatalog = hasMore || totalCount > sourceImageCount;
-    const visibleImageIds = useMemo(
-      () => new Set(visibleImages.map((image) => image.id)),
-      [visibleImages],
-    );
-    const selectedImageCount = selectedImageIds.filter((id) => visibleImageIds.has(id)).length;
-    const isAllSelected = imageCount > 0 && selectedImageCount === imageCount;
-    const activeSortOption =
-      IMAGE_GRID_SORT_OPTIONS.find((option) => option.value === sortOrder) ??
-      IMAGE_GRID_SORT_OPTIONS[0];
-    const activeViewOption =
-      IMAGE_GRID_VIEW_OPTIONS.find((option) => option.value === viewMode) ??
-      IMAGE_GRID_VIEW_OPTIONS[0];
+  const sourceImageCount = images.length;
+  const favoriteCount = useMemo(
+    () => images.reduce((count, image) => count + (image.isFavorite ? 1 : 0), 0),
+    [images],
+  );
+  const visibleImages = useMemo(
+    () => filterImageGridImages(images, showFavoritesOnly),
+    [images, showFavoritesOnly],
+  );
+  const imageCount = visibleImages.length;
+  const alwaysShowCardActions = shouldAlwaysShowCatalogCardActions(viewportWidth);
+  const totalCount = catalogTotal ?? sourceImageCount;
+  const isPartialCatalog = hasMore || totalCount > sourceImageCount;
+  const visibleImageIds = useMemo(
+    () => new Set(visibleImages.map((image) => image.id)),
+    [visibleImages],
+  );
+  const selectedImageIdSet = useMemo(() => new Set(selectedImageIds), [selectedImageIds]);
+  const selectedImageCount = selectedImageIds.filter((id) => visibleImageIds.has(id)).length;
+  const isAllSelected = imageCount > 0 && selectedImageCount === imageCount;
+  const activeSortOption =
+    IMAGE_GRID_SORT_OPTIONS.find((option) => option.value === sortOrder) ??
+    IMAGE_GRID_SORT_OPTIONS[0];
+  const activeViewOption =
+    IMAGE_GRID_VIEW_OPTIONS.find((option) => option.value === viewMode) ??
+    IMAGE_GRID_VIEW_OPTIONS[0];
 
-    const sortedImages = useMemo(() => {
-      return sortImageGridImages(visibleImages, sortOrder);
-    }, [visibleImages, sortOrder]);
+  const sortedImages = useMemo(() => {
+    return sortImageGridImages(visibleImages, sortOrder);
+  }, [visibleImages, sortOrder]);
 
-    const gridItems = useMemo<GridItem[]>(
-      () => [
-        ...generationPlaceholders.map((placeholder) => ({
-          type: 'placeholder' as const,
-          placeholder,
-        })),
-        ...sortedImages.map((image) => ({ type: 'image' as const, image })),
-      ],
-      [generationPlaceholders, sortedImages],
-    );
+  const gridItems = useMemo<GridItem[]>(
+    () => [
+      ...generationPlaceholders.map((placeholder) => ({
+        type: 'placeholder' as const,
+        placeholder,
+      })),
+      ...sortedImages.map((image) => ({ type: 'image' as const, image })),
+    ],
+    [generationPlaceholders, sortedImages],
+  );
 
-    React.useEffect(() => {
-      const element = gridMeasureRef.current;
-      if (!element) {
-        setGridMeasuredWidth(0);
-        return;
+  React.useEffect(() => {
+    const element = gridMeasureRef.current;
+    if (!element) {
+      setGridMeasuredWidth(0);
+      return;
+    }
+
+    const updateGridWidth = () => {
+      setGridMeasuredWidth(element.clientWidth);
+    };
+
+    updateGridWidth();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateGridWidth);
+      return () => window.removeEventListener('resize', updateGridWidth);
+    }
+
+    const resizeObserver = new ResizeObserver(updateGridWidth);
+    resizeObserver.observe(element);
+    return () => resizeObserver.disconnect();
+  }, [gridItems.length, viewportWidth]);
+
+  React.useEffect(() => {
+    const element = scrollContainerRef.current;
+    if (!element) {
+      setScrollTop(0);
+      setScrollViewportHeight(viewportHeight);
+      return;
+    }
+
+    const updateScrollViewport = () => {
+      setScrollTop(element.scrollTop);
+      setScrollViewportHeight(element.clientHeight || viewportHeight);
+    };
+
+    updateScrollViewport();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateScrollViewport);
+      return () => window.removeEventListener('resize', updateScrollViewport);
+    }
+
+    const resizeObserver = new ResizeObserver(updateScrollViewport);
+    resizeObserver.observe(element);
+    return () => resizeObserver.disconnect();
+  }, [viewportHeight]);
+
+  React.useEffect(() => {
+    return () => {
+      if (scrollRafRef.current !== null) {
+        cancelAnimationFrame(scrollRafRef.current);
       }
+    };
+  }, []);
 
-      const updateGridWidth = () => {
-        setGridMeasuredWidth(element.clientWidth);
-      };
+  const columnCount = useMemo(() => {
+    const measuredGridWidth = gridMeasuredWidth || viewportWidth;
+    return resolveImageGridColumnCount({
+      viewportWidth: measuredGridWidth,
+      thumbnailSize,
+      itemCount: gridItems.length,
+      horizontalPadding: gridMeasuredWidth > 0 ? 0 : undefined,
+      viewMode,
+    });
+  }, [gridMeasuredWidth, viewportWidth, thumbnailSize, gridItems.length, viewMode]);
 
-      updateGridWidth();
+  const columnBuckets = useMemo(() => {
+    const safeColumnCount = Math.max(1, columnCount);
+    const buckets: GridItem[][] = Array.from({ length: safeColumnCount }, () => []);
 
-      if (typeof ResizeObserver === 'undefined') {
-        window.addEventListener('resize', updateGridWidth);
-        return () => window.removeEventListener('resize', updateGridWidth);
-      }
+    gridItems.forEach((item, index) => {
+      buckets[index % safeColumnCount].push(item);
+    });
 
-      const resizeObserver = new ResizeObserver(updateGridWidth);
-      resizeObserver.observe(element);
-      return () => resizeObserver.disconnect();
-    }, [gridItems.length, viewportWidth]);
+    return buckets;
+  }, [gridItems, columnCount]);
 
-    React.useEffect(() => {
-      const element = scrollContainerRef.current;
-      if (!element) {
-        setScrollTop(0);
-        setScrollViewportHeight(viewportHeight);
-        return;
-      }
-
-      const updateScrollViewport = () => {
-        setScrollTop(element.scrollTop);
-        setScrollViewportHeight(element.clientHeight || viewportHeight);
-      };
-
-      updateScrollViewport();
-
-      if (typeof ResizeObserver === 'undefined') {
-        window.addEventListener('resize', updateScrollViewport);
-        return () => window.removeEventListener('resize', updateScrollViewport);
-      }
-
-      const resizeObserver = new ResizeObserver(updateScrollViewport);
-      resizeObserver.observe(element);
-      return () => resizeObserver.disconnect();
-    }, [viewportHeight]);
-
-    React.useEffect(() => {
-      return () => {
-        if (scrollRafRef.current !== null) {
-          cancelAnimationFrame(scrollRafRef.current);
-        }
-      };
-    }, []);
-
-    const columnCount = useMemo(() => {
-      const measuredGridWidth = gridMeasuredWidth || viewportWidth;
-      return resolveImageGridColumnCount({
-        viewportWidth: measuredGridWidth,
+  const gridItemWidth = useMemo(
+    () =>
+      resolveImageGridItemWidth({
+        containerWidth: gridMeasuredWidth || viewportWidth,
+        columnCount,
         thumbnailSize,
-        itemCount: gridItems.length,
-        horizontalPadding: gridMeasuredWidth > 0 ? 0 : undefined,
+      }),
+    [columnCount, gridMeasuredWidth, thumbnailSize, viewportWidth],
+  );
+
+  const estimateGridItemRenderHeight = React.useCallback(
+    (item: GridItem) => {
+      if (viewMode === 'list') {
+        return estimateImageGridListItemHeight({
+          thumbnailSize,
+          viewportWidth,
+        });
+      }
+
+      if (item.type === 'placeholder') {
+        return viewMode === 'grid' ? gridItemWidth : gridItemWidth + 112;
+      }
+
+      return estimateImageGridCardItemHeight({
+        image: item.image,
+        itemWidth: gridItemWidth,
         viewMode,
       });
-    }, [gridMeasuredWidth, viewportWidth, thumbnailSize, gridItems.length, viewMode]);
+    },
+    [gridItemWidth, thumbnailSize, viewportWidth, viewMode],
+  );
 
-    const columnBuckets = useMemo(() => {
-      const safeColumnCount = Math.max(1, columnCount);
-      const buckets: GridItem[][] = Array.from({ length: safeColumnCount }, () => []);
+  const gridRows = useMemo<GridRow[]>(() => {
+    if (viewMode === 'mosaic') return [];
 
-      gridItems.forEach((item, index) => {
-        buckets[index % safeColumnCount].push(item);
+    const safeColumnCount = Math.max(1, columnCount);
+    const rows: GridRow[] = [];
+    for (let index = 0; index < gridItems.length; index += safeColumnCount) {
+      const items = gridItems.slice(index, index + safeColumnCount);
+      rows.push({
+        key: items.map(getGridItemKey).join(':'),
+        items,
+        estimatedHeight:
+          Math.max(...items.map(estimateGridItemRenderHeight), MIN_THUMBNAIL_SIZE) +
+          IMAGE_GRID_COLUMN_GAP,
       });
+    }
+    return rows;
+  }, [columnCount, estimateGridItemRenderHeight, gridItems, viewMode]);
 
-      return buckets;
-    }, [gridItems, columnCount]);
+  const virtualGridWindow = useMemo(
+    () =>
+      resolveImageGridVirtualWindow({
+        itemSizes: gridRows.map((row) => row.estimatedHeight),
+        scrollTop,
+        viewportHeight: scrollViewportHeight,
+        overscanPx: IMAGE_GRID_VIRTUAL_OVERSCAN_PX,
+      }),
+    [gridRows, scrollTop, scrollViewportHeight],
+  );
 
-    const gridItemWidth = useMemo(
-      () =>
-        resolveImageGridItemWidth({
-          containerWidth: gridMeasuredWidth || viewportWidth,
-          columnCount,
-          thumbnailSize,
-        }),
-      [columnCount, gridMeasuredWidth, thumbnailSize, viewportWidth],
-    );
+  const virtualColumnBuckets = useMemo(() => {
+    if (viewMode !== 'mosaic') return [];
 
-    const estimateGridItemRenderHeight = React.useCallback(
-      (item: GridItem) => {
-        if (viewMode === 'list') {
-          return estimateImageGridListItemHeight({ thumbnailSize, viewportWidth });
-        }
-
-        if (item.type === 'placeholder') {
-          return viewMode === 'grid' ? gridItemWidth : gridItemWidth + 112;
-        }
-
-        return estimateImageGridCardItemHeight({
-          image: item.image,
-          itemWidth: gridItemWidth,
-          viewMode,
-        });
-      },
-      [gridItemWidth, thumbnailSize, viewportWidth, viewMode],
-    );
-
-    const gridRows = useMemo<GridRow[]>(() => {
-      if (viewMode === 'mosaic') return [];
-
-      const safeColumnCount = Math.max(1, columnCount);
-      const rows: GridRow[] = [];
-      for (let index = 0; index < gridItems.length; index += safeColumnCount) {
-        const items = gridItems.slice(index, index + safeColumnCount);
-        rows.push({
-          key: items.map(getGridItemKey).join(':'),
-          items,
-          estimatedHeight:
-            Math.max(...items.map(estimateGridItemRenderHeight), MIN_THUMBNAIL_SIZE) +
-            IMAGE_GRID_COLUMN_GAP,
-        });
-      }
-      return rows;
-    }, [columnCount, estimateGridItemRenderHeight, gridItems, viewMode]);
-
-    const virtualGridWindow = useMemo(
-      () =>
-        resolveImageGridVirtualWindow({
-          itemSizes: gridRows.map((row) => row.estimatedHeight),
-          scrollTop,
-          viewportHeight: scrollViewportHeight,
-          overscanPx: IMAGE_GRID_VIRTUAL_OVERSCAN_PX,
-        }),
-      [gridRows, scrollTop, scrollViewportHeight],
-    );
-
-    const virtualColumnBuckets = useMemo(() => {
-      if (viewMode !== 'mosaic') return [];
-
-      return columnBuckets.map((bucket) => {
-        const itemSizes = bucket.map((item) => {
-          if (item.type === 'placeholder') return gridItemWidth + IMAGE_GRID_COLUMN_GAP;
-          return (
-            estimateImageGridItemHeight({ image: item.image, thumbnailSize: gridItemWidth }) +
-            IMAGE_GRID_CAPTION_HEIGHT +
-            IMAGE_GRID_COLUMN_GAP
-          );
-        });
-        const window = resolveImageGridVirtualWindow({
-          itemSizes,
-          scrollTop,
-          viewportHeight: scrollViewportHeight,
-          overscanPx: IMAGE_GRID_VIRTUAL_OVERSCAN_PX,
-        });
-
-        return {
-          window,
-          visibleItems: bucket.slice(window.startIndex, window.endIndex),
-        };
-      });
-    }, [columnBuckets, scrollTop, scrollViewportHeight, gridItemWidth, viewMode]);
-
-    const priorityImageIds = useMemo(() => {
-      const ids = new Set<string>();
-
-      if (viewMode !== 'mosaic') {
-        const safeColumnCount = Math.max(1, columnCount);
-        const estimatedItemHeight =
-          viewMode === 'list' ? Math.max(104, thumbnailSize * 0.72) : thumbnailSize;
-        const priorityRows = Math.ceil(
-          (viewportHeight + IMAGE_GRID_COLUMN_GAP * 2) /
-            Math.max(MIN_THUMBNAIL_SIZE, estimatedItemHeight),
+    return columnBuckets.map((bucket) => {
+      const itemSizes = bucket.map((item) => {
+        if (item.type === 'placeholder') return gridItemWidth + IMAGE_GRID_COLUMN_GAP;
+        return (
+          estimateImageGridItemHeight({
+            image: item.image,
+            thumbnailSize: gridItemWidth,
+          }) +
+          IMAGE_GRID_CAPTION_HEIGHT +
+          IMAGE_GRID_COLUMN_GAP
         );
-        const priorityItemLimit = Math.max(safeColumnCount, safeColumnCount * priorityRows);
+      });
+      const window = resolveImageGridVirtualWindow({
+        itemSizes,
+        scrollTop,
+        viewportHeight: scrollViewportHeight,
+        overscanPx: IMAGE_GRID_VIRTUAL_OVERSCAN_PX,
+      });
 
-        gridItems.slice(0, priorityItemLimit).forEach((item) => {
-          if (item.type === 'image') {
-            ids.add(item.image.id);
-          }
-        });
+      return {
+        window,
+        visibleItems: bucket.slice(window.startIndex, window.endIndex),
+      };
+    });
+  }, [columnBuckets, scrollTop, scrollViewportHeight, gridItemWidth, viewMode]);
 
-        return ids;
-      }
+  const priorityImageIds = useMemo(() => {
+    const ids = new Set<string>();
 
-      for (const bucket of columnBuckets) {
-        let estimatedTop = 0;
+    if (viewMode !== 'mosaic') {
+      const safeColumnCount = Math.max(1, columnCount);
+      const estimatedItemHeight =
+        viewMode === 'list' ? Math.max(104, thumbnailSize * 0.72) : thumbnailSize;
+      const priorityRows = Math.ceil(
+        (viewportHeight + IMAGE_GRID_COLUMN_GAP * 2) /
+          Math.max(MIN_THUMBNAIL_SIZE, estimatedItemHeight),
+      );
+      const priorityItemLimit = Math.max(safeColumnCount, safeColumnCount * priorityRows);
 
-        for (const item of bucket) {
-          if (item.type === 'image') {
-            if (shouldPriorityLoadImageGridItem({ estimatedTop, viewportHeight })) {
-              ids.add(item.image.id);
-            }
-
-            estimatedTop +=
-              estimateImageGridItemHeight({ image: item.image, thumbnailSize: gridItemWidth }) +
-              IMAGE_GRID_CAPTION_HEIGHT +
-              IMAGE_GRID_COLUMN_GAP;
-            continue;
-          }
-
-          estimatedTop += gridItemWidth + IMAGE_GRID_COLUMN_GAP;
+      gridItems.slice(0, priorityItemLimit).forEach((item) => {
+        if (item.type === 'image') {
+          ids.add(item.image.id);
         }
-      }
+      });
 
       return ids;
-    }, [
-      columnBuckets,
-      columnCount,
-      gridItems,
-      thumbnailSize,
-      gridItemWidth,
-      viewportHeight,
-      viewMode,
-    ]);
+    }
 
-    const requestAutoLoadMore = React.useCallback(() => {
-      if (!hasMore || isCatalogLoading || !onLoadMore || autoLoadPendingRef.current) return;
+    for (const bucket of columnBuckets) {
+      let estimatedTop = 0;
 
-      autoLoadPendingRef.current = true;
-      const result = onLoadMore();
-      if (result && typeof result === 'object' && 'finally' in result) {
-        void result.finally(() => {
-          autoLoadPendingRef.current = false;
-        });
-        return;
-      }
-
-      window.setTimeout(() => {
-        autoLoadPendingRef.current = false;
-      }, 350);
-    }, [hasMore, isCatalogLoading, onLoadMore]);
-
-    const handleViewModeChange = React.useCallback((nextViewMode: ImageGridViewMode) => {
-      setViewMode(nextViewMode);
-      setScrollTop(0);
-      scrollContainerRef.current?.scrollTo({ top: 0 });
-    }, []);
-
-    const handleScroll = React.useCallback(
-      (event: React.UIEvent<HTMLDivElement>) => {
-        const element = event.currentTarget;
-        if (scrollRafRef.current !== null) return;
-
-        scrollRafRef.current = requestAnimationFrame(() => {
-          scrollRafRef.current = null;
-          setScrollTop(element.scrollTop);
-
-          const distanceToEnd = element.scrollHeight - element.scrollTop - element.clientHeight;
-          if (distanceToEnd < IMAGE_GRID_VIRTUAL_OVERSCAN_PX * 1.4) {
-            requestAutoLoadMore();
+      for (const item of bucket) {
+        if (item.type === 'image') {
+          if (shouldPriorityLoadImageGridItem({ estimatedTop, viewportHeight })) {
+            ids.add(item.image.id);
           }
-        });
+
+          estimatedTop +=
+            estimateImageGridItemHeight({
+              image: item.image,
+              thumbnailSize: gridItemWidth,
+            }) +
+            IMAGE_GRID_CAPTION_HEIGHT +
+            IMAGE_GRID_COLUMN_GAP;
+          continue;
+        }
+
+        estimatedTop += gridItemWidth + IMAGE_GRID_COLUMN_GAP;
+      }
+    }
+
+    return ids;
+  }, [
+    columnBuckets,
+    columnCount,
+    gridItems,
+    thumbnailSize,
+    gridItemWidth,
+    viewportHeight,
+    viewMode,
+  ]);
+
+  const requestAutoLoadMore = React.useCallback(() => {
+    if (!hasMore || isCatalogLoading || !onLoadMore || autoLoadPendingRef.current) return;
+
+    autoLoadPendingRef.current = true;
+    const result = onLoadMore();
+    if (result && typeof result === 'object' && 'finally' in result) {
+      void result.finally(() => {
+        autoLoadPendingRef.current = false;
+      });
+      return;
+    }
+
+    window.setTimeout(() => {
+      autoLoadPendingRef.current = false;
+    }, 350);
+  }, [hasMore, isCatalogLoading, onLoadMore]);
+
+  const handleViewModeChange = React.useCallback((nextViewMode: ImageGridViewMode) => {
+    setViewMode(nextViewMode);
+    setScrollTop(0);
+    scrollContainerRef.current?.scrollTo({ top: 0 });
+  }, []);
+
+  const handleScroll = React.useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      const element = event.currentTarget;
+      if (scrollRafRef.current !== null) return;
+
+      scrollRafRef.current = requestAnimationFrame(() => {
+        scrollRafRef.current = null;
+        setScrollTop(element.scrollTop);
+
+        const distanceToEnd = element.scrollHeight - element.scrollTop - element.clientHeight;
+        if (distanceToEnd < IMAGE_GRID_VIRTUAL_OVERSCAN_PX * 1.4) {
+          requestAutoLoadMore();
+        }
+      });
+    },
+    [requestAutoLoadMore],
+  );
+
+  React.useEffect(() => {
+    const root = scrollContainerRef.current;
+    const target = autoLoadSentinelRef.current;
+    if (!root || !target || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          requestAutoLoadMore();
+        }
       },
-      [requestAutoLoadMore],
+      { root, rootMargin: `${IMAGE_GRID_VIRTUAL_OVERSCAN_PX}px 0px` },
     );
 
-    React.useEffect(() => {
-      const root = scrollContainerRef.current;
-      const target = autoLoadSentinelRef.current;
-      if (!root || !target || !hasMore) return;
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasMore, requestAutoLoadMore, gridItems.length, viewMode]);
 
-      const observer = new IntersectionObserver(
-        (entries) => {
-          if (entries.some((entry) => entry.isIntersecting)) {
-            requestAutoLoadMore();
-          }
-        },
-        { root, rootMargin: `${IMAGE_GRID_VIRTUAL_OVERSCAN_PX}px 0px` },
-      );
+  return {
+    selectedImageIdSet,
+    viewMode,
+    activeModalImageId,
+    selectedImageIds,
+    onImageClick,
+    onSelectionChange,
+    onRegenerate,
+    onAddToContext,
+    onLoadConfig,
+    onDelete,
+    onToggleFavorite,
+    transitioningImageId,
+    alwaysShowCardActions,
+    priorityImageIds,
+    thumbnailSize,
+    imageCount,
+    generationPlaceholders,
+    catalogError,
+    onRetryCatalog,
+    isCatalogLoading,
+    searchQuery,
+    showFavoritesOnly,
+    onLibraryFiltersChange,
+    onCreate,
+    selectedImageCount,
+    totalCount,
+    sourceImageCount,
+    isAllSelected,
+    onDeselectAll,
+    onSelectAll,
+    sortedImages,
+    favoriteCount,
+    isPartialCatalog,
+    onDownloadAll,
+    onClearWorkspace,
+    onDownloadSelected,
+    openConversion,
+    onDeleteSelected,
+    activeViewOption,
+    handleViewModeChange,
+    setThumbnailSize,
+    sortButtonRef,
+    setIsSortMenuOpen,
+    activeSortOption,
+    isSortMenuOpen,
+    sortMenuId,
+    sortOrder,
+    scrollContainerRef,
+    handleScroll,
+    gridMeasureRef,
+    columnCount,
+    virtualColumnBuckets,
+    columnBuckets,
+    virtualGridWindow,
+    gridRows,
+    autoLoadSentinelRef,
+    hasMore,
+    onLoadMore,
+  };
+}
+type ImageGridModel = ReturnType<typeof useImageGrid>;
+function ImageGridView({ model }: { model: ImageGridModel }) {
+  const {
+    imageCount,
+    generationPlaceholders,
+    selectedImageCount,
+    totalCount,
+    scrollContainerRef,
+    handleScroll,
+    showFavoritesOnly,
+    autoLoadSentinelRef,
+    hasMore,
+    isCatalogLoading,
+    catalogError,
+    sourceImageCount,
+  } = model;
 
-      observer.observe(target);
-      return () => observer.disconnect();
-    }, [hasMore, requestAutoLoadMore, gridItems.length, viewMode]);
+  const emptyContent =
+    imageCount === 0 && generationPlaceholders.length === 0 ? (
+      <ImageGridEmptyState model={model} />
+    ) : null;
 
-    const renderGridItem = (item: GridItem) =>
-      item.type === 'placeholder' ? (
-        <GenerationPlaceholderItem
-          key={item.placeholder.id}
-          placeholder={item.placeholder}
-          viewMode={viewMode}
-        />
-      ) : (
+  return (
+    <div className="w-full h-full relative flex min-h-0 flex-col">
+      <p
+        className="absolute bottom-2 left-3 z-30 rounded bg-[color:var(--wb-panel)] px-2 py-1 text-xs"
+        role="status"
+      >
+        {selectedImageCount} selected · {imageCount} loaded · {totalCount} results
+      </p>
+      <ImageGridToolbar model={model} />
+      {emptyContent || (
         <div
-          key={item.image.id}
-          className={activeModalImageId === item.image.id ? 'opacity-0' : 'opacity-100'}
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="custom-scrollbar relative min-h-0 flex-1 overflow-y-auto px-3 pt-3 pb-8 sm:px-8"
         >
-          <ImageItem
-            image={item.image}
-            isSelected={selectedImageIds.includes(item.image.id)}
-            onImageClick={onImageClick}
-            onSelectionChange={onSelectionChange}
-            onRegenerate={onRegenerate}
-            onAddToContext={onAddToContext}
-            onLoadConfig={onLoadConfig}
-            onDelete={onDelete}
-            onToggleFavorite={onToggleFavorite}
-            transitionName={transitioningImageId === item.image.id ? 'master-canvas' : undefined}
-            alwaysShowActions={alwaysShowCardActions}
-            priorityLoad={priorityImageIds.has(item.image.id)}
-            viewMode={viewMode}
-            thumbnailSize={thumbnailSize}
-          />
-        </div>
-      );
-
-    const emptyContent =
-      imageCount === 0 && generationPlaceholders.length === 0 ? (
-        <div className="flex h-full w-full items-center justify-center px-6 text-center">
-          {catalogError ? (
-            <div className="max-w-md rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-950/20 p-4 text-sm text-[color:var(--wb-danger)] ">
-              <div className="font-semibold">Catalog failed to load</div>
-              <div className="mt-1 text-[color:var(--wb-danger)] ">{catalogError}</div>
-              {onRetryCatalog && (
-                <button
-                  type="button"
-                  onClick={onRetryCatalog}
-                  className="mt-3 rounded-[var(--wb-radius)] border border-rose-300/2 px-3 py-1.5 text-xs font-bold tracking-normal text-[color:var(--wb-danger)]  hover:bg-rose-300/10"
-                >
-                  Retry
-                </button>
-              )}
-            </div>
-          ) : isCatalogLoading ? (
-            <p role="status">Loading images…</p>
-          ) : (
-            <div className="max-w-md space-y-3">
-              <h2 className="text-lg font-semibold">
-                {searchQuery || showFavoritesOnly
-                  ? 'No matching images'
-                  : 'Your library starts here'}
-              </h2>
-              <p className="text-sm text-[color:var(--wb-muted)]">
-                {searchQuery
-                  ? `No results for “${searchQuery}” in this workspace.`
-                  : showFavoritesOnly
-                    ? 'No favorite images in this view.'
-                    : 'Create an image to add your first result to this workspace.'}
-              </p>
-              {searchQuery || showFavoritesOnly ? (
-                <button
-                  type="button"
-                  className="studio-ghost-control px-4 py-2"
-                  onClick={() => {
-                    onLibraryFiltersChange({ q: '', favorites: false });
-                  }}
-                >
-                  Clear filters
-                </button>
-              ) : (
-                <button type="button" className="studio-ghost-control px-4 py-2" onClick={onCreate}>
-                  Create an image
-                </button>
-              )}
+          {showFavoritesOnly && imageCount === 0 && generationPlaceholders.length === 0 && (
+            <div className="flex min-h-[45vh] items-center justify-center text-center">
+              <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] px-4 py-3 text-xs font-semibold text-[color:var(--wb-muted)]">
+                No favorite images in this workspace.
+              </div>
             </div>
           )}
+          <ImageGridVirtualCells model={model} />
+          <div ref={autoLoadSentinelRef} className="h-px w-full" aria-hidden="true" />
+          {(hasMore || isCatalogLoading || catalogError || totalCount > sourceImageCount) && (
+            <ImageGridPagination model={model} />
+          )}
         </div>
-      ) : null;
+      )}
+    </div>
+  );
+}
 
-    return (
-      <div className="w-full h-full relative flex min-h-0 flex-col">
-        <p
-          className="absolute bottom-2 left-3 z-30 rounded bg-[color:var(--wb-panel)] px-2 py-1 text-xs"
-          role="status"
+function ImageGridToolbar({ model }: { model: ImageGridModel }) {
+  const {
+    searchQuery,
+    onLibraryFiltersChange,
+    sourceImageCount,
+    activeViewOption,
+    viewMode,
+    handleViewModeChange,
+    thumbnailSize,
+    setThumbnailSize,
+    sortButtonRef,
+    setIsSortMenuOpen,
+    activeSortOption,
+    isSortMenuOpen,
+    sortMenuId,
+    sortOrder,
+  } = model;
+  return (
+    <div className="library-toolbar studio-bar" aria-label="Library controls">
+      <label className="library-search">
+        <span className="sr-only">Search library</span>
+        <input
+          type="search"
+          aria-label="Search library"
+          placeholder="Search all images in this workspace"
+          value={searchQuery}
+          onChange={(event) => onLibraryFiltersChange({ q: event.target.value })}
+          className="studio-well"
+        />
+      </label>
+      <div className="library-toolbar-actions" role="toolbar" aria-label="Library actions">
+        {sourceImageCount > 0 && <ImageGridActions model={model} />}
+        <div
+          role="group"
+          aria-label={`Image view: ${activeViewOption.label}`}
+          className="flex h-10 items-center gap-1 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-1 shadow-2xl backdrop-blur-md"
         >
-          {selectedImageCount} selected · {imageCount} loaded · {totalCount} results
-        </p>
-        <div className="library-toolbar studio-bar" aria-label="Library controls">
-          <label className="library-search">
-            <span className="sr-only">Search library</span>
+          {IMAGE_GRID_VIEW_OPTIONS.map(({ value, label, description, Icon }) => {
+            const selected = value === viewMode;
+
+            return (
+              <Tooltip key={value} content={`${label}: ${description}`} position="bottom">
+                <button
+                  type="button"
+                  onClick={() => handleViewModeChange(value)}
+                  aria-label={`${label} view`}
+                  aria-pressed={selected}
+                  className={`flex min-h-8 min-w-8 touch-manipulation items-center justify-center rounded-[var(--wb-radius)] transition-[background-color,color,transform,box-shadow] focus-visible:ring-2 focus-visible:ring-white/25 ${
+                    selected
+                      ? 'bg-accent-600 text-[color:var(--wb-ink)] shadow-[0_0_18px_rgba(var(--accent-500),0.18)]'
+                      : 'text-[color:var(--wb-muted)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)]'
+                  }`}
+                >
+                  <Icon width={16} height={16} className="pointer-events-none" />
+                </button>
+              </Tooltip>
+            );
+          })}
+        </div>
+        <Tooltip content="Thumbnail size" position="bottom">
+          <label className="studio-control flex items-center gap-2 px-2 text-[color:var(--wb-muted)]">
+            <Photo width={15} height={15} />
             <input
-              type="search"
-              aria-label="Search library"
-              placeholder="Search all images in this workspace"
-              value={searchQuery}
-              onChange={(event) => onLibraryFiltersChange({ q: event.target.value })}
-              className="studio-well"
+              type="range"
+              aria-label="Thumbnail size"
+              min={MIN_THUMBNAIL_SIZE}
+              max={MAX_THUMBNAIL_SIZE}
+              step={THUMBNAIL_SIZE_STEP}
+              value={thumbnailSize}
+              onChange={(event) => setThumbnailSize(Number(event.target.value))}
+              className="studio-range"
             />
           </label>
-          <div className="library-toolbar-actions" role="toolbar" aria-label="Library actions">
-            {sourceImageCount > 0 && (
-              <div className="flex items-center gap-1 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-1 shadow-2xl backdrop-blur-md">
-                {imageCount > 1 && (
-                  <ActionButton
-                    onClick={isAllSelected ? onDeselectAll : () => onSelectAll(sortedImages)}
-                    icon={
-                      isAllSelected ? (
-                        <CheckSquare width={16} height={16} className="text-accent-400" />
-                      ) : (
-                        <Square width={16} height={16} />
-                      )
-                    }
-                    label={isAllSelected ? 'Deselect' : `Select loaded images (${imageCount})`}
-                    isActive={isAllSelected}
-                    tooltipPosition="bottom"
-                  />
-                )}
-                <ActionButton
-                  onClick={() => onLibraryFiltersChange({ favorites: !showFavoritesOnly })}
-                  icon={
-                    <Heart
-                      width={16}
-                      height={16}
-                      fill={showFavoritesOnly ? 'currentColor' : 'none'}
-                      strokeWidth={2.5}
-                    />
-                  }
-                  label={
-                    showFavoritesOnly ? `All (${sourceImageCount})` : `Favorites (${favoriteCount})`
-                  }
-                  isActive={showFavoritesOnly}
-                  tooltipPosition="bottom"
-                />
-                {selectedImageCount === 0 && imageCount > 0 && !isPartialCatalog && (
-                  <>
-                    <ActionButton
-                      onClick={() => onDownloadAll(sortedImages)}
-                      icon={<Download width={16} height={16} />}
-                      label={`Download ${imageCount} images`}
-                      tooltipPosition="bottom"
-                    />
-                    <ActionButton
-                      onClick={onClearWorkspace}
-                      icon={<Trash2 width={16} height={16} />}
-                      label="Archive workspace images"
-                      variant="danger"
-                      tooltipPosition="bottom"
-                    />
-                  </>
-                )}
-                {selectedImageCount > 0 && (
-                  <>
-                    <ActionButton
-                      onClick={() => onDownloadSelected(sortedImages)}
-                      icon={<Download width={16} height={16} />}
-                      label={`Download selected (${selectedImageCount})`}
-                      tooltipPosition="bottom"
-                    />
-                    {openConversion && (
-                      <ActionButton
-                        onClick={() =>
-                          openConversion(
-                            sortedImages.filter((image) => selectedImageIds.includes(image.id)),
-                          )
-                        }
-                        icon={<Photo width={16} height={16} />}
-                        label={`Convert selected (${selectedImageCount})`}
-                        tooltipPosition="bottom"
-                      />
-                    )}
-                    <ActionButton
-                      onClick={() => onDeleteSelected(sortedImages)}
-                      icon={<Trash2 width={16} height={16} />}
-                      label={`Archive selected (${selectedImageCount})`}
-                      variant="danger"
-                      tooltipPosition="bottom"
-                    />
-                  </>
-                )}
-              </div>
-            )}
-            <div
-              role="group"
-              aria-label={`Image view: ${activeViewOption.label}`}
-              className="flex h-10 items-center gap-1 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-1 shadow-2xl backdrop-blur-md"
+        </Tooltip>
+        <div className="relative">
+          <Tooltip content="Sort Images" position="bottom">
+            <button
+              ref={sortButtonRef}
+              type="button"
+              onClick={() => setIsSortMenuOpen((open) => !open)}
+              aria-label={`Sort images: ${activeSortOption.label}`}
+              aria-haspopup="menu"
+              aria-expanded={isSortMenuOpen}
+              aria-controls={sortMenuId}
+              className={`studio-control studio-ghost-control ${
+                isSortMenuOpen
+                  ? 'border-[color:var(--wb-line)] bg-[color:var(--wb-bar)]/95 text-[color:var(--wb-ink)]'
+                  : 'border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] hover:border-[color:var(--wb-border)] hover:bg-[color:var(--wb-bar)] hover:text-[color:var(--wb-ink)]'
+              }`}
             >
-              {IMAGE_GRID_VIEW_OPTIONS.map(({ value, label, description, Icon }) => {
-                const selected = value === viewMode;
+              <ArrowUpDown width={16} height={16} />
+              <span className="hidden max-w-28 truncate text-[length:var(--wbp-label)] font-semibold tracking-normal lg:inline">
+                {activeSortOption.label}
+              </span>
+            </button>
+          </Tooltip>
+          <DemandMountedGsapDropdown
+            id={sortMenuId}
+            open={isSortMenuOpen}
+            onOpenChange={setIsSortMenuOpen}
+            triggerRef={sortButtonRef}
+            placement="bottom-right"
+            className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-64 overflow-hidden p-1.5"
+          >
+            <div className="px-2 pb-1 pt-1 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]">
+              Sort images
+            </div>
+            <div className="grid gap-1">
+              {IMAGE_GRID_SORT_OPTIONS.map((option) => {
+                const selected = option.value === sortOrder;
 
                 return (
-                  <Tooltip key={value} content={`${label}: ${description}`} position="bottom">
-                    <button
-                      type="button"
-                      onClick={() => handleViewModeChange(value)}
-                      aria-label={`${label} view`}
-                      aria-pressed={selected}
-                      className={`flex min-h-8 min-w-8 touch-manipulation items-center justify-center rounded-[var(--wb-radius)] transition-[background-color,color,transform,box-shadow] focus-visible:ring-2 focus-visible:ring-white/25 ${
-                        selected
-                          ? 'bg-accent-600 text-[color:var(--wb-ink)] shadow-[0_0_18px_rgba(var(--accent-500),0.18)]'
-                          : 'text-[color:var(--wb-muted)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)]'
-                      }`}
-                    >
-                      <Icon width={16} height={16} className="pointer-events-none" />
-                    </button>
-                  </Tooltip>
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={selected}
+                    data-dropdown-item
+                    onClick={() => {
+                      onLibraryFiltersChange({ sort: option.value });
+                      setIsSortMenuOpen(false);
+                    }}
+                    className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-[var(--wb-radius)] px-2.5 text-left transition-[background-color,color,transform] ${
+                      selected
+                        ? 'bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] text-[color:var(--wb-ink)]'
+                        : 'text-[color:var(--wb-muted)] hover:bg-white/[0.055] hover:text-[color:var(--wb-ink)]'
+                    }`}
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-[length:var(--wbp-label)] font-semibold tracking-normal">
+                        {option.label}
+                      </span>
+                      <span className="mt-0.5 block truncate text-[length:var(--wbp-label)] font-semibold normal-case tracking-normal text-[color:var(--wb-dim)]">
+                        {option.description}
+                      </span>
+                    </span>
+                    {selected ? (
+                      <Check width={14} height={14} className="shrink-0 text-accent-200" />
+                    ) : null}
+                  </button>
                 );
               })}
             </div>
-            <Tooltip content="Thumbnail size" position="bottom">
-              <label className="flex h-10 items-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] px-2 text-[color:var(--wb-muted)] shadow-2xl backdrop-blur-md sm:flex">
-                <Photo width={15} height={15} />
-                <input
-                  type="range"
-                  aria-label="Thumbnail size"
-                  min={MIN_THUMBNAIL_SIZE}
-                  max={MAX_THUMBNAIL_SIZE}
-                  step={THUMBNAIL_SIZE_STEP}
-                  value={thumbnailSize}
-                  onChange={(event) => setThumbnailSize(Number(event.target.value))}
-                  className="h-1 w-24 cursor-pointer accent-accent-500 sm:w-28"
-                />
-              </label>
-            </Tooltip>
-            <div className="relative">
-              <Tooltip content="Sort Images" position="bottom">
-                <button
-                  ref={sortButtonRef}
-                  type="button"
-                  onClick={() => setIsSortMenuOpen((open) => !open)}
-                  aria-label={`Sort images: ${activeSortOption.label}`}
-                  aria-haspopup="menu"
-                  aria-expanded={isSortMenuOpen}
-                  aria-controls={sortMenuId}
-                  className={`flex min-h-10 min-w-10 touch-manipulation items-center justify-center gap-2 rounded-[var(--wb-radius)] border px-2.5 text-[color:var(--wb-ink)] shadow-2xl backdrop-blur-md transition-[background-color,border-color,color,transform] focus-visible:ring-2 focus-visible:ring-white/25 ${
-                    isSortMenuOpen
-                      ? 'border-[color:var(--wb-line)] bg-[color:var(--wb-bar)]/95 text-[color:var(--wb-ink)]'
-                      : 'border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] hover:border-[color:var(--wb-border)] hover:bg-[color:var(--wb-bar)] hover:text-[color:var(--wb-ink)]'
-                  }`}
-                >
-                  <ArrowUpDown width={16} height={16} />
-                  <span className="hidden max-w-28 truncate text-[length:var(--wbp-label)] font-semibold tracking-normal lg:inline">
-                    {activeSortOption.label}
-                  </span>
-                </button>
-              </Tooltip>
-              <DemandMountedGsapDropdown
-                id={sortMenuId}
-                open={isSortMenuOpen}
-                onOpenChange={setIsSortMenuOpen}
-                triggerRef={sortButtonRef}
-                placement="bottom-right"
-                className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-64 overflow-hidden p-1.5"
-              >
-                <div className="px-2 pb-1 pt-1 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]">
-                  Sort images
-                </div>
-                <div className="grid gap-1">
-                  {IMAGE_GRID_SORT_OPTIONS.map((option) => {
-                    const selected = option.value === sortOrder;
-
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        role="menuitemradio"
-                        aria-checked={selected}
-                        data-dropdown-item
-                        onClick={() => {
-                          onLibraryFiltersChange({ sort: option.value });
-                          setIsSortMenuOpen(false);
-                        }}
-                        className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-[var(--wb-radius)] px-2.5 text-left transition-[background-color,color,transform] ${
-                          selected
-                            ? 'bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] text-[color:var(--wb-ink)]'
-                            : 'text-[color:var(--wb-muted)] hover:bg-white/[0.055] hover:text-[color:var(--wb-ink)]'
-                        }`}
-                      >
-                        <span className="min-w-0">
-                          <span className="block truncate text-[length:var(--wbp-label)] font-semibold tracking-normal">
-                            {option.label}
-                          </span>
-                          <span className="mt-0.5 block truncate text-[length:var(--wbp-label)] font-semibold normal-case tracking-normal text-[color:var(--wb-dim)]">
-                            {option.description}
-                          </span>
-                        </span>
-                        {selected ? (
-                          <Check width={14} height={14} className="shrink-0 text-accent-200" />
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              </DemandMountedGsapDropdown>
-            </div>
-          </div>
+          </DemandMountedGsapDropdown>
         </div>
-        {emptyContent || (
-          <div
-            ref={scrollContainerRef}
-            onScroll={handleScroll}
-            className="custom-scrollbar relative min-h-0 flex-1 overflow-y-auto px-3 pt-3 pb-8 sm:px-8"
-          >
-            {showFavoritesOnly && imageCount === 0 && generationPlaceholders.length === 0 && (
-              <div className="flex min-h-[45vh] items-center justify-center text-center">
-                <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] px-4 py-3 text-xs font-semibold text-[color:var(--wb-muted)]">
-                  No favorite images in this workspace.
-                </div>
-              </div>
-            )}
-            <div
-              ref={gridMeasureRef}
-              className="grid gap-4"
-              style={{
-                gridTemplateColumns: resolveImageGridTemplateColumns(columnCount, viewMode),
-                alignItems: viewMode === 'mosaic' ? 'start' : 'stretch',
-              }}
-            >
-              {viewMode === 'mosaic' ? (
-                virtualColumnBuckets.map(({ window, visibleItems }, columnIndex) => {
-                  const bucket = columnBuckets[columnIndex] ?? [];
-                  const firstItem = bucket[0];
-                  const firstItemId = firstItem ? getGridItemKey(firstItem) : null;
-                  const columnKey = firstItemId
-                    ? `column-${firstItemId}-${bucket.length}`
-                    : `column-empty-${columnIndex}`;
+      </div>
+    </div>
+  );
+}
 
-                  return (
-                    <div key={columnKey} className="flex min-w-0 flex-col gap-0">
-                      {window.beforeHeight > 0 && (
-                        <div style={{ height: window.beforeHeight }} aria-hidden="true" />
-                      )}
-                      {visibleItems.map(renderGridItem)}
-                      {window.afterHeight > 0 && (
-                        <div style={{ height: window.afterHeight }} aria-hidden="true" />
-                      )}
-                    </div>
-                  );
-                })
-              ) : (
-                <>
-                  {virtualGridWindow.beforeHeight > 0 && (
-                    <div
-                      style={{
-                        gridColumn: '1 / -1',
-                        height: virtualGridWindow.beforeHeight,
-                      }}
-                      aria-hidden="true"
-                    />
-                  )}
-                  {gridRows
-                    .slice(virtualGridWindow.startIndex, virtualGridWindow.endIndex)
-                    .flatMap((row) => row.items.map(renderGridItem))}
-                  {virtualGridWindow.afterHeight > 0 && (
-                    <div
-                      style={{
-                        gridColumn: '1 / -1',
-                        height: virtualGridWindow.afterHeight,
-                      }}
-                      aria-hidden="true"
-                    />
-                  )}
-                </>
-              )}
-            </div>
-            <div ref={autoLoadSentinelRef} className="h-px w-full" aria-hidden="true" />
-            {(hasMore || isCatalogLoading || catalogError || totalCount > sourceImageCount) && (
-              <div className="flex flex-col items-center gap-3 py-6 text-center">
-                <div className="text-[length:var(--wbp-label)] font-semibold tabular-nums tracking-normal text-[color:var(--wb-muted)]">
-                  {sourceImageCount} / {totalCount} loaded
-                </div>
-                {catalogError && (
-                  <div className="max-w-lg text-xs text-[color:var(--wb-danger)] ">
-                    {catalogError}
-                  </div>
-                )}
-                {hasMore && onLoadMore && (
-                  <button
-                    type="button"
-                    onClick={onLoadMore}
-                    disabled={isCatalogLoading}
-                    className="inline-flex items-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-4 py-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {isCatalogLoading ? (
-                      <Loader2 size={18} />
-                    ) : (
-                      <RefreshCw width={14} height={14} />
-                    )}
-                    {isCatalogLoading ? 'Loading' : 'Load more'}
-                  </button>
-                )}
-                {!hasMore && catalogError && onRetryCatalog && (
-                  <button
-                    type="button"
-                    onClick={onRetryCatalog}
-                    className="rounded-[var(--wb-radius)] border border-rose-300/2 bg-rose-500/10 px-4 py-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-danger)]  hover:bg-rose-500/20"
-                  >
-                    Retry
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+function ImageGridActions({ model }: { model: ImageGridModel }) {
+  const {
+    imageCount,
+    isAllSelected,
+    onDeselectAll,
+    onSelectAll,
+    sortedImages,
+    onLibraryFiltersChange,
+    showFavoritesOnly,
+    sourceImageCount,
+    favoriteCount,
+    selectedImageCount,
+    isPartialCatalog,
+    onDownloadAll,
+    onClearWorkspace,
+    onDownloadSelected,
+    openConversion,
+    selectedImageIdSet,
+    onDeleteSelected,
+  } = model;
+  return (
+    <div className="flex items-center gap-1 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-1 shadow-2xl backdrop-blur-md">
+      {imageCount > 1 && (
+        <ActionButton
+          onClick={isAllSelected ? onDeselectAll : () => onSelectAll(sortedImages)}
+          icon={
+            isAllSelected ? (
+              <CheckSquare width={16} height={16} className="text-accent-400" />
+            ) : (
+              <Square width={16} height={16} />
+            )
+          }
+          label={isAllSelected ? 'Deselect' : `Select loaded images (${imageCount})`}
+          isActive={isAllSelected}
+          tooltipPosition="bottom"
+        />
+      )}
+      <ActionButton
+        onClick={() => onLibraryFiltersChange({ favorites: !showFavoritesOnly })}
+        icon={
+          <Heart
+            width={16}
+            height={16}
+            fill={showFavoritesOnly ? 'currentColor' : 'none'}
+            strokeWidth={2.5}
+          />
+        }
+        label={showFavoritesOnly ? `All (${sourceImageCount})` : `Favorites (${favoriteCount})`}
+        isActive={showFavoritesOnly}
+        tooltipPosition="bottom"
+      />
+      {selectedImageCount === 0 && imageCount > 0 && !isPartialCatalog && (
+        <>
+          <ActionButton
+            onClick={() => onDownloadAll(sortedImages)}
+            icon={<Download width={16} height={16} />}
+            label={`Download ${imageCount} images`}
+            tooltipPosition="bottom"
+          />
+          <ActionButton
+            onClick={onClearWorkspace}
+            icon={<Trash2 width={16} height={16} />}
+            label="Archive workspace images"
+            variant="danger"
+            tooltipPosition="bottom"
+          />
+        </>
+      )}
+      {selectedImageCount > 0 && (
+        <>
+          <ActionButton
+            onClick={() => onDownloadSelected(sortedImages)}
+            icon={<Download width={16} height={16} />}
+            label={`Download selected (${selectedImageCount})`}
+            tooltipPosition="bottom"
+          />
+          {openConversion && (
+            <ActionButton
+              onClick={() =>
+                openConversion(sortedImages.filter((image) => selectedImageIdSet.has(image.id)))
+              }
+              icon={<Photo width={16} height={16} />}
+              label={`Convert selected (${selectedImageCount})`}
+              tooltipPosition="bottom"
+            />
+          )}
+          <ActionButton
+            onClick={() => onDeleteSelected(sortedImages)}
+            icon={<Trash2 width={16} height={16} />}
+            label={`Archive selected (${selectedImageCount})`}
+            variant="danger"
+            tooltipPosition="bottom"
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+function ImageGridEmptyState({ model }: { model: ImageGridModel }) {
+  const { catalogError, onRetryCatalog, isCatalogLoading } = model;
+  return (
+    <div className="flex h-full w-full items-center justify-center px-6 text-center">
+      {catalogError ? (
+        <div className="max-w-md rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-950/20 p-4 text-sm text-[color:var(--wb-danger)] ">
+          <div className="font-semibold">Catalog failed to load</div>
+          <div className="mt-1 text-[color:var(--wb-danger)] ">{catalogError}</div>
+          {onRetryCatalog && (
+            <button
+              type="button"
+              onClick={onRetryCatalog}
+              className="mt-3 rounded-[var(--wb-radius)] border border-rose-300/2 px-3 py-1.5 text-xs font-bold tracking-normal text-[color:var(--wb-danger)]  hover:bg-rose-300/10"
+            >
+              Retry
+            </button>
+          )}
+        </div>
+      ) : isCatalogLoading ? (
+        <p role="status">Loading images…</p>
+      ) : (
+        <ImageGridNoMatches model={model} />
+      )}
+    </div>
+  );
+}
+
+function ImageGridVirtualCells({ model }: { model: ImageGridModel }) {
+  const {
+    viewMode,
+    activeModalImageId,
+    selectedImageIdSet,
+    onImageClick,
+    onSelectionChange,
+    onRegenerate,
+    onAddToContext,
+    onLoadConfig,
+    onDelete,
+    onToggleFavorite,
+    transitioningImageId,
+    alwaysShowCardActions,
+    priorityImageIds,
+    thumbnailSize,
+    gridMeasureRef,
+    columnCount,
+    virtualColumnBuckets,
+    columnBuckets,
+    virtualGridWindow,
+    gridRows,
+  } = model;
+
+  const renderGridItem = (item: GridItem) =>
+    item.type === 'placeholder' ? (
+      <GenerationPlaceholderItem
+        key={item.placeholder.id}
+        placeholder={item.placeholder}
+        viewMode={viewMode}
+      />
+    ) : (
+      <div
+        key={item.image.id}
+        className={activeModalImageId === item.image.id ? 'opacity-0' : 'opacity-100'}
+      >
+        <ImageItem
+          image={item.image}
+          isSelected={selectedImageIdSet.has(item.image.id)}
+          onImageClick={onImageClick}
+          onSelectionChange={onSelectionChange}
+          onRegenerate={onRegenerate}
+          onAddToContext={onAddToContext}
+          onLoadConfig={onLoadConfig}
+          onDelete={onDelete}
+          onToggleFavorite={onToggleFavorite}
+          transitionName={transitioningImageId === item.image.id ? 'master-canvas' : undefined}
+          alwaysShowActions={alwaysShowCardActions}
+          priorityLoad={priorityImageIds.has(item.image.id)}
+          viewMode={viewMode}
+          thumbnailSize={thumbnailSize}
+        />
       </div>
     );
-  },
-);
+  return (
+    <div
+      ref={gridMeasureRef}
+      className="grid gap-4"
+      style={{
+        gridTemplateColumns: resolveImageGridTemplateColumns(columnCount, viewMode),
+        alignItems: viewMode === 'mosaic' ? 'start' : 'stretch',
+      }}
+    >
+      {viewMode === 'mosaic' ? (
+        virtualColumnBuckets.map(({ window, visibleItems }, columnIndex) => {
+          const bucket = columnBuckets[columnIndex] ?? [];
+          const firstItem = bucket[0];
+          const firstItemId = firstItem ? getGridItemKey(firstItem) : null;
+          const columnKey = firstItemId
+            ? `column-${firstItemId}-${bucket.length}`
+            : `column-empty-${columnIndex}`;
+
+          return (
+            <div key={columnKey} className="flex min-w-0 flex-col gap-0">
+              {window.beforeHeight > 0 && (
+                <div style={{ height: window.beforeHeight }} aria-hidden="true" />
+              )}
+              {visibleItems.map(renderGridItem)}
+              {window.afterHeight > 0 && (
+                <div style={{ height: window.afterHeight }} aria-hidden="true" />
+              )}
+            </div>
+          );
+        })
+      ) : (
+        <>
+          {virtualGridWindow.beforeHeight > 0 && (
+            <div
+              style={{
+                gridColumn: '1 / -1',
+                height: virtualGridWindow.beforeHeight,
+              }}
+              aria-hidden="true"
+            />
+          )}
+          {gridRows
+            .slice(virtualGridWindow.startIndex, virtualGridWindow.endIndex)
+            .flatMap((row) => row.items.map(renderGridItem))}
+          {virtualGridWindow.afterHeight > 0 && (
+            <div
+              style={{
+                gridColumn: '1 / -1',
+                height: virtualGridWindow.afterHeight,
+              }}
+              aria-hidden="true"
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function ImageGridPagination({ model }: { model: ImageGridModel }) {
+  const {
+    sourceImageCount,
+    totalCount,
+    catalogError,
+    hasMore,
+    onLoadMore,
+    isCatalogLoading,
+    onRetryCatalog,
+  } = model;
+
+  return (
+    <div className="flex flex-col items-center gap-3 py-6 text-center">
+      <div className="text-[length:var(--wbp-label)] font-semibold tabular-nums tracking-normal text-[color:var(--wb-muted)]">
+        {sourceImageCount} / {totalCount} loaded
+      </div>
+      {catalogError && (
+        <div className="max-w-lg text-xs text-[color:var(--wb-danger)] ">{catalogError}</div>
+      )}
+      {hasMore && onLoadMore && (
+        <button
+          type="button"
+          onClick={onLoadMore}
+          disabled={isCatalogLoading}
+          className="inline-flex items-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-4 py-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isCatalogLoading ? <Loader2 size={18} /> : <RefreshCw width={14} height={14} />}
+          {isCatalogLoading ? 'Loading' : 'Load more'}
+        </button>
+      )}
+      {!hasMore && catalogError && onRetryCatalog && (
+        <button
+          type="button"
+          onClick={onRetryCatalog}
+          className="rounded-[var(--wb-radius)] border border-rose-300/2 bg-rose-500/10 px-4 py-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-danger)]  hover:bg-rose-500/20"
+        >
+          Retry
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ImageGridNoMatches({ model }: { model: ImageGridModel }) {
+  const { searchQuery, showFavoritesOnly, onLibraryFiltersChange, onCreate } = model;
+  return (
+    <div className="max-w-md space-y-3">
+      <h2 className="text-lg font-semibold">
+        {searchQuery || showFavoritesOnly ? 'No matching images' : 'Your library starts here'}
+      </h2>
+      <p className="text-sm text-[color:var(--wb-muted)]">
+        {searchQuery
+          ? `No results for “${searchQuery}” in this workspace.`
+          : showFavoritesOnly
+            ? 'No favorite images in this view.'
+            : 'Create an image to add your first result to this workspace.'}
+      </p>
+      {searchQuery || showFavoritesOnly ? (
+        <button
+          type="button"
+          className="studio-ghost-control px-4 py-2"
+          onClick={() => {
+            onLibraryFiltersChange({ q: '', favorites: false });
+          }}
+        >
+          Clear filters
+        </button>
+      ) : (
+        <button type="button" className="studio-ghost-control px-4 py-2" onClick={onCreate}>
+          Create an image
+        </button>
+      )}
+    </div>
+  );
+}

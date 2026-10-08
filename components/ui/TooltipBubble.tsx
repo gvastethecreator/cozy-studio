@@ -75,6 +75,11 @@ export function TooltipBubble({
     };
   }, [displayedAnchor, displayedContent, id, position, visible]);
   if (!displayedAnchor?.isConnected) return null;
+  const fullscreen = document.fullscreenElement;
+  const owner =
+    fullscreen && fullscreen.contains(displayedAnchor)
+      ? fullscreen
+      : (displayedAnchor.closest('dialog[open], [role="dialog"]') ?? document.body);
   return createPortal(
     <div
       ref={ref}
@@ -86,6 +91,6 @@ export function TooltipBubble({
     >
       {displayedContent}
     </div>,
-    displayedAnchor.closest('dialog[open], [role="dialog"]') ?? document.body,
+    owner,
   );
 }

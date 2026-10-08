@@ -1044,6 +1044,7 @@ export function createSpriteAtlasService({
               stagingFramesDir,
               `${safeSegment(row.id)}-${String(frameIndex + 1).padStart(2, '0')}.png`,
             );
+            // react-doctor-disable-next-line react-doctor/async-await-in-loop -- Decode one atlas frame at a time to bound Sharp native memory.
             await authoringSharp(rawPath)
               .extract({
                 left: frameIndex * cellWidth,
@@ -1336,7 +1337,8 @@ export function createSpriteAtlasService({
         const ids = [...new Set(jobIds.map((jobId) => jobId.trim()).filter(Boolean))];
         if (ids.length === 0) return run;
         const timestamp = now();
-        const isRetry = ids.every((jobId) => row.dispatch?.jobIds.includes(jobId));
+        const dispatchedIds = new Set(row.dispatch?.jobIds);
+        const isRetry = ids.every((jobId) => dispatchedIds.has(jobId));
         if (isRetry) {
           // An imported row keeps its strip. A retried sibling stays in the Catalog.
           if (!isAwaitingRow(row) || row.status === 'generating') return run;

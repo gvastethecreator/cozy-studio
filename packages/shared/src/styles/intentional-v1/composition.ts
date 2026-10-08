@@ -28,11 +28,14 @@ export async function createLayer(snapshot: Snapshot, layerId: string): Promise<
   return result;
 }
 export async function verifyLayerHashes(layers: readonly Layer[]): Promise<void> {
-  for (const layer of layers) {
-    validateLayer(layer);
-    if ((await sha256(layer.snapshot)) !== layer.snapshotHash)
-      throw new Error(`Snapshot hash mismatch: ${layer.layerId}`);
-  }
+  const hashes = await Promise.all(
+    layers.map(async (layer) => {
+      validateLayer(layer);
+      return sha256(layer.snapshot);
+    }),
+  );
+  const mismatch = layers.find((layer, index) => hashes[index] !== layer.snapshotHash);
+  if (mismatch) throw new Error(`Snapshot hash mismatch: ${mismatch.layerId}`);
 }
 export async function exportComposition(composition: Composition): Promise<string> {
   validateComposition(composition);

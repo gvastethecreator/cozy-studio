@@ -104,26 +104,23 @@ describe('repository updates', () => {
     expect(f.restart).not.toHaveBeenCalled();
   });
 
-  it('blocks other branches, untracked files and diverged local commits', async () => {
-    f.advance();
-    writeFileSync(join(f.root, 'notes.txt'), 'unique');
-    expect(await f.updates.check()).toMatchObject({
-      canUpdate: false,
-      blocker: expect.stringContaining('untracked'),
-    });
-    f.git(f.root, 'add', '.');
-    f.git(f.root, 'commit', '-m', 'local');
-    expect(await f.updates.check()).toMatchObject({
-      canUpdate: false,
-      blocker: expect.stringContaining('Local commits'),
-    });
-    f.git(f.root, 'checkout', '-b', 'feature');
-    expect(await f.updates.check()).toMatchObject({
-      canUpdate: false,
-      blocker: expect.stringContaining('Switch to main'),
-    });
-    expect(readFileSync(join(f.root, 'notes.txt'), 'utf8')).toBe('unique');
-  });
+  it.each(['untracked', 'Local commits', 'Switch to main'])(
+    'blocks updates for %s without changing local files',
+    async (blocker) => {
+      f.advance();
+      writeFileSync(join(f.root, 'notes.txt'), 'unique');
+      if (blocker !== 'untracked') {
+        f.git(f.root, 'add', '.');
+        f.git(f.root, 'commit', '-m', 'local');
+      }
+      if (blocker === 'Switch to main') f.git(f.root, 'checkout', '-b', 'feature');
+      expect(await f.updates.check()).toMatchObject({
+        canUpdate: false,
+        blocker: expect.stringContaining(blocker),
+      });
+      expect(readFileSync(join(f.root, 'notes.txt'), 'utf8')).toBe('unique');
+    },
+  );
 
   it('keeps the server alive and permits retry if dependency installation fails after the merge', async () => {
     const target = f.advance();

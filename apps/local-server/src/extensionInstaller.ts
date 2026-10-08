@@ -53,7 +53,11 @@ async function extractZip(zip: JSZip, targetDir: string) {
 let installWriteQueue = Promise.resolve();
 
 /** Extracts into a staging folder, then swaps it in; the previous folder survives any failure. */
-function replaceFolder(finalDir: string, fill: (stageDir: string) => Promise<void>, validateInstalled?: () => Promise<void>) {
+function replaceFolder(
+  finalDir: string,
+  fill: (stageDir: string) => Promise<void>,
+  validateInstalled?: () => Promise<void>,
+) {
   const result = installWriteQueue.then(async () => {
     const stageDir = `${finalDir}.stage-${process.pid}`;
     const previousDir = `${finalDir}.previous-${process.pid}-${randomUUID()}`;
@@ -112,7 +116,11 @@ export async function installExtensionArchive({
   if (parsed.manifest.id !== entry.id || parsed.manifest.version !== entry.version)
     throw new ExtensionInstallError(`${entry.id}: archive does not match the release index`);
 
-  await replaceFolder(path.join(installDir, entry.id), (stageDir) => extractZip(zip, stageDir), validateInstalled);
+  await replaceFolder(
+    path.join(installDir, entry.id),
+    (stageDir) => extractZip(zip, stageDir),
+    validateInstalled,
+  );
   return parsed.manifest;
 }
 

@@ -12,7 +12,8 @@ function obj(value: unknown, label: string): Obj {
   return value as Obj;
 }
 function keys(value: Obj, allowed: readonly string[], label: string) {
-  const extra = Object.keys(value).filter((k) => !allowed.includes(k));
+  const allowedKeys = new Set(allowed);
+  const extra = Object.keys(value).filter((k) => !allowedKeys.has(k));
   if (extra.length) fail(`${label}: unknown fields ${extra.join(', ')}`);
   for (const key of allowed) if (!(key in value)) fail(`${label}.${key}: missing`);
 }

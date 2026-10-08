@@ -71,27 +71,41 @@ export function createExtensionStore(sources: string[]): ExtensionStore {
     const extensions: InstalledExtension[] = [];
     const invalid: ExtensionListing['invalid'] = [];
     const seen = new Set<string>();
-    // Earlier sources win when two sources carry the same extension id.
-    for (const source of sources) {
-      if (!existsSync(source)) continue;
-      for (const entry of await readdir(source, { withFileTypes: true })) {
-        if (
-          !entry.isDirectory() ||
-          entry.name.includes('.stage-') ||
-          entry.name.includes('.previous-')
-        )
-          continue;
-        const root = path.join(source, entry.name);
-        const manifestPath = path.join(root, EXTENSION_MANIFEST_FILE);
-        if (!existsSync(manifestPath)) continue;
-        let raw: unknown;
-        try {
-          raw = JSON.parse(await readFile(manifestPath, 'utf8'));
-        } catch {
-          invalid.push({ folder: root, issues: ['extension.json is not valid JSON'] });
-          continue;
-        }
-        const parsed = parseExtensionManifest(raw);
+    const manifests = await Promise.all(
+      sources.map(async (source) => {
+        if (!existsSync(source)) return [];
+        const entries = await readdir(source, { withFileTypes: true });
+        return Promise.all(
+          entries
+            .filter(
+              (entry) =>
+                entry.isDirectory() &&
+                !entry.name.includes('.stage-') &&
+                !entry.name.includes('.previous-'),
+            )
+            .map(async (entry) => {
+              const root = path.join(source, entry.name);
+              const manifestPath = path.join(root, EXTENSION_MANIFEST_FILE);
+              if (!existsSync(manifestPath)) return null;
+              try {
+                const raw: unknown = JSON.parse(await readFile(manifestPath, 'utf8'));
+                return { root, source, parsed: parseExtensionManifest(raw) };
+              } catch {
+                return {
+                  root,
+                  source,
+                  parsed: { ok: false as const, issues: ['extension.json is not valid JSON'] },
+                };
+              }
+            }),
+        );
+      }),
+    );
+    // Promise.all preserves input order: earlier sources still win duplicate ids.
+    for (const entries of manifests) {
+      for (const entry of entries) {
+        if (!entry) continue;
+        const { root, source, parsed } = entry;
         if (!parsed.ok) {
           invalid.push({ folder: root, issues: parsed.issues });
           continue;

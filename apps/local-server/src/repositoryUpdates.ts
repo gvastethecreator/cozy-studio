@@ -96,15 +96,14 @@ export function createRepositoryUpdates({
       ['rev-parse', 'refs/remotes/origin/main'],
       'The origin remote has no fetched main branch.',
     );
-    const branch = await git(['branch', '--show-current'], 'Cannot read the current branch.');
-    const dirty = await git(
-      ['status', '--porcelain', '--untracked-files=normal'],
-      'Cannot inspect local changes.',
-    );
-    const counts = await git(
-      ['rev-list', '--left-right', '--count', `HEAD...${state.latestCommit}`],
-      'Cannot compare commits with origin/main.',
-    );
+    const [branch, dirty, counts] = await Promise.all([
+      git(['branch', '--show-current'], 'Cannot read the current branch.'),
+      git(['status', '--porcelain', '--untracked-files=normal'], 'Cannot inspect local changes.'),
+      git(
+        ['rev-list', '--left-right', '--count', `HEAD...${state.latestCommit}`],
+        'Cannot compare commits with origin/main.',
+      ),
+    ]);
     const [ahead, behind] = counts.split(/\s+/).map(Number);
     state.behind = behind;
     state.blocker =

@@ -181,16 +181,28 @@ describe('local style-pack install', () => {
         zip.file('cards/oversized.webp', Buffer.alloc(32 * 1024 * 1024 + 1));
       }),
       await archive('Invalid', (files) => {
-        (files['extension.json'] as { files: Record<string, string> }).files.archived = 'archived.json';
+        (files['extension.json'] as { files: Record<string, string> }).files.archived =
+          'archived.json';
         const retired = structuredClone((files['runtime.json'] as StyleRuntimePack).presets[0]);
         retired.id = 'SP14-002';
-        retired.intentional = { presetVersion: 1, policy: { schemaVersion: 1, kind: 'INVALID' } as never };
+        retired.intentional = {
+          presetVersion: 1,
+          policy: { schemaVersion: 1, kind: 'INVALID' } as never,
+        };
         files['archived.json'] = { packName: 'Invalid', presets: [retired] };
       }),
       await archive('Invalid', (files) => {
-        (files['runtime.json'] as StyleRuntimePack).presets[0].intentional = { presetVersion: 999,
-          policy: { schemaVersion: 1, kind: 'full_style', defaultFields: [...FIELDS], requires: null,
-            medium: 'paint', constraints: [], avoidRules: [] },
+        (files['runtime.json'] as StyleRuntimePack).presets[0].intentional = {
+          presetVersion: 999,
+          policy: {
+            schemaVersion: 1,
+            kind: 'full_style',
+            defaultFields: [...FIELDS],
+            requires: null,
+            medium: 'paint',
+            constraints: [],
+            avoidRules: [],
+          },
         };
       }),
     ];
@@ -214,10 +226,14 @@ describe('local style-pack install', () => {
     });
     expect((await install(await archive('Changed Pack'))).status).toBe(500);
     expect((await store.list()).extensions[0].manifest.title).toBe('Preserved Pack');
-    expect(JSON.parse((await store.readFile('cozy.pack-14', 'runtime.json'))!.toString('utf8')).name).toBe('Preserved Pack');
+    expect(
+      JSON.parse((await store.readFile('cozy.pack-14', 'runtime.json'))!.toString('utf8')).name,
+    ).toBe('Preserved Pack');
     vi.spyOn(store, 'readFile').mockResolvedValueOnce(Buffer.from('{}'));
     expect((await install(await archive('Changed Pack'))).status).toBe(422);
     expect((await store.list()).extensions[0].manifest.title).toBe('Preserved Pack');
-    expect(JSON.parse((await store.readFile('cozy.pack-14', 'runtime.json'))!.toString('utf8')).name).toBe('Preserved Pack');
+    expect(
+      JSON.parse((await store.readFile('cozy.pack-14', 'runtime.json'))!.toString('utf8')).name,
+    ).toBe('Preserved Pack');
   });
 });

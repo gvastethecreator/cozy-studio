@@ -9,16 +9,19 @@ import { installExtensionArchive } from './extensionInstaller';
 
 const fault = vi.hoisted(() => ({ swap: false, stageCleanup: false, previousCleanup: false }));
 vi.mock('node:fs/promises', async (original) => {
-  const fs = await original() as typeof import('node:fs/promises');
+  const fs = (await original()) as typeof import('node:fs/promises');
   const { existsSync: exists } = await import('node:fs');
-  return { ...fs,
+  return {
+    ...fs,
     rename: async (from: string, to: string) => {
       if (fault.swap && from.includes('.stage-')) throw new Error('swap denied');
       return fs.rename(from, to);
     },
     rm: async (target: string, options: Parameters<typeof fs.rm>[1]) => {
-      if (fault.stageCleanup && target.includes('.stage-') && exists(target)) throw new Error('staging cleanup denied');
-      if (fault.previousCleanup && target.includes('.previous-') && exists(target)) throw new Error('previous cleanup denied');
+      if (fault.stageCleanup && target.includes('.stage-') && exists(target))
+        throw new Error('staging cleanup denied');
+      if (fault.previousCleanup && target.includes('.previous-') && exists(target))
+        throw new Error('previous cleanup denied');
       return fs.rm(target, options);
     },
   };
@@ -76,10 +79,15 @@ describe('installExtensionArchive', () => {
     const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     fault.previousCleanup = true;
     await installExtensionArchive({ ...(await release('1.2.0')), installDir });
-    expect(warning).toHaveBeenCalledWith('[extensions:install] Previous folder cleanup failed', expect.any(Error));
+    expect(warning).toHaveBeenCalledWith(
+      '[extensions:install] Previous folder cleanup failed',
+      expect.any(Error),
+    );
     fault.previousCleanup = false;
     await installExtensionArchive({ ...(await release('1.3.0')), installDir });
-    expect(JSON.parse(await readFile(path.join(installDir, 'cozy.pack-14', 'pack.json'), 'utf8'))).toEqual({ version: '1.3.0' });
+    expect(
+      JSON.parse(await readFile(path.join(installDir, 'cozy.pack-14', 'pack.json'), 'utf8')),
+    ).toEqual({ version: '1.3.0' });
   });
 
   it('serializes concurrent replacements and continues after a failed install', async () => {
@@ -125,11 +133,19 @@ describe('installExtensionArchive', () => {
 
     const escaping = await release('1.2.0', (zip) => zip.file('../outside.txt', 'x'));
     await expect(installExtensionArchive({ ...escaping, installDir })).rejects.toThrow('escapes');
-    await expect(installExtensionArchive({ ...(await release('1.3.0')), installDir,
-      validateInstalled: async () => { throw new Error('post-swap validation failed'); },
-    })).rejects.toThrow('post-swap validation failed');
+    await expect(
+      installExtensionArchive({
+        ...(await release('1.3.0')),
+        installDir,
+        validateInstalled: async () => {
+          throw new Error('post-swap validation failed');
+        },
+      }),
+    ).rejects.toThrow('post-swap validation failed');
     Object.assign(fault, { swap: true, stageCleanup: true });
-    await expect(installExtensionArchive({ ...(await release('1.4.0')), installDir })).rejects.toThrow('staging cleanup denied');
+    await expect(
+      installExtensionArchive({ ...(await release('1.4.0')), installDir }),
+    ).rejects.toThrow('staging cleanup denied');
     Object.assign(fault, { swap: false, stageCleanup: false });
 
     const pack = await readFile(path.join(installDir, 'cozy.pack-14', 'pack.json'), 'utf8');

@@ -383,12 +383,13 @@ export function projectSubscriptionHttpDiagnostic(
   for (let index = 0; index < SUBSCRIPTION_HTTP_DIAGNOSTIC_LIMITATIONS.length; index += 1) {
     if (value.limitations[index] !== SUBSCRIPTION_HTTP_DIAGNOSTIC_LIMITATIONS[index]) return null;
   }
-  const warnings: SubscriptionHttpDiagnosticWarning[] = [];
-  for (const warning of value.warnings) {
-    if (!oneOf(warning, SUBSCRIPTION_HTTP_DIAGNOSTIC_WARNINGS) || warnings.includes(warning))
-      continue;
-    warnings.push(warning);
-  }
+  const warnings = [
+    ...new Set(
+      value.warnings.filter((warning): warning is SubscriptionHttpDiagnosticWarning =>
+        oneOf(warning, SUBSCRIPTION_HTTP_DIAGNOSTIC_WARNINGS),
+      ),
+    ),
+  ];
   if (
     providerCode === null &&
     typeof classification.providerCode === 'string' &&

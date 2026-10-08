@@ -207,12 +207,15 @@ function getCameraOrbit(azimuth: number) {
     azimuth > 0
       ? { camera: "viewer's right", subject: 'left' }
       : { camera: "viewer's left", subject: 'right' };
-  const zone = CAMERA_ORBIT_ZONES.find((item) => Math.abs(azimuth) <= item.maxAbsAzimuth)!;
+  const zone = CAMERA_ORBIT_ZONES.find((item) => Math.abs(azimuth) <= item.maxAbsAzimuth);
+  if (!zone) throw new Error('Invalid camera azimuth.');
   return { position: zone.position(side), geometry: zone.geometry(side) };
 }
 
 function getCameraPitch(elevation: number) {
-  return CAMERA_PITCH_ZONES.find((item) => elevation >= item.minElevation)!;
+  const zone = CAMERA_PITCH_ZONES.find((item) => elevation >= item.minElevation);
+  if (!zone) throw new Error('Invalid camera elevation.');
+  return zone;
 }
 
 /** "180% (closer)": the zoom value with the direction a reader would expect. */
@@ -226,10 +229,12 @@ export function getCameraDirectorInstructions(
   elevation: number,
   distance: number,
 ): CameraDirectorInstructions {
+  const zoom = CAMERA_ZOOM_ZONES.find((item) => distance >= item.minZoom);
+  if (!zoom) throw new Error('Invalid camera distance.');
   return {
     hPos: getCameraOrbit(azimuth).position,
     vPos: getCameraPitch(elevation).position,
-    framing: CAMERA_ZOOM_ZONES.find((item) => distance >= item.minZoom)!.framing,
+    framing: zoom.framing,
   };
 }
 

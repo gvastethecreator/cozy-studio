@@ -54,6 +54,7 @@ export function createSpriteAtlasRunParticipant(
 
     async recordDispatch(jobs) {
       for (const group of groupByRow(jobs)) {
+        // react-doctor-disable-next-line react-doctor/async-await-in-loop -- Rows can share a run file; preserve write and failure order.
         await service.recordRowDispatch(
           group.runId,
           group.rowId,
@@ -71,12 +72,13 @@ export function createSpriteAtlasRunParticipant(
     async recover(jobs) {
       // A job accepted just before a restart may be missing from its row.
       for (const group of groupByRow(jobs)) {
+        // react-doctor-disable-next-line react-doctor/async-await-in-loop -- Read after the previous row write because groups can share a run.
         const run = await service.getRun(group.runId);
         const dispatch = run?.rows.find((row) => row.id === group.rowId)?.dispatch;
+        const dispatchedIds = new Set(dispatch?.jobIds);
         const missing = group.jobs.filter(
           (job) =>
-            !dispatch ||
-            (!dispatch.jobIds.includes(job.id) && job.createdAt > dispatch.dispatchedAt),
+            !dispatch || (!dispatchedIds.has(job.id) && job.createdAt > dispatch.dispatchedAt),
         );
         if (missing.length > 0) {
           await service.recordRowDispatch(
@@ -90,6 +92,7 @@ export function createSpriteAtlasRunParticipant(
         const awaiting = run.rows.some(
           (row) => row.dispatch && (row.status === 'generating' || row.status === 'blocked'),
         );
+        // react-doctor-disable-next-line react-doctor/async-await-in-loop -- Import row images one run at a time to bound native decoding memory.
         if (awaiting) await reconcileRun(run.id);
       }
     },

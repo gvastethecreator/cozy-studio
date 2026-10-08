@@ -22,6 +22,16 @@ const BASIS_LABEL: Record<SubscriptionHttpDiagnostic['classification']['basis'],
   none: 'None',
 };
 
+const REPORTED_INSTANT_FORMATTER = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'America/Argentina/Buenos_Aires',
+  hour: '2-digit',
+  minute: '2-digit',
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  hourCycle: 'h23',
+});
+
 export function readLatestSubscriptionHttpDiagnostic(
   events: readonly Pick<JobEventRecord, 'type' | 'metadata'>[],
 ): SubscriptionHttpDiagnostic | null {
@@ -41,15 +51,7 @@ export function subscriptionHttpDiagnosticCopyText(value: unknown) {
 function formatReportedInstant(iso: string) {
   const utc = `${iso} UTC`;
   try {
-    const local = new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'America/Argentina/Buenos_Aires',
-      hour: '2-digit',
-      minute: '2-digit',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hourCycle: 'h23',
-    }).format(new Date(iso));
+    const local = REPORTED_INSTANT_FORMATTER.format(new Date(iso));
     return `${utc} (${local}, America/Argentina/Buenos_Aires)`;
   } catch {
     return utc;

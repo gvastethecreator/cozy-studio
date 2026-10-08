@@ -1,54 +1,31 @@
 # Development guide
 
-## Stack
+## Start the app
 
-- Bun package manager and backend runtime
-- React + Vite UI (`vp`)
-- Local Hono API on Bun
-- SQLite via `bun:sqlite` in the Studio Library
-- Optional Grok Imagine through the signed-in Grok Build CLI
-
-## First run
+Follow [Quick start](../README.md#quick-start) for the supported Bun and Node.js versions and first-run setup. The app uses React with Vite+, a Bun/Hono local API, and SQLite through `bun:sqlite`.
 
 ```bash
-bun install
-bun run studio:init
 bun run dev
 ```
 
-The repo tracks common VS Code tasks in `.vscode/tasks.json`.
+This starts the UI and backend together. Reuse a healthy running instance. To work on one side independently, use `bun run dev:ui` or `bun run dev:server`; the UI still needs the backend for jobs and assets. Default ports are 17222 and 17223.
 
-- Use `🧱 init` once for setup.
-- Use `🚀 dev` for the complete local stack.
-- Use `🖥 ui` or `⚙ api` only when you want one side.
-- Use `🧬 typecheck`, `🧾 docs`, and `🧼 hygiene` for extra contributor gates.
+## Editor tasks
 
-## Quality gates
+In VS Code, open **Terminal → Run Task**. The tracked tasks are Dev, Test, Check, Format, Build, Validate, Provider status, Runtime, Styles, Docs and Logs. Their exact labels and commands live in [tasks.json](../.vscode/tasks.json). Runtime diagnoses the optional Codex route, not ChatGPT authentication.
 
-```bash
-bun run validate:fast    # cheap loop
-bun run validate         # main PR gate
-bun run validate:full    # compatibility alias of validate:release
-bun run validate:release # release gate (providers + recipes + styles + docs + hygiene)
-```
+## Choose checks
 
-`🏗 build` is the default VS Code build task. `🧪 test` is the default test task. `⚡ quick`, `✅ gate`, and `🛡 release` map to the three validation levels.
+[Tooling](TOOLING.md) defines the validation levels. `validate:fast` runs a fixed unit subset and the server typecheck; it does not select tests from your diff. Use a focused existing test for a bounded behavior change, and `validate` once for broad product changes. Documentation-only changes use `docs:check` plus changed skill validation. Do not run an aggregate and its included checks twice.
 
-## Dependency health
+For dependency work, follow [Dependencies](DEPENDENCIES.md). Do not update packages as part of an unrelated fix.
 
-```bash
-bun outdated
-bun audit
-bun install --frozen-lockfile
-```
+## Boundaries and safety
 
-Review outdated packages against the compatibility constraints in [Dependencies](DEPENDENCIES.md). A deferred update is not a failed check. Review audit findings and record unresolved advisories. The frozen install checks that `package.json` and `bun.lock` agree.
+- [Architecture](ARCHITECTURE.md) owns product boundaries; [CONTEXT.md](../CONTEXT.md) defines their vocabulary.
+- Workspace is the durable organization entity. Persistent Jobs store `workspace_id`; do not restore Project APIs on the generation path.
+- Use isolated temporary libraries in tests. Never mutate a real user's Studio Library to validate a code change.
+- Keep `.env.local`, databases, user outputs, logs and scratch dumps out of Git.
+- Provider execution and credentials stay behind backend adapters. A unit test or preflight does not authorize a live generation.
 
-## Workspace model
-
-`Workspace` is the durable organization entity. Persistent Jobs store `workspace_id`. Do not put Project APIs back on the generate path.
-
-## Safety
-
-- Never mutate a real user Studio Library in automated tests.
-- Do not commit `.env.local`, SQLite DBs, logs, or `.scratch` dumps.
+For local agent access to a running app, use [Studio MCP](agents/mcp.md). Developer-specific agent skills, React Doctor configuration and local hooks are optional, ignored tools; a fresh checkout does not depend on them.

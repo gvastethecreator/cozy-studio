@@ -1,6 +1,6 @@
 # Architecture
 
-Cozy Studio is a local-first image studio. The React/Vite UI is the main product surface. A local Bun/Hono backend supervises `codex app-server`, persists state in SQLite, serves Studio Library assets, and emits live SSE events.
+Cozy Studio is a local-first image studio. The React/Vite UI is the main product surface. A local Bun/Hono backend persists state in SQLite, serves managed assets and emits live SSE events. Provider adapters own execution; only the optional Codex route uses `codex app-server`.
 
 ```mermaid
 graph TD
@@ -17,7 +17,7 @@ graph TD
     API --> CATALOG["/api/catalog + /library/*"]
     API --> SETTINGS["Studio Settings"]
     API --> DB["SQLite .studio/studio.sqlite"]
-    API --> LIB["Studio Library .studio + outputs"]
+    API --> LIB["Studio Library + registered image outputs"]
     API --> PROVIDERS["Provider Boundary"]
     PROVIDERS --> CODEX["Codex Product Runtime"]
     CODEX --> CX["codex app-server ws://127.0.0.1:17224"]
@@ -30,12 +30,13 @@ graph TD
     PROVIDERS --> FAL["fal.ai hosted API"]
     PROVIDERS --> GOOGLE["Google Gemini image API"]
     PROVIDERS --> COMFY["ComfyUI local runtime"]
+    PROVIDERS --> AGY["Antigravity headless CLI"]
 ```
 
 ## Product shape
 
 - **Provider execution:** Codex uses local `codex app-server`; ChatGPT uses its existing subscription HTTP endpoint, credential store and SSE image executor without creating Codex threads.
-- **Local-first:** assets, SQLite state, transcripts, thumbnails, and logs live in the Studio Library, outside the repo.
+- **Local-first:** SQLite state, references, transcripts, thumbnails and logs live in the Studio Library. Generated images use the managed output destination captured at intake, which can be outside that Library. User data stays outside the repo.
 - **Library-backed:** the repo contains source code and public assets. Generated user data belongs in the Studio Library.
 - **Provider-aware:** supported built-in providers run behind backend adapters. They do not change the product center.
 - **Catalog-first:** durable and UI image truth is the Image Catalog. The former workspace snapshot shape is produced only on explicit export.
@@ -78,7 +79,7 @@ graph TD
 - From 1120px of available workspace width, Create uses a 320px main rail, an optional 360px Workflow/Styles panel, and the remaining space for the canvas. Between 720px and 1120px, Prompt/Workflow/Styles share the rail; narrower workspaces keep Configure/Preview navigation. Default and Styles omit panel tabs and retain the compact mix in the main rail. Tools and Jobs retain their independent left/right preferences. Hidden panes stay mounted and inert; closing the second panel leaves a named workflow button to reopen it. Frame, row, and action details are sections within Workflow. Expanded catalogs restore the previous pane when closed. The lazy `StyleCatalogPanel` keeps existing search, virtualization, selection, and editor surfaces separate from workflow mounting, without changing the workflow route. Outside Default/Styles, its separate local style draft does not replace workflow generation parameters.
 - Camera, Sprite Sheet, and Cinematic Storyboard keep their editors mounted behind editor/results tabs. A new result selects Results. Animation Sequence and Sprite Atlas keep their selected run and dedicated stage; frame and row inspectors use the optional panel. Character Lab keeps its action catalog in that panel. Common image stages retain catalog filtering, reference comparison, and image actions.
 - `hooks/useStyleRuntimePacks.ts` projects the Style Packs that the current browser intent needs. `components/recipes/stylesData.ts` owns the shared value or promise registry and retry boundary.
-  Catalog search loads raw generated packs without forcing all thumbnails. Its surface owns loading, failure, and explicit retry; it reuses the search index while the effective pack set is unchanged. It does not retain rejected loader promises.
+  Catalog search loads installed pack manifests without forcing all thumbnails. Its surface owns loading, failure, and explicit retry; it reuses the search index while the effective pack set is unchanged. It does not retain rejected loader promises.
 - Default includes optional styles: a compact selector in the Create tray and a demand-mounted options panel for visual browsing. `useStyleBrowserNavigation` owns routes, filters and favorites; `useStyleComposition` owns selected layers and generation inputs; `useUserStyleLibrary` owns catalog reads and editor sessions. With no active style, Default submits a normal generation. Active styles use the `styles` recipe contract. Draft preparation and the editor remain demand-loaded. Late mutation responses update catalog and selected layers only when their version is current, even after the editor closes.
   All styles and grouped catalogs mount only visible rows plus overscan, loading runtime packs on demand. Style inspection replaces the preview stage with three examples, visual DNA and prompt actions; expanded Explore uses the same detail surface. Custom styles use a tabbed editor with a live prompt preview and existing save, clone and archive boundaries.
   Studio Settings provides defaults for new style intensity and Preserve/Reinterpret mode. Existing selections keep their own values. Optional review cleanup advances the local Jobs visibility cutoff at the next session, preserving jobs and images.
@@ -86,7 +87,7 @@ graph TD
 - `StudioViewport` keeps each lazy route component's identity stable after preloading. Switching to its loaded component during a later render would remount the route and discard an open editor or selection.
 - Settings groups creation defaults, appearance and layout, accounts and models, file naming, library imports, styles and workflows, maintenance, and help and updates. Custom naming, model execution and repair controls use disclosures; search opens their group and focuses the matching control. The full image prompt remains available at the bottom of compact carousel details.
 - Settings covers the shell while keeping its header mounted. The modal can capture and restore the opening control; suppressing and unmounting that header discards the focus target before the modal opens.
-- `lib/styleThumbnailCatalog.ts` projects default and provider-specific Style card images from pack-scoped generated modules.
+- `lib/styleThumbnailCatalog.ts` resolves thumbnail and full-card URLs from installed pack data, with bundled workflow previews kept separate.
   Provider variants stay additional presentation assets with validated provenance.
   They do not replace the canonical default card or Style Preset Manifest.
 
@@ -150,13 +151,11 @@ Studio Readiness combines:
 
 - local backend reachability
 - Studio Library health
-- Codex CLI availability
-- Codex Runtime Doctor path, CLI metadata, and app-server capability
-- `codex app-server` lifecycle
-- Local Codex Session state
+- selected-provider authentication and execution readiness
+- for the Codex route only: CLI availability, Runtime Doctor metadata, app-server capability and lifecycle, and Local Codex Session state
 
 Generation readiness belongs to the selected provider. ChatGPT authentication and fixed HTTP models do not depend on local Codex availability.
-The default Codex flow does not need `OPENAI_API_KEY`.
+Neither ChatGPT subscription HTTP nor the optional Codex app-server route needs `OPENAI_API_KEY`.
 Codex job intake uses this same non-secret runtime readiness signal before it persists or requeues jobs.
 Known-bad local runtimes fail fast instead of creating doomed queue rows.
 
@@ -231,6 +230,7 @@ Current concrete adapters:
   available when HTTP is unavailable or the explicit HTTP fallback policy allows it.
   The CLI executor uses a fresh bounded headless session and an exact `image_gen` or `image_edit`
   allowlist. Both paths import verified images into the captured Studio Library.
+- **Antigravity:** a sandboxed headless CLI session with one `generate_image` call and one validated image. Studio stages managed references in a temporary workspace and leaves CLI-owned credentials and artifact history untouched.
 - **fal.ai:** hosted executor using `FAL_KEY` or `FAL_API_KEY` from backend env only.
 - **Google Gemini image API:** hosted executor using `GOOGLE_API_KEY`, `GEMINI_API_KEY`, or `NANO_BANANA_API_KEY` from backend env only.
 - **ComfyUI:** local executor using `COMFY_API_URL` or `COMFYUI_API_URL` plus `COMFY_WORKFLOW_TEMPLATE_PATH`.
@@ -300,7 +300,7 @@ Codex SDK and scripts are automation surfaces, not the product runtime. They sup
 
 ## Storage maintenance
 
-Studio Settings exposes a demand-mounted Storage Maintenance panel backed by `/api/maintenance`. It can run storage audit, inline-payload compaction plans or writes, historical thumbnail backfill plans or writes, and tooling-log pruning. The browser cannot run arbitrary shell commands.
+Settings → Advanced & maintenance exposes demand-mounted storage controls backed by `/api/maintenance`. It can run storage audit, inline-payload compaction plans or writes, historical thumbnail backfill plans or writes, and tooling-log pruning. The browser cannot run arbitrary shell commands.
 
 Storage Repair Plans are dry-run or read-only until a guarded write adapter is selected. Script commands remain the automation equivalent for agents and release checks.
 

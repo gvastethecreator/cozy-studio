@@ -10,14 +10,14 @@ In External Output Sources, scan a registered source before choosing files. Sele
 
 1. Run `bun run studio:onboard --probe` or use the in-app onboarding checklist.
 2. Run `bun run studio:init` when Bootstrap Configuration or the Studio Library still needs repair.
-3. Start the backend with `bun run dev:server`.
-4. Run `bun run runtime:doctor`.
-5. Open `http://localhost:17223/api/health`.
+3. Reuse the running Studio instance. If no instance is running, start both UI and backend with `bun run dev`.
+4. Run `bun run providers:preflight` for the selected provider. Use `bun run runtime:doctor` only for the Codex route.
+5. Open `http://localhost:17223/api/health` (or your configured API port).
 6. If a quality gate failed, run `bun run tooling:logs` and inspect `*.latest.log`.
 
 ## First-run onboarding
 
-The welcome surface detects Bun, Codex CLI, ChatGPT login, Studio Library, Bootstrap Configuration, and app-server. It asks consent before it writes `.env.local`, runs `studio:init`, installs repo deps, or opens a visible terminal.
+The welcome surface shows the selected connection, images folder and setup status. Sign in with ChatGPT from the welcome screen or Settings → Accounts & models. Setup details expand when work is needed and collapse when Studio is ready. Codex CLI, its login and app-server matter only when you choose the Codex route. A setup request authorizes ordinary initialization; reuse a healthy instance and preserve existing paths and data.
 
 Headless equivalent:
 
@@ -36,17 +36,17 @@ STUDIO_LIBRARY_DIR=D:\Cozy Studio Library
 
 Then run `bun run studio:init`. Existing `STUDIO_LIBRARY_DIR` is kept. The app does not auto-migrate an older library.
 
-Preferred Output Path is not the generate destination. Generate writes to the images folder chosen in onboarding or Settings, Output, which is Pictures/Cozy Studio on a new library.
+External folder to scan is an import source, not the generation destination. Generate writes to the images folder chosen in onboarding or Settings → Files & naming, which is Pictures/Cozy Studio on a new library.
 
 ## Common startup problems
 
 ### `codex` is missing or does not respond
 
-Symptoms: `codexCli.available: false`. Real jobs do not start.
+Symptoms: `codexCli.available: false`. Jobs using the Codex provider do not start. This does not block an authenticated ChatGPT HTTP connection.
 
 Make sure that the selected CLI path and `PATH` are correct. Restart the terminal after you install Codex. Then run `bun run runtime:doctor`.
 
-CLI metadata helps diagnosis. Block setup for missing app-server support or missing auth. Do not block setup for a hardcoded tool release.
+CLI metadata helps diagnosis. Missing app-server support or CLI authentication blocks the Codex route only. Do not block setup for a hardcoded tool release.
 
 ```bash
 bun run runtime:doctor
@@ -93,7 +93,7 @@ Make sure that app-server support is present, the Codex session is signed in, an
 
 Symptoms: Codex CLI exists but jobs fail with permission or authorization errors.
 
-Sign in from Studio Settings for the ChatGPT HTTP route, or run `codex login` and choose ChatGPT for the local app-server route. Then restart `bun run dev:server` if the runtime was already running.
+For the Codex provider, run `codex login` and complete its ChatGPT authentication flow, then restart the existing Studio runtime if needed. Studio’s separate ChatGPT provider signs in through Settings → Accounts & models; that does not repair a Codex CLI session.
 
 Studio ChatGPT Sign in uses the Codex device-code flow. OpenAI does not document this as a supported Studio API. The provider selector separates ChatGPT HTTP from Codex app-server and captures the provider contract when the job is accepted. ChatGPT uses the existing credential store, so splitting providers does not require another login. If the selected route is unavailable, Studio blocks the job with the route-specific setup action instead of silently switching accounts.
 
@@ -117,7 +117,7 @@ bun run providers:preflight -- --provider=grok
 
 The preflight must report `canAttempt=true`. Sign in with xAI from Studio Settings, set `XAI_API_KEY` in `.env.local`, or run `grok login` and complete browser authentication.
 
-Some SuperGrok tiers return HTTP 403 after a successful xAI Sign in. That is an entitlement gate, not a bad token. Studio then falls back to Grok Build CLI when it is signed in.
+Some SuperGrok tiers return HTTP 403 after a successful xAI Sign in. That is an entitlement gate, not a bad token. Studio uses the signed-in Grok Build CLI only when the explicit HTTP fallback policy allows it. An uncertain submission must not be sent again through another transport.
 
 If Studio selects the wrong binary, set `STUDIO_GROK_CLI_PATH` to the stable native Grok executable and restart the backend.
 
@@ -127,16 +127,15 @@ Grok Jobs reject these cases before enqueue:
 
 - unresolved remote references
 - source files outside the Job captured Studio Library
-- more than five source images
+- more than five CLI source images or three HTTP edit source images
 - unsupported explicit aspect ratios
 - output counts other than one
 
 Import the reference into the Library, or choose a supported ratio (`1:1`, `16:9`, `9:16`, `4:3`, or `3:4`) and retry.
 The Generate dock names the same blocks.
 
-Home and Styles work with Grok.
-Other recipes stay Codex-first until they declare Grok and have a compiler fixture.
-Grok treats a Styles run with one or more managed references as image editing.
+Default supports Grok, including its optional styles. Other workflows must declare Grok support in their Recipe Module and have a compiler fixture.
+Grok treats a styles recipe run with managed references as image editing.
 A run without references is direct image generation.
 Studio creates one Persistent Job per requested batch image.
 Each Grok session still produces exactly one image.
@@ -209,7 +208,7 @@ If `check`, `lint`, `test`, or `build` fails and the terminal output is truncate
 
 1. Run `bun run tooling:logs`.
 2. Inspect the matching `*.latest.log`.
-3. Include the exact log in issue or pull request notes.
+3. Include the failed command and relevant sanitized excerpt in issue or pull request notes. Remove credentials, private prompts and personal paths.
 
 The full test task caps Vitest at eight workers to avoid Windows filesystem and process contention. Set `VITEST_MAX_WORKERS` to a positive integer only when you need a different local limit.
 
@@ -226,7 +225,7 @@ bun run studio:init
 Run `bun run storage:audit` to review SQLite size, WAL/SHM files, logs, transcripts, references, historical inline payloads, missing thumbnails, duplicate references, and compactable payloads.
 The command does not print private content.
 
-From the app, open Studio Settings, then Storage Maintenance. You can run audit, compaction plans, thumbnail backfill plans, and tooling-log pruning through `/api/maintenance`.
+From the app, open Settings → Advanced & maintenance. You can run audit, compaction plans, thumbnail backfill plans, and tooling-log pruning through `/api/maintenance`.
 
 `storage:compact` is dry-run by default. To write historical compaction, stop the local server and run:
 

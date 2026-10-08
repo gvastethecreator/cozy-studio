@@ -8,7 +8,7 @@ Cozy Studio is in open-source preview. Security fixes land on the `main` branch 
 
 Do not open public issues for vulnerabilities that involve local files, credentials, Provider Secrets, or asset exposure.
 
-Report in private through the maintainer private channel. Include:
+Use [GitHub private vulnerability reporting](https://github.com/gvastethecreator/cozy-studio/security/advisories/new). Reports go to the repository maintainers without opening a public issue. Include:
 
 - affected commit or version
 - operating system

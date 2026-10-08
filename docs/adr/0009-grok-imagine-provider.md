@@ -6,7 +6,7 @@ Accepted
 
 ## Decision
 
-Grok Imagine is an optional Generation Provider. Codex stays the default provider and the main Product Runtime.
+Grok Imagine is an optional Generation Provider. ChatGPT HTTP is the recommended default; Codex app-server remains a separate optional route.
 
 Use authenticated xAI HTTP when that path is ready. The signed-in Grok Build CLI remains available when HTTP is unavailable or the explicit HTTP fallback policy allows it. `XAI_API_KEY` in the backend environment is an HTTP credential. The CLI login path does not require it.
 
@@ -30,6 +30,6 @@ Limits that callers must follow:
 
 - Provider id is `grok`.
 - Tasks stay the existing image generation and image-edit kinds.
-- Home and Styles can select this provider. Styles uses the same provider-independent recipe directives as the other image providers.
+- Default can select this provider, with optional styles. The styles recipe uses the same provider-independent recipe directives as the other image providers.
 - Both paths import verified images into the captured Studio Library.
 - Deterministic tests use fixture sessions. A real image smoke needs explicit consent for that run.

@@ -1,20 +1,13 @@
 # Project skill ownership
 
-Cozy Studio keeps contributor skills in this repository. Read only the skill needed for the task.
+The public app includes one operational skill: [cozy-studio-setup](../../skills/cozy-studio-setup/SKILL.md). The onboarding prompt uses its tracked path through `lib/onboardingSetupPrompt.ts`. Keep it portable and available in a fresh checkout.
 
-- [cozy-studio-setup](../../skills/cozy-studio-setup/SKILL.md): first run and onboarding handoff. The path is used by `lib/onboardingSetupPrompt.ts`; keep it stable.
-- [sprite-atlas-builder](../../skills/sprite-atlas-builder/SKILL.md): select an existing sprite workflow and identify the external specialist dependency.
-- [imagegen](../../skills/imagegen/SKILL.md): recipe-aware image generation when explicitly loaded. This bundled adaptation does not replace a client's system image skill. Codex provider turns resolve their skill in `apps/local-server/src/codex/turn.ts`; ordinary Studio jobs use the ChatGPT provider.
-- [react-doctor](../../.agents/skills/react-doctor/SKILL.md): the repository adapter for the pinned diagnostic command. It is already on the local skill-loading surface.
+Developer-specific skills, local React Doctor configuration, hooks and workflow notes are ignored local tools. They are not installed by the app, required by builds or linked as public setup dependencies. Retained local copies keep their licenses and notices. Do not make runtime behavior depend on them.
 
-For changes, check the skill's commands and paths against current source, preserve third-party notices, run package validation, and run `bun run docs:check`. Prose changes need structural checks and review of a representative workflow. Runtime or UI changes need the corresponding functional or browser evidence.
+Studio image jobs follow the captured provider and recipe contract. Ordinary image jobs use ChatGPT HTTP; Codex provider turns resolve the host's image skill in `apps/local-server/src/codex/turn.ts`. Do not install a repository-specific image skill over the client's system skill.
 
-## Local ecosystem installation
+For changes to the setup skill, verify source paths and commands, validate the package and run `bun run docs:check`. Prose-only changes need structural validation and a representative static review; runtime and UI changes need the matching functional evidence.
 
-The optional agents-matrix integration indexes the repository's own skills through local junctions. Keep each junction pointed at its canonical source, exclude it from Git, and verify the resolved path and catalog result. Do not copy skill bodies into another catalog or install this project's `imagegen` over the client's system skill.
+Style content belongs in the separate `cozy-styles-dev` repository. Its curation and authoring tools are not runtime dependencies of Studio. See [ADR 0011](../adr/0011-declarative-extensions-and-style-pack-sources.md).
 
-The existing `codex-studio` and `codex-studio-style-from-images` ecosystem entries route to the current Cozy Studio checkout and the separate `cozy-styles-dev` curation repository. Their registry names are owned by that ecosystem. Contributors do not need agents-matrix to use the skills linked above.
-
-Style content belongs in `cozy-styles-dev`; read its `AGENTS.md` and `curation/agent-kit/START-HERE.md` for curation. Studio's extension boundary is documented in [ADR 0011](../adr/0011-declarative-extensions-and-style-pack-sources.md).
-
-For runtime queries, generation and cancellation, use the [Studio MCP server](mcp.md). Skills supply task guidance; MCP tools operate the running app.
+For app queries, generation and cancellation, use [Studio MCP](mcp.md). Skills guide work; MCP tools operate the running app.

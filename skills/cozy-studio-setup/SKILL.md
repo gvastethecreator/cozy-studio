@@ -47,9 +47,9 @@ row, never a Studio installer.
 
 Default Studio Library is `Library` inside the private Cozy Studio app-data folder
 (`%LOCALAPPDATA%\Cozy Studio` on Windows). Existing `STUDIO_LIBRARY_DIR` is kept. Do not
-auto-migrate an older library. Preferred Output Path is not the generate destination.
+auto-migrate an older library. The External folder to scan setting is an import source, not the generate destination.
 New generations go to Pictures/Cozy Studio, or the images folder chosen in onboarding.
-The current naming template and an example are in `README.md` and Settings, Output; preserve the configured template.
+The current naming template and an example are in `docs/USER_GUIDE.md` and Settings → Files & naming; preserve the configured template.
 
 ## Safety
 

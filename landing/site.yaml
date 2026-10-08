@@ -125,26 +125,26 @@ preview:
   navLabel: How it works
   kicker: How it works
   title: From idea to picture in three steps.
-  image: { src: assets/create.webp, light: assets/create-light.webp, alt: Cozy Studio with a paper collage style, a prompt and the finished picture }
+  image: { src: assets/create.webp, light: assets/create-light.webp, alt: Cozy Studio Create with a prompt and a ballerina mouse illustration }
   steps:
     - title: Describe it
       body: Plain words, and a reference picture if you like.
       x: 12.5
-      y: 31
+      y: 38
       radius: 11
-      image: { src: assets/screens/step-describe.webp, light: assets/screens/step-describe-light.webp, alt: "Create: the prompt is written and nothing is generated yet" }
+      image: { src: assets/create.webp, light: assets/create-light.webp, alt: "Create: prompt, references, format and image controls beside an existing result" }
     - title: Pick a style (or skip this step)
       body: Film, paint, anime, print, pixel art.
-      x: 9.5
-      y: 44
-      radius: 12
-      image: { src: assets/screens/step-style.webp, light: assets/screens/step-style-light.webp, alt: "Style explorer: a paper collage style picked" }
+      x: 41
+      y: 48
+      radius: 17
+      image: { src: assets/screens/step-style.webp, light: assets/screens/step-style-light.webp, alt: "Style catalog: browse animation sample cards beside the Create canvas" }
     - title: Generate and keep it
       body: Every picture lands in your library and in the folder you choose.
-      x: 62
-      y: 46
+      x: 50
+      y: 48
       radius: 26
-      image: { src: assets/create.webp, light: assets/create-light.webp, alt: "Create: the finished picture, a patchwork whale in paper collage" }
+      image: { src: assets/screens/step-library.webp, light: assets/screens/step-library-light.webp, alt: "Library: search saved images and browse a mosaic of results" }
 
 skill:
   variant: handoff

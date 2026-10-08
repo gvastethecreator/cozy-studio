@@ -19,11 +19,11 @@ The application starts at `index.html`. It loads the Manrope font, `index.css`, 
 
 Vite uses the React and `@tailwindcss/vite` plugins. CSS is bundled eagerly into one stylesheet shared by lazy workflow routes. There is no CSS import in a recipe component, second Preflight, Sass pipeline, CSS Modules build, or runtime CSS-in-JS engine in the application. `motion/react` resolves to the local GSAP adapter; it is not an additional installed motion engine.
 
-Import order is a contract. Workbench and workspace component rules are unlayered; the foundation retains its existing `base` and `utilities` layers. Unlayered normal rules outrank normal layered utilities. Do not move the component sheets into a new layer or reorder imports during routine cleanup. The 2026-09-26 extraction preserved the ordered PostCSS tree.
+Import order is a contract. Workbench and workspace component rules are unlayered; the foundation retains its existing `base` and `utilities` layers. Unlayered normal rules outrank normal layered utilities. Do not move the component sheets into a new layer or reorder imports during routine cleanup.
 
 Important declarations reverse that layer priority: the toolbar and global keyboard-focus rules in the foundation's utilities layer can outrank unlayered Workbench rules. Change those at their owner. Keep the Ambient kernel's scoped rules, third-party notice, and license intact.
 
-`docs/site.css` belongs to the separate documentation site. `review/review-chrome.css` belongs to review tooling. Neither is imported by the Studio entrypoint. Generated reports and embedded HTML previews are separate documents, not additional Studio themes.
+The separate landing site owns its styles under `landing/`; they are not imported by the Studio entrypoint. Generated reports and embedded HTML previews are separate documents, not additional Studio themes.
 
 `lib/workbenchAmbient.ts` applies theme, density, appearance, and ambient attributes to the root. Portals such as `GsapDropdown` carry the same theme data. `lib/providerBrand.ts` owns provider glyph wells and readiness/auth pill classes; brand tint must not replace semantic text and status colors.
 
@@ -40,7 +40,7 @@ Important declarations reverse that layer priority: the toolbar and global keybo
 
 `studio-field` owns text input and select insets: 6 px vertically and 12 px horizontally. `studio-ghost-control` owns labeled action padding and an 8 px icon gap; icon-only SVG actions keep compact equal insets. `--wb-control-border` supplies a neutral boundary in both themes. These two primitives do not use Ambient bevel paint; the surrounding shell retains its material.
 
-Settings overrides the shared control size to 40 px with 14 px text. Desktop content and header/footer share 24 px edge insets; narrow layouts use 16 px. Provider account cards use two readable columns when space permits, and one on narrow screens. Setup guidance wraps instead of being clamped. The narrow footer reserves a row for save status above the actions.
+Settings inherits the shared 32 px single-line controls and 13 px text; two-line output selectors use 40 px. Desktop content and header/footer share 24 px edge insets; narrow layouts use 16 px. Provider account cards use two readable columns when space permits, and one on narrow screens. Setup guidance wraps instead of being clamped. The narrow footer reserves a row for save status above the actions.
 
 The Create generation action uses content height, a 48 px minimum, and 10 px vertical padding. A two-line action and its thumbnail must not be squeezed into a fixed 36 px row. `studio-workspace.css` owns that geometry; `workbench-studio.css` owns its theme paint and type.
 
@@ -52,22 +52,9 @@ The Create generation action uses content height, a 48 px minimum, and 10 px ver
 
 The shell owns the viewport and delegates scrolling to rails, dialogs, and canvases. Check desktop and narrow mobile widths when changing overflow or fixed menus. Input focus may be drawn by a `:focus-within` wrapper; the Add styles search also has a forced-colors outline. The layered global focus rule uses `--wb-ink`. Inspect the mounted control before removing an `outline: none` declaration. The anchored style preview's `top`/`left` transition is an intentional continuity mechanism whose layout cost has not been profiled.
 
-## Dependency decisions
+## Dependencies
 
-Resolved locally on 2026-09-26; retained without lockfile changes:
-
-| Package                    | Version         | Role and decision                                                  |
-| -------------------------- | --------------- | ------------------------------------------------------------------ |
-| Tailwind CSS / Vite plugin | 4.3.3 / 4.3.3   | Utility generation and CSS integration; keep the existing pipeline |
-| Vite+ / aliased Vite core  | 1.0.0-rc.0      | Build, formatting, lint integration; keep                          |
-| PostCSS                    | 8.5.28          | Existing resolved parser/transform dependency and override; keep   |
-| clsx / tailwind-merge      | 2.1.1 / 3.7.0   | Class construction and conflict resolution; distinct roles, keep   |
-| GSAP / React binding       | 3.15.0 / 2.1.2  | Shared animation engine and lifecycle binding; keep                |
-| oxfmt / oxlint             | 0.70.0 / 1.85.0 | Existing formatting/lint tools; keep                               |
-
-No duplicate UI framework was established by this audit. No dependency was upgraded, removed, or installed. No Stylelint or CI job was added: the repository already uses its Bun checks and browser verification. Dependency security advisories were not audited, so this document makes no security certification.
-
-Version-matched behavior was checked against [Tailwind source detection](https://tailwindcss.com/docs/detecting-classes-in-source-files), [theme variables](https://tailwindcss.com/docs/theme), [tailwind-merge](https://github.com/dcastil/tailwind-merge), and [GSAP media queries](<https://gsap.com/docs/v3/GSAP/gsap.matchMedia()/>). Automatic Tailwind source detection remains unchanged; narrowing it would require proving all dynamic consumers first.
+Use [Dependencies](../DEPENDENCIES.md) and the package manifest for current versions and update constraints. Tailwind, class composition helpers and GSAP serve distinct existing roles. Keep automatic Tailwind source detection unless all dynamic consumers have been verified.
 
 ## Preserved exceptions
 
@@ -84,9 +71,9 @@ Version-matched behavior was checked against [Tailwind source detection](https:/
 
 Exceptions were reviewed on 2026-09-26. Revisit them when the listed owner changes; do not remove them solely because a static audit reports a warning.
 
-## Validation record
+## Historical validation record (2026-09-26)
 
-The local run is `.css-sanitization/2026-09-26-consolidation/`. It contains the source hashes and backups, pre-existing Git diff, helper inventories, reviewed plan, applied-rule journal, build logs, emitted CSS metrics, browser captures and computed properties, and completion receipt. These artifacts are ignored by Git.
+This is a historical audit, not validation of later UI changes. Its local run is `.css-sanitization/2026-09-26-consolidation/`. It contains the source hashes and backups, pre-existing Git diff, helper inventories, reviewed plan, applied-rule journal, build logs, emitted CSS metrics, browser captures and computed properties, and completion receipt. These artifacts are ignored by Git.
 
 The audit covers all eight original CSS sources and inspects dynamic styling at the shared React, theme, dropdown, catalog, and canvas boundaries. Browser coverage uses representative Create, Character, Styles, Settings, and Library surfaces. It is not proof of every provider, lazy workflow, embedded document, browser engine, or user-generated state. Read the completion receipt for passed checks and remaining limits before treating the run as release evidence.
 

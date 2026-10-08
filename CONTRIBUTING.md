@@ -2,75 +2,29 @@
 
 Use the existing Bun toolchain and keep changes small enough to review and verify.
 
-## Quick path
+## Start
 
-1. Read `README.md`.
-2. Start the local environment with `bun run studio:init` and `bun run dev`.
-3. Make a small change that you can prove.
-4. Run the minimum gates before you open a pull request.
+Follow the [checkout setup](README.md#quick-start) for Bun, Node.js and startup commands. A provider login is needed for real image jobs, not for the local unit checks. ChatGPT HTTP is the recommended connection. Codex CLI is optional and only needed for the Codex provider.
 
-## Setup
+The [development guide](docs/DEV_GUIDE.md) covers editor tasks and server commands. Read the relevant [architecture](docs/ARCHITECTURE.md) section before changing a product boundary.
 
-```bash
-bun install
-bun run studio:init
-bun run dev
-```
+## Validate a change
 
-To run the servers apart:
+Choose the affected checks in [Tooling](docs/TOOLING.md). For documentation, run `bun run docs:check` and validate any changed skill package. For broad product changes, run `bun run validate` once. It includes architecture checks, format/lint/type checks, environment typechecks, tests and builds; do not repeat its components. Release work uses `bun run validate:release`.
 
-```bash
-bun run dev:server
-bun run dev:ui
-```
-
-## Requirements
-
-- Bun is on `PATH`.
-- Codex CLI is installed and signed in on this machine.
-- The main flow does not need API keys.
-
-## Checklist before a pull request
-
-```bash
-bun run validate
-```
-
-This gate runs architecture checks, format/lint/type checks, environment typechecks, tests, and builds. Do not repeat its individual commands. For release validation, use `bun run validate:release`.
-
-For focused work, use `bun run test -- path/to/test.ts`. See the [development guide](docs/DEV_GUIDE.md) for editor tasks and [tooling guide](docs/TOOLING.md) for command details. The [architecture overview](docs/ARCHITECTURE.md) describes the boundaries contributors must preserve.
+In the pull request, explain the resulting behavior and list the commands and results. Name skipped checks and the remaining risk. Visual changes need rendered evidence; provider fixtures do not prove a live account works.
 
 ## Conventions
 
-- Do not commit generated assets, logs, SQLite DBs, Studio Library data, Playwright MCP dumps, or scratch images.
-- Do not commit `.env.local` or real secrets.
-- Keep the local-first path working without `OPENAI_API_KEY`.
-- Document new environment variables and public scripts in `README.md`.
-- If you change behavior that users or contributors rely on, explain why in the pull request.
+- Keep the local-first ChatGPT path working without `OPENAI_API_KEY`.
+- Keep user images, logs, SQLite databases, Studio Library data, scratch captures and secrets out of Git. Reviewed product assets and documentation screenshots belong at their existing tracked locations.
+- Document new environment variables in `.env.example` and the relevant user or contributor guide. Document public scripts in [Tooling](docs/TOOLING.md).
+- Preserve unrelated work and existing product contracts.
 
-## Bug reports
+## Report a bug
 
-Include:
+Include the operating system, Bun version, selected provider, command or UI steps, expected result and actual result. Include a provider CLI version only when that provider uses it. Attach only relevant, sanitized log excerpts from `logs/tooling/` or the Studio Library; remove credentials, private prompts and personal paths.
 
-- operating system
-- Bun version (`bun --version`)
-- Codex version (`codex --version`)
-- the command that you ran
-- expected result and actual result
-- relevant logs from `logs/tooling/` or the Studio Library
+Use the [private security channel](SECURITY.md) for vulnerabilities. Other issues and feature requests belong in [GitHub Issues](https://github.com/gvastethecreator/cozy-studio/issues).
 
-## High-value work
-
-- onboarding and error messages
-- Windows, macOS, and Linux compatibility
-- job and asset traceability
-- public documentation
-- clear UI copy
-
-## Style
-
-Prefer small changes that a reader can understand.
-
-## Code of conduct
-
-This project follows [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md).
+This project follows the [Code of Conduct](CODE_OF_CONDUCT.md).

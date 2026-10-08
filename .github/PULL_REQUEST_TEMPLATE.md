@@ -1,16 +1,12 @@
 ## Summary
 
--
+- Explain the problem and resulting behavior. Link related issues.
 
 ## Validation
 
-- [ ] `bun run fmt:check`
-- [ ] `bun run lint`
-- [ ] `bun run check`
-- [ ] `bun run test`
-- [ ] `bun run build`
+- List the command(s) run and their results. Choose the affected checks from [Tooling](https://github.com/gvastethecreator/cozy-studio/blob/main/docs/TOOLING.md); do not repeat checks already included in a gate.
+- For visual changes, include rendered evidence.
 
-## Notes
+## Limits
 
-- Link related issues or docs.
-- Mention any skipped validation with the reason and risk.
+- List skipped checks, reasons and remaining risks, or write "None".

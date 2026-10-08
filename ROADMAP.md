@@ -1,55 +1,18 @@
 # Roadmap
 
-Cozy Studio moves toward a polished open-source preview. It stays local-first, Codex-first, and library-backed.
+Cozy Studio is an open-source preview: a local-first, library-backed image studio with ChatGPT HTTP as the recommended provider and optional backend adapters.
 
-## Current focus
+## Priorities
 
-1. Make first run easier to understand and recover.
-2. Keep generated assets catalog-first. Keep the generation lifecycle Persistent-Job-first.
-3. Improve diagnostics for jobs, storage, providers, and Codex session readiness.
-4. Keep the desktop path credible. Do not make packaging the center of the project.
-5. Prepare a small release candidate.
+- Make first run and provider recovery easier to understand.
+- Improve job recovery, storage diagnostics and image traceability.
+- Reduce shell orchestration complexity while preserving Catalog Entries and Persistent Jobs as the durable sources of truth.
+- Keep Windows, macOS and Linux setup reproducible, with clear limits for portable and Electron launch modes.
+- Keep public documentation and contributor checks small and current.
+- Prepare a release candidate with fresh setup, runtime and safety evidence.
 
-## What works today
+These are directions, not a completion checklist or release promise. [GitHub Issues](https://github.com/gvastethecreator/cozy-studio/issues) and [Project #8](https://github.com/users/gvastethecreator/projects/8) hold live work state. The [user guide](docs/USER_GUIDE.md) describes available behavior; [Architecture](docs/ARCHITECTURE.md) describes its contracts.
 
-- Local assets, logs, transcripts, and SQLite state live in a Studio Library outside the repo.
-- ChatGPT image jobs use subscription HTTP. Codex jobs use local `codex app-server`. Neither path needs `OPENAI_API_KEY`.
-- Jobs, events, transcripts, and catalog entries are traceable.
-- The browser shows Catalog Entries and one backend-owned Persistent Job lifecycle.
-- Generation Tasks and Generation Providers are separate concepts.
-- Recommended image jobs use ChatGPT HTTP after Studio Settings Sign in, so they do not spend Codex app-server usage.
-- Optional Grok Imagine can use authenticated xAI HTTP or the signed-in Grok Build CLI. Codex stays available when that provider is selected. Home and Styles support ChatGPT, Codex, Grok, Google, and Antigravity.
-- Recipe Modules and Style Preset Manifests are the durable authoring surface.
+## Product boundaries
 
-## Phases
-
-| Phase | Goal                          | Expected result                                |
-| ----- | ----------------------------- | ---------------------------------------------- |
-| 0     | Stabilize the current shell   | Clearer navigation and global state            |
-| 1     | Finish catalog-first behavior | UI aligned with SQLite and Image Catalog truth |
-| 2     | Improve operations            | Common failures produce useful diagnostics     |
-| 3     | Harden setup and portability  | Smoother Windows, macOS, and Linux setup       |
-| 4     | Release candidate             | Public repo is clear, safe, and reproducible   |
-
-## Near-term priorities
-
-- Improve onboarding and error messages.
-- Strengthen job recovery and detail views.
-- Reduce orchestration debt in shell code.
-- Keep validation focused during iteration. Run the full gate at closeout.
-- Keep public docs short and current.
-
-## Release candidate checklist
-
-- [ ] A fresh checkout can run `bun run studio:init`.
-- [ ] `bun run dev` starts the UI and the backend.
-- [ ] `/api/health` reports local backend status.
-- [ ] The UI shows a useful readiness state when Codex auth is missing.
-- [ ] Public docs, troubleshooting, and contributing notes match current scripts.
-- [ ] No local DBs, logs, transcripts, secrets, or Studio Library assets are committed by mistake.
-
-## Not now
-
-- Turn Cozy Studio into hosted SaaS.
-- Make API keys mandatory for the default Codex flow.
-- Publish this app as a reusable npm library.
+Studio is not becoming a hosted SaaS or a reusable npm library. API keys remain optional for the recommended ChatGPT connection. Electron remains a development shell. Native video needs a separate media-domain decision.

@@ -1,21 +1,27 @@
 Cozy Studio portable start
 ===========================
 
-Windows: double-click `Cozy Studio.bat`.
-macOS: double-click `Cozy Studio.command`. If macOS says the file is not
-executable, run `chmod +x "Cozy Studio.command"` once in Terminal.
+Install Bun on PATH and use an app folder with its dist/ UI build present.
+A source checkout needs bun install and bun run build first.
 
-The launcher checks that Bun is on PATH, starts one local-server process, and
-opens a browser. Codex CLI is not required to open the app or connect ChatGPT.
-It does not bundle ChatGPT login. Sign in with ChatGPT from Cozy Studio after
-it opens. Install Codex CLI only when you choose the Codex connection.
+Windows: open scripts/Cozy Studio.bat.
+macOS: open scripts/Cozy Studio.command. If needed, run:
+  chmod +x "scripts/Cozy Studio.command"
+Linux: run from the app folder:
+  bash "scripts/Cozy Studio.command"
 
-If STUDIO_LIBRARY_DIR is unset, portable start uses a folder named
-`Cozy Studio Library` beside this unpacked folder.
+The launcher locates the app from its own path, starts one local-server process
+and opens a browser. If automatic browser opening fails, open the printed URL.
+Codex CLI is not required to open the app or connect ChatGPT. The launcher
+does not bundle ChatGPT login. Sign in from Studio after it opens.
 
-Linux: there is no first-class launcher in this zip. Best-effort is to install
-Bun, then from this folder run:
+If STUDIO_LIBRARY_DIR is unset, these wrappers use "Cozy Studio Library"
+inside the app folder, beside scripts/. An explicit Library path is preserved.
+Generated images still use the configured images destination.
 
-  bun run scripts/portable-start.ts
+For a built app using normal per-user storage, run "bun run start" instead.
+For source development, use "bun run dev".
 
-after `bun run build`, or `bun apps/local-server/src/index.ts`.
+Windows has local runtime checks. macOS and Linux path rules have automated
+fixtures, but native startup on those systems still needs validation.
+See docs/PLATFORMS.md for paths, permissions and useful error-report details.

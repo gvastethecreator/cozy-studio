@@ -50,8 +50,9 @@
           if (order === "updated") return String(right.getAttribute("data-updated")).localeCompare(String(left.getAttribute("data-updated")));
           return Number(right.getAttribute("data-stars")) - Number(left.getAttribute("data-stars"));
         });
+        const visibleItems = new Set(visible);
         items.forEach((item) => {
-          item.hidden = !visible.includes(item);
+          item.hidden = !visibleItems.has(item);
         });
         visible.forEach((item) => list.appendChild(item));
       }

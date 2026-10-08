@@ -1,4 +1,4 @@
-import { isCJK } from './analysis.js';
+import { getSharedGraphemeSegmenter } from './analysis.js';
 let measureContext = null;
 const segmentMetricCaches = new Map();
 let cachedEngineProfile = null;
@@ -9,7 +9,6 @@ let cachedEngineProfile = null;
 const MAX_PREFIX_FIT_GRAPHEMES = 96;
 const emojiPresentationRe = /\p{Emoji_Presentation}/u;
 const maybeEmojiRe = /[\p{Emoji_Presentation}\p{Extended_Pictographic}\p{Regional_Indicator}\uFE0F\u20E3]/u;
-let sharedGraphemeSegmenter = null;
 const emojiCorrectionCache = new Map();
 export function getMeasureContext() {
     if (measureContext !== null)
@@ -38,7 +37,6 @@ export function getSegmentMetrics(seg, cache) {
         const ctx = getMeasureContext();
         metrics = {
             width: ctx.measureText(seg).width,
-            containsCJK: isCJK(seg),
         };
         cache.set(seg, metrics);
     }
@@ -49,11 +47,11 @@ export function getEngineProfile() {
         return cachedEngineProfile;
     if (typeof navigator === 'undefined') {
         cachedEngineProfile = {
+            geckoAsciiLineBreaks: false,
             lineFitEpsilon: 0.005,
             carryCJKAfterClosingQuote: false,
             breakKeepAllAfterPunctuation: true,
             preferPrefixWidthsForBreakableRuns: false,
-            preferEarlySoftHyphenBreak: false,
         };
         return cachedEngineProfile;
     }
@@ -70,24 +68,20 @@ export function getEngineProfile() {
         ua.includes('Chromium/') ||
         ua.includes('CriOS/') ||
         ua.includes('Edg/');
+    const isGecko = ua.includes('Firefox/') && !ua.includes('FxiOS/');
     cachedEngineProfile = {
+        geckoAsciiLineBreaks: isGecko,
         lineFitEpsilon: isSafari ? 1 / 64 : 0.005,
         carryCJKAfterClosingQuote: isChromium,
         breakKeepAllAfterPunctuation: !isSafari,
         preferPrefixWidthsForBreakableRuns: isSafari,
-        preferEarlySoftHyphenBreak: isSafari,
     };
     return cachedEngineProfile;
 }
 export function parseFontSize(font) {
-    const m = font.match(/(\d+(?:\.\d+)?)\s*px/);
+    // A failed size can restart at the next digit run, not at every digit in it.
+    const m = font.match(/(?:^|\D)(\d+(?:\.\d+)?)\s*px/);
     return m ? parseFloat(m[1]) : 16;
-}
-function getSharedGraphemeSegmenter() {
-    if (sharedGraphemeSegmenter === null) {
-        sharedGraphemeSegmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
-    }
-    return sharedGraphemeSegmenter;
 }
 function isEmojiGrapheme(g) {
     return emojiPresentationRe.test(g) || g.includes('\uFE0F');
@@ -95,10 +89,11 @@ function isEmojiGrapheme(g) {
 export function textMayContainEmoji(text) {
     return maybeEmojiRe.test(text);
 }
-function getEmojiCorrection(font, fontSize) {
+function getEmojiCorrection(font) {
     let correction = emojiCorrectionCache.get(font);
     if (correction !== undefined)
         return correction;
+    const fontSize = parseFontSize(font);
     const ctx = getMeasureContext();
     ctx.font = font;
     const canvasW = ctx.measureText('\u{1F600}').width;
@@ -203,12 +198,10 @@ export function getFontMeasurementState(font, needsEmojiCorrection) {
     const ctx = getMeasureContext();
     ctx.font = font;
     const cache = getSegmentMetricCache(font);
-    const fontSize = parseFontSize(font);
-    const emojiCorrection = needsEmojiCorrection ? getEmojiCorrection(font, fontSize) : 0;
-    return { cache, fontSize, emojiCorrection };
+    const emojiCorrection = needsEmojiCorrection ? getEmojiCorrection(font) : 0;
+    return { cache, emojiCorrection };
 }
 export function clearMeasurementCaches() {
     segmentMetricCaches.clear();
     emojiCorrectionCache.clear();
-    sharedGraphemeSegmenter = null;
 }

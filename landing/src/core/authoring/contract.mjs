@@ -70,12 +70,12 @@ export function guardPlan(plan,ctx){
  for(const [key,code] of [['projectId','E_PROJECT_MISMATCH'],['briefId','E_STALE_BRIEF'],['sourceFingerprint','E_STALE_BASE'],['briefFingerprint','E_STALE_BRIEF'],['evidenceFingerprint','E_STALE_EVIDENCE'],['capabilitiesVersion','E_STALE_CAPABILITIES'],['engineVersion','E_STALE_ENGINE']])if(typeof ctx[key]!=='string'||plan[key]!==ctx[key])add(code);
  if(ctx.documentValid!==true)add('E_INVALID_DOCUMENT');
  if(ctx.localBinding&&(!ctx.liveBinding||canonicalJson(ctx.localBinding)!==canonicalJson(ctx.liveBinding)))add('E_LOCAL_CONFLICT');
- const caps=new Map((ctx.catalog??[]).map(c=>[c.id,c])),decisions=new Map(),evidence=new Map();
+ const caps=new Map((ctx.catalog??[]).map(c=>[c.id,{...c,variants:new Set(c.variants)}])),decisions=new Map(),evidence=new Map();
  for(const e of ctx.evidence??[]){if(evidence.has(e.id))add('E_EVIDENCE_DUPLICATE');evidence.set(e.id,e);}
  for(const s of plan.sections){
   if(!plain(s)){add('E_INVALID_DOCUMENT');continue;}if(decisions.has(s.id))add('E_DUPLICATE_SECTION');decisions.set(s.id,s);
   if(s.selection==='include'&&s.readiness==='ready'){
-   if(!caps.has(s.id))add('E_SECTION_UNSUPPORTED');else if(!caps.get(s.id).variants.includes(s.variant))add('E_VARIANT_UNSUPPORTED');
+   if(!caps.has(s.id))add('E_SECTION_UNSUPPORTED');else if(!caps.get(s.id).variants.has(s.variant))add('E_VARIANT_UNSUPPORTED');
    const used=(s.evidenceIds??[]).map(id=>evidence.get(id));
    for(const e of used){if(!e)add('E_EVIDENCE_MISSING');else if(e.projectId!==ctx.projectId)add('E_EVIDENCE_PROJECT');else if(!eligibleEvidence(e,ctx.projectId,{trustedPublicEvidenceIds:ctx.trustedPublicEvidenceIds??[]}))add('E_EVIDENCE_INELIGIBLE');}
    const req=ctx.requirements?.[s.id]?.[s.variant];
@@ -122,6 +122,7 @@ export function changedPaths(a,b,path=''){
 export function prepareReferenceApply(plan,ctx){
  const diagnostics=guardPlan(plan,ctx);if(diagnostics.length)return {ok:false,diagnostics};
  if(typeof ctx.validateSnapshot!=='function'||typeof ctx.resolvePresentation!=='function'||!ctx.snapshot)return {ok:false,diagnostics:[{code:'E_ADAPTER_REQUIRED'}]};
+ const decisions=new Map(plan.sections.map(s=>[s.id,s]));
  const before=ctx.snapshot,next=structuredClone(before);next.retained??={};const envelope={site:next.site,template:next.templateAuthored};
  try{
   for(const op of plan.operations){
@@ -138,16 +139,17 @@ export function prepareReferenceApply(plan,ctx){
    }else if(op.op==='hide-section'){
     const list=envelope.site.sections??[],idx=list.indexOf(op.sectionId);if(idx<0)throw Error('E_SECTION_MISSING');next.retained[op.sectionId]={value:structuredClone(envelope.site[op.sectionId]??{}),index:idx};envelope.site.sections=list.filter(x=>x!==op.sectionId);
    }else if(op.op==='restore-section'){
-    const r=next.retained[op.sectionId],list=envelope.site.sections??[];if(!r||list.includes(op.sectionId))throw Error('E_RETAINED_MISSING');list.splice(Math.min(r.index,list.length),0,op.sectionId);envelope.site.sections=list;envelope.site[op.sectionId]=structuredClone(r.value);delete next.retained[op.sectionId];set(envelope,`/template/sections/${op.sectionId}/variant`,plan.sections.find(s=>s.id===op.sectionId).variant);
+    const r=next.retained[op.sectionId],list=envelope.site.sections??[];if(!r||list.includes(op.sectionId))throw Error('E_RETAINED_MISSING');list.splice(Math.min(r.index,list.length),0,op.sectionId);envelope.site.sections=list;envelope.site[op.sectionId]=structuredClone(r.value);delete next.retained[op.sectionId];set(envelope,`/template/sections/${op.sectionId}/variant`,decisions.get(op.sectionId).variant);
    }else if(op.op==='reorder-sections'){
-    const actual=envelope.site.sections??[];if(actual.length!==op.order.length||actual.some(x=>!op.order.includes(x)))throw Error('E_REORDER_NOT_PERMUTATION');envelope.site.sections=[...op.order];
+    const actual=envelope.site.sections??[],orderIds=new Set(op.order);if(actual.length!==op.order.length||actual.some(x=>!orderIds.has(x)))throw Error('E_REORDER_NOT_PERMUTATION');envelope.site.sections=[...op.order];
    }
   }
   next.templateAuthored=envelope.template;
-  for(const d of plan.sections.filter(s=>s.selection==='preserve'))if(!(before.site.sections??[]).includes(d.id))throw Error('E_PRESERVE_MISSING');
+  const previousIds=new Set(before.site.sections??[]);
+  for(const d of plan.sections.filter(s=>s.selection==='preserve'))if(!previousIds.has(d.id))throw Error('E_PRESERVE_MISSING');
   const selected=plan.sections.filter(s=>(s.selection==='include'&&s.readiness==='ready')||s.selection==='preserve').map(s=>s.id);
-  const active=next.site.sections??[];
-  if(active.length!==selected.length||active.some(id=>!selected.includes(id)))throw Error('E_FINAL_ACTIVE_SET');
+  const active=next.site.sections??[],selectedIds=new Set(selected);
+  if(active.length!==selected.length||active.some(id=>!selectedIds.has(id)))throw Error('E_FINAL_ACTIVE_SET');
   const resolvedBefore={site:before.site,template:ctx.resolvePresentation(before.templateAuthored)},resolvedNext={site:next.site,template:ctx.resolvePresentation(next.templateAuthored)};
   for(const lock of ctx.locks??[]){
    if(lock.path.startsWith('/authoring'))continue;

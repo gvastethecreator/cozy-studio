@@ -26,20 +26,21 @@ export interface EvidenceIssue { path: string; message: string; kind: "missing" 
 
 export function reviewEvidence(site: Record<string, any>, knownAssets: { path: string; exists: boolean }[] = []): EvidenceIssue[] {
   const issues: EvidenceIssue[] = [];
-  const sections = Array.isArray(site.sections) ? site.sections : [];
-  const visible = Object.fromEntries(Object.entries(site).filter(([key]) => sections.includes(key) || ["project", "brand", "header"].includes(key)));
+  const sections = new Set(Array.isArray(site.sections) ? site.sections : []);
+  const assetsByPath = new Map(knownAssets.map((asset) => [asset.path, asset]));
+  const visible = Object.fromEntries(Object.entries(site).filter(([key]) => sections.has(key) || ["project", "brand", "header"].includes(key)));
   for (const ref of assetReferences(visible)) {
     if (ref.path.endsWith("/src") && /\.(?:png|jpe?g|webp|svg|gif|avif)(?:[?#]|$)/i.test(ref.value) && !ref.alt?.trim()) {
       issues.push({ path: ref.path.replace(/\/src$/, "/alt"), message: "Describe what this image shows in its alt text.", kind: "missing" });
     }
     if (ref.value.startsWith("blob:")) issues.push({ path: ref.path, message: "This temporary image cannot travel with the exported page. Use a project asset path.", kind: "missing" });
     else if (isLocalAsset(ref.value)) {
-      const known = knownAssets.find((item) => item.path === ref.value);
+      const known = assetsByPath.get(ref.value);
       if (!known?.exists) issues.push({ path: ref.path, message: known ? `Missing source asset: ${ref.value}` : `Check this file in your project: ${ref.value}`, kind: known ? "missing" : "review" });
     }
   }
-  if (sections.includes("hero") && !(site.hero?.actions ?? []).some((item: any) => item.href || item.command)) issues.push({ path: "/site/hero/actions", message: "Give the visitor one real next action.", kind: "missing" });
-  if (sections.includes("screens") && !site.screens?.images?.length) issues.push({ path: "/site/screens/images", message: "Add a real screenshot or hide the empty Screens block.", kind: "missing" });
+  if (sections.has("hero") && !(site.hero?.actions ?? []).some((item: any) => item.href || item.command)) issues.push({ path: "/site/hero/actions", message: "Give the visitor one real next action.", kind: "missing" });
+  if (sections.has("screens") && !site.screens?.images?.length) issues.push({ path: "/site/screens/images", message: "Add a real screenshot or hide the empty Screens block.", kind: "missing" });
   const visit = (value: unknown, path: string) => {
     if (typeof value === "string" && /example\.com|github\.com\/example(?:\/|$)|describe the project|one line\.|what this path solves|new project\./i.test(value)) issues.push({ path, message: "Replace starter copy or this example destination with project evidence.", kind: "review" });
     else if (value && typeof value === "object") for (const [key, child] of Object.entries(value)) if (!["code", "html"].includes(key)) visit(child, `${path}/${key}`);

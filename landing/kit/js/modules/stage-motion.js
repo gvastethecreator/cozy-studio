@@ -1071,7 +1071,8 @@ for (const deck of document.querySelectorAll("[data-deck]")) {
     const { moved, velocity } = drag;
     drag = null;
     if (!moved) {
-      const card = document.elementsFromPoint(event.clientX, event.clientY).find((el) => cards.includes(el));
+      const cardSet = new Set(cards);
+      const card = document.elementsFromPoint(event.clientX, event.clientY).find((el) => cardSet.has(el));
       const d = card ? wrap(cards.indexOf(card) - state.pos) : 0;
       settleTo(state.pos + d);
       return;
@@ -1254,6 +1255,7 @@ for (const group of document.querySelectorAll(".about-capabilities--logo-cards")
       for (const host of hosts) {
         host.setAttribute("data-shade-speed", "0.7");
         try {
+          // react-doctor-disable-next-line react-doctor/async-await-in-loop -- Stagger GPU device and shader setup to avoid concurrent allocation spikes.
           await mod.mountHeroShade(host, { variant: host.dataset.cardShade, reduced, theme: root.dataset.theme || "dark" });
         } catch (error) {
           console.error("[stage-motion] card shade", error);

@@ -226,7 +226,7 @@ export async function initTypeFit() {
   if (!supported()) return;
   let pretext;
   try {
-    pretext = await import(new URL("./pretext/layout.js", import.meta.url));
+    pretext = await import("./pretext/layout.js");
   } catch {
     return;
   }

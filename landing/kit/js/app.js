@@ -1620,13 +1620,22 @@
     else if (typeof mq.addListener === "function") mq.addListener(syncCompact);
   }
 
+  function elementForHash(hash) {
+    if (!hash || hash === "#") return null;
+    try {
+      return document.getElementById(decodeURIComponent(hash.slice(1)));
+    } catch {
+      return null;
+    }
+  }
+
   function initNavigation() {
     const links = document.querySelectorAll('a[href^="#"]');
     links.forEach((link) => {
       link.addEventListener("click", (event) => {
         const hash = link.getAttribute("href");
         if (!hash || hash === "#") return;
-        const target = document.querySelector(hash);
+        const target = elementForHash(hash);
         if (!target) return;
         event.preventDefault();
         history.replaceState(null, "", hash);
@@ -1638,7 +1647,7 @@
     const sections = navLinks
       .map((link) => {
         const hash = link.getAttribute("href");
-        return { link, section: hash && hash !== "#" ? document.querySelector(hash) : null };
+        return { link, section: elementForHash(hash) };
       })
       .filter((item) => item.section);
     if (!sections.length) return;
@@ -2848,6 +2857,7 @@
     (async () => {
       for (const host of hosts) {
         try {
+          // react-doctor-disable-next-line react-doctor/async-await-in-loop -- Stagger GPU device and shader setup to avoid concurrent allocation spikes.
           const shade = await mountHeroShade(host);
           if (shade) heroShades.push(shade);
         } catch (error) {
@@ -2874,11 +2884,16 @@
       .replaceAll("'", "&#39;");
   }
 
+  // react-doctor-disable-next-line react-doctor/js-hoist-intl -- This top-level IIFE runs once; all calls share this formatter.
+  const compactNumberFormat = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
+  // react-doctor-disable-next-line react-doctor/js-hoist-intl -- This top-level IIFE runs once; all calls share this formatter.
+  const relativeTimeFormat = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+
   function compactNumber(value) {
     const num = Number(value);
     if (!Number.isFinite(num)) return "—";
     if (Math.abs(num) < 1000) return String(Math.round(num));
-    return new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(num);
+    return compactNumberFormat.format(num);
   }
 
   function timeAgo(iso) {
@@ -2886,10 +2901,9 @@
     if (!Number.isFinite(then)) return "";
     const sec = Math.round((then - Date.now()) / 1000);
     const abs = Math.abs(sec);
-    const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-    if (abs < 3600) return rtf.format(Math.round(sec / 60), "minute");
-    if (abs < 86400) return rtf.format(Math.round(sec / 3600), "hour");
-    if (abs < 86400 * 45) return rtf.format(Math.round(sec / 86400), "day");
+    if (abs < 3600) return relativeTimeFormat.format(Math.round(sec / 60), "minute");
+    if (abs < 86400) return relativeTimeFormat.format(Math.round(sec / 3600), "hour");
+    if (abs < 86400 * 45) return relativeTimeFormat.format(Math.round(sec / 86400), "day");
     return new Date(then).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   }
 
@@ -2981,17 +2995,16 @@
     return { pending: false, ok: true, status: response.status, data: await response.json() };
   }
 
-  function setGithubText(root, key, text, isHtml = false) {
+  function setGithubText(root, key, text) {
     const el = root.querySelector(`[data-github="${key}"]`);
     if (!el) return;
     if (!text) {
       el.hidden = true;
-      if (!isHtml) el.textContent = "";
+      el.textContent = "";
       return;
     }
     el.hidden = false;
-    if (isHtml) el.innerHTML = text;
-    else el.textContent = text;
+    el.textContent = text;
   }
 
   const GH_MARK = {

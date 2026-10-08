@@ -1,7 +1,8 @@
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   ONBOARDING_BUN_INSTALL_URL,
   ONBOARDING_CODEX_INSTALL_URL,
@@ -19,8 +20,8 @@ import {
 import { runPortableStart } from './portable-start';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
-const windowsLauncher = path.join(repoRoot, 'Cozy Studio.bat');
-const macLauncher = path.join(repoRoot, 'Cozy Studio.command');
+const windowsLauncher = path.join(repoRoot, 'scripts', 'Cozy Studio.bat');
+const macLauncher = path.join(repoRoot, 'scripts', 'Cozy Studio.command');
 const portableNote = path.join(repoRoot, 'PORTABLE.txt');
 
 describe('portable launchers', () => {
@@ -111,13 +112,12 @@ describe('portable launchers', () => {
       expect(source).not.toMatch(/needs Codex CLI/i);
       expect(source).toContain('does not bundle ChatGPT login');
       expect(source).toContain('STUDIO_PORTABLE=1');
-      expect(source).toContain(PORTABLE_STUDIO_LIBRARY_FOLDER_NAME);
       expect(source).toContain('scripts/portable-start.ts');
       expect(source).toMatch(/STUDIO_PORTABLE_NONINTERACTIVE/);
       expect(source).not.toMatch(/electron/i);
     }
     expect(note).toMatch(/Linux/i);
-    expect(note).toMatch(/best-effort/i);
+    expect(note).toContain('scripts/Cozy Studio.command');
     expect(note).toContain('does not bundle ChatGPT login');
     expect(missingBunMessage()).toContain(ONBOARDING_BUN_INSTALL_URL);
     expect(missingCodexCliMessage()).toContain(ONBOARDING_CODEX_INSTALL_URL);
@@ -153,6 +153,75 @@ describe('portable launchers', () => {
       }),
     ).rejects.toThrow(/listening URL/);
     expect(opened).toBe(false);
+  });
+
+  it('resolves the UI beside the launcher even when invoked from another working directory', async () => {
+    const cwd = vi.spyOn(process, 'cwd').mockReturnValue(path.parse(repoRoot).root);
+    try {
+      await expect(
+        runPortableStart({
+          env: { STUDIO_PORTABLE: '1' },
+          distReady: (dir) => {
+            expect(dir).toBe(path.join(repoRoot, 'dist'));
+            return false;
+          },
+        }),
+      ).rejects.toThrow('Build the UI first');
+    } finally {
+      cwd.mockRestore();
+    }
+  });
+
+  it('preserves bootstrap Library paths when launched outside the app directory', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'cozy-portable-config-'));
+    const library = path.join(root, 'Existing Library');
+    writeFileSync(path.join(root, '.env.local'), `STUDIO_LIBRARY_DIR=${library}\n`);
+    vi.stubEnv('STUDIO_LIBRARY_DIR', undefined);
+    vi.stubEnv('STUDIO_PORTABLE', '1');
+    try {
+      const started = await runPortableStart({
+        cwd: root,
+        distReady: () => true,
+        forwardOutput: () => undefined,
+        openBrowser: () => undefined,
+        spawnServer: (_argv, options) => {
+          expect(options.env.STUDIO_LIBRARY_DIR).toBe(library);
+          return {
+            once() {},
+            stdout: {
+              on: (_event: string, receive: (chunk: string) => void) =>
+                receive('http://127.0.0.1:17229'),
+            },
+            stderr: { on() {} },
+            exitCode: null,
+          } as never;
+        },
+      });
+      expect(started.libraryDir).toBe(library);
+    } finally {
+      vi.unstubAllEnvs();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('reports a server spawn error without waiting for the listening deadline', async () => {
+    const error = Object.assign(new Error('Bun executable unavailable'), { code: 'ENOENT' });
+    const waitMs = vi.fn();
+    await expect(
+      runPortableStart({
+        env: { STUDIO_PORTABLE: '1' },
+        distReady: () => true,
+        waitMs,
+        spawnServer: () =>
+          ({
+            once: (_event: string, callback: (error: Error) => void) => callback(error),
+            stdout: { on() {} },
+            stderr: { on() {} },
+            exitCode: null,
+          }) as never,
+      }),
+    ).rejects.toThrow(error);
+    expect(waitMs).not.toHaveBeenCalled();
   });
 });
 

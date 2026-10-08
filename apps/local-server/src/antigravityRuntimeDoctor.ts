@@ -274,7 +274,3 @@ export function readAntigravityRuntimeDoctor({ maxAgeMs = DEFAULT_DOCTOR_CACHE_M
   cachedReport = { report, expiresAt: now + maxAgeMs };
   return report;
 }
-
-export function clearAntigravityRuntimeDoctorCache() {
-  cachedReport = null;
-}

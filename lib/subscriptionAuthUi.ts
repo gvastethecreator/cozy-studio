@@ -9,12 +9,6 @@ export function subscriptionAccountTitle(providerId: SubscriptionProviderId) {
   return 'Google';
 }
 
-export function subscriptionAccountUsedBy(providerId: SubscriptionProviderId) {
-  if (providerId === 'codex') return 'ChatGPT image generation';
-  if (providerId === 'xai') return 'Grok Imagine';
-  return 'Nano Banana image generation';
-}
-
 export function subscriptionAuthStatusLabel(
   status: SubscriptionAuthStatus | 'loading' | null | undefined,
 ) {

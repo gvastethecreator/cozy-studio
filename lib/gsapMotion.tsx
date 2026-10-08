@@ -11,7 +11,6 @@ import React, {
   useEffectEvent,
   type ComponentPropsWithoutRef,
   type PropsWithChildren,
-  type ReactNode,
   type Ref,
 } from 'react';
 
@@ -410,8 +409,5 @@ export function AnimatePresence({
 
 // react-doctor-disable-next-line react-doctor/only-export-components -- factory-created React components
 export const MotionDiv = createMotionComponent('div');
-// react-doctor-disable-next-line react-doctor/only-export-components -- factory-created React components
-export const MotionButton = createMotionComponent('button');
 
 export type Variants = Record<string, VariantResolver>;
-export type MotionComponentChildren = ReactNode;

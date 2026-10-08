@@ -96,23 +96,5 @@ const styleRuntimeRegistry = createStyleRuntimeRegistry({
 export const loadStyleRuntimePack = styleRuntimeRegistry.loadRuntimePack;
 export const loadStyleRuntimePacks = styleRuntimeRegistry.loadRuntimePacks;
 
-export async function loadStylePresetIndex(): Promise<{
-  packs: StyleRuntimePack[];
-  presetById: Map<string, StyleRuntimePreset>;
-  presetPackIdById: Map<string, string>;
-}> {
-  const packs = await loadStyleRuntimePacks();
-
-  return {
-    packs,
-    presetById: new Map(
-      packs.flatMap((pack) => pack.presets.map((preset) => [preset.id, preset] as const)),
-    ),
-    presetPackIdById: new Map(
-      packs.flatMap((pack) => pack.presets.map((preset) => [preset.id, pack.id] as const)),
-    ),
-  };
-}
-
 export * from './styles/manifestTypes';
 export * from './styles/runtimeTypes';

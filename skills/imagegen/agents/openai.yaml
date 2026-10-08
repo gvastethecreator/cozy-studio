@@ -1,8 +1,0 @@
-interface:
-  display_name: 'Cozy Studio Image Gen'
-  short_description: 'Recipe-aware raster generation for Cozy Studio'
-  icon_small: './assets/imagegen-small.svg'
-  icon_large: './assets/imagegen.png'
-  default_prompt: 'Use $imagegen to make or edit an image for this project.'
-policy:
-  allow_implicit_invocation: false

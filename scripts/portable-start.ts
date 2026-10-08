@@ -1,6 +1,8 @@
 import { spawn, type ChildProcess } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 import { parseListeningUrl, portableServerArgv, resolvePortableLibraryDir } from './portableLaunch';
-import { resolveDefaultLibraryDir } from '../apps/local-server/src/config';
+import { readBootstrapEnv, resolveStudioDataRoot } from '../apps/local-server/src/config';
 import { resolveUiDistDir, uiDistIsReady } from '../apps/local-server/src/uiStaticRoutes';
 
 export interface PortableStartDependencies {
@@ -16,15 +18,15 @@ export interface PortableStartDependencies {
 }
 
 function defaultOpenBrowser(url: string) {
-  if (process.platform === 'win32') {
-    spawn('cmd', ['/c', 'start', '', url], { detached: true, stdio: 'ignore' }).unref();
-    return;
-  }
-  if (process.platform === 'darwin') {
-    spawn('open', [url], { detached: true, stdio: 'ignore' }).unref();
-    return;
-  }
-  spawn('xdg-open', [url], { detached: true, stdio: 'ignore' }).unref();
+  const [command, args] =
+    process.platform === 'win32'
+      ? (['cmd', ['/d', '/c', 'start', '', url]] as const)
+      : process.platform === 'darwin'
+        ? (['open', [url]] as const)
+        : (['xdg-open', [url]] as const);
+  const browser = spawn(command, [...args], { detached: true, stdio: 'ignore', windowsHide: true });
+  browser.once('error', () => console.warn(`Could not open a browser. Open ${url} manually.`));
+  browser.unref();
 }
 
 function defaultSpawnServer(argv: string[], options: { cwd: string; env: NodeJS.ProcessEnv }) {
@@ -36,14 +38,20 @@ function defaultSpawnServer(argv: string[], options: { cwd: string; env: NodeJS.
 }
 
 export async function runPortableStart(dependencies: PortableStartDependencies = {}) {
-  const env = { ...(dependencies.env ?? process.env) };
-  const cwd = dependencies.cwd ?? process.cwd();
+  const cwd = dependencies.cwd ?? path.resolve(import.meta.dirname, '..');
+  const envPath = path.join(cwd, '.env.local');
+  const env = dependencies.env
+    ? { ...dependencies.env }
+    : {
+        ...(existsSync(envPath) ? readBootstrapEnv(readFileSync(envPath, 'utf8')) : {}),
+        ...process.env,
+      };
   const portable = env.STUDIO_PORTABLE === '1';
   env.STUDIO_LIBRARY_DIR = resolvePortableLibraryDir({
     studioLibraryDir: env.STUDIO_LIBRARY_DIR,
     portable,
     unpackRoot: cwd,
-    homeDefault: resolveDefaultLibraryDir(),
+    homeDefault: path.join(resolveStudioDataRoot(env), 'Library'),
   });
 
   const distDir = resolveUiDistDir(env, cwd);
@@ -57,6 +65,10 @@ export async function runPortableStart(dependencies: PortableStartDependencies =
   const child = (dependencies.spawnServer ?? defaultSpawnServer)(portableServerArgv(), {
     cwd,
     env,
+  });
+  let spawnError: Error | null = null;
+  child.once('error', (error) => {
+    spawnError = error;
   });
 
   let combined = '';
@@ -82,6 +94,7 @@ export async function runPortableStart(dependencies: PortableStartDependencies =
   const deadline = now() + (dependencies.listenDeadlineMs ?? 30_000);
   let url: string | null = null;
   while (now() < deadline) {
+    if (spawnError) throw spawnError;
     url = parseListeningUrl(combined);
     if (url) break;
     if (child.exitCode !== null) {
@@ -101,9 +114,12 @@ export async function runPortableStart(dependencies: PortableStartDependencies =
 if (import.meta.main) {
   try {
     const started = await runPortableStart();
-    await new Promise<void>((resolve) => {
-      started.child.once('exit', () => resolve());
-    });
+    const exitCode =
+      started.child.exitCode ??
+      (await new Promise<number>((resolve) => {
+        started.child.once('exit', (code) => resolve(code ?? 1));
+      }));
+    process.exitCode = exitCode;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;

@@ -39,7 +39,7 @@ const SERVER_TYPECHECK_ARGS = [
   'false',
   '--incremental',
   '--tsBuildInfoFile',
-  'tmp/tsconfig.server.check.tsbuildinfo',
+  '.cache/tsconfig.server.check.tsbuildinfo',
   '-p',
   'apps/local-server/tsconfig.json',
 ];

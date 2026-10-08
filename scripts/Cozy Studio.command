@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-cd "$(dirname "$0")"
+cd -- "$(dirname -- "$0")/.."
 
 echo "Cozy Studio portable launcher"
 echo "This launcher does not bundle ChatGPT login."
@@ -15,9 +15,6 @@ if ! command -v bun >/dev/null 2>&1; then
 fi
 
 export STUDIO_PORTABLE=1
-if [ -z "${STUDIO_LIBRARY_DIR:-}" ]; then
-  export STUDIO_LIBRARY_DIR="$(pwd)/Cozy Studio Library"
-fi
 
 if ! bun run scripts/portable-start.ts; then
   echo "Cozy Studio failed to start."

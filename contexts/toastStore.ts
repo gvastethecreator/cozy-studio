@@ -45,11 +45,3 @@ export function removeToastFromStore(id: string) {
   toasts = next;
   emit();
 }
-
-export function clearToastsForTests() {
-  for (const timer of timers.values()) clearTimeout(timer);
-  timers.clear();
-  toasts = [];
-  listeners.clear();
-  emit();
-}

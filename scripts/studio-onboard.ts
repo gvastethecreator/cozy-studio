@@ -1,3 +1,4 @@
+import os from 'node:os';
 import {
   detectCloudSyncLibraryPath,
   type OnboardingHostActionResult,
@@ -203,7 +204,22 @@ if (isMain) {
   const command = resolveStudioOnboardCommand(argv);
   if (command === 'probe') {
     const probe = await loadStudioOnboardProbe();
-    console.log(JSON.stringify(probe, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          host: {
+            platform: process.platform,
+            architecture: process.arch,
+            release: os.release(),
+            bun: Bun.version,
+            node: process.versions.node,
+          },
+          ...probe,
+        },
+        null,
+        2,
+      ),
+    );
   } else if (command === 'setup') {
     const outcome = await runStudioOnboardSetup({
       flags: parseStudioOnboardSetupFlags(argv),

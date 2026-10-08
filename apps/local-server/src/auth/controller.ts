@@ -292,7 +292,3 @@ export function getSubscriptionAuthController() {
   defaultController ??= createSubscriptionAuthController();
   return defaultController;
 }
-
-export function resetSubscriptionAuthControllerForTests() {
-  defaultController = null;
-}

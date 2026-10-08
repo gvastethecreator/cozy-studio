@@ -1,4 +1,0 @@
-interface:
-  display_name: 'Sprite Atlas Builder'
-  short_description: 'Select Cozy Studio sprite and atlas workflows'
-  default_prompt: 'Use $sprite-atlas-builder to select the supported Cozy Studio workflow for the requested sprite asset.'

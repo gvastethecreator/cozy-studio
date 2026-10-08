@@ -82,12 +82,11 @@
     "repo:assets:audit": "bun run scripts/audit-repo-assets.ts --verify",
     "repo:assets:lock": "bun run scripts/audit-repo-assets.ts --update-lock",
     "core-assets:smoke": "bun run scripts/core-assets-smoke.ts",
-    "handoff:export": "bun run scripts/interface-handoff/export.ts",
     "preview": "vp preview",
     "preview:electron": "bun run scripts/preview-electron.ts",
     "tooling:logs": "bun run scripts/open-tooling-logs.ts",
     "tooling:logs:prune": "bun run scripts/tooling-task.ts tooling:logs:prune",
-    "doctor": "bunx react-doctor@0.9.17"
+    "start": "bun run scripts/portable-start.ts"
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.9",

@@ -1,7 +1,51 @@
 import { describe, expect, it } from 'vitest';
-import { listPlatformPathCandidates } from './platformPaths';
+import { listPlatformPathCandidates, resolvePlatformPath } from './platformPaths';
 
 describe('platformPaths', () => {
+  it.each(['darwin', 'linux'] as const)(
+    'uses explicit CLI and Codex home paths on %s',
+    (platform) => {
+      const env = {
+        HOME: '/home/Studio User',
+        CODEX_HOME: '/data/Codex Profile',
+        STUDIO_CODEX_CLI_PATH: '/opt/Codex App/bin/codex',
+      };
+      expect(listPlatformPathCandidates('codex-binary', env, platform)[0]).toEqual({
+        path: env.STUDIO_CODEX_CLI_PATH,
+        source: 'STUDIO_CODEX_CLI_PATH',
+      });
+      expect(listPlatformPathCandidates('codex-binary', env, platform)).toContainEqual({
+        path: '/home/Studio User/.bun/bin/codex',
+        source: 'Bun global executable shim',
+      });
+      expect(resolvePlatformPath('codex-skills-dir', env, platform)).toBe(
+        '/data/Codex Profile/skills',
+      );
+      expect(resolvePlatformPath('codex-generated-images', env, platform)).toBe(
+        '/data/Codex Profile/generated_images',
+      );
+      expect(() =>
+        resolvePlatformPath('codex-config-dir', { ...env, CODEX_HOME: 'relative' }, platform),
+      ).toThrow('CODEX_HOME must be an absolute path');
+    },
+  );
+
+  it('uses Windows path semantics for redirected Codex homes and rejects drive-relative roots', () => {
+    expect(
+      resolvePlatformPath('codex-skills-dir', { CODEX_HOME: 'D:\\Studio Profile' }, 'win32'),
+    ).toBe('D:\\Studio Profile\\skills');
+    expect(() =>
+      resolvePlatformPath('codex-config-dir', { CODEX_HOME: '\\Studio' }, 'win32'),
+    ).toThrow('CODEX_HOME must be an absolute path');
+    expect(
+      resolvePlatformPath(
+        'codex-config-dir',
+        { USERPROFILE: 'D:\\Users\\Studio', CODEX_HOME: ' ' },
+        'win32',
+      ),
+    ).toBe('D:\\Users\\Studio\\.codex');
+  });
+
   it('prefers the OpenAI Codex desktop binary before npm shims on Windows', () => {
     if (process.platform !== 'win32') {
       expect(listPlatformPathCandidates('codex-binary').length).toBeGreaterThan(0);

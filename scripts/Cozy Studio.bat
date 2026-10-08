@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableExtensions
-cd /d "%~dp0"
+cd /d "%~dp0.." || exit /b 1
 
 echo Cozy Studio portable launcher
 echo This launcher does not bundle ChatGPT login.
@@ -14,7 +14,6 @@ if errorlevel 1 (
 )
 
 set "STUDIO_PORTABLE=1"
-if not defined STUDIO_LIBRARY_DIR set "STUDIO_LIBRARY_DIR=%~dp0Cozy Studio Library"
 
 bun run scripts/portable-start.ts
 if errorlevel 1 (

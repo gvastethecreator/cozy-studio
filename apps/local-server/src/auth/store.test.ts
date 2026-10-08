@@ -109,6 +109,20 @@ describe('subscription auth store', () => {
         },
       }),
     ).toBe('/home/studio/.state/cozy-studio/auth/studio-oauth.json');
+    expect(
+      resolveSubscriptionAuthFilePath({
+        platform: 'darwin',
+        homeDir: '/Users/Studio User',
+        env: {},
+      }),
+    ).toBe('/Users/Studio User/Library/Application Support/Cozy Studio/auth/studio-oauth.json');
+    expect(
+      resolveSubscriptionAuthFilePath({
+        platform: 'win32',
+        homeDir: 'D:\\Users\\studio',
+        env: { LOCALAPPDATA: '\\AppData' },
+      }),
+    ).toBe('D:\\Users\\studio\\AppData\\Local\\Cozy Studio\\auth\\studio-oauth.json');
   });
 
   it('reports a corrupt credential file without overwriting it', () => {

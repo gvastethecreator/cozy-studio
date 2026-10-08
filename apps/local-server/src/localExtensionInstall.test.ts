@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import JSZip from 'jszip';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   composeStyleRuntimePacksFromManifests,
   createStylePackManifests,
@@ -11,12 +11,14 @@ import {
   createStylePresetCatalogSearchIndexFromRuntimePacks,
 } from '../../../components/recipes/stylePresetManifests';
 import type { StyleRuntimePack } from '../../../components/recipes/styles/runtimeTypes';
+import { FIELDS } from '../../../packages/shared/src/styles/intentional-v1/types';
 import { createExtensionRoutes } from './extensionRoutes';
 import { createExtensionStore } from './extensionStore';
 import type { ExtensionSourceClient } from './extensionSources';
 
 let installDir = '';
 afterEach(async () => {
+  vi.restoreAllMocks();
   if (installDir) await rm(installDir, { recursive: true, force: true });
 });
 
@@ -110,7 +112,7 @@ async function setup() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-  return { routes, install };
+  return { routes, install, store };
 }
 
 describe('local style-pack install', () => {
@@ -178,6 +180,19 @@ describe('local style-pack install', () => {
       await archive('Invalid', (_, zip) => {
         zip.file('cards/oversized.webp', Buffer.alloc(32 * 1024 * 1024 + 1));
       }),
+      await archive('Invalid', (files) => {
+        (files['extension.json'] as { files: Record<string, string> }).files.archived = 'archived.json';
+        const retired = structuredClone((files['runtime.json'] as StyleRuntimePack).presets[0]);
+        retired.id = 'SP14-002';
+        retired.intentional = { presetVersion: 1, policy: { schemaVersion: 1, kind: 'INVALID' } as never };
+        files['archived.json'] = { packName: 'Invalid', presets: [retired] };
+      }),
+      await archive('Invalid', (files) => {
+        (files['runtime.json'] as StyleRuntimePack).presets[0].intentional = { presetVersion: 999,
+          policy: { schemaVersion: 1, kind: 'full_style', defaultFields: [...FIELDS], requires: null,
+            medium: 'paint', constraints: [], avoidRules: [] },
+        };
+      }),
     ];
     const traversal = await archive('Invalid');
     traversal.entry.id = '../outside';
@@ -188,5 +203,21 @@ describe('local style-pack install', () => {
       const content = await routes.request('/cozy.pack-14/files/runtime.json');
       expect(await content.json()).toMatchObject({ name: 'Preserved Pack' });
     }
+  });
+  it('restores installed content and catalog cache when refresh or file verification fails after swap', async () => {
+    const { install, store } = await setup();
+    expect((await install(await archive('Preserved Pack'))).status).toBe(200);
+    const list = store.list.bind(store);
+    vi.spyOn(store, 'list').mockImplementationOnce(async (options) => {
+      await list(options);
+      throw new Error('refresh failed after scan');
+    });
+    expect((await install(await archive('Changed Pack'))).status).toBe(500);
+    expect((await store.list()).extensions[0].manifest.title).toBe('Preserved Pack');
+    expect(JSON.parse((await store.readFile('cozy.pack-14', 'runtime.json'))!.toString('utf8')).name).toBe('Preserved Pack');
+    vi.spyOn(store, 'readFile').mockResolvedValueOnce(Buffer.from('{}'));
+    expect((await install(await archive('Changed Pack'))).status).toBe(422);
+    expect((await store.list()).extensions[0].manifest.title).toBe('Preserved Pack');
+    expect(JSON.parse((await store.readFile('cozy.pack-14', 'runtime.json'))!.toString('utf8')).name).toBe('Preserved Pack');
   });
 });

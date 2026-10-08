@@ -75,7 +75,12 @@ export function createExtensionStore(sources: string[]): ExtensionStore {
     for (const source of sources) {
       if (!existsSync(source)) continue;
       for (const entry of await readdir(source, { withFileTypes: true })) {
-        if (!entry.isDirectory() || entry.name.includes('.stage-')) continue;
+        if (
+          !entry.isDirectory() ||
+          entry.name.includes('.stage-') ||
+          entry.name.includes('.previous-')
+        )
+          continue;
         const root = path.join(source, entry.name);
         const manifestPath = path.join(root, EXTENSION_MANIFEST_FILE);
         if (!existsSync(manifestPath)) continue;

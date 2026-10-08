@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { isDeepStrictEqual } from 'node:util';
+import path from 'node:path';
 import type { Handler } from 'hono';
 import JSZip from 'jszip';
 import studioPackage from '../../../package.json';
@@ -99,6 +100,7 @@ async function validateContents(archive: Buffer, entry: { id: string; version: s
     );
   const jsonPaths = new Set(['extension.json', ...Object.values(manifest.files)]);
   const json = new Map<string, unknown>();
+  const hashes = new Map<string, string>();
   let expandedBytes = 0;
   for (const file of files) {
     if (file.dir) {
@@ -116,7 +118,10 @@ async function validateContents(archive: Buffer, entry: { id: string; version: s
       Math.min(isJson ? 8 * 1024 * 1024 : 32 * 1024 * 1024, MAX_EXPANDED_BYTES - expandedBytes),
     );
     expandedBytes += bytes.byteLength;
-    if (isJson) json.set(file.name, JSON.parse(bytes.toString('utf8')));
+    if (isJson) {
+      json.set(file.name, JSON.parse(bytes.toString('utf8')));
+      hashes.set(file.name, createHash('sha256').update(bytes).digest('hex'));
+    }
   }
   for (const name of jsonPaths) if (!json.has(name)) reject(`Missing style-pack file: ${name}`);
   const payload = json.get(manifest.files.pack) as {
@@ -143,6 +148,7 @@ async function validateContents(archive: Buffer, entry: { id: string; version: s
     runtime.presets.length !== expected.presets.length
   )
     reject('Style pack must contain usable presets and matching runtime data');
+  const presetVersions = new Map(payload.presetManifests.map((preset) => [preset.id, preset.version]));
   for (const [index, preset] of runtime.presets.entries()) {
     const { intentional, ...data } = preset;
     const { intentional: sourcePolicy, ...source } = expected.presets[index];
@@ -152,6 +158,8 @@ async function validateContents(archive: Buffer, entry: { id: string; version: s
     )
       reject('Runtime preset does not match its source manifest');
     if (intentional) {
+      if (intentional.presetVersion !== presetVersions.get(preset.id))
+        reject('Runtime intentional policy does not match its preset version');
       try {
         validateSnapshot({
           presetId: preset.id,
@@ -186,6 +194,16 @@ async function validateContents(archive: Buffer, entry: { id: string; version: s
       createStylePresetManifests([archivedPack]),
     );
     if (!archivedGraph.valid) reject(archivedGraph.errors.slice(0, 10).join('; '));
+    for (const preset of archived.presets) {
+      if (!preset.intentional) continue;
+      try {
+        validateSnapshot({
+          presetId: preset.id, packId: runtime.id, version: preset.intentional.presetVersion,
+          name: preset.name, dna: Object.fromEntries(FIELDS.map((field) => [field, preset.style[field]])),
+          policy: preset.intentional.policy,
+        });
+      } catch { reject('Invalid archived intentional policy'); }
+    }
     const allIds = [...runtime.presets, ...archived.presets].map((preset) => preset.id);
     if (new Set(allIds).size !== allIds.length)
       reject('Archived presets duplicate runtime presets');
@@ -208,7 +226,7 @@ async function validateContents(archive: Buffer, entry: { id: string; version: s
     )
       reject('Invalid preview references');
   }
-  return manifest;
+  return { manifest, runtimeSha256: hashes.get(manifest.files.runtime)! };
 }
 
 export function createLocalExtensionInstallHandler(
@@ -235,12 +253,27 @@ export function createLocalExtensionInstallHandler(
         createHash('sha256').update(archive).digest('hex') !== entry.sha256
       )
         reject('Archive bytes or sha256 mismatch');
-      await validateContents(archive, entry);
-      const extension = await installExtensionArchive({ archive, entry, installDir });
-      const installed = (await store.list({ refresh: true })).extensions.find(
-        (item) => item.manifest.id === extension.id,
-      );
-      return c.json({ extension, installedLayers: installed?.layers ?? [] });
+      const checked = await validateContents(archive, entry);
+      let installedLayers: string[] = [];
+      try {
+        const extension = await installExtensionArchive({ archive, entry, installDir,
+          validateInstalled: async () => {
+            const installed = (await store.list({ refresh: true })).extensions.find((item) => item.manifest.id === entry.id);
+            if (!installed || path.resolve(installed.root) !== path.resolve(installDir, entry.id) ||
+                !isDeepStrictEqual(installed.manifest, checked.manifest)) reject('Installed extension does not match its archive');
+            const runtime = await store.readFile(entry.id, checked.manifest.files.runtime);
+            if (!runtime || createHash('sha256').update(runtime).digest('hex') !== checked.runtimeSha256)
+              reject('Installed runtime does not match its archive');
+            installedLayers = installed.layers;
+          },
+        });
+        return c.json({ extension, installedLayers });
+      } catch (error) {
+        await store.list({ refresh: true }).catch((refreshError) => {
+          console.warn('[extensions:install] Catalog refresh failed after rollback', refreshError);
+        });
+        throw error;
+      }
     } catch (error) {
       const invalid =
         error instanceof ExtensionInstallError ||

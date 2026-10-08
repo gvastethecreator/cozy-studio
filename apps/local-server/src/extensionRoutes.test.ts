@@ -52,6 +52,14 @@ async function createRoutes() {
 describe('extension routes', () => {
   it('lists valid extensions and reports invalid ones without failing', async () => {
     const routes = await createRoutes();
+    for (const suffix of ['stage', 'previous']) {
+      const folder = path.join(source, `cozy.backup.${suffix}-123`);
+      await mkdir(folder);
+      await writeFile(
+        path.join(folder, 'extension.json'),
+        JSON.stringify({ ...manifest, id: 'cozy.backup' }),
+      );
+    }
     const body = await (await routes.request('/')).json();
     expect(body.extensions.map((item: { id: string }) => item.id)).toEqual(['cozy.pack-14']);
     expect(body.invalid).toEqual([

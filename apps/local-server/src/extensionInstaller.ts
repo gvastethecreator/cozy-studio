@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -53,23 +53,36 @@ async function extractZip(zip: JSZip, targetDir: string) {
 let installWriteQueue = Promise.resolve();
 
 /** Extracts into a staging folder, then swaps it in; the previous folder survives any failure. */
-function replaceFolder(finalDir: string, fill: (stageDir: string) => Promise<void>) {
+function replaceFolder(finalDir: string, fill: (stageDir: string) => Promise<void>, validateInstalled?: () => Promise<void>) {
   const result = installWriteQueue.then(async () => {
     const stageDir = `${finalDir}.stage-${process.pid}`;
-    const previousDir = `${finalDir}.previous-${process.pid}`;
+    const previousDir = `${finalDir}.previous-${process.pid}-${randomUUID()}`;
+    let movedPrevious = false;
+    let installedStage = false;
     await rm(stageDir, { recursive: true, force: true });
     try {
       await mkdir(stageDir, { recursive: true });
       await fill(stageDir);
       await mkdir(path.dirname(finalDir), { recursive: true });
-      if (existsSync(finalDir)) await rename(finalDir, previousDir);
+      if (existsSync(finalDir)) {
+        await rename(finalDir, previousDir);
+        movedPrevious = true;
+      }
       await rename(stageDir, finalDir);
+      installedStage = true;
+      await validateInstalled?.();
     } catch (error) {
-      await rm(stageDir, { recursive: true, force: true });
-      if (!existsSync(finalDir) && existsSync(previousDir)) await rename(previousDir, finalDir);
+      try {
+        if (installedStage) await rm(finalDir, { recursive: true, force: true });
+        if (movedPrevious) await rename(previousDir, finalDir);
+      } finally {
+        await rm(stageDir, { recursive: true, force: true });
+      }
       throw error;
     }
-    await rm(previousDir, { recursive: true, force: true });
+    await rm(previousDir, { recursive: true, force: true }).catch((error) => {
+      console.warn('[extensions:install] Previous folder cleanup failed', error);
+    });
   });
   installWriteQueue = result.catch(() => undefined);
   return result;
@@ -83,10 +96,12 @@ export async function installExtensionArchive({
   archive,
   entry,
   installDir,
+  validateInstalled,
 }: {
   archive: Uint8Array;
   entry: ExtensionReleaseEntry;
   installDir: string;
+  validateInstalled?: () => Promise<void>;
 }): Promise<ExtensionManifest> {
   verifyArchive(entry.id, archive, entry);
   const zip = await JSZip.loadAsync(archive);
@@ -97,7 +112,7 @@ export async function installExtensionArchive({
   if (parsed.manifest.id !== entry.id || parsed.manifest.version !== entry.version)
     throw new ExtensionInstallError(`${entry.id}: archive does not match the release index`);
 
-  await replaceFolder(path.join(installDir, entry.id), (stageDir) => extractZip(zip, stageDir));
+  await replaceFolder(path.join(installDir, entry.id), (stageDir) => extractZip(zip, stageDir), validateInstalled);
   return parsed.manifest;
 }
 

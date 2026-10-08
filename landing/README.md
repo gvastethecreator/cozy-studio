@@ -7,6 +7,8 @@ This folder builds the public page at <https://gvastethecreator.github.io/cozy-s
 - `assets/` holds the images, the mascot drawing, and the provider logos.
 - `kit/`, `src/`, `templates/`, and `scripts/` are the page engine, copied from gh-pages-template.
 
+The walkthrough screenshots show the running Studio interface, captured on 2026-10-08 at 1280 × 720 in dark and light themes. Keep the images, alt text and step markers in `site.yaml` together when refreshing them. The first step reuses the main Create image.
+
 ## Build
 
 You need Bun and Node 22.18 or newer.

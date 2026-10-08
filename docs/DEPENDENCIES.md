@@ -16,7 +16,7 @@ Read these files for current versions. A local run on another Bun release does n
 - Keep the Bun baseline, CI runtime, and `@types/bun` aligned when changing the runtime.
 - Review Vite, Vite+, the React plugin, Oxfmt, Oxlint, and matching overrides together. Do not bump one pin solely to clear an outdated-package report.
 - Verify the Electron development shell before a major Electron update.
-- Before updating Sharp, verify `writePngFromSvg` through the Sprite Atlas fixture path. A previous `sharp@0.35.4` evaluation stalled there; resolve that path before accepting the update.
+- Before updating Sharp, verify `writePngFromSvg` through the Sprite Atlas fixture path. That path protects SVG rasterization used by atlas fixtures; a package install alone does not prove it works.
 - Use a top-level override only for a demonstrated compatibility or security problem. Bun does not support nested overrides.
 
 ## Update workflow

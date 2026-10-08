@@ -2,7 +2,7 @@
 
 This file defines the project vocabulary only.
 Current system shape lives in `docs/ARCHITECTURE.md`.
-Agent workflows live in `SKILLS.md`.
+Agent work rules live in `AGENTS.md`; setup guidance lives in `skills/cozy-studio-setup/SKILL.md`.
 
 ## Language
 
@@ -302,8 +302,8 @@ _Avoid_: direct repair command, secret-printing audit, destructive storage scan
 
 ## Flagged ambiguities
 
-- `CONTEXT.md` is glossary-only. System shape belongs in `docs/ARCHITECTURE.md`. Workflow rules belong in `AGENTS.md` or `SKILLS.md`.
-- `AGENTS.md` guides repo work practices. `SKILLS.md` guides specialized workflows. Neither file duplicates the glossary in `CONTEXT.md`.
+- `CONTEXT.md` is glossary-only. System shape belongs in `docs/ARCHITECTURE.md`. Work rules belong in `AGENTS.md` and the relevant contributor guide.
+- `AGENTS.md` guides repo work practices without duplicating the glossary in `CONTEXT.md`.
 - **Legacy Workspace Snapshot** is export-only compatibility. It is not read, recovered, or stored as browser state.
 - **Studio Settings** are not `.env.local`. Environment files are for **Bootstrap Configuration** and secrets that must exist before the app can load the library.
 - **Provider Secret** values must not be stored in the Image Catalog, job metadata, or SQLite-backed Studio Settings.

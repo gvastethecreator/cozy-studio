@@ -4,33 +4,15 @@
 
 Accepted
 
-## Context
-
-The style library has 27 packs and more than 4,000 presets. Its card images are about 14 GB, and git history is about 13.5 GB. Styles are data, but today they ship inside the app: manifests compile into `styleRuntimePacks.generated` and `stylePresetCatalogData.pack_XX.ts`, and full-size cards live under `assets/recipes/styles`. ADR 0008 keeps optional assets separate from the Core Asset Set. It also blocks a git history rewrite until a pack installer is proven.
-
 ## Decision
 
-Studio gets a declarative extension system named Cozy Extensions.
+Cozy Extensions are installed content packages, separate from the application bundle.
 
 - A **Cozy Extension** is a versioned content package. It contains data files and images only. It never contains code that Studio runs. This keeps the Provider Capability Catalog rule: providers are not runtime plugins.
 - The first and only extension kind is `style-pack`. Other declarative kinds, such as recipes, can come later under the same rules.
-- Each extension has an `extension.json` file:
-
-  ```json
-  {
-    "schemaVersion": 1,
-    "id": "cozy.mythic-noir",
-    "kind": "style-pack",
-    "version": "1.4.0",
-    "studio": ">=0.9 <2",
-    "title": "Mythic Noir Curated Vault",
-    "files": { "manifest": "pack.json", "search": "search.json" },
-    "assets": [{ "name": "cards-full", "optional": true, "sha256": "…", "bytes": 0 }]
-  }
-  ```
-
+- Each extension has an `extension.json` manifest. The validated schema and compatibility contract live in [extensions.ts](../../packages/shared/src/extensions.ts); use them when authoring a package.
 - Extension ids use a `publisher.name` namespace. A preset's global id is `<extensionId>/<presetId>`, so two extensions can never collide.
-- Studio reads extensions from **Extension Sources**. A source is either a local folder or a GitHub repository that publishes extensions as release assets. Studio supports many sources at once. The planned sources are:
+- Studio reads extensions from **Extension Sources**. A source is either a local folder or a GitHub repository that publishes extensions as release assets. Studio supports many sources at once. Supported sources are:
   - the public `cozy-styles` repository,
   - a private repository for work in progress,
   - local folders for authoring, read in place without install.
@@ -46,17 +28,17 @@ Studio gets a declarative extension system named Cozy Extensions.
 
 ### Workflow modules
 
-Every workflow except `default` becomes an optional built-in module. Default includes optional style tools; styled generations keep the core `styles` recipe contract. Examples of optional modules are Character Lab, Sprite Atlas, Animation Sequence and Camera Angles.
+Every workflow except `default` is an optional built-in module. Default includes optional style tools; styled generations keep the core `styles` recipe contract. Examples of optional modules are Character Lab, Sprite Atlas, Animation Sequence and Camera Angles.
 
 - A module is Studio code. It ships and is versioned with the app. It is not a Cozy Extension and is never downloaded.
-- The Extensions panel lists modules next to installed extensions, and the user can turn each module on or off.
-- A disabled module loads no frontend chunk, mounts no backend routes, accepts no jobs of its kinds and does not appear in navigation. Existing jobs and assets stay in the Studio Library.
-- A module's content, such as recipe parameters, prompt templates, presets and catalogs, can come from a declarative extension of a later kind named `workflow-content`. That content feeds the built-in module and never adds code.
+- Settings → Styles & workflows lists modules next to installed extensions, and the user can turn each module on or off.
+- A disabled module is unavailable in navigation and new job intake. Backend guards enforce module availability. Existing jobs and assets stay in the Studio Library.
+- `workflow-content` is not a supported extension kind. Adding one requires a separate content contract and validation; it must not introduce executable code.
 - Workflows written by third parties would need extensions that run code. That needs its own ADR with signing, sandboxing and a stable API.
 
 ## Consequences
 
-- Style authoring (manifests, specs, briefs, curation reviews and tools) moves to the private `cozy-styles-dev` repository. The public `cozy-styles` repository holds only released packs.
+- Style authoring (manifests, specs, briefs, curation reviews and tools) lives in the private `cozy-styles-dev` repository. The public `cozy-styles` repository holds only released packs.
 - Card images never go into git. Lossless originals stay in a local backup. The working copies are WebP q85. Approved cards ship as release assets: first as internal releases of `cozy-styles-dev`, later as public releases. A release is cut when a pack is ready, not after every card wave.
-- Tests that count presets or packs change to count installed or built-in extensions.
-- The installer from this ADR is the proof that ADR 0008 waits for. After it works, the app repository can remove style images from its history. That rewrite still needs explicit approval.
+- Tests must use installed-extension fixtures instead of assuming a fixed global pack or preset count.
+- Removing style content from the app does not authorize a Git history rewrite; that remains a separate operation requiring explicit approval.

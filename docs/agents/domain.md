@@ -10,6 +10,6 @@ Read the root context and relevant ADRs before changing a named domain concept. 
 
 Tickets and in-flight plans never live under `docs/`. Store ticket mirrors under `.scratch/cozy-studio/issues/` and decision maps under `.scratch/wayfinder/`.
 
-Use one term for each concept. Current core terms include `Studio Library`, `Catalog Entry`, `Persistent Job`, `Generation Task Spec`, `Provider Input`, `Provider Secret`, and `External Output Source`.
+Use one term for each concept. Current core terms include `Studio Library`, `Catalog Entry`, `Persistent Job`, `Generation Task Spec`, `Compiled Provider Input`, `Provider Secret`, and `External Output Source`.
 
 Surface any conflict with an existing ADR before implementation.

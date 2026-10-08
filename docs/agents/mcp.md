@@ -26,7 +26,7 @@ The URL must be a loopback HTTP origin. The bridge opens no listening port. Relo
 
 ## Access
 
-Settings > General > **Agent access (MCP)** controls every call, including calls from already connected clients:
+Settings > Advanced & maintenance > **Agent access (MCP)** controls every call, including calls from already connected clients:
 
 - **Off** rejects all MCP calls.
 - **Read only**, the default, allows discovery and queries.

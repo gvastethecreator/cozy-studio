@@ -1,54 +1,35 @@
 name: Bug report
-description: Report a reproducible problem in Cozy Studio.
-title: '[Bug]: '
-labels: [bug]
+description: Report a reproducible Studio failure.
+labels: [needs-triage]
 body:
-  - type: markdown
+  - type: textarea
+    id: environment
     attributes:
+      label: Environment
       value: |
-        Thanks for helping improve Cozy Studio. Please include enough detail to reproduce the issue locally.
-  - type: input
-    id: os
-    attributes:
-      label: Operating system
-      placeholder: Windows 11, macOS 15, Ubuntu 24.04
-    validations:
-      required: true
-  - type: input
-    id: bun
-    attributes:
-      label: Bun version
-      placeholder: bun --version
-    validations:
-      required: true
-  - type: input
-    id: codex
-    attributes:
-      label: Codex version
-      placeholder: codex --version
-    validations:
-      required: true
-  - type: input
-    id: command
-    attributes:
-      label: Command used
-      placeholder: bun run dev
+        OS and version:
+        CPU architecture:
+        Bun version (bun --version):
+        Studio commit or version:
+        Launch mode (dev, built app, portable):
+        Provider, if relevant:
     validations:
       required: true
   - type: textarea
-    id: expected
+    id: steps
     attributes:
-      label: Expected behavior
+      label: Steps to reproduce
+      description: Include the command or UI actions and what you expected.
     validations:
       required: true
   - type: textarea
-    id: actual
+    id: error
     attributes:
-      label: Actual behavior
+      label: Actual result and exact error
     validations:
       required: true
   - type: textarea
-    id: logs
+    id: diagnostics
     attributes:
-      label: Logs or screenshots
-      description: Attach relevant logs from your Studio Library logs folder or `logs/tooling/`. Remove secrets before posting.
+      label: Sanitized diagnostics
+      description: Run bun run studio:onboard --probe when setup or paths fail. Redact personal paths and account identifiers. Never attach credentials, .env.local, databases or full transcripts. Report security issues through the repository's private vulnerability channel.

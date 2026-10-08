@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for implementation.
+Accepted.
 
 ## Decision
 
@@ -25,7 +25,7 @@ The UI must expose the workflow as a recoverable production workbench:
 - batch handoff creation is supported without duplicating already handled rows
 - blocked rows remain explicit sidecars instead of fake art
 
-Bring a repo-local `skills/sprite-atlas-builder` skill into Cozy Studio so agents can run the pipeline without an external checkout.
+Studio’s built-in workflow uses its own backend services. The standalone sprite pipeline is an external authoring tool and is not required by the app.
 
 The backend owns row progress. When the job queue accepts a row job, the backend records the job set on the row and marks the row as generating. When a job settles, the backend reconciles the row:
 

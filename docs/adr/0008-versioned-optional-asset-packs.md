@@ -2,29 +2,18 @@
 
 ## Status
 
-Accepted
-
-## Context
-
-In-repo visual assets are large and grow with style packs.
+Accepted. Style-pack distribution is defined by [ADR 0011](0011-declarative-extensions-and-style-pack-sources.md).
 
 ## Decision
 
-Keep the Core Asset Set below the enforced budget in `assets/asset-policy.json`.
-Runtime code can depend only on that set.
-Large authoring sources and full-size style defaults are versioned optional packs.
-`assets/asset-pack-lock.json` records each pack content sha256, file count, and byte count.
-Ignored generation failure ledgers (`failures-pack_*.json`) are transient local diagnostics.
-They are excluded from the pack inventory and lock.
+Keep the Core Asset Set below the budget in `assets/asset-policy.json`. Runtime imports may depend only on that set. The policy is the current inventory; do not maintain a second list in prose.
 
-The current checkout keeps optional files in place for authoring compatibility.
-They can be removed from a packaged first run without breaking runtime imports.
-Distribution and atomic installation remain separate release work.
-Git history rewrite stays blocked until that installer is proven.
+Character Lab uses core runtime atlases. Its large source and authoring frames are optional packs. `assets/asset-pack-lock.json` records their SHA-256 hashes, file counts and byte counts. Ignored generation failure ledgers are transient diagnostics and stay outside the lock.
 
-## Consequences
+Style packs are installed extensions, not in-repo optional asset packs. Their manifests, cards and distribution follow ADR 0011.
 
-- `repo:assets:audit` fails on core budget growth, unclassified files, missing core files, or stale optional-pack hashes.
-- Character Lab uses the core runtime atlases and does not import 512px authoring frames.
-- Style browsing uses core card thumbnails. Full-size defaults are optional.
-- Git history rewrite waits until pack install is proven.
+## Enforcement
+
+`bun run repo:assets:audit` checks the core budget, classification, required files and optional-pack integrity. `bun run core-assets:smoke` checks the app without optional authoring packs. Refresh the lock only after reviewing intentional asset changes.
+
+Installer evidence does not authorize a Git history rewrite. History changes require explicit approval.

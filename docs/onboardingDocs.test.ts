@@ -13,16 +13,20 @@ describe('onboarding docs contract', () => {
   const skill = readDoc('skills/cozy-studio-setup/SKILL.md');
   const four = [readme, troubleshooting, electron, skill].join('\n---\n');
 
-  it('README first-run path matches the CTA matrix and names the data and images folders', () => {
+  it('README first-run path separates ChatGPT sign-in from optional Codex setup and names storage', () => {
     expect(readme).toContain('private app-data folder');
     expect(readme).toContain('Pictures folder');
     expect(readme).toContain('never silent-installs Bun');
     expect(readme).toContain('https://bun.sh/docs/installation');
     expect(readme).toContain('https://github.com/openai/codex');
-    expect(readme).toContain('visible `codex login` terminal');
+    expect(readme).toContain(
+      'ChatGPT is recommended; sign in through Settings → Accounts & models',
+    );
+    expect(readme).toContain('Optional, only for the Codex provider: Codex CLI');
+    expect(readme).toContain('`codex login`');
     expect(readme).toContain('bun run studio:onboard --setup');
-    expect(readme).toContain('Start app-server');
-    expect(readme).toContain('Open Studio');
+    expect(readme).toContain('bun run dev');
+    expect(readme).toContain('http://localhost:17222');
     expect(readme).toContain('{timestampUtc}_{generation}_{style}_{prompt}');
     expect(readme).not.toMatch(/as `AI-Studio-Library`/);
   });
@@ -32,13 +36,19 @@ describe('onboarding docs contract', () => {
     expect(troubleshooting).toContain('Mutating steps need an explicit yes');
     expect(troubleshooting).toContain('STUDIO_LIBRARY_DIR');
     expect(troubleshooting).toContain('Cozy Studio');
-    expect(troubleshooting).toContain('Preferred Output Path is not the generate destination');
+    expect(troubleshooting).toContain(
+      'External folder to scan is an import source, not the generation destination',
+    );
+    expect(troubleshooting).toContain(
+      'Generate writes to the images folder chosen in onboarding or Settings → Files & naming',
+    );
   });
 
   it('ELECTRON.md says Electron is not the user channel', () => {
-    expect(electron).toContain('Electron is not that channel');
-    expect(electron).toContain('not the packaged user product for this spec');
-    expect(electron).toContain('does not bundle ChatGPT login');
+    expect(electron).toContain('Electron is an optional development shell');
+    expect(electron).toContain('The user path remains the browser');
+    expect(electron).toContain('There is no packaged desktop distribution');
+    expect(electron).toContain('does not bundle Bun, provider CLIs or sign-in sessions');
   });
 
   it('setup skill still owns the Setup Prompt text', () => {

@@ -125,8 +125,13 @@ export function createWorkerAssetFinalizer({
             width = metadata.width ?? null;
             height = metadata.height ?? null;
             if (!width || !height) throw new Error('Could not read generated image dimensions.');
-            if (`${width}x${height}` !== httpImage.size) {
-              outputWarning = `Requested ${httpImage.size}, but the provider returned ${width}x${height}. The original image was saved in Library without resizing. Review it before generating again.`;
+            const [requestedWidth, requestedHeight] = httpImage.size.split('x').map(Number);
+            // Accept provider scaling and up to one pixel of aspect-ratio rounding.
+            if (
+              Math.abs(width * requestedHeight - height * requestedWidth) >
+              Math.max(requestedWidth, requestedHeight)
+            ) {
+              outputWarning = `Requested the aspect ratio of ${httpImage.size}, but the provider returned ${width}x${height} with a different aspect ratio. The original image was saved in Library without resizing. Review it before generating again.`;
             }
           }
           if (job.sourceSpec?.output.background === 'transparent') {

@@ -393,7 +393,11 @@ describe('Toolbar composer chrome', () => {
     expect(screen.getByRole('button', { name: 'Toggle negative prompt' })).toBeTruthy();
     expect(screen.queryByRole('textbox', { name: 'Negative prompt' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Expand prompt editor' })).toBeNull();
-    expect(screen.getByText('Drop an image or paste it into the prompt.')).toBeTruthy();
+    expect(screen.queryByText('Drop an image or paste it into the prompt.')).toBeNull();
+    expect(screen.getByRole('button', { name: 'References' })).toBeTruthy();
+    const output = container.querySelector('.create-output-grid');
+    expect(output?.parentElement).toBe(container.querySelector('.create-tool-footer'));
+    expect(output?.nextElementSibling).toBe(container.querySelector('.create-tool-execution'));
     expect(container.querySelector('.create-footer-meta')).toBeTruthy();
     expect(container.querySelector('.create-shortcut-hint')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Increase image count' })).toHaveProperty(

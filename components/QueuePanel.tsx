@@ -79,11 +79,6 @@ function toEpochMs(value: string | null | undefined) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function formatClockTime(value: number | null) {
-  if (value === null) return '—';
-  return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
 function formatDurationMs(value: number | null) {
   if (value === null || value < 0) return '—';
   const totalSeconds = Math.floor(value / 1000);
@@ -129,7 +124,7 @@ function QueueNavigation({
   return (
     <div className="space-y-3 border-b border-[color:var(--wb-border)] px-3 pb-3">
       <label className="block text-xs text-[color:var(--wb-muted)]">
-        Workspace
+        <span className="sr-only">Workspace</span>
         <select
           aria-label="Job workspace"
           value={workspaceFilter}
@@ -137,7 +132,7 @@ function QueueNavigation({
             setWorkspaceFilter(event.target.value);
             setVisibleCount(20);
           }}
-          className="mt-1 w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-border)] bg-[color:var(--wb-panel)] p-2 text-xs text-[color:var(--wb-ink)]"
+          className="w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-border)] bg-[color:var(--wb-panel)] p-2 text-xs text-[color:var(--wb-ink)]"
         >
           <option value="">All workspaces</option>
           {jobHistory.workspaces.map((workspace) => (
@@ -474,8 +469,7 @@ function QueueJobList({
           <div key={groupId} className="space-y-2">
             {group.length > 1 && (
               <p className="pt-3 text-xs text-[color:var(--wb-ink)]">
-                {resolveQueueRecipeLabel(group[0].recipeId, group[0].kind)} · {group.length} jobs on
-                this page · {group.filter((job) => job.status === 'completed').length} completed
+                {resolveQueueRecipeLabel(group[0].recipeId, group[0].kind)} · {group.length} jobs
               </p>
             )}
             {group.map((job, index) => (
@@ -483,6 +477,7 @@ function QueueJobList({
                 key={job.id}
                 job={job}
                 showBatch={index === 0}
+                showRecipe={group.length === 1}
                 waitReason={
                   job.status === 'queued' && waitReasons.has(job.id)
                     ? formatWaitReason(waitReasons.get(job.id)!)
@@ -528,22 +523,6 @@ function QueueJobList({
   );
 }
 
-function queueSummaryText(
-  jobHistory: ReturnType<typeof useJobHistory>,
-  summary: ReturnType<typeof summarizePersistentJobs>,
-  reviewJobs: StudioJob[],
-) {
-  return jobHistory.error
-    ? 'Updates unavailable · last confirmed state'
-    : jobHistory.loading && !jobHistory.page
-      ? 'Loading jobs…'
-      : summary.running + summary.queued > 0
-        ? `${summary.running} running · ${summary.queued} queued`
-        : reviewJobs.length > 0
-          ? `${reviewJobs.length} need review`
-          : 'No active jobs';
-}
-
 export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
   ({
     results = EMPTY_RESULTS,
@@ -577,7 +556,6 @@ export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
       jobs,
       activeResultIndex,
       activeResult,
-      summary,
     } = data;
 
     return (
@@ -589,31 +567,36 @@ export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
         className="studio-surface flex h-full min-h-0 w-full flex-col border border-[color:var(--wb-border)] sm:w-[304px] sm:border-y-0 sm:border-r-0"
       >
         <div className="flex items-center justify-between px-3 py-3">
-          <div>
-            <h3 className="text-sm font-semibold text-[color:var(--wb-ink)]/90">Jobs</h3>
-            <p className="mt-0.5 text-xs text-[color:var(--wb-muted)]">
-              {queueSummaryText(jobHistory, summary, reviewJobs)}
-            </p>
-          </div>
+          <h3 className="text-sm font-semibold text-[color:var(--wb-ink)]/90">Jobs</h3>
           <div className="flex shrink-0 items-center gap-1">
-            <button
-              type="button"
-              aria-label="Hide failed and review jobs"
-              data-tooltip="Hide failed and review jobs from this list; records are kept"
-              onClick={clearAttentionJobs}
-              className="studio-hit-target whitespace-nowrap rounded-[var(--wb-radius)] px-2 py-1.5 text-xs text-[color:var(--wb-warning)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)]"
-            >
-              Clear issues
-            </button>
-            <button
-              type="button"
-              aria-label="Hide jobs from this list"
-              data-tooltip="Hide jobs from this list"
-              onClick={() => clearListedJobs()}
-              className="studio-hit-target whitespace-nowrap rounded-[var(--wb-radius)] px-2 py-1.5 text-xs text-[color:var(--wb-muted)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)]"
-            >
-              Clear list
-            </button>
+            <details className="relative">
+              <summary
+                aria-label="Job list options"
+                className="studio-hit-target cursor-pointer rounded-[var(--wb-radius)] px-2 py-1.5 text-xs text-[color:var(--wb-muted)] hover:text-[color:var(--wb-ink)]"
+              >
+                Options
+              </summary>
+              <div className="absolute right-0 top-full z-10 flex w-56 flex-col items-stretch rounded-[var(--wb-radius)] border border-[color:var(--wb-border)] bg-[color:var(--wb-panel)] p-2 shadow-lg">
+                <button
+                  type="button"
+                  aria-label="Hide failed and review jobs"
+                  data-tooltip="Hide failed and review jobs from this list; records are kept"
+                  onClick={clearAttentionJobs}
+                  className="studio-hit-target whitespace-nowrap rounded-[var(--wb-radius)] px-2 py-1.5 text-xs text-[color:var(--wb-warning)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)]"
+                >
+                  Clear issues
+                </button>
+                <button
+                  type="button"
+                  aria-label="Hide jobs from this list"
+                  data-tooltip="Hide jobs from this list"
+                  onClick={() => clearListedJobs()}
+                  className="studio-hit-target whitespace-nowrap rounded-[var(--wb-radius)] px-2 py-1.5 text-xs text-[color:var(--wb-muted)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)]"
+                >
+                  Clear list
+                </button>
+              </div>
+            </details>
             {onClose ? (
               <button
                 type="button"
@@ -661,11 +644,6 @@ export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
                 Refresh jobs
               </button>
             </div>
-          ) : null}
-          {view === 'review' && reviewJobs.length > 0 ? (
-            <p className="text-xs leading-relaxed text-[color:var(--wb-muted)]">
-              These jobs have stopped and need a decision. Open a job to review what happened.
-            </p>
           ) : null}
           {view === 'history' && (
             <QueueHistoryFilters
@@ -810,7 +788,7 @@ function JobItemActions({
   const canRetry = Boolean(onRetry) && (canRetryStudioJob(job) || canResume);
   if (!canCancel && !canRetry) return null;
   return (
-    <div className="mt-2 flex justify-end">
+    <div className="flex shrink-0 justify-end">
       {canCancel ? (
         <button
           type="button"
@@ -850,16 +828,15 @@ function JobStatusIcon({ status }: { status: StudioJob['status'] }) {
 }
 
 function jobTimeLabel(job: StudioJob, nowMs: number, createdAtMs: number | null) {
-  return job.status === 'running'
-    ? `Submitted ${formatDurationMs(createdAtMs === null ? null : nowMs - createdAtMs)} ago`
-    : job.status === 'queued'
-      ? 'Waiting to start'
-      : new Date(job.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' });
+  return job.status === 'running' || job.status === 'queued'
+    ? formatDurationMs(createdAtMs === null ? null : nowMs - createdAtMs)
+    : new Date(job.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
 const ServerJobItem: React.FC<{
   job: StudioJob;
   showBatch?: boolean;
+  showRecipe: boolean;
   waitReason?: string;
   previewSrc: string | null;
   nowMs: number;
@@ -870,6 +847,7 @@ const ServerJobItem: React.FC<{
 }> = ({
   job,
   showBatch = true,
+  showRecipe,
   waitReason,
   previewSrc,
   nowMs,
@@ -904,7 +882,13 @@ const ServerJobItem: React.FC<{
             <JobStatusIcon status={job.status} />
             {statusLabel}
           </span>
-          <span className="truncate text-[color:var(--wb-muted)]">{recipeLabel}</span>
+          <time
+            dateTime={job.createdAt}
+            title={new Date(job.createdAt).toLocaleString()}
+            className="shrink-0 tabular-nums text-[color:var(--wb-muted)]"
+          >
+            {jobTimeLabel(job, nowMs, createdAtMs)}
+          </time>
         </div>
         <div className="flex items-start gap-2">
           {previewSrc ? (
@@ -922,12 +906,6 @@ const ServerJobItem: React.FC<{
             {job.originalPrompt || 'Untitled job'}
           </p>
         </div>
-        <p className="mt-2 text-[11px] text-[color:var(--wb-muted)]">
-          {jobTimeLabel(job, nowMs, createdAtMs)}
-          <span className="mx-1.5">·</span>
-          {formatClockTime(createdAtMs)}
-          <span className="float-right text-[color:var(--wb-ink)]">Details →</span>
-        </p>
       </button>
       {waitReason ? (
         <p className="mt-2 text-xs text-[color:var(--wb-warning)] ">{waitReason}</p>
@@ -937,13 +915,18 @@ const ServerJobItem: React.FC<{
           {job.error}
         </p>
       ) : null}
-      <JobItemActions job={job} onRetry={onRetry} onCancel={onCancel} />
+      <div className="flex items-center justify-between gap-2">
+        <span className="truncate text-[11px] text-[color:var(--wb-muted)]">
+          {showRecipe ? recipeLabel : null}
+        </span>
+        <JobItemActions job={job} onRetry={onRetry} onCancel={onCancel} />
+      </div>
       {job.batchId && showBatch ? (
         <details
           onToggle={(event) => setBatchOpen(event.currentTarget.open)}
           className="mt-2 border-t border-[color:var(--wb-border)] pt-1 text-[11px] text-[color:var(--wb-muted)]"
         >
-          <summary className="cursor-pointer py-1">Batch progress and retry</summary>
+          <summary className="cursor-pointer py-1">Batch</summary>
           {batchOpen ? <QueueBatchCard batchId={job.batchId} revision={job.updatedAt} /> : null}
         </details>
       ) : null}

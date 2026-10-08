@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
-  "source_commit": "08dab61b20a1dcfe50ca43d7feeadcf49dd42bd4",
+  "source_commit": "40a8434b93b9c1f8caf7e4220402532616984d6e",
   "working_tree_dirty": true,
-  "generated_at": "2026-10-08T02:09:31Z",
-  "generation_id": "af53351f76d68f84d470888e24c335b242da2a7b9ce937bbb15618b63c8d0b87",
+  "generated_at": "2026-10-08T03:14:15Z",
+  "generation_id": "3455276bebb4085b9cc10d016d617b5a8b71baa8bddf2fa20f34527af5c54c0c",
   "analysis": {
     "version": "syntax-1",
     "digest": "516dd43c9b1714a3380412793b2d75cee913c75f2f040e51b0b87312df82b232"
@@ -838,15 +838,15 @@
         "path": "apps/local-server/src/jobDetails.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "26c7921d537a93ecf316558c0ef21b8d7e3278ec779720c1a1dff057d60fa5dd",
-        "size": 8501
+        "digest": "0dac325a188ee392c12d3b29c367c70967a7de5d867f2e89e9d02c0334ca840e",
+        "size": 10750
       },
       {
         "path": "apps/local-server/src/jobDetails.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "1eb466dab17046bf1700767b2289d395ac42d5f37644d11b673ab279ad1f74f0",
-        "size": 12722
+        "digest": "8f386f5905326a21b918c0a08f3c9a6ba9dd5e4fb2281c8e16eeee6c8ffb098b",
+        "size": 13457
       },
       {
         "path": "apps/local-server/src/jobRoutes.test.ts",
@@ -2196,8 +2196,8 @@
         "path": "components/JobInspectorDetail.tsx",
         "origin": "tracked",
         "state": "present",
-        "digest": "c621b156b504b3eecbb7d60a9c54b97527ba603edc8d3f652219396fed06b60e",
-        "size": 43417
+        "digest": "99fd51c74629f0e77243c0683d8554963900fa71c415574fa01e9e02286d8c34",
+        "size": 43419
       },
       {
         "path": "components/KeyPopover.tsx",
@@ -2238,15 +2238,15 @@
         "path": "components/QueuePanel.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "a2b59a8b7c2ed1af7360b29b305d1dd6608ae3e9d6fec388fb726865f30a6fdf",
-        "size": 11744
+        "digest": "89684b96eee685e4befb3add232802a38104e5c69371f253052f21b89bdca695",
+        "size": 11936
       },
       {
         "path": "components/QueuePanel.tsx",
         "origin": "tracked",
         "state": "present",
-        "digest": "f4599ebfe3c83d932bef4a1accebb2cb0f38d0d96beab4371a8cf9998f150835",
-        "size": 34510
+        "digest": "c871423ea3e7be5a8084fe8c8d9deef7526255b22bd98ee110b97e50fb5f2fcc",
+        "size": 34030
       },
       {
         "path": "components/RecipePage.tsx",
@@ -2357,15 +2357,15 @@
         "path": "components/Toolbar.composer.test.tsx",
         "origin": "tracked",
         "state": "present",
-        "digest": "9032ef1b1fbe91e189a16bcf98c636772e568930278bc4a02a9960e99b729433",
-        "size": 23678
+        "digest": "07ec551d063bf1d02a75339be68275703f698c905a6e8ddce42332e6ff50b79a",
+        "size": 24006
       },
       {
         "path": "components/Toolbar.tsx",
         "origin": "tracked",
         "state": "present",
-        "digest": "0329be45a8c268444efe4d9ac5b8f4750aff3aeb526f98bfb23540f242467a91",
-        "size": 79265
+        "digest": "1efba04a850ec56d0d434b6b77277faf1849d1c2cffc5c7bc74394e5b75d4b76",
+        "size": 79317
       },
       {
         "path": "components/ToolbarLiveStatus.test.tsx",
@@ -2406,15 +2406,15 @@
         "path": "components/create/CreateWorkflowPicker.test.tsx",
         "origin": "tracked",
         "state": "present",
-        "digest": "ea80e421220904cc0041f49476856c6fc1a22053d5fe33ef6c13a6b4e6bbe8e5",
-        "size": 4393
+        "digest": "eb2f66b6632e0d3b18e6f2eba7d75e98be7cf5f332eb429a071cb9853f3918ea",
+        "size": 4926
       },
       {
         "path": "components/create/CreateWorkflowPicker.tsx",
         "origin": "tracked",
         "state": "present",
-        "digest": "f70081b52f169b452d3c91e48650e03e67c49351a10b4a61ece37d154de0b12c",
-        "size": 8257
+        "digest": "05f86ac211464d630eca1408f4d78bf183e8fb4d79320b901e3069613bb2e2e4",
+        "size": 8704
       },
       {
         "path": "components/create/CreateWorkspace.test.tsx",
@@ -2441,8 +2441,8 @@
         "path": "components/create/WorkflowCardArt.tsx",
         "origin": "tracked",
         "state": "present",
-        "digest": "27dcd848b285c46fe5f84cc87c87553959e11f2dfe75b50e53ff31b13e315eec",
-        "size": 8876
+        "digest": "5d68715ad1e9b06ac0fa4eaa227acc5175fb77b3e482422e26e051094ddb1aa2",
+        "size": 3551
       },
       {
         "path": "components/header/ProviderQuickSwitch.test.tsx",
@@ -4611,15 +4611,15 @@
         "path": "lib/jobInspectorFormatter.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "085162d99730aeb62ef619539403d5b2654c874a24bd98afc5b68b00b45be47a",
-        "size": 19807
+        "digest": "bdb79dc4532514c64e848ff010959615d2625af53670a18f68ca8ec94ef0712e",
+        "size": 20152
       },
       {
         "path": "lib/jobInspectorFormatter.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "873d4a91642ddb64627a074ef8cd28577c4e46b2d968bb86e34855765c1ce1f5",
-        "size": 32366
+        "digest": "f2b7e70cd5ff5e4413ea4792e4aee3465f6c0e352428d17403c9534b592e6861",
+        "size": 32698
       },
       {
         "path": "lib/lastCreateRoute.test.ts",
@@ -7037,12 +7037,12 @@
         "size": 765
       }
     ],
-    "digest": "0f3c9768f360249f331ba9d8fc8ff38ac49aa4f67143f820100b95c2c47aefc9"
+    "digest": "8e314b3194e5b5f7405d99b8ee138de99d9ba3fd8dd02208973e7d3d862743c2"
   },
-  "source_digest": "3aec1cff35bb44ec1072456120e729357bb8a8061d7c485b255dc6215c237152",
+  "source_digest": "b750cdafcde73910929275712d757fe41373d595e1452301bc67f046f4610a91",
   "artifact_hashes": {
-    "codemap.json": "0a8569fd9ba8b10fb90a3a23c1b491039300901995284032b9acac1882cf282d",
-    "codemap.md": "4c22efffdeb54ad3407d30af8d194d19338d533c23a4c419b4f7c43a882e7e1d",
-    "codemap.html": "ed143cb1100849ac9812097e7a51b6b4b3c78854ed67b2f4cf1135db5dcc0a01"
+    "codemap.json": "34849920f6bbd9edd90206afd2514c360cc6808e3e6e8a0bf4ece8aa03ac22bd",
+    "codemap.md": "1576d858b20d45db22416c66f14ea5305b31df4a9f1fbc8ecb794013797efb18",
+    "codemap.html": "4f3d7c96a870b62a0fb5538d9ccf9b17edae5b81d275fdadc32f91ae5a775cd2"
   }
 }

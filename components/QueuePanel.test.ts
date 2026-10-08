@@ -157,7 +157,7 @@ describe('QueuePanel views', () => {
       'true',
     );
     expect(screen.getByText('Review image only')).toBeTruthy();
-    expect(screen.getByText('1 need review')).toBeTruthy();
+    expect(screen.queryByText('1 need review')).toBeNull();
     expect(screen.queryByText('No jobs running or queued')).toBeNull();
   });
 
@@ -187,6 +187,7 @@ describe('QueuePanel views', () => {
       }),
     );
     expect(screen.getByText('Review image only')).toBeTruthy();
+    fireEvent.click(screen.getByLabelText('Job list options'));
     fireEvent.click(screen.getByRole('button', { name: 'Hide jobs from this list' }));
     expect(screen.queryByText('Review image only')).toBeNull();
     expect(screen.getByText('Nothing to review')).toBeTruthy();
@@ -219,6 +220,7 @@ describe('QueuePanel views', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'History' }));
     expect(screen.getByRole('button', { name: 'Inspect job: Prompt' })).toBeTruthy();
+    fireEvent.click(screen.getByLabelText('Job list options'));
     fireEvent.click(screen.getByRole('button', { name: 'Hide jobs from this list' }));
     expect(screen.queryByRole('button', { name: 'Inspect job: Prompt' })).toBeNull();
   });
@@ -250,6 +252,7 @@ describe('QueuePanel views', () => {
         onCancelServerJob: vi.fn(),
       }),
     );
+    fireEvent.click(screen.getByLabelText('Job list options'));
     fireEvent.click(screen.getByRole('button', { name: 'Hide failed and review jobs' }));
     expect(screen.getByText('Running image')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Review\s*0/ })).toBeTruthy();

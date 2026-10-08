@@ -690,7 +690,6 @@ function ToolbarRail({ model }: { model: ToolbarModel }) {
             transport={selectedCodexTransport}
             onChange={(value) => updateConfig('outputBackground', value)}
           />
-          <ToolbarRailOutput model={model} />
         </>
       )}
     </div>
@@ -1178,6 +1177,7 @@ function ToolbarControls({ model }: { model: ToolbarModel }) {
         </button>
       )}
 
+      {isRail && !isContextOnly ? <ToolbarRailOutput model={model} /> : null}
       <ToolbarMobileControls model={model} />
 
       {!isRail && requirement ? (
@@ -1709,7 +1709,11 @@ function ToolbarReferences({ model }: { model: ToolbarModel }) {
   return (
     <div className="create-reference-area" aria-label="Reference images">
       <div className="create-reference-heading">
-        <span>{sourceFirst ? 'Source image' : 'References'}</span>
+        <Tooltip content="Drop an image or paste it into the prompt.">
+          <button type="button" className="cursor-help text-inherit">
+            {sourceFirst ? 'Source image' : 'References'}
+          </button>
+        </Tooltip>
         <span className="create-reference-count">
           {generationConfig.attachments.length} / {maxAttachments}
         </span>
@@ -1928,7 +1932,11 @@ function ToolbarRailContext({ model }: { model: ToolbarModel }) {
       </section>
       <section className="create-tool-block" aria-label="Attachments">
         <div className="create-section-header">
-          <span>References</span>
+          <Tooltip content="Drop an image or paste it into the prompt.">
+            <button type="button" className="cursor-help text-inherit">
+              References
+            </button>
+          </Tooltip>
           <span className="create-reference-count">
             {generationConfig.attachments.length} / {maxAttachments}
           </span>
@@ -1972,9 +1980,6 @@ function ToolbarRailContext({ model }: { model: ToolbarModel }) {
         transport={selectedCodexTransport}
         onChange={(value) => updateConfig('outputBackground', value)}
       />
-      <p className="create-tool-hint">
-        Add references here. Use the task action below to continue.
-      </p>
     </>
   );
 }
@@ -1988,7 +1993,6 @@ function ToolbarRailPrompt({ model }: { model: ToolbarModel }) {
     acceptRailImageDrop,
     showQuickStartErrorText,
     requirement,
-    sourceFirst,
   } = model;
   return (
     <section className="create-prompt-section" aria-label="Prompt">
@@ -2032,9 +2036,8 @@ function ToolbarRailPrompt({ model }: { model: ToolbarModel }) {
             {requirement?.message ?? 'Add a prompt or image.'}
           </div>
         ) : null}
-        {sourceFirst ? <ToolbarReferences model={model} /> : null}
         <ToolbarPromptInput model={model} />
-        {!sourceFirst ? <ToolbarReferences model={model} /> : null}
+        <ToolbarReferences model={model} />
       </div>
       <ToolbarNegativePromptInput model={model} />
       {shouldShowQuickStartError ? (
@@ -2214,9 +2217,7 @@ function ToolbarReferenceList({ model }: { model: ToolbarModel }) {
           onFiles={onFilesDrop}
           density="thumbs"
         />
-      ) : (
-        <span className="create-reference-empty">Drop an image or paste it into the prompt.</span>
-      )}
+      ) : null}
       {isNearLimit ? null : (
         <button
           type="button"

@@ -627,6 +627,13 @@ button.studio-status-provider:hover {
   padding: 0;
   overflow: hidden;
 }
+.create-workflow-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 69;
+  background: rgb(0 0 0 / 48%);
+  backdrop-filter: blur(4px) saturate(0.35);
+}
 .create-tools,
 .create-tool-scroll,
 .create-workflow-popover,
@@ -724,9 +731,9 @@ button.studio-status-provider:hover {
   top: var(--create-workflow-popover-top);
   left: 50%;
   right: auto;
-  width: min(1060px, calc(100vw - 32px));
-  max-height: calc(100dvh - var(--create-workflow-popover-top) - 24px);
-  padding: 24px;
+  width: min(940px, calc(100vw - 32px));
+  max-height: min(780px, calc(100dvh - var(--create-workflow-popover-top) - 24px));
+  padding: 18px;
   border-radius: 16px;
   transform: translateX(-50%);
   transform-origin: top center;
@@ -749,10 +756,10 @@ button.studio-status-provider:hover {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  padding: 0 0 16px;
+  padding: 0 0 12px;
 }
 .create-workflow-popover-heading strong {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.025em;
 }
@@ -788,7 +795,7 @@ button.studio-status-provider:hover {
 .create-workflow-options {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  gap: 10px;
 }
 .create-workflow-card-group {
   display: contents;
@@ -808,7 +815,7 @@ button.studio-status-provider:hover {
   flex-direction: column;
   align-items: stretch;
   gap: 0;
-  padding: 7px;
+  padding: 5px;
   border: var(--wb-border-width) solid var(--create-line);
   border-radius: 8px;
   color: var(--create-text);
@@ -832,6 +839,7 @@ button.studio-status-provider:hover {
 .create-workflow-card-art {
   display: block;
   width: 100%;
+  height: auto;
   aspect-ratio: 4 / 3;
   flex: none;
   border-radius: 6px;
@@ -842,11 +850,11 @@ button.studio-status-provider:hover {
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px 5px 9px;
+  gap: 4px;
+  padding: 9px 4px 6px;
 }
 .create-workflow-option-text strong {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.35;
 }
@@ -1136,13 +1144,6 @@ button.studio-status-provider:hover {
   background: var(--create-hover);
   color: var(--create-text);
 }
-.create-reference-empty {
-  max-width: 180px;
-  padding-left: 3px;
-  color: var(--create-muted);
-  font-size: var(--wbp-label, 12px);
-  line-height: 1.45;
-}
 .create-output-grid {
   display: grid;
   flex-shrink: 0;
@@ -1386,6 +1387,9 @@ button.studio-status-provider:hover {
   border-top: var(--wb-border-width) solid var(--create-line);
   background: var(--create-panel);
   flex-shrink: 0;
+}
+.create-tool-footer > .create-output-grid {
+  margin-bottom: var(--create-control-gap);
 }
 .create-tool-execution {
   display: flex;

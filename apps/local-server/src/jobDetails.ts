@@ -387,14 +387,39 @@ export async function getJobDetail(jobId: string): Promise<JobDetailResponse | n
     { getCodexTurnByJobId },
     { getJob, listJobAttempts },
     { listJobEvents },
+    { getLibraryForFilePath },
+    { toPublicAssetUrl },
   ] = await Promise.all([
     import('./catalog'),
     import('./db/codexTurns'),
     import('./db/jobs'),
     import('./db/events'),
+    import('./libraries'),
+    import('./library'),
   ]);
   const job = getJob(jobId);
   if (!job) return null;
+  const detailJob = job.sourceSpec
+    ? {
+        ...job,
+        sourceSpec: {
+          ...job.sourceSpec,
+          assets: job.sourceSpec.assets.map((asset) => {
+            if (!asset.localPath) return asset;
+            const library = getLibraryForFilePath(asset.localPath);
+            return library
+              ? {
+                  ...asset,
+                  sourceUrl: toPublicAssetUrl(asset.localPath, {
+                    libraryId: library.id,
+                    rootPath: library.path,
+                  }),
+                }
+              : asset;
+          }),
+        },
+      }
+    : job;
 
   const turn = getCodexTurnByJobId(jobId);
   const events = listJobEvents(jobId);
@@ -423,7 +448,7 @@ export async function getJobDetail(jobId: string): Promise<JobDetailResponse | n
   });
 
   return {
-    job,
+    job: detailJob,
     attempts: attempts.map((attempt, index) => ({
       ...attempt,
       metrics: buildJobMetrics(

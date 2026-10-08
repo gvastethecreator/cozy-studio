@@ -4,7 +4,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateWorkflowPicker } from './CreateWorkflowPicker';
 import { WORKFLOW_CATEGORIES } from '../../packages/shared/src/workflowCatalog';
-import mascot from '../../assets/logo.svg';
 
 vi.mock('../../lib/recipeRouteModules', () => ({ preloadRecipeComponent: vi.fn() }));
 vi.mock('../../lib/studioViewportRouteSurfaces', () => ({
@@ -29,10 +28,12 @@ describe('CreateWorkflowPicker', () => {
     const options = await screen.findAllByRole('option');
     expect(options).toHaveLength(WORKFLOW_CATEGORIES.flatMap((group) => group.workflows).length);
     const scenes = options.map((option) => {
-      const art = option.querySelector('svg');
-      expect(art?.getAttribute('viewBox')).toBe('0 0 320 240');
-      expect(art?.querySelector('image')?.getAttribute('href')).toBe(mascot);
-      return art?.innerHTML;
+      const art = option.querySelector('img.create-workflow-card-art');
+      expect(art?.getAttribute('width')).toBe('640');
+      expect(art?.getAttribute('height')).toBe('480');
+      expect(art?.getAttribute('alt')).toBe('');
+      expect(art?.getAttribute('src')).toMatch(/workflow-cards\/[^/]+\.webp/);
+      return art?.getAttribute('src');
     });
     expect(new Set(scenes).size).toBe(options.length);
     expect(screen.queryByRole('option', { name: /open styles/i })).toBeNull();
@@ -88,6 +89,7 @@ describe('CreateWorkflowPicker', () => {
     expect(selected.getAttribute('aria-selected')).toBe('true');
     expect(document.activeElement).toBe(selected);
     expect(screen.getByRole('listbox').getAttribute('data-entry')).toBe('keyboard');
+    expect(document.querySelector('.create-workflow-backdrop')).not.toBeNull();
     fireEvent.keyDown(selected, { key: 'ArrowDown' });
     expect(document.activeElement).toBe(
       screen.getByRole('option', { name: 'Open character sprites' }),
@@ -98,6 +100,12 @@ describe('CreateWorkflowPicker', () => {
     expect(document.activeElement).toBe(screen.getByRole('option', { name: 'Open sprite atlas' }));
     fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
     expect(screen.queryByRole('listbox')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+    expect(document.querySelector('.create-workflow-backdrop')).toBeNull();
+    fireEvent.click(trigger);
+    fireEvent.pointerDown(document.querySelector('.create-workflow-backdrop')!);
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(document.querySelector('.create-workflow-backdrop')).toBeNull();
     expect(document.activeElement).toBe(trigger);
   });
 });

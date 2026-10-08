@@ -581,14 +581,14 @@ function resolveTaskAssetPublicUrl(
   },
   assetBaseUrl: string,
 ) {
+  const sourceUrl = asset.sourceUrl?.trim();
+  if (sourceUrl) return resolveCatalogUrl(sourceUrl, assetBaseUrl);
+
   const localPath = asset.localPath?.trim();
   if (localPath) {
     const localLibraryHref = resolveLibraryHrefFromLocalReference(localPath, assetBaseUrl);
     if (localLibraryHref) return localLibraryHref;
   }
-
-  const sourceUrl = asset.sourceUrl?.trim();
-  if (sourceUrl) return sourceUrl;
 
   const dataUrl = asset.dataUrl?.trim();
   if (dataUrl) return dataUrl;
@@ -729,11 +729,19 @@ function createRequestModel(
   const controlCount = assets.filter((asset) => asset.role === 'control').length;
   const externalOutputCount = assets.filter((asset) => asset.role === 'external_output').length;
   const referenceArtifactsFromAssets = buildReferenceArtifacts(assets, assetBaseUrl);
-  const referenceArtifactsFromPrompt = extractArtifacts(
-    [detail.job.finalPromptUsed, sourcePrompt],
-    'reference image',
-    assetBaseUrl,
-  ).filter((artifact) => artifact.kind === 'image' && Boolean(artifact.href));
+  const referencesHavePublicUrls =
+    referenceCount > 0 &&
+    referenceArtifactsFromAssets.length === referenceCount &&
+    referenceArtifactsFromAssets.every(
+      (artifact) => artifact.href && !artifact.href.startsWith('data:'),
+    );
+  const referenceArtifactsFromPrompt = referencesHavePublicUrls
+    ? []
+    : extractArtifacts(
+        [detail.job.finalPromptUsed, sourcePrompt],
+        'reference image',
+        assetBaseUrl,
+      ).filter((artifact) => artifact.kind === 'image' && Boolean(artifact.href));
 
   const referenceArtifacts = dedupeArtifacts([
     ...referenceArtifactsFromAssets,

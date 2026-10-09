@@ -39,7 +39,12 @@ describe('Studio MCP boundary', () => {
       count: 2,
       referenceIds: ['reference-1'],
     };
-    expect((await call('studio_generate', input)).status).toBe(403);
+    const denied = await call('studio_generate', input);
+    expect(denied.status).toBe(403);
+    expect(await denied.json()).toMatchObject({
+      error:
+        'MCP access denied. Change Agent access (MCP) in Studio Settings > Advanced & maintenance.',
+    });
     expect((await call('studio_cancel', { jobId: 'job-1' })).status).toBe(403);
     expect(requests).toHaveLength(0);
     expect((await call('studio_recipes')).status).toBe(200);

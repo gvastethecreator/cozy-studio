@@ -62,7 +62,7 @@ Read [skill ownership and loading](docs/agents/skills.md) when selecting, updati
 
 ### Runtime tools
 
-For app queries, generation and cancellation through MCP, read `docs/agents/mcp.md`. Use the running backend and its Settings access mode.
+For app queries, generation and cancellation, follow `skills/cozy-studio-mcp/SKILL.md`. The workspace server is `cozy-studio-mcp`, registered by `.mcp.json` and `.cursor/mcp.json`. `docs/agents/mcp.md` owns the tool list and access mode.
 
 ### Issue tracker
 

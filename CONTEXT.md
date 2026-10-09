@@ -2,7 +2,7 @@
 
 This file defines the project vocabulary only.
 Current system shape lives in `docs/ARCHITECTURE.md`.
-Agent work rules live in `AGENTS.md`; setup guidance lives in `skills/cozy-studio-setup/SKILL.md`.
+Agent work rules live in `AGENTS.md`; setup guidance lives in `skills/cozy-studio-setup/SKILL.md`; app operation lives in `skills/cozy-studio-mcp/SKILL.md`.
 
 ## Language
 

@@ -18,7 +18,7 @@ if (
 }
 
 const server = new Server(
-  { name: 'cozy-studio', version: '1.0.0' },
+  { name: 'cozy-studio-mcp', version: '1.0.0' },
   { capabilities: { tools: {} } },
 );
 server.setRequestHandler(ListToolsRequestSchema, async () => ({

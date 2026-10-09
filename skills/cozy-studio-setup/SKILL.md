@@ -105,6 +105,7 @@ For UI onboarding changes, also read:
    - Use `bun run dev:server` and `bun run dev:ui` separately only when that
      makes diagnosis clearer.
    - Check `GET /api/health` and `/api/onboarding/probe`, and open the UI. Default ports are UI `17222` and API `17223`; read configured overrides without printing secrets.
+   - MCP access defaults to Read only. The checkout registers the server as `cozy-studio-mcp` in `.mcp.json` and `.cursor/mcp.json`. When those tools are connected, read the current mode from `studio_status`. Leave it unchanged unless the user asks agents to generate or cancel. Report the mode and Settings → Advanced & maintenance → Agent access (MCP). Follow `skills/cozy-studio-mcp/SKILL.md` before generation or cancellation.
    - Check `/api/codex/session` only for an explicitly requested Codex provider.
    - Use `/api/app-server/start` or the UI button to start `codex app-server`
      only for an explicitly requested Codex provider when backend health says app-server is down. Leave it stopped for ChatGPT HTTP.
@@ -134,5 +135,5 @@ End with:
 - changed files
 - setup actions performed
 - commands run and pass or fail result
-- current readiness summary from `/api/health` and `/api/onboarding/probe`; include `/api/codex/session` only for the requested Codex route
+- current readiness summary from `/api/health` and `/api/onboarding/probe`; include `/api/codex/session` only for the requested Codex route. Include the MCP access mode and Settings → Advanced & maintenance → Agent access (MCP)
 - any remaining user-only actions, such as Studio Settings Sign in. Mention interactive `codex login` only when the Codex app-server route was requested.

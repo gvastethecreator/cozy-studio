@@ -2,19 +2,15 @@
 
 The local MCP server lets agents query Studio, queue generation and cancel jobs. It uses the running Studio backend and its existing provider adapters, catalog and persistent job batches. It does not start another worker or sign in to providers.
 
-Start Studio, then launch the stdio server from the checkout:
+The checkout registers the server as `cozy-studio-mcp` in `.mcp.json` and `.cursor/mcp.json`. Open the repo as a workspace and reload MCP connections. The command is `bun` with `scripts/studio-mcp.ts`, and the working directory is the checkout. Start Studio before calling tools.
 
-```sh
-bun run mcp
-```
-
-In a client's MCP configuration, use an absolute Bun executable and an absolute path to `scripts/studio-mcp.ts`. No working directory is required. For example, replace both paths below with your installation paths:
+For a different workspace, point the same server name at this checkout:
 
 ```json
 {
   "mcpServers": {
-    "cozy-studio": {
-      "command": "/absolute/path/to/bun",
+    "cozy-studio-mcp": {
+      "command": "bun",
       "args": ["/absolute/path/to/cozy-studio/scripts/studio-mcp.ts"],
       "env": { "COZY_STUDIO_API_URL": "http://127.0.0.1:17223" }
     }
@@ -22,7 +18,7 @@ In a client's MCP configuration, use an absolute Bun executable and an absolute 
 }
 ```
 
-The URL must be a loopback HTTP origin. The bridge opens no listening port. Reload the client's MCP connections after registration. Restart Studio after updating backend code.
+Use an absolute `bun` executable when the client does not search `PATH`. Set `COZY_STUDIO_API_URL` when the API port is not 17223. The URL must be a loopback HTTP origin. The bridge opens no listening port. `bun run mcp` starts the same script from a shell. Restart Studio after updating backend code. Operate it with [cozy-studio-mcp](../../skills/cozy-studio-mcp/SKILL.md).
 
 ## Access
 

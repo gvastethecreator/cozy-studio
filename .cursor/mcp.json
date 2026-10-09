@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "cozy-studio-mcp": {
+      "command": "bun",
+      "args": ["scripts/studio-mcp.ts"],
+      "cwd": ".",
+      "env": {
+        "COZY_STUDIO_API_URL": "http://127.0.0.1:17223"
+      }
+    }
+  }
+}

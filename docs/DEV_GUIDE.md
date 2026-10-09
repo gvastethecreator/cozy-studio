@@ -28,4 +28,4 @@ For dependency work, follow [Dependencies](DEPENDENCIES.md). Do not update packa
 - Keep `.env.local`, databases, user outputs, logs and scratch dumps out of Git.
 - Provider execution and credentials stay behind backend adapters. A unit test or preflight does not authorize a live generation.
 
-For local agent access to a running app, use [Studio MCP](agents/mcp.md). Developer-specific agent skills, React Doctor configuration and local hooks are optional, ignored tools; a fresh checkout does not depend on them.
+For local agent access to a running app, use [cozy-studio-mcp](../skills/cozy-studio-mcp/SKILL.md). The checkout registers that server in `.mcp.json` and `.cursor/mcp.json`. [Studio MCP](agents/mcp.md) owns the tool contract. Developer-specific skills, React Doctor configuration and local hooks are optional, ignored tools; a fresh checkout does not depend on them.

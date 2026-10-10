@@ -416,11 +416,31 @@ export const STYLE_COLLECTIONS = [
     sourcePackIds: ['pack_02', 'pack_26'],
     entries: [
       {
-        id: 'animation-styles',
+        id: 'pack02-cel-limited',
         kind: 'category',
         packId: 'pack_02',
-        categoryName: '3. Animation Styles',
-        displayCategory: 'Animation Styles',
+        categoryName: '3. Cel and Limited Animation',
+        facetOverrides: { medium: ['animation'], domain: ['screen'] },
+      },
+      {
+        id: 'pack02-painted-frame-animation',
+        kind: 'category',
+        packId: 'pack_02',
+        categoryName: '14. Painted Frame Animation',
+        facetOverrides: { medium: ['animation'], domain: ['screen'] },
+      },
+      {
+        id: 'pack02-physical-stop-frame',
+        kind: 'category',
+        packId: 'pack_02',
+        categoryName: '15. Physical Stop-Frame Animation',
+        facetOverrides: { medium: ['animation'], domain: ['screen'] },
+      },
+      {
+        id: 'pack02-screen-dimensional',
+        kind: 'category',
+        packId: 'pack_02',
+        categoryName: '16. Screen and Dimensional Animation',
         facetOverrides: { medium: ['animation'], domain: ['screen'] },
       },
       {

@@ -606,10 +606,31 @@ export const STYLE_COLLECTIONS = [
         categoryName: '12. Fine Pen Comic Drawing',
       },
       {
-        id: 'pack22-comic-cartoon',
+        id: 'pack22-flat-color-comics',
         kind: 'category',
         packId: 'pack_22',
-        categoryName: '9. Comic & Cartoon Illustration',
+        categoryName: '9. Flat Color Comic Pictures',
+        role: 'cross_link',
+      },
+      {
+        id: 'pack22-brush-comic-ink',
+        kind: 'category',
+        packId: 'pack_22',
+        categoryName: '19. Brush Comic Ink',
+        role: 'cross_link',
+      },
+      {
+        id: 'pack22-painted-comic-pictures',
+        kind: 'category',
+        packId: 'pack_22',
+        categoryName: '20. Painted Comic Pictures',
+        role: 'cross_link',
+      },
+      {
+        id: 'pack22-pen-hatch-comics',
+        kind: 'category',
+        packId: 'pack_22',
+        categoryName: '21. Pen and Hatch Comics',
         role: 'cross_link',
       },
       {

@@ -31,7 +31,8 @@ export function createMcpRoutes({ request, readSettings }: Dependencies) {
     ) {
       return c.json(
         {
-          error: 'MCP access denied. Change Agent access (MCP) in Studio Settings > Advanced & maintenance.',
+          error:
+            'MCP access denied. Change Agent access (MCP) in Studio Settings > Advanced & maintenance.',
           access: settings.mcpAccess,
         },
         403,

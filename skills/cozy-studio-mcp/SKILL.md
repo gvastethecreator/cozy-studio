@@ -1,6 +1,6 @@
 ---
 name: cozy-studio-mcp
-description: "Operate a running Cozy Studio through the cozy-studio-mcp server. Use for queries, generation, or cancellation."
+description: 'Operate a running Cozy Studio through the cozy-studio-mcp server. Use for queries, generation, or cancellation.'
 ---
 
 # Cozy Studio MCP

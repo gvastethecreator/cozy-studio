@@ -541,10 +541,28 @@ export const STYLE_COLLECTIONS = [
     sourcePackIds: ['pack_04', 'pack_22', 'pack_26'],
     entries: [
       {
-        id: 'comic-book-styles',
+        id: 'pack04-flat-and-screen-color-comics',
         kind: 'category',
         packId: 'pack_04',
-        categoryName: '1. Comic Book Styles',
+        categoryName: '1. Flat and Screen Color Comics',
+      },
+      {
+        id: 'pack04-brush-black-adventure-ink',
+        kind: 'category',
+        packId: 'pack_04',
+        categoryName: '10. Brush Black Adventure Ink',
+      },
+      {
+        id: 'pack04-painted-and-tonal-comic-pages',
+        kind: 'category',
+        packId: 'pack_04',
+        categoryName: '11. Painted and Tonal Comic Pages',
+      },
+      {
+        id: 'pack04-fine-pen-comic-drawing',
+        kind: 'category',
+        packId: 'pack_04',
+        categoryName: '12. Fine Pen Comic Drawing',
       },
       {
         id: 'pack22-comic-cartoon',
@@ -573,10 +591,28 @@ export const STYLE_COLLECTIONS = [
     sourcePackIds: ['pack_04'],
     entries: [
       {
-        id: 'childrens-illustration',
+        id: 'pack04-paper-craft-storybooks',
         kind: 'category',
         packId: 'pack_04',
-        categoryName: "2. Children's Illustration",
+        categoryName: '2. Paper Craft Storybooks',
+      },
+      {
+        id: 'pack04-pigment-storybook-pictures',
+        kind: 'category',
+        packId: 'pack_04',
+        categoryName: '13. Pigment Storybook Pictures',
+      },
+      {
+        id: 'pack04-flat-shape-storybooks',
+        kind: 'category',
+        packId: 'pack_04',
+        categoryName: '14. Flat Shape Storybooks',
+      },
+      {
+        id: 'pack04-pen-line-storybooks',
+        kind: 'category',
+        packId: 'pack_04',
+        categoryName: '15. Pen Line Storybooks',
       },
       {
         id: 'editorial-poster',

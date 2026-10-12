@@ -1,3 +1,6 @@
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { Hono } from 'hono';
 import { createDefaultEditableStudioSettings } from '../../../packages/shared/src/studioSettings';
@@ -75,5 +78,17 @@ describe('Studio MCP boundary', () => {
     settings.mcpAccess = 'off';
     expect((await call('studio_recipes')).status).toBe(403);
     expect((await call('studio_generate', input)).status).toBe(403);
+  });
+
+  it('imports catalog references through the Bun SQLite seam', () => {
+    const bunTest = fileURLToPath(new URL('./mcpRoutes.bun.test.ts', import.meta.url));
+    const result = spawnSync('bun', ['test', bunTest], {
+      cwd: path.resolve(fileURLToPath(new URL('../../../', import.meta.url))),
+      encoding: 'utf8',
+    });
+    if (result.status !== 0) {
+      throw new Error(result.stderr || result.stdout || 'bun test failed');
+    }
+    expect(`${result.stdout}\n${result.stderr}`).toMatch(/2 pass/);
   });
 });

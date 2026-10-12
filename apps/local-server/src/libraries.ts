@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, existsSync, realpathSync } from 'node:fs';
 import path from 'node:path';
+import type { Database } from 'bun:sqlite';
 import { getSettings } from './config';
 import { getDb } from './db/connection';
 import { LIBRARY_FOLDERS, resolveLibraryPathFromRoot, resolvePublicLibraryPath } from './library';
@@ -115,8 +116,8 @@ export function getDefaultLibrary() {
   return ensureDefaultLibrary();
 }
 
-export function getLibrary(id: string) {
-  const row = getDb().query('SELECT * FROM libraries WHERE id = ?').get(id);
+export function getLibrary(id: string, db?: Database) {
+  const row = getDb(db).query('SELECT * FROM libraries WHERE id = ?').get(id);
   return row ? mapLibrary(row) : null;
 }
 

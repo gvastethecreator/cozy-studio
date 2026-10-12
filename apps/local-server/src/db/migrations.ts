@@ -355,6 +355,25 @@ const DATABASE_MIGRATIONS = [
       )`);
     },
   },
+  {
+    version: 11,
+    name: 'reference-import-receipts',
+    migrate(database: Database) {
+      database.run(`CREATE TABLE reference_import_receipts (
+        request_id TEXT PRIMARY KEY,
+        request_hash TEXT NOT NULL,
+        catalog_image_id TEXT NOT NULL,
+        sha256 TEXT NOT NULL,
+        mime_type TEXT NOT NULL,
+        byte_length INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )`);
+      database.run(
+        'CREATE INDEX idx_reference_import_receipts_sha256 ON reference_import_receipts(sha256)',
+      );
+    },
+  },
 ] as const;
 
 function backfillJobOperationalColumns(database: Database) {

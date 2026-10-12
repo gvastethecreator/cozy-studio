@@ -2,6 +2,7 @@ import { getLibraryForFilePath } from './libraries';
 import { existsSync, mkdirSync, copyFileSync, unlinkSync, constants, rmSync } from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import type { Database } from 'bun:sqlite';
 import { getDb } from './db/connection';
 import { getDefaultLibrary, getLibrary } from './libraries';
 import { resolveLibraryPathFromRoot, toPublicAssetUrl } from './library';
@@ -158,8 +159,9 @@ export function registerCatalogImage(input: {
   recipeId?: string | null;
   tags?: string[];
   generationConfig?: Record<string, unknown> | null;
-}) {
-  const library = input.libraryId ? getLibrary(input.libraryId) : getDefaultLibrary();
+}, db?: Database) {
+  const database = getDb(db);
+  const library = input.libraryId ? getLibrary(input.libraryId, database) : getDefaultLibrary();
   if (!library) throw new Error('No studio library registered.');
   const id = randomUUID();
   const createdAt = now();
@@ -174,7 +176,7 @@ export function registerCatalogImage(input: {
           : libraryContext,
       )
     : null;
-  getDb()
+  database
     .query(`
       INSERT INTO catalog_images (
         id, library_id, file_path, thumbnail_path, public_url, thumbnail_url,
@@ -205,11 +207,11 @@ export function registerCatalogImage(input: {
       input.generationConfig === undefined ? null : JSON.stringify(input.generationConfig),
       createdAt,
     );
-  return getCatalogImage(id)!;
+  return getCatalogImage(id, database)!;
 }
 
-export function getCatalogImage(id: string) {
-  const row = getDb()
+export function getCatalogImage(id: string, db?: Database) {
+  const row = getDb(db)
     .query(
       'SELECT *, (SELECT provider_id FROM jobs WHERE jobs.id = catalog_images.job_id) AS provider_id FROM catalog_images WHERE id = ?',
     )
@@ -245,7 +247,9 @@ function queryCatalogInternal(
     limit?: number;
   } = {},
   options: { includeGenerationConfig?: boolean; summary?: boolean } = {},
+  db?: Database,
 ): CatalogPage {
+  const database = getDb(db);
   const clauses: string[] = [];
   const params: any[] = [];
   if (filters.id) {
@@ -292,11 +296,9 @@ function queryCatalogInternal(
   const offset = Math.max(Number(filters.offset ?? 0), 0);
   const total =
     (
-      getDb()
-        .query(`SELECT COUNT(*) as count FROM catalog_images ${where}`)
-        .get(...params) as any
+      database.query(`SELECT COUNT(*) as count FROM catalog_images ${where}`).get(...params) as any
     )?.count ?? 0;
-  const images = getDb()
+  const images = database
     .query(
       `SELECT ${
         options.includeGenerationConfig ? '*' : CATALOG_IMAGE_SUMMARY_COLUMNS
@@ -307,8 +309,11 @@ function queryCatalogInternal(
   return { images, total, hasMore: offset + images.length < total };
 }
 
-export function queryCatalog(filters: Parameters<typeof queryCatalogInternal>[0] = {}) {
-  return queryCatalogInternal(filters, { includeGenerationConfig: false, summary: true });
+export function queryCatalog(
+  filters: Parameters<typeof queryCatalogInternal>[0] = {},
+  db?: Database,
+) {
+  return queryCatalogInternal(filters, { includeGenerationConfig: false, summary: true }, db);
 }
 
 export function queryCatalogDetails(filters: Parameters<typeof queryCatalogInternal>[0] = {}) {

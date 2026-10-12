@@ -7,6 +7,44 @@ const id = z
   .regex(/^[a-zA-Z0-9][a-zA-Z0-9_.:-]*$/);
 const page = { limit: z.number().int().min(1).max(100).default(30) };
 const empty = z.strictObject({});
+const referenceMimeType = z.enum(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+
+export const STUDIO_REFERENCE_IMPORT_MAX_BYTES = 8 * 1024 * 1024;
+export const STUDIO_REFERENCE_IMPORT_MAX_DIMENSION = 2560;
+export const STUDIO_REFERENCE_IMPORT_MAX_BASE64_CHARS =
+  4 * Math.ceil(STUDIO_REFERENCE_IMPORT_MAX_BYTES / 3);
+
+export const referenceImportInput = z.strictObject({
+  requestId: z
+    .string()
+    .min(11)
+    .max(128)
+    .regex(/^reference-[a-zA-Z0-9][a-zA-Z0-9_-]*$/),
+  name: z
+    .string()
+    .min(1)
+    .max(200)
+    .regex(/^(?!\.\.?$)[^\\/\0]+$/),
+  mimeType: referenceMimeType,
+  base64: z
+    .string()
+    .min(4)
+    .max(STUDIO_REFERENCE_IMPORT_MAX_BASE64_CHARS)
+    .regex(/^[A-Za-z0-9+/]+={0,2}$/)
+    .refine((value) => value.length % 4 === 0),
+  sha256: z.string().regex(/^[a-f0-9]{64}$/),
+});
+
+export const referenceImportResult = z.strictObject({
+  requestId: referenceImportInput.shape.requestId,
+  catalogImageId: id,
+  sha256: referenceImportInput.shape.sha256,
+  mimeType: referenceMimeType,
+  byteLength: z.number().int().positive().max(STUDIO_REFERENCE_IMPORT_MAX_BYTES),
+});
+
+export type StudioReferenceImportInput = z.infer<typeof referenceImportInput>;
+export type StudioReferenceImportResult = z.infer<typeof referenceImportResult>;
 
 export const generationInput = z.strictObject({
   task: z
@@ -104,9 +142,16 @@ export const studioMcpTools = {
       'Cancel a queued or running job. Already finished jobs remain unchanged. Cancellation may not refund provider usage.',
     schema: z.strictObject({ jobId: id }),
   },
+  studio_import_reference: {
+    description:
+      'Import an image into the Studio Library as a catalog reference. Requires Generate and cancel access. Reuse the same reference- requestId and identical input after a timeout. Returns a catalog image ID for studio_generate referenceIds. Does not accept filesystem paths or start a provider.',
+    schema: referenceImportInput,
+  },
 } as const;
 
 export type StudioMcpToolName = keyof typeof studioMcpTools;
 export function isStudioMcpMutation(name: string) {
-  return name === 'studio_generate' || name === 'studio_cancel';
+  return (
+    name === 'studio_generate' || name === 'studio_cancel' || name === 'studio_import_reference'
+  );
 }

@@ -1,6 +1,6 @@
 ---
 name: cozy-studio-mcp
-description: "Operate a running Cozy Studio through the cozy-studio-mcp server. Use for queries, generation, or cancellation."
+description: "Operate a running Cozy Studio through the cozy-studio-mcp server. Use for queries, reference import, generation, or cancellation."
 ---
 
 # Cozy Studio MCP
@@ -16,6 +16,7 @@ This checkout ships the server. `.mcp.json` and `.cursor/mcp.json` register `coz
    - Done when the client shows the `cozy-studio-mcp` tools and no second Studio server is registered.
 
 2. Read access, then act.
-   - Call `studio_status` first. If `mcpAccess` is not `write`, stop before generation or cancellation and ask the user to set Settings → Advanced & maintenance → Agent access (MCP) to Generate and cancel.
+   - Call `studio_status` first. If `mcpAccess` is not `write`, stop before reference import, generation or cancellation and ask the user to set Settings → Advanced & maintenance → Agent access (MCP) to Generate and cancel.
+   - Import a new image through `studio_import_reference` with bounded bytes and a stable `reference-` request ID. Use its returned catalog ID for generation. Never supply a filesystem path; replay the same input after an uncertain import.
    - Use a fresh `batch-` request ID. After a timeout, retry that same ID and the same input. Pass catalog image IDs as references.
    - Done when the call used a tool from `docs/agents/mcp.md` and a retry kept the same request ID.

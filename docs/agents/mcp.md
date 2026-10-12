@@ -1,6 +1,6 @@
 # Studio MCP
 
-The local MCP server lets agents query Studio, queue generation and cancel jobs. It uses the running Studio backend and its existing provider adapters, catalog and persistent job batches. It does not start another worker or sign in to providers.
+The local MCP server lets agents query Studio, import image references, queue generation and cancel jobs. It uses the running Studio backend and its existing provider adapters, catalog and persistent job batches. It does not start another worker or sign in to providers.
 
 The checkout registers the server as `cozy-studio-mcp` in `.mcp.json` and `.cursor/mcp.json`. Open the repo as a workspace and reload MCP connections. The command is `bun` with `scripts/studio-mcp.ts`, and the working directory is the checkout. Start Studio before calling tools.
 
@@ -26,7 +26,7 @@ Settings > Advanced & maintenance > **Agent access (MCP)** controls every call, 
 
 - **Off** rejects all MCP calls.
 - **Read only**, the default, allows discovery and queries.
-- **Generate and cancel** also allows generation and cancellation.
+- **Generate and cancel** also allows reference import, generation and cancellation.
 
 The setting controls the MCP gateway, not the app's own UI/API. Local MCP clients share this setting; there are no per-client credentials. Existing loopback host and browser-origin checks still apply. Provider secrets and transcripts are not exposed as MCP tools.
 
@@ -39,4 +39,10 @@ The setting controls the MCP gateway, not the app's own UI/API. Local MCP client
 5. Poll `studio_batch` or `studio_job`. Query `studio_catalog` with `job_id` or `batch_id` to find output URLs and reusable image IDs. `studio_jobs` lists recent jobs with pagination.
 6. Call `studio_cancel` with a job ID. Completed jobs remain unchanged. Jobs awaiting human review keep Studio's existing review requirement. Cancelling does not guarantee a provider refund.
 
-Recipe validation, disabled modules, provider readiness and managed reference checks use Studio's normal intake. References must be existing catalog images; the MCP does not accept arbitrary filesystem paths. The tools do not delete library data, install extensions, change account settings or record human creative approval. ACP is not implemented: this interface provides app tools, rather than a conversational agent runtime.
+Recipe validation, disabled modules, provider readiness and managed reference checks use Studio's normal intake. Generation references must be catalog image IDs. To add an image, call `studio_import_reference` first; the MCP never accepts arbitrary filesystem paths. The tools do not delete library data, install extensions, change account settings or record human creative approval. ACP is not implemented: this interface provides app tools, rather than a conversational agent runtime.
+
+## Import an image reference
+
+`studio_import_reference` requires write access and accepts `{requestId, name, mimeType, base64, sha256}`. Use a stable `reference-` request ID and the SHA-256 of the decoded bytes. Supported types are PNG, JPEG, WebP and GIF, up to 8 MiB and 2560 pixels per dimension. Studio checks the signature, decoded dimensions and digest through its image processing boundary.
+
+The result contains `{requestId, catalogImageId, sha256, mimeType, byteLength}`. Use `catalogImageId` in `studio_generate.referenceIds` with `task: "image_edit"`. No generation or provider call occurs during import. The catalog record and request receipt persist locally. Retry an uncertain import with the same ID and identical input; changing the content or name under an existing ID is a conflict, including after a restart.

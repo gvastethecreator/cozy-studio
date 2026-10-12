@@ -56,6 +56,10 @@ _Avoid_: sidecar metadata, prompt note
 Image file stored in a Studio Library and served to the UI through `/library/...`.
 _Avoid_: blob, attachment
 
+**Reference Import Receipt**:
+Persistent request identity that binds validated imported image bytes to a Catalog Entry, so an MCP retry reuses the same image without creating a Persistent Job.
+_Avoid_: generated job, temporary upload path
+
 **External Output Source**:
 Registered external directory produced by Codex, Comfy, or another generator that can be discovered and imported without being treated as unmanaged free-form storage.
 _Avoid_: arbitrary path, loose output folder, file browser root

@@ -1,23 +1,32 @@
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { DEFAULT_GENERATION_CONFIG } from '../../../constants';
 import { RECIPE_DISCOVERY_CATALOG } from '../../../lib/recipeCatalog';
 import { buildGenerationTaskSpecFromRecipe } from '../../../lib/recipeModules/taskSpec';
 import {
   studioMcpTools,
+  STUDIO_REFERENCE_IMPORT_MAX_BASE64_CHARS,
   isStudioMcpMutation,
   type StudioMcpToolName,
+  type StudioReferenceImportInput,
+  type StudioReferenceImportResult,
 } from '../../../packages/shared/src/studioMcp';
 import type { EditableStudioSettings } from '../../../packages/shared/src/studioSettings';
 import type { CatalogImage } from '../../../packages/shared/src/types';
 import type { ImageGenerationConfig, Attachment } from '../../../types';
+import { ReferenceImportConflictError } from './referenceImport';
 
 interface Dependencies {
   request: (path: string, init?: RequestInit) => Promise<Response>;
   readSettings: () => EditableStudioSettings;
+  importReference?: (
+    input: StudioReferenceImportInput,
+  ) => Promise<StudioReferenceImportResult>;
 }
 
-export function createMcpRoutes({ request, readSettings }: Dependencies) {
+export function createMcpRoutes({ request, readSettings, importReference }: Dependencies) {
   const routes = new Hono();
+  routes.use('/call', bodyLimit({ maxSize: STUDIO_REFERENCE_IMPORT_MAX_BASE64_CHARS + 16 * 1024 }));
   routes.post('/call', async (c) => {
     const body = await c.req.json().catch(() => null);
     if (!body || typeof body.name !== 'string' || !Object.hasOwn(studioMcpTools, body.name)) {
@@ -140,6 +149,19 @@ export function createMcpRoutes({ request, readSettings }: Dependencies) {
           return c.json(
             { error: error instanceof Error ? error.message : 'Invalid generation recipe' },
             400,
+          );
+        }
+      }
+      case 'studio_import_reference': {
+        if (!importReference) return c.json({ error: 'Reference import is unavailable.' }, 400);
+        try {
+          const input = studioMcpTools.studio_import_reference.schema.parse(args);
+          return c.json(await importReference(input));
+        } catch (error) {
+          const status = error instanceof ReferenceImportConflictError ? 409 : 400;
+          return c.json(
+            { error: error instanceof Error ? error.message : 'Invalid reference import' },
+            status,
           );
         }
       }

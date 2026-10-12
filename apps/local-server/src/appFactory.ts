@@ -28,6 +28,7 @@ import {
   requeueJob,
   updateJobFinalPrompt,
 } from './db/jobs';
+import { getDb } from './db/connection';
 import { getSettingValue, setSettingValue } from './db/settings';
 import { ensureDefaultWorkspace, listWorkspaces } from './db/workspaces';
 import { workspaceOutputSlugMap } from './outputOrganization';
@@ -71,6 +72,7 @@ import {
   type ProcessedReference,
   ReferenceProcessingError,
 } from './referenceManager';
+import { importStudioReference } from './referenceImport';
 import { createWorkspaceRoutes, type WorkspaceRoutesDependencies } from './workspaceRoutes';
 import { resetStudioData } from './reset';
 import {
@@ -368,7 +370,7 @@ export async function createStudioApp(
       settingsStorage,
       readSettings: () => readEditableStudioSettings(settingsStorage),
       readConfig: getSettings,
-      registerCatalogImage: (...args) => catalogStore.registerCatalogImage(...args),
+      registerCatalogImage: (input) => catalogStore.registerCatalogImage(input),
       ensureThumbnailVariant,
       publishEvent,
     }),
@@ -632,6 +634,13 @@ export async function createStudioApp(
     createMcpRoutes({
       request: async (path, init) => app.request(path, init),
       readSettings: () => readEditableStudioSettings(settingsStorage),
+      importReference: (input) => {
+        const library = getDefaultLibrary();
+        return importStudioReference(input, {
+          database: getDb(),
+          library: { id: library.id, path: library.path },
+        });
+      },
     }),
   );
 

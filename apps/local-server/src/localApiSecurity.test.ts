@@ -30,15 +30,29 @@ describe('localApiSecurity', () => {
     expect(isAllowedLocalApiOrigin('invalid-url')).toBe(false);
   });
 
-  it('middleware returns 403 on forbidden origin and 200 on allowed dynamic loopback origin', async () => {
+  it('varies cached responses by Origin while preserving Vary and origin restrictions', async () => {
     const app = new Hono();
+    app.use('*', async (c, next) => {
+      c.header('Vary', 'Accept-Encoding');
+      await next();
+    });
     app.use('*', createLocalApiSecurityMiddleware());
     app.get('/test', (c) => c.json({ ok: true }));
+    app.get('/existing-origin', (c) => {
+      c.header('Vary', 'origin, Accept-Encoding');
+      return c.json({ ok: true });
+    });
+
+    const noOriginResponse = await app.request('/test');
+    expect(noOriginResponse.status).toBe(200);
+    expect(noOriginResponse.headers.get('Vary')).toBe('Accept-Encoding, Origin');
+    expect(noOriginResponse.headers.get('Access-Control-Allow-Origin')).toBeNull();
 
     const allowedResponse = await app.request('/test', {
       headers: { Origin: 'http://localhost:17225' },
     });
     expect(allowedResponse.status).toBe(200);
+    expect(allowedResponse.headers.get('Vary')).toBe('Accept-Encoding, Origin');
     expect(allowedResponse.headers.get('Access-Control-Allow-Origin')).toBe(
       'http://localhost:17225',
     );
@@ -47,9 +61,20 @@ describe('localApiSecurity', () => {
       headers: { Origin: 'https://malicious.org' },
     });
     expect(forbiddenResponse.status).toBe(403);
+    expect(forbiddenResponse.headers.get('Vary')).toBe('Accept-Encoding, Origin');
+    expect(forbiddenResponse.headers.get('Access-Control-Allow-Origin')).toBeNull();
     const fileOriginResponse = await app.request('/test', {
       headers: { Origin: 'file://' },
     });
     expect(fileOriginResponse.status).toBe(403);
+    expect(fileOriginResponse.headers.get('Access-Control-Allow-Origin')).toBeNull();
+
+    const existingOriginResponse = await app.request('/existing-origin');
+    expect(existingOriginResponse.headers.get('Vary')).toBe('origin, Accept-Encoding');
+
+    const preflightResponse = await app.request('/test', { method: 'OPTIONS' });
+    expect(preflightResponse.status).toBe(204);
+    expect(preflightResponse.headers.get('Vary')).toBe('Accept-Encoding, Origin');
+    expect(preflightResponse.headers.get('Access-Control-Allow-Origin')).toBeNull();
   });
 });

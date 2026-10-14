@@ -44,11 +44,15 @@ function createAllowedOriginSet(extraOrigins: Iterable<string> = []) {
   return origins;
 }
 
-function applyCorsHeaders(headers: Headers, origin: string) {
+function applyCorsHeaders(headers: Headers, origin: string | null) {
+  const vary = headers.get('Vary')?.split(',') ?? [];
+  if (!vary.some((value) => ['origin', '*'].includes(value.trim().toLowerCase()))) {
+    headers.append('Vary', 'Origin');
+  }
+  if (!origin) return;
   headers.set('Access-Control-Allow-Origin', origin);
   headers.set('Access-Control-Allow-Methods', CORS_METHODS);
   headers.set('Access-Control-Allow-Headers', CORS_HEADERS);
-  headers.set('Vary', 'Origin');
 }
 
 function isLoopbackHostname(hostname: string) {
@@ -96,6 +100,7 @@ export function createLocalApiSecurityMiddleware(
       origin &&
       (!normalizedOrigin || !isAllowedLocalApiOrigin(normalizedOrigin, allowedOrigins))
     ) {
+      applyCorsHeaders(c.res.headers, null);
       return c.json(
         {
           error: 'Forbidden origin',
@@ -106,16 +111,14 @@ export function createLocalApiSecurityMiddleware(
     }
 
     if (c.req.method === 'OPTIONS') {
-      const headers = new Headers();
-      if (normalizedOrigin) applyCorsHeaders(headers, normalizedOrigin);
+      const headers = c.res.headers;
+      applyCorsHeaders(headers, normalizedOrigin);
       headers.set('Access-Control-Max-Age', '600');
       return new Response(null, { status: 204, headers });
     }
 
     await next();
 
-    if (normalizedOrigin) {
-      applyCorsHeaders(c.res.headers, normalizedOrigin);
-    }
+    applyCorsHeaders(c.res.headers, normalizedOrigin);
   };
 }

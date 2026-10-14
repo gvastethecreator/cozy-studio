@@ -430,6 +430,16 @@ export interface CatalogImageSummary extends Omit<CatalogImage, 'generationConfi
   generationConfig: null;
 }
 
+export const CATALOG_SORT_OPTIONS = [
+  'desc',
+  'asc',
+  'prompt',
+  'prompt_desc',
+  'ratio',
+  'id',
+] as const;
+export type CatalogSortOption = (typeof CATALOG_SORT_OPTIONS)[number];
+
 export interface CatalogPage {
   images: CatalogImage[];
   total: number;

@@ -234,7 +234,10 @@ export function useCatalogPage({
         : entries,
     [entries, retainedSelection, selectedId],
   );
-  const view = useMemo(() => createCatalogView(visibleEntries), [visibleEntries]);
+  const view = useMemo(
+    () => createCatalogView(visibleEntries, { preserveOrder: true }),
+    [visibleEntries],
+  );
 
   return {
     scopeKey: filtersKey,

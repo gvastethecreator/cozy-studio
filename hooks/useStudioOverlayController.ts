@@ -26,6 +26,7 @@ interface StudioOverlayEditorContext {
   isEditorOpen: StudioImageOverlaysProps['isEditorOpen'];
   closeEditor: StudioImageOverlaysProps['closeEditor'];
   imageToEdit: StudioImageOverlaysProps['imageToEdit'];
+  editorDrafts: StudioImageOverlaysProps['editorDrafts'];
   handleExecuteEdit: StudioImageOverlaysProps['handleExecuteEdit'];
   isEditingImage: StudioImageOverlaysProps['isEditingImage'];
   imageEditNotice?: StudioImageOverlaysProps['imageEditNotice'];
@@ -184,6 +185,7 @@ export function buildStudioOverlayController({
       isEditorOpen: editor.isEditorOpen,
       closeEditor: editor.closeEditor,
       imageToEdit: editor.imageToEdit,
+      editorDrafts: editor.editorDrafts,
       handleExecuteEdit: editor.handleExecuteEdit,
       isEditingImage: editor.isEditingImage,
       imageEditNotice: editor.imageEditNotice,

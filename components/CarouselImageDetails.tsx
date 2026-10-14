@@ -1,6 +1,7 @@
 import React from 'react';
 import type { GeneratedImageWithConfig } from '../types';
 import { resolveProviderShortLabel } from '../lib/commandCenterProjection';
+import { ImageTagsEditor } from './ImageTagsEditor';
 
 function formatFileSize(bytes: number | null | undefined) {
   if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return 'Unknown';
@@ -56,6 +57,7 @@ export function CarouselImageDetails({
           </div>
         ))}
       </dl>
+      <ImageTagsEditor key={image.id} image={image} />
       <section className="carousel-style-badges" aria-label="Applied styles">
         <h3 className="mb-2 text-xs text-[color:var(--wb-muted)]">Styles</h3>
         <div className="flex flex-wrap gap-1.5">

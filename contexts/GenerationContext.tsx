@@ -20,6 +20,12 @@ interface GenerationContextType {
     setGenerationConfig: React.Dispatch<React.SetStateAction<ImageGenerationConfig>>;
     setRecipeDraft: (recipeId: RecipeId, config: ImageGenerationConfig) => void;
     isDraftReady: boolean;
+    draftScopeKey: string;
+    draftPersistenceError: string | null;
+    retryDraftPersistence: () => Promise<void>;
+    downloadDraftCopy: (prompt?: string) => void;
+    referencePersistenceErrors: Record<string, string>;
+    retryReferencePersistence: (id: string) => Promise<void>;
     updateGenerationConfig: <K extends keyof ImageGenerationConfig>(
       key: K,
       value: ImageGenerationConfig[K],
@@ -33,6 +39,7 @@ interface GenerationContextType {
     ) => void;
     handleRemoveAttachment: (id: string) => void;
     handleAddToContext: (img: GeneratedImageWithConfig) => void;
+    handleUseAsSource: (img: GeneratedImageWithConfig) => void;
     maxAttachments: number;
     codexModelCatalog: CodexModelCatalogResponse | null;
     isLoadingCodexModelCatalog: boolean;
@@ -76,7 +83,15 @@ interface GenerationContextType {
 }
 
 type GenerationDraftContextType = GenerationContextType['config'];
-type GenerationShellContextType = Omit<GenerationDraftContextType, 'generationConfig'> & {
+type GenerationShellContextType = Omit<
+  GenerationDraftContextType,
+  | 'generationConfig'
+  | 'draftPersistenceError'
+  | 'retryDraftPersistence'
+  | 'downloadDraftCopy'
+  | 'referencePersistenceErrors'
+  | 'retryReferencePersistence'
+> & {
   generationConfigRef: React.RefObject<ImageGenerationConfig>;
   aspectRatio: ImageGenerationConfig['aspectRatio'];
 };
@@ -138,12 +153,19 @@ export const GenerationProvider: React.FC<GenerationProviderProps> = ({ children
       setGenerationConfig: configHook.setGenerationConfig,
       setRecipeDraft: configHook.setRecipeDraft,
       isDraftReady: configHook.isDraftReady,
+      draftScopeKey: configHook.draftScopeKey,
+      draftPersistenceError: configHook.draftPersistenceError,
+      retryDraftPersistence: configHook.retryDraftPersistence,
+      downloadDraftCopy: configHook.downloadDraftCopy,
+      referencePersistenceErrors: configHook.referencePersistenceErrors,
+      retryReferencePersistence: configHook.retryReferencePersistence,
       updateGenerationConfig: configHook.updateGenerationConfig,
       updateAttachment: configHook.updateAttachment,
       handleFileSelect: configHook.handleFileSelect,
       handlePastedFiles: configHook.handlePastedFiles,
       handleRemoveAttachment: configHook.handleRemoveAttachment,
       handleAddToContext: configHook.handleAddToContext,
+      handleUseAsSource: configHook.handleUseAsSource,
       maxAttachments: configHook.maxAttachments,
       codexModelCatalog: configHook.codexModelCatalog,
       isLoadingCodexModelCatalog: configHook.isLoadingCodexModelCatalog,
@@ -154,12 +176,19 @@ export const GenerationProvider: React.FC<GenerationProviderProps> = ({ children
       configHook.setGenerationConfig,
       configHook.setRecipeDraft,
       configHook.isDraftReady,
+      configHook.draftScopeKey,
+      configHook.draftPersistenceError,
+      configHook.retryDraftPersistence,
+      configHook.downloadDraftCopy,
+      configHook.referencePersistenceErrors,
+      configHook.retryReferencePersistence,
       configHook.updateGenerationConfig,
       configHook.updateAttachment,
       configHook.handleFileSelect,
       configHook.handlePastedFiles,
       configHook.handleRemoveAttachment,
       configHook.handleAddToContext,
+      configHook.handleUseAsSource,
       configHook.maxAttachments,
       configHook.codexModelCatalog,
       configHook.isLoadingCodexModelCatalog,
@@ -189,12 +218,14 @@ export const GenerationProvider: React.FC<GenerationProviderProps> = ({ children
       setGenerationConfig: configHook.setGenerationConfig,
       setRecipeDraft: configHook.setRecipeDraft,
       isDraftReady: configHook.isDraftReady,
+      draftScopeKey: configHook.draftScopeKey,
       updateGenerationConfig: configHook.updateGenerationConfig,
       updateAttachment: configHook.updateAttachment,
       handleFileSelect: configHook.handleFileSelect,
       handlePastedFiles: configHook.handlePastedFiles,
       handleRemoveAttachment: configHook.handleRemoveAttachment,
       handleAddToContext: configHook.handleAddToContext,
+      handleUseAsSource: configHook.handleUseAsSource,
       maxAttachments: configHook.maxAttachments,
       codexModelCatalog: configHook.codexModelCatalog,
       isLoadingCodexModelCatalog: configHook.isLoadingCodexModelCatalog,
@@ -206,12 +237,14 @@ export const GenerationProvider: React.FC<GenerationProviderProps> = ({ children
       configHook.setGenerationConfig,
       configHook.setRecipeDraft,
       configHook.isDraftReady,
+      configHook.draftScopeKey,
       configHook.updateGenerationConfig,
       configHook.updateAttachment,
       configHook.handleFileSelect,
       configHook.handlePastedFiles,
       configHook.handleRemoveAttachment,
       configHook.handleAddToContext,
+      configHook.handleUseAsSource,
       configHook.maxAttachments,
       configHook.codexModelCatalog,
       configHook.isLoadingCodexModelCatalog,

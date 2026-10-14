@@ -2,6 +2,7 @@ import React from 'react';
 import { Check, NavArrowDown as ChevronDown } from 'iconoir-react';
 
 import { cn } from '../../lib/utils';
+import { requestStudioSettingsDomain } from '../../lib/studioSettingsDomains';
 import type { CommandCenterProviderProjection } from '../../lib/commandCenterProjection';
 import type { GenerationProviderId } from '../../packages/shared/src';
 import { ProviderBrandMark } from '../ProviderBrandMark';
@@ -103,6 +104,7 @@ export function ProviderQuickSwitch({
             data-dropdown-item
             onClick={() => {
               setOpen(false);
+              requestStudioSettingsDomain('providers');
               onOpenSettings();
             }}
             className="mt-2 w-full rounded-[var(--wb-radius)] border-t border-[color:var(--wb-line)] px-3 py-2 text-left text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)] transition-colors hover:text-[color:var(--wb-ink)]"

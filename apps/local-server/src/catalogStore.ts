@@ -2,6 +2,7 @@ import type {
   CatalogCommandFilter,
   CatalogImage,
   CatalogPage,
+  CatalogSortOption,
   CatalogWorkspaceSummary,
 } from '../../../packages/shared/src';
 
@@ -35,6 +36,7 @@ export interface QueryCatalogFilters {
   favorite?: boolean;
   isDeleted?: boolean;
   q?: string | null;
+  sort?: CatalogSortOption;
   offset?: number;
   limit?: number;
 }

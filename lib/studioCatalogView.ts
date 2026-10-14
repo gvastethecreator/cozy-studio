@@ -22,11 +22,16 @@ export function resolveCatalogEntryBatchId(entry: Pick<CatalogImage, 'batchId' |
   return entry.batchId || `studio-${entry.jobId ?? entry.id}`;
 }
 
-export function createCatalogView(entries: CatalogImage[]): StudioCatalogView {
+export function createCatalogView(
+  entries: CatalogImage[],
+  { preserveOrder = false }: { preserveOrder?: boolean } = {},
+): StudioCatalogView {
   const timestamps = new Map(entries.map((entry) => [entry, createdAtMs(entry)]));
-  const sortedEntries = entries.toSorted(
-    (a, b) => timestamps.get(b)! - timestamps.get(a)! || a.id.localeCompare(b.id),
-  );
+  const sortedEntries = preserveOrder
+    ? entries
+    : entries.toSorted(
+        (a, b) => timestamps.get(b)! - timestamps.get(a)! || a.id.localeCompare(b.id),
+      );
   const byId = new Map<string, CatalogImage>();
   const byBatchId = new Map<string, CatalogImage[]>();
 

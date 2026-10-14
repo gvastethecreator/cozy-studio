@@ -42,11 +42,15 @@ describe('buildStudioOverlayController', () => {
         handleDelete: (imageId) => calls.push(`delete:${imageId}`),
         handleGenerate: () => calls.push('generate'),
         handleAddToContext: (image) => calls.push(`context:${image.id}`),
-        handleLoadRecipe: (config) => calls.push(`recipe:${config.prompt}`),
+        handleLoadRecipe: async (config) => {
+          calls.push(`recipe:${config.prompt}`);
+          return true;
+        },
         handleToggleFavorite: (imageId) => calls.push(`favorite:${imageId}`),
         setActiveCarouselId: (imageId) => calls.push(`carousel:${imageId}`),
       },
       editor: {
+        editorDrafts: new Map(),
         isEditorOpen: true,
         closeEditor: () => calls.push('closeEditor'),
         imageToEdit: {
@@ -292,8 +296,9 @@ describe('buildStudioOverlayController', () => {
         handleAddToContext: () => {
           calls.push('context');
         },
-        handleLoadRecipe: () => {
+        handleLoadRecipe: async () => {
           calls.push('recipe');
+          return true;
         },
         handleToggleFavorite: () => {
           calls.push('favorite');
@@ -303,6 +308,7 @@ describe('buildStudioOverlayController', () => {
         },
       },
       editor: {
+        editorDrafts: new Map(),
         isEditorOpen: false,
         closeEditor: () => {
           calls.push('closeEditor');

@@ -1,8 +1,10 @@
 import type {
   CatalogBatchCommandResult,
+  CatalogTagChanges,
   CatalogCommandFilter,
   CatalogImage,
   CatalogPage,
+  CatalogSortOption,
   CatalogWorkspaceSummary,
   StudioLibrary,
 } from '../../packages/shared/src';
@@ -22,6 +24,7 @@ export interface CatalogQueryParams {
   favorite?: boolean;
   deleted?: boolean;
   q?: string;
+  sort?: CatalogSortOption;
   offset?: number;
   limit?: number;
 }
@@ -37,6 +40,7 @@ export function buildCatalogQuery(params: CatalogQueryParams = {}) {
   if (params.favorite !== undefined) search.set('favorite', String(params.favorite));
   if (params.deleted !== undefined) search.set('deleted', String(params.deleted));
   if (params.q) search.set('q', params.q);
+  if (params.sort) search.set('sort', params.sort);
   if (params.offset !== undefined) search.set('offset', String(params.offset));
   if (params.limit !== undefined) search.set('limit', String(params.limit));
   return search.size > 0 ? `?${search.toString()}` : '';
@@ -62,7 +66,7 @@ export async function queryCatalogWorkspaceSummaries(
 
 export async function updateCatalogImage(
   imageId: string,
-  patch: { isFavorite?: boolean; tags?: string[]; workspaceId?: string | null },
+  patch: { isFavorite?: boolean; tags?: string[]; workspaceId?: string | null } & CatalogTagChanges,
 ) {
   return request<CatalogImage>(`/api/catalog/${encodeURIComponent(imageId)}`, {
     method: 'PATCH',

@@ -228,6 +228,7 @@ function WorkspaceMenu({
           className="studio-command-surface studio-control studio-hit-target flex h-8 w-auto cursor-pointer items-center justify-center gap-1.5 rounded px-2 transition-[color,background-color,border-color,opacity,transform]"
         >
           <Briefcase width={15} height={15} />
+          <span className="hidden text-xs text-[color:var(--wb-muted)] lg:inline">Workspace</span>
           <span className="hidden max-w-28 truncate text-xs font-medium lg:inline">
             {workspaceLabel}
           </span>

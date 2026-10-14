@@ -1,10 +1,7 @@
 import { useCallback, useMemo, useState, useDeferredValue } from 'react';
 
 import { buildStudioCommandCenterProjection } from '../lib/commandCenterProjection';
-import {
-  isStudioJobVisibleAfterAttentionClear,
-  isStudioJobVisibleAfterListClear,
-} from '../lib/studioJobsListClear';
+import { isStudioJobVisibleAfterAttentionClear } from '../lib/studioJobsListClear';
 import type { HeaderToolbarProps } from '../components/HeaderToolbar';
 import type { StudioOverlayController } from '../components/AppOverlays';
 import type { RecipePageRuntimeProps } from '../components/RecipePage';
@@ -215,6 +212,8 @@ export function useStudioShell(): StudioShellController {
     hydrateCatalogDetail,
   } = useStudioCatalogController({
     query: route.view === 'studio' ? deferredCatalogQuery : '',
+    favorites: route.view === 'studio' && libraryFilters.favorites,
+    sort: route.view === 'studio' ? libraryFilters.sort : 'desc',
     historyEnabled: route.view !== 'studio',
     historySelectedId,
     historyRecipeId: historyRecipeFilter(
@@ -228,10 +227,9 @@ export function useStudioShell(): StudioShellController {
 
   // Browser session logs are empty here so log-list updates never invalidate the shell.
   // Overlays that display logs subscribe to the log-list context and merge client-side.
-  const { clearedAt: jobsListClearedAt, attentionClearedAt: jobsAttentionClearedAt } =
-    useStudioJobsListClearedAt(
-      studioSettings.data.settingsDomain.settings?.clearReviewJobsOnStartup,
-    );
+  const { attentionClearedAt: jobsAttentionClearedAt } = useStudioJobsListClearedAt(
+    studioSettings.data.settingsDomain.settings?.clearReviewJobsOnStartup,
+  );
   const studioRuntime = useStudioRuntime({
     logs: EMPTY_RUNTIME_LOGS,
     log,
@@ -247,11 +245,10 @@ export function useStudioShell(): StudioShellController {
       reviewJobCount: jobs.filter(
         (job) =>
           job.status === 'needs_review' &&
-          isStudioJobVisibleAfterListClear(job.createdAt, jobsListClearedAt) &&
           isStudioJobVisibleAfterAttentionClear(job.status, job.updatedAt, jobsAttentionClearedAt),
       ).length,
     };
-  }, [jobsAttentionClearedAt, jobsListClearedAt, studioRuntime.activity.studioJobs]);
+  }, [jobsAttentionClearedAt, studioRuntime.activity.studioJobs]);
 
   const { codexAvailableTransports, codexDefaultTransport } = useCodexTransports(studioSettings);
 
@@ -374,7 +371,11 @@ export function useStudioShell(): StudioShellController {
     requestEmptyTrash,
     requestResetStudio,
   } = useStudioActionConfirmations({
-    clearWorkspace: clearCatalogWorkspace,
+    addToast,
+    clearWorkspace: async (workspaceId) => {
+      await clearCatalogWorkspace(workspaceId);
+      clearWorkspaceSelection(workspaceId);
+    },
     deleteWorkspace,
     resetStudio,
     restoreAllFromTrash: restoreAllCatalogTrash,
@@ -412,6 +413,8 @@ export function useStudioShell(): StudioShellController {
     allImages,
     imagesWithConfig,
     selectedImageIds,
+    selectedImages,
+    clearWorkspaceSelection,
     handleSelectionChange,
     handleDelete,
     handleDeleteSelected,
@@ -466,6 +469,28 @@ export function useStudioShell(): StudioShellController {
     },
     [config.handleAddToContext, route.view, handleViewChange],
   );
+  const handleUseAsSource = useCallback(
+    (image: Parameters<typeof config.handleUseAsSource>[0]) => {
+      const wasFull =
+        config.generationConfigRef.current.attachments.length >= config.maxAttachments;
+      config.handleUseAsSource(image);
+      addToast(
+        wasFull
+          ? `Source image updated. Up to ${config.maxAttachments - 1} previous references were kept.`
+          : 'Source image updated. It will be used first.',
+        'info',
+      );
+      if (route.view === 'studio') handleViewChange('recipes');
+    },
+    [
+      config.handleUseAsSource,
+      config.generationConfigRef,
+      config.maxAttachments,
+      addToast,
+      route.view,
+      handleViewChange,
+    ],
+  );
 
   const overlayController = useMemo(
     () =>
@@ -483,6 +508,7 @@ export function useStudioShell(): StudioShellController {
           setActiveCarouselId: modal.setActiveCarouselId,
         },
         editor: {
+          editorDrafts: viewState.editor.drafts,
           isEditorOpen: viewState.editor.isOpen,
           closeEditor: viewState.editor.close,
           imageToEdit: viewState.editor.image,
@@ -577,6 +603,7 @@ export function useStudioShell(): StudioShellController {
       handleToggleFavorite,
       modal.setActiveCarouselId,
       viewState.editor.isOpen,
+      viewState.editor.drafts,
       viewState.editor.close,
       viewState.editor.image,
       handleExecuteEdit,
@@ -678,11 +705,13 @@ export function useStudioShell(): StudioShellController {
           allImages,
           imagesWithConfig,
           selectedImageIds,
+          selectedImages,
           activeWorkspaceId,
           openModal: handleOpenModal,
           handleSelectionChange,
           handleGenerate,
           handleAddToContext: handleUseAsReference,
+          handleUseAsSource,
           handleLoadRecipe,
           handleDelete,
           handleToggleFavorite,
@@ -731,11 +760,13 @@ export function useStudioShell(): StudioShellController {
       allImages,
       imagesWithConfig,
       selectedImageIds,
+      selectedImages,
       activeWorkspaceId,
       handleOpenModal,
       handleSelectionChange,
       handleGenerate,
       handleUseAsReference,
+      handleUseAsSource,
       handleLoadRecipe,
       handleDelete,
       handleToggleFavorite,

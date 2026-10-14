@@ -24,6 +24,7 @@ import {
   List as LayoutList,
   CheckSquare,
   Square,
+  ViewColumns2,
 } from 'iconoir-react';
 import { DemandMountedGsapDropdown } from './ui/DemandMountedGsapDropdown';
 import { downloadImage, generateSmartFilename } from '../utils/fileUtils';
@@ -49,7 +50,6 @@ import {
   estimateImageGridCardItemHeight,
   estimateImageGridItemHeight,
   estimateImageGridListItemHeight,
-  filterImageGridImages,
   IMAGE_GRID_CAPTION_HEIGHT,
   isWideImageGridFrame,
   resolveImageGridColumnCount,
@@ -59,7 +59,6 @@ import {
   resolveImageGridTemplateColumns,
   resolveImageGridVirtualWindow,
   shouldPriorityLoadImageGridItem,
-  sortImageGridImages,
   type ImageGridSortOption,
   type ImageGridViewMode,
 } from '../lib/imageGridPresentation';
@@ -253,6 +252,9 @@ export interface ImageGridProps {
   images: GeneratedImageWithConfig[];
   generationPlaceholders?: StudioGenerationPlaceholder[];
   selectedImageIds: string[];
+  selectedImages: GeneratedImageWithConfig[];
+  isExporting?: boolean;
+  onCompareSelected?: () => void;
   onImageClick: (image: GeneratedImageWithConfig, rect: DOMRect) => void;
   onSelectionChange: (id: string, selected: boolean) => void;
   onRegenerate: (config: ImageGenerationConfig) => void;
@@ -820,6 +822,9 @@ function useImageGrid(props: ImageGridProps) {
   const {
     images,
     selectedImageIds,
+    selectedImages,
+    isExporting = false,
+    onCompareSelected,
     onImageClick,
     onSelectionChange,
     onRegenerate,
@@ -872,25 +877,16 @@ function useImageGrid(props: ImageGridProps) {
   const [gridMeasuredWidth, setGridMeasuredWidth] = useState(0);
 
   const sourceImageCount = images.length;
-  const favoriteCount = useMemo(
-    () => images.reduce((count, image) => count + (image.isFavorite ? 1 : 0), 0),
-    [images],
-  );
-  const visibleImages = useMemo(
-    () => filterImageGridImages(images, showFavoritesOnly),
-    [images, showFavoritesOnly],
-  );
-  const imageCount = visibleImages.length;
+  const imageCount = images.length;
   const alwaysShowCardActions = shouldAlwaysShowCatalogCardActions(viewportWidth);
   const totalCount = catalogTotal ?? sourceImageCount;
   const isPartialCatalog = hasMore || totalCount > sourceImageCount;
-  const visibleImageIds = useMemo(
-    () => new Set(visibleImages.map((image) => image.id)),
-    [visibleImages],
-  );
+  const visibleImageIds = useMemo(() => new Set(images.map((image) => image.id)), [images]);
   const selectedImageIdSet = useMemo(() => new Set(selectedImageIds), [selectedImageIds]);
-  const selectedImageCount = selectedImageIds.filter((id) => visibleImageIds.has(id)).length;
-  const isAllSelected = imageCount > 0 && selectedImageCount === imageCount;
+  const selectedImageCount = selectedImageIds.length;
+  const visibleSelectedImageCount = selectedImageIds.filter((id) => visibleImageIds.has(id)).length;
+  const hiddenSelectedImageCount = selectedImageCount - visibleSelectedImageCount;
+  const isAllSelected = imageCount > 0 && visibleSelectedImageCount === imageCount;
   const activeSortOption =
     IMAGE_GRID_SORT_OPTIONS.find((option) => option.value === sortOrder) ??
     IMAGE_GRID_SORT_OPTIONS[0];
@@ -898,9 +894,7 @@ function useImageGrid(props: ImageGridProps) {
     IMAGE_GRID_VIEW_OPTIONS.find((option) => option.value === viewMode) ??
     IMAGE_GRID_VIEW_OPTIONS[0];
 
-  const sortedImages = useMemo(() => {
-    return sortImageGridImages(visibleImages, sortOrder);
-  }, [visibleImages, sortOrder]);
+  const sortedImages = images;
 
   const gridItems = useMemo<GridItem[]>(
     () => [
@@ -1201,6 +1195,9 @@ function useImageGrid(props: ImageGridProps) {
     viewMode,
     activeModalImageId,
     selectedImageIds,
+    selectedImages,
+    isExporting,
+    onCompareSelected,
     onImageClick,
     onSelectionChange,
     onRegenerate,
@@ -1222,13 +1219,13 @@ function useImageGrid(props: ImageGridProps) {
     onLibraryFiltersChange,
     onCreate,
     selectedImageCount,
+    hiddenSelectedImageCount,
     totalCount,
     sourceImageCount,
     isAllSelected,
     onDeselectAll,
     onSelectAll,
     sortedImages,
-    favoriteCount,
     isPartialCatalog,
     onDownloadAll,
     onClearWorkspace,
@@ -1263,6 +1260,7 @@ function ImageGridView({ model }: { model: ImageGridModel }) {
     imageCount,
     generationPlaceholders,
     selectedImageCount,
+    hiddenSelectedImageCount,
     totalCount,
     scrollContainerRef,
     handleScroll,
@@ -1286,6 +1284,7 @@ function ImageGridView({ model }: { model: ImageGridModel }) {
         role="status"
       >
         {selectedImageCount} selected · {imageCount} loaded · {totalCount} results
+        {hiddenSelectedImageCount > 0 && ` · ${hiddenSelectedImageCount} selected not shown`}
       </p>
       <ImageGridToolbar model={model} />
       {emptyContent || (
@@ -1316,7 +1315,6 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
   const {
     searchQuery,
     onLibraryFiltersChange,
-    sourceImageCount,
     activeViewOption,
     viewMode,
     handleViewModeChange,
@@ -1336,14 +1334,15 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
         <input
           type="search"
           aria-label="Search library"
-          placeholder="Search all images in this workspace"
+          placeholder="Search images or #tags"
+          title="Search the whole workspace. Use #tag for exact tags; multiple hashtags must all match."
           value={searchQuery}
           onChange={(event) => onLibraryFiltersChange({ q: event.target.value })}
           className="studio-well"
         />
       </label>
       <div className="library-toolbar-actions" role="toolbar" aria-label="Library actions">
-        {sourceImageCount > 0 && <ImageGridActions model={model} />}
+        <ImageGridActions model={model} />
         <div
           role="group"
           aria-label={`Image view: ${activeViewOption.label}`}
@@ -1471,22 +1470,24 @@ function ImageGridActions({ model }: { model: ImageGridModel }) {
     sortedImages,
     onLibraryFiltersChange,
     showFavoritesOnly,
-    sourceImageCount,
-    favoriteCount,
+    selectedImages,
+    isExporting,
+    onCompareSelected,
     selectedImageCount,
     isPartialCatalog,
     onDownloadAll,
     onClearWorkspace,
     onDownloadSelected,
     openConversion,
-    selectedImageIdSet,
     onDeleteSelected,
   } = model;
   return (
     <div className="flex items-center gap-1 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-1 shadow-2xl backdrop-blur-md">
-      {imageCount > 1 && (
+      {(imageCount > 1 || selectedImageCount > 0) && (
         <ActionButton
-          onClick={isAllSelected ? onDeselectAll : () => onSelectAll(sortedImages)}
+          onClick={
+            isAllSelected || imageCount === 0 ? onDeselectAll : () => onSelectAll(sortedImages)
+          }
           icon={
             isAllSelected ? (
               <CheckSquare width={16} height={16} className="text-accent-400" />
@@ -1494,7 +1495,11 @@ function ImageGridActions({ model }: { model: ImageGridModel }) {
               <Square width={16} height={16} />
             )
           }
-          label={isAllSelected ? 'Deselect' : `Select loaded images (${imageCount})`}
+          label={
+            isAllSelected || imageCount === 0
+              ? 'Deselect all'
+              : `Select loaded images (${imageCount})`
+          }
           isActive={isAllSelected}
           tooltipPosition="bottom"
         />
@@ -1509,7 +1514,7 @@ function ImageGridActions({ model }: { model: ImageGridModel }) {
             strokeWidth={2.5}
           />
         }
-        label={showFavoritesOnly ? `All (${sourceImageCount})` : `Favorites (${favoriteCount})`}
+        label={showFavoritesOnly ? 'All images' : 'Favorites'}
         isActive={showFavoritesOnly}
         tooltipPosition="bottom"
       />
@@ -1517,8 +1522,13 @@ function ImageGridActions({ model }: { model: ImageGridModel }) {
         <>
           <ActionButton
             onClick={() => onDownloadAll(sortedImages)}
+            disabled={isExporting}
             icon={<Download width={16} height={16} />}
-            label={`Download ${imageCount} images`}
+            label={
+              isExporting
+                ? 'Preparing download…'
+                : `Download ${imageCount} image${imageCount === 1 ? '' : 's'}`
+            }
             tooltipPosition="bottom"
           />
           <ActionButton
@@ -1532,24 +1542,33 @@ function ImageGridActions({ model }: { model: ImageGridModel }) {
       )}
       {selectedImageCount > 0 && (
         <>
+          {selectedImages.length === 2 && onCompareSelected && (
+            <ActionButton
+              onClick={onCompareSelected}
+              icon={<ViewColumns2 width={16} height={16} />}
+              label="Compare 2 images"
+              tooltipPosition="bottom"
+            />
+          )}
           <ActionButton
-            onClick={() => onDownloadSelected(sortedImages)}
+            onClick={() => onDownloadSelected(selectedImages)}
+            disabled={isExporting}
             icon={<Download width={16} height={16} />}
-            label={`Download selected (${selectedImageCount})`}
+            label={
+              isExporting ? 'Preparing download…' : `Download selected (${selectedImageCount})`
+            }
             tooltipPosition="bottom"
           />
           {openConversion && (
             <ActionButton
-              onClick={() =>
-                openConversion(sortedImages.filter((image) => selectedImageIdSet.has(image.id)))
-              }
+              onClick={() => openConversion(selectedImages)}
               icon={<Photo width={16} height={16} />}
               label={`Convert selected (${selectedImageCount})`}
               tooltipPosition="bottom"
             />
           )}
           <ActionButton
-            onClick={() => onDeleteSelected(sortedImages)}
+            onClick={() => onDeleteSelected(selectedImages)}
             icon={<Trash2 width={16} height={16} />}
             label={`Archive selected (${selectedImageCount})`}
             variant="danger"

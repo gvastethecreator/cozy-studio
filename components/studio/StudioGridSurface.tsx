@@ -1,5 +1,5 @@
 import type { LibraryFilters } from '../../hooks/useLibraryUrlState';
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 
 import type { AspectRatio, GeneratedImage, GeneratedImageWithConfig } from '../../types';
 import { getCatalogRegenerateIssue } from '../../utils/catalogImageGenerationConfig';
@@ -8,6 +8,7 @@ import { useToastUi } from '../../contexts/GlobalContext';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { FormatPreview } from '../FormatPreview';
 import { ImageGrid } from '../ImageGrid';
+import { ImageComparison } from '../ImageComparison';
 
 export interface StudioGridSurfaceProps {
   libraryFilters: LibraryFilters;
@@ -17,6 +18,7 @@ export interface StudioGridSurfaceProps {
   allImages: GeneratedImage[];
   imagesWithConfig: GeneratedImageWithConfig[];
   selectedImageIds: string[];
+  selectedImages: GeneratedImageWithConfig[];
   openModal: (image: GeneratedImageWithConfig) => void;
   handleSelectionChange: (id: string, selected: boolean) => void;
   handleGenerate: (
@@ -25,12 +27,13 @@ export interface StudioGridSurfaceProps {
     options?: { preventModal?: boolean; useCurrentAttachments?: boolean },
   ) => void;
   handleAddToContext: (image: GeneratedImageWithConfig) => void;
+  handleUseAsSource: (image: GeneratedImageWithConfig) => void;
   handleLoadRecipe: (config: GeneratedImageWithConfig['config']) => void;
   handleDelete: (imageId: string) => void;
   handleToggleFavorite: (imageId: string) => void;
   transitioningImageId: string | null;
   activeModalImageId: string | null;
-  handleSelectAll: (images: GeneratedImage[]) => void;
+  handleSelectAll: (images: GeneratedImageWithConfig[]) => void;
   handleDeselectAll: () => void;
   handleDeleteSelected: (imageIds?: string[]) => void;
   handleClearWorkspace: (workspaceId: string) => void;
@@ -62,6 +65,7 @@ export const StudioGridSurface: React.FC<StudioGridSurfaceProps> = ({
   allImages,
   imagesWithConfig,
   selectedImageIds,
+  selectedImages,
   openModal,
   handleSelectionChange,
   handleGenerate,
@@ -80,6 +84,58 @@ export const StudioGridSurface: React.FC<StudioGridSurfaceProps> = ({
   catalog,
 }) => {
   const { addToast } = useToastUi();
+  const exportLock = useRef(false);
+  const [comparison, setComparison] = useState<
+    [GeneratedImageWithConfig, GeneratedImageWithConfig] | null
+  >(null);
+  const [exportState, setExportState] = useState<{
+    message: string;
+    running: boolean;
+    failedImages: GeneratedImageWithConfig[];
+  } | null>(null);
+  const exportImages = useCallback(async (images: GeneratedImageWithConfig[]) => {
+    if (exportLock.current || images.length === 0) return;
+    exportLock.current = true;
+    setExportState({
+      message: `Preparing images: 0 of ${images.length}…`,
+      running: true,
+      failedImages: [],
+    });
+    try {
+      const result = await downloadMultipleImagesAsZip(
+        images,
+        `assets-${Date.now()}.zip`,
+        ({ completed, total }) => {
+          setExportState({
+            message:
+              completed === total
+                ? 'Building ZIP archive…'
+                : `Preparing images: ${completed} of ${total}…`,
+            running: true,
+            failedImages: [],
+          });
+        },
+      );
+      setExportState({
+        message:
+          result.exported === 0
+            ? `No ZIP was downloaded. Could not load ${result.requested} image${result.requested === 1 ? '' : 's'}.`
+            : result.failedImages.length
+              ? `Partial ZIP downloaded: ${result.exported} of ${result.requested} images. Retry downloads the missing images in a separate ZIP.`
+              : `ZIP downloaded: ${result.exported} image${result.exported === 1 ? '' : 's'}.`,
+        running: false,
+        failedImages: result.failedImages,
+      });
+    } catch {
+      setExportState({
+        message: 'The ZIP could not be created. Retry the download.',
+        running: false,
+        failedImages: images,
+      });
+    } finally {
+      exportLock.current = false;
+    }
+  }, []);
   // Regenerate reuses the result's own saved sources, never the composer's current references.
   const handleGridRegenerate = useCallback(
     (config: GeneratedImageWithConfig['config']) => {
@@ -100,30 +156,19 @@ export const StudioGridSurface: React.FC<StudioGridSurfaceProps> = ({
     [handleSelectAll],
   );
 
-  const handleGridDownloadSelected = useCallback(
+  const handleGridDownloadSelected = useCallback(() => {
+    void exportImages(selectedImages);
+  }, [exportImages, selectedImages]);
+
+  const handleGridDownloadAll = useCallback(
     (visibleImages: GeneratedImageWithConfig[]) => {
-      const selectedSet = new Set(selectedImageIds);
-      const selectedImages = visibleImages.filter((image) => selectedSet.has(image.id));
-      if (selectedImages.length > 0) {
-        void downloadMultipleImagesAsZip(selectedImages, `assets-${Date.now()}.zip`);
-      }
+      void exportImages(visibleImages);
     },
-    [selectedImageIds],
+    [exportImages],
   );
 
-  const handleGridDownloadAll = useCallback((visibleImages: GeneratedImageWithConfig[]) => {
-    if (visibleImages.length > 0) {
-      void downloadMultipleImagesAsZip(visibleImages, `assets-${Date.now()}.zip`);
-    }
-  }, []);
-
   const handleGridDeleteSelected = useCallback(
-    (visibleImages: GeneratedImageWithConfig[]) => {
-      const selectedSet = new Set(selectedImageIds);
-      handleDeleteSelected(
-        visibleImages.filter((image) => selectedSet.has(image.id)).map((image) => image.id),
-      );
-    },
+    () => handleDeleteSelected(selectedImageIds),
     [handleDeleteSelected, selectedImageIds],
   );
 
@@ -133,6 +178,32 @@ export const StudioGridSurface: React.FC<StudioGridSurfaceProps> = ({
 
   return (
     <div className="flex-1 h-full relative overflow-hidden flex flex-col">
+      {exportState && (
+        <div
+          role={exportState.failedImages.length ? 'alert' : 'status'}
+          className="flex flex-wrap items-center gap-3 border-b border-[color:var(--wb-line)] px-4 py-3 text-sm"
+        >
+          <span>{exportState.message}</span>
+          {exportState.failedImages.length > 0 && (
+            <button
+              type="button"
+              className="studio-ghost-control rounded px-3 py-2"
+              onClick={() => void exportImages(exportState.failedImages)}
+            >
+              Retry missing images
+            </button>
+          )}
+          {!exportState.running && (
+            <button
+              type="button"
+              className="studio-ghost-control rounded px-3 py-2"
+              onClick={() => setExportState(null)}
+            >
+              Dismiss
+            </button>
+          )}
+        </div>
+      )}
       <div className="flex-1 relative min-h-0">
         <ErrorBoundary fallbackMessage="Failed to render the image grid.">
           <ImageGrid
@@ -142,6 +213,12 @@ export const StudioGridSurface: React.FC<StudioGridSurfaceProps> = ({
             key={activeWorkspaceId}
             images={imagesWithConfig}
             selectedImageIds={selectedImageIds}
+            selectedImages={selectedImages}
+            isExporting={exportState?.running}
+            onCompareSelected={() => {
+              if (selectedImages.length === 2)
+                setComparison([selectedImages[0], selectedImages[1]]);
+            }}
             onImageClick={openModal}
             onSelectionChange={handleSelectionChange}
             onRegenerate={handleGridRegenerate}
@@ -168,6 +245,7 @@ export const StudioGridSurface: React.FC<StudioGridSurfaceProps> = ({
           />
         </ErrorBoundary>
       </div>
+      {comparison && <ImageComparison images={comparison} onClose={() => setComparison(null)} />}
       <FormatPreview
         ratio={chrome.previewRatio || chrome.generationAspectRatio}
         isVisible={

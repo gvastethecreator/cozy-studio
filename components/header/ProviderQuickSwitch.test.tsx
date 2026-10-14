@@ -10,6 +10,7 @@ vi.mock('../ui/DemandMountedGsapDropdown', () => ({
 
 import type { CommandCenterProviderProjection } from '../../lib/commandCenterProjection';
 import { ProviderQuickSwitch } from './ProviderQuickSwitch';
+import { takeRequestedStudioSettingsDomain } from '../../lib/studioSettingsDomains';
 
 afterEach(cleanup);
 
@@ -40,17 +41,23 @@ const GROK: CommandCenterProviderProjection = {
 describe('ProviderQuickSwitch', () => {
   it('selects another provider from the menu', async () => {
     const onSelectProvider = vi.fn();
+    const onOpenSettings = vi.fn();
     render(
       <ProviderQuickSwitch
         provider={CODEX}
         providerOptions={[CODEX, GROK]}
         isProviderSaving={false}
         onSelectProvider={onSelectProvider}
+        onOpenSettings={onOpenSettings}
       />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /change provider/i }));
     fireEvent.click(await screen.findByRole('button', { name: /grok imagine/i }));
     expect(onSelectProvider).toHaveBeenCalledWith('grok');
+    fireEvent.click(screen.getByRole('button', { name: /change provider/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Provider settings and diagnostics' }));
+    expect(onOpenSettings).toHaveBeenCalledOnce();
+    expect(takeRequestedStudioSettingsDomain()).toBe('providers');
   });
 });

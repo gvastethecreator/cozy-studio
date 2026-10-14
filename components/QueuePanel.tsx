@@ -294,18 +294,23 @@ function useQueuePanelData(
   const [view, setView] = useState<'active' | 'review' | 'history'>('active');
   const [autoSelectedView, setAutoSelectedView] = useState(false);
   const [visibleCount, setVisibleCount] = useState(20);
-  const { clearedAt, clearListedJobs, attentionClearedAt, clearAttentionJobs, showAttentionJobs } =
-    useStudioJobsListClearedAt();
+  const {
+    clearedAt,
+    clearListedJobs,
+    attentionClearedAt,
+    clearAttentionJobs,
+    showAttentionJobs,
+    showAllHistory,
+  } = useStudioJobsListClearedAt();
   const activeJobs = jobHistory.open.filter((job) => job.status !== 'needs_review');
   const reviewJobs = jobHistory.open.filter(
     (job) =>
       job.status === 'needs_review' &&
-      isStudioJobVisibleAfterListClear(job.createdAt, clearedAt) &&
       isStudioJobVisibleAfterAttentionClear(job.status, job.updatedAt, attentionClearedAt),
   );
   const visibleHistory = jobHistory.history.filter(
     (job) =>
-      isStudioJobVisibleAfterListClear(job.createdAt, clearedAt) &&
+      isStudioJobVisibleAfterListClear(job.updatedAt, clearedAt) &&
       isStudioJobVisibleAfterAttentionClear(job.status, job.updatedAt, attentionClearedAt),
   );
   const jobs = view === 'history' ? visibleHistory : view === 'review' ? reviewJobs : activeJobs;
@@ -394,6 +399,8 @@ function useQueuePanelData(
     visibleCount,
     setVisibleCount,
     clearListedJobs,
+    clearedAt,
+    showAllHistory,
     attentionClearedAt,
     clearAttentionJobs,
     showAttentionJobs,
@@ -548,6 +555,8 @@ export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
       setView,
       setVisibleCount,
       clearListedJobs,
+      clearedAt,
+      showAllHistory,
       attentionClearedAt,
       clearAttentionJobs,
       showAttentionJobs,
@@ -588,8 +597,8 @@ export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
                 </button>
                 <button
                   type="button"
-                  aria-label="Hide jobs from this list"
-                  data-tooltip="Hide jobs from this list"
+                  aria-label="Hide finished jobs from this list"
+                  data-tooltip="Hide finished jobs; active jobs and review requests stay visible"
                   onClick={() => clearListedJobs()}
                   className="studio-hit-target whitespace-nowrap rounded-[var(--wb-radius)] px-2 py-1.5 text-xs text-[color:var(--wb-muted)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)]"
                 >
@@ -610,6 +619,15 @@ export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
             ) : null}
           </div>
         </div>
+        {clearedAt > 0 ? (
+          <button
+            type="button"
+            onClick={showAllHistory}
+            className="border-b border-[color:var(--wb-border)] px-3 py-2 text-left text-xs text-[color:var(--wb-muted)] underline hover:text-[color:var(--wb-ink)]"
+          >
+            Show all history
+          </button>
+        ) : null}
         {attentionClearedAt > 0 ? (
           <button
             type="button"

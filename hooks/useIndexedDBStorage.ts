@@ -17,17 +17,63 @@ interface IDBState<T> {
   initialized: boolean;
 }
 
+export interface DraftPersistence {
+  error: string | null;
+  retry: () => Promise<void>;
+}
+
 function useIndexedDBStorage<T>(
   key: string,
   initialValue: T,
-  options: { prepareForPersist?: (value: T) => T } = {},
-): [T, (value: T | ((val: T) => T)) => void, boolean] {
+  options: {
+    prepareForPersist?: (value: T) => T;
+    recoverAfterRead?: (loaded: T | undefined, edited: T) => T;
+  } = {},
+): [T, (value: T | ((val: T) => T)) => void, boolean, DraftPersistence] {
   const [state, setState] = useState<IDBState<T>>({ value: initialValue, initialized: false });
-  const timeoutRef = useRef<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const readFailed = useRef(false);
+  const edited = useRef(false);
+  const latest = useRef(state.value);
+  const saveAttempt = useRef(0);
+  latest.current = state.value;
   const prepareForPersist = options.prepareForPersist;
+  const recoverAfterRead = options.recoverAfterRead;
+
+  const persist = useCallback(async () => {
+    const attempt = ++saveAttempt.current;
+    try {
+      if (readFailed.current) {
+        const loaded = await get<T>(key);
+        if (!edited.current) {
+          readFailed.current = false;
+          setState({ value: loaded !== undefined ? loaded : initialValue, initialized: true });
+          if (attempt === saveAttempt.current) setError(null);
+          return;
+        }
+        if (!recoverAfterRead) {
+          setError(
+            'Saved draft was read again. Keep a copy of your current edits before reloading to restore it.',
+          );
+          return;
+        }
+        latest.current = recoverAfterRead(loaded, latest.current);
+        readFailed.current = false;
+        setState({ value: latest.current, initialized: true });
+      }
+      await set(key, prepareForPersist ? prepareForPersist(latest.current) : latest.current);
+      if (attempt === saveAttempt.current) setError(null);
+    } catch (failure) {
+      runtimeLogger.error(`Error saving IndexedDB key "${key}"`, failure);
+      if (attempt === saveAttempt.current)
+        setError('Draft could not be saved on this device. Keep a copy before closing this tab.');
+    }
+  }, [key, initialValue, prepareForPersist, recoverAfterRead]);
 
   useEffect(() => {
     let isMounted = true;
+    readFailed.current = false;
+    edited.current = false;
     get<T>(key)
       .then((loaded) => {
         if (isMounted) {
@@ -35,11 +81,16 @@ function useIndexedDBStorage<T>(
             value: loaded !== undefined ? loaded : initialValue,
             initialized: true,
           });
+          setError(null);
         }
       })
       .catch((error) => {
         runtimeLogger.error(`Error reading IndexedDB key "${key}"`, error);
-        if (isMounted) setState((prev) => ({ ...prev, initialized: true }));
+        if (isMounted) {
+          readFailed.current = true;
+          setError('Saved draft could not be read. Retry or keep a copy before closing this tab.');
+          setState((prev) => ({ ...prev, initialized: true }));
+        }
       });
 
     return () => {
@@ -50,6 +101,7 @@ function useIndexedDBStorage<T>(
   const setValue = useCallback(
     (value: T | ((val: T) => T)) => {
       try {
+        edited.current = true;
         setState((prev) => ({
           ...prev,
           value: value instanceof Function ? value(prev.value) : value,
@@ -62,26 +114,12 @@ function useIndexedDBStorage<T>(
   );
 
   useEffect(() => {
-    if (!state.initialized) return;
+    if (!state.initialized || readFailed.current) return;
+    const timeout = window.setTimeout(() => void persist(), 300);
+    return () => clearTimeout(timeout);
+  }, [persist, state.value, state.initialized]);
 
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    timeoutRef.current = window.setTimeout(() => {
-      const value = prepareForPersist ? prepareForPersist(state.value) : state.value;
-      set(key, value).catch((error) => {
-        runtimeLogger.error(`Error setting IndexedDB key "${key}"`, error);
-      });
-    }, 300);
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [key, prepareForPersist, state.value, state.initialized]);
-
-  return [state.value, setValue, state.initialized];
+  return [state.value, setValue, state.initialized, { error, retry: persist }];
 }
 
 export default useIndexedDBStorage;

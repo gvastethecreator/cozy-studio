@@ -11,7 +11,15 @@ vi.mock('../contexts/GlobalContext', () => ({
   useWorkspaceState: () => workspaceState,
 }));
 
-vi.mock('../contexts/GenerationContext', () => ({ useGenerationDraft: vi.fn() }));
+vi.mock('../contexts/GenerationContext', () => ({
+  useGenerationDraft: vi.fn(() => ({
+    draftPersistenceError: null,
+    retryDraftPersistence: vi.fn(),
+    downloadDraftCopy: vi.fn(),
+    referencePersistenceErrors: {},
+    retryReferencePersistence: vi.fn(),
+  })),
+}));
 
 vi.mock('../services/studio-api/catalog', () => ({
   getCatalogImageDetail: vi.fn(async (id) => ({
@@ -145,6 +153,34 @@ function renderToolbar(overrides: Partial<ToolbarProps> = {}) {
 }
 
 describe('Toolbar composer chrome', () => {
+  it('keeps one draft recovery banner in rail and dock, with a copy of the latest prompt', () => {
+    const previous = vi.mocked(useGenerationDraft).getMockImplementation()!;
+    const downloadDraftCopy = vi.fn();
+    const retryDraftPersistence = vi.fn(async () => {});
+    const draft = {
+      ...useGenerationDraft(),
+      draftPersistenceError: 'Draft could not be saved.',
+      downloadDraftCopy,
+      retryDraftPersistence,
+    };
+    vi.mocked(useGenerationDraft).mockImplementation(() => draft);
+    try {
+      const view = renderToolbar();
+      fireEvent.change(screen.getByRole('textbox', { name: 'Prompt input' }), {
+        target: { value: 'latest unsaved prompt' },
+      });
+      expect(screen.getAllByRole('alert')).toHaveLength(1);
+      fireEvent.click(screen.getByRole('button', { name: 'Save draft copy' }));
+      expect(downloadDraftCopy).toHaveBeenCalledWith('latest unsaved prompt');
+      fireEvent.click(screen.getByRole('button', { name: 'Retry saving draft' }));
+      expect(retryDraftPersistence).toHaveBeenCalledOnce();
+      view.rerender(<Toolbar {...view.props} layout="dock" />);
+      expect(screen.getAllByRole('alert')).toHaveLength(1);
+    } finally {
+      vi.mocked(useGenerationDraft).mockImplementation(previous);
+    }
+  });
+
   it('keeps prompt edits debounced and discards a pending edit when a saved prompt is loaded', () => {
     vi.useFakeTimers();
     try {
@@ -515,12 +551,19 @@ describe('Toolbar composer chrome', () => {
       setGenerationConfig: vi.fn(),
       setRecipeDraft: vi.fn(),
       isDraftReady: true,
+      draftScopeKey: 'workspace-a:studio',
+      draftPersistenceError: null,
+      retryDraftPersistence: vi.fn(),
+      downloadDraftCopy: vi.fn(),
+      referencePersistenceErrors: {},
+      retryReferencePersistence: vi.fn(),
       updateGenerationConfig: updateConfig,
       updateAttachment: vi.fn(),
       handleFileSelect: vi.fn(),
       handlePastedFiles: vi.fn(),
       handleRemoveAttachment: vi.fn(),
       handleAddToContext: vi.fn(),
+      handleUseAsSource: vi.fn(),
       maxAttachments: 4,
       codexModelCatalog: null,
       isLoadingCodexModelCatalog: false,

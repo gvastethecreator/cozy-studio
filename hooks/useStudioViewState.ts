@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Attachment, AspectRatio } from '../types';
 import { STUDIO_OPEN_SETTINGS_EVENT } from '../lib/studioSettingsDomains';
 import { startViewTransition } from '../utils/transitionUtils';
+import type { ImageEditorDraft } from '../components/ImageEditorModal';
 
 interface UseStudioViewStateProps {
   closeOverlay: () => void;
@@ -21,6 +22,7 @@ export interface StudioViewStateController {
     setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   };
   editor: {
+    drafts: Map<string, ImageEditorDraft>;
     isOpen: boolean;
     setIsOpen: (value: React.SetStateAction<boolean>) => void;
     image: Attachment | null;
@@ -66,6 +68,7 @@ export function useStudioViewState({
 }: UseStudioViewStateProps): StudioViewStateController {
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [editorState, setEditorState] = useState<EditorState>(INITIAL_EDITOR_STATE);
+  const editorDrafts = useRef(new Map<string, ImageEditorDraft>());
   const [previewRatio, setPreviewRatio] = useState<AspectRatio | null>(null);
   const [isDashboardModalOpen, setIsDashboardModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -185,6 +188,7 @@ export function useStudioViewState({
       setIsOpen: setIsQueueOpen,
     },
     editor: {
+      drafts: editorDrafts.current,
       isOpen: editorState.isOpen,
       setIsOpen: setEditorIsOpen,
       image: editorState.image,

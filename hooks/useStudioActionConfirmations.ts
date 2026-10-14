@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { runWorkspaceDeleteLifecycle } from '../lib/workspaceLifecycle';
+import { queryCatalog } from '../services/studio-api/catalog';
 
 export type ConfirmationTone = 'danger' | 'warning' | 'accent';
 
@@ -18,6 +19,7 @@ interface PendingConfirmation extends ConfirmationRequest {
 }
 
 interface UseStudioActionConfirmationsProps {
+  addToast: (message: string, type: 'success' | 'error' | 'info') => void;
   clearWorkspace: (workspaceId: string) => void | Promise<void>;
   deleteWorkspace: (workspaceId: string) => void | Promise<void>;
   resetStudio: () => void | Promise<void>;
@@ -26,6 +28,7 @@ interface UseStudioActionConfirmationsProps {
 }
 
 export function useStudioActionConfirmations({
+  addToast,
   clearWorkspace,
   deleteWorkspace,
   resetStudio,
@@ -59,15 +62,27 @@ export function useStudioActionConfirmations({
   }, [pendingConfirmation]);
 
   const requestClearWorkspace = useCallback(
-    (workspaceId: string, imageCount: number) => {
+    async (workspaceId: string) => {
+      let imageCount: number;
+      try {
+        const page = await queryCatalog({ workspaceId, deleted: false, limit: 1 });
+        imageCount = page.total;
+      } catch (error) {
+        addToast(
+          error instanceof Error ? error.message : 'Unable to count workspace images',
+          'error',
+        );
+        return;
+      }
       requestConfirmation(
         {
           title: 'Archive workspace images',
           description:
-            'This removes the current workspace images from the active canvas and moves them to Archived Images so you can start clean.',
+            'This moves every active image in this workspace to Archived Images, including images hidden by search or favorites filters.',
           confirmLabel: 'Archive workspace',
           tone: 'warning',
           details: [
+            `Workspace: ${workspaceId}`,
             `${imageCount} image${imageCount === 1 ? '' : 's'} will leave the active workspace.`,
             'Archived images can still be restored later from Archived Images.',
           ],
@@ -76,7 +91,7 @@ export function useStudioActionConfirmations({
         () => clearWorkspace(workspaceId),
       );
     },
-    [clearWorkspace, requestConfirmation],
+    [addToast, clearWorkspace, requestConfirmation],
   );
 
   const requestDeleteWorkspace = useCallback(

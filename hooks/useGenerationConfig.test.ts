@@ -12,7 +12,7 @@ import {
 import { createReferenceHandoff } from '../services/studio-api/jobs';
 import { prepareStudioGenerationRequest } from '../lib/studioGenerationRequest';
 import { activateCharacterLabView, updateCharacterLabView } from '../lib/characterLabDraft';
-import type { ImageGenerationConfig } from '../types';
+import type { GeneratedImageWithConfig, ImageGenerationConfig } from '../types';
 import { get, set } from '../utils/idb';
 
 vi.mock('../utils/idb', () => ({
@@ -35,6 +35,71 @@ vi.mock('../utils/imageUtils', () => ({
 afterEach(() => vi.unstubAllGlobals());
 
 describe('reference upload lifecycle', () => {
+  it('keeps a browser-only reference and its error until a successful handoff retry', async () => {
+    vi.mocked(get).mockResolvedValue(undefined);
+    vi.mocked(createReferenceHandoff).mockReset().mockRejectedValueOnce(new Error('offline'));
+    const { result } = renderHook(() => useGenerationConfig({ log: vi.fn() }));
+    await waitFor(() => expect(result.current.isDraftReady).toBe(true));
+    const reference = {
+      id: 'browser-only',
+      name: 'large.png',
+      dataUrl: `data:image/png;base64,${'A'.repeat(600 * 1024)}`,
+      strength: 0.3,
+    };
+    act(() => result.current.updateGenerationConfig('attachments', [reference]));
+    await act(async () => result.current.retryReferencePersistence(reference.id));
+    expect(result.current.referencePersistenceErrors[reference.id]).toContain('offline');
+    expect(result.current.generationConfig.attachments[0]?.dataUrl).toBe(reference.dataUrl);
+    expect(prepareGenerationConfigForPersist(result.current.generationConfig).attachments).toEqual(
+      [],
+    );
+    vi.mocked(createReferenceHandoff).mockResolvedValueOnce({
+      handoffId: 'saved',
+      references: [
+        {
+          name: reference.name,
+          localPath: 'D:/library/large.png',
+          publicUrl: '/library/large.png',
+          strength: reference.strength,
+          mimeType: 'image/webp',
+          fileSizeBytes: 1024,
+          width: 1,
+          height: 1,
+        },
+      ],
+    });
+    await act(async () => result.current.retryReferencePersistence(reference.id));
+    expect(result.current.referencePersistenceErrors).toEqual({});
+    expect(result.current.generationConfig.attachments[0]).toMatchObject({
+      id: reference.id,
+      strength: 0.3,
+      localPath: 'D:/library/large.png',
+    });
+  });
+
+  it('sets the source first without duplicating it and keeps Add reference separate', async () => {
+    vi.mocked(get).mockResolvedValue(undefined);
+    const { result } = renderHook(() => useGenerationConfig({ log: vi.fn() }));
+    await waitFor(() => expect(result.current.isDraftReady).toBe(true));
+    const old = { id: 'old', name: 'old.png', dataUrl: '/old.png', strength: 0.4 };
+    const image: GeneratedImageWithConfig = {
+      id: 'new',
+      src: '/library/new.png',
+      config: DEFAULT_GENERATION_CONFIG,
+      batchId: 'batch',
+      createdAt: 1,
+    };
+    act(() => result.current.updateGenerationConfig('attachments', [old]));
+    act(() => result.current.handleAddToContext(image));
+    expect(result.current.generationConfig.attachments[0]).toEqual(old);
+    act(() => result.current.handleUseAsSource(image));
+    act(() => result.current.handleUseAsSource(image));
+    expect(result.current.generationConfig.attachments.map(({ id }) => id)).toEqual([
+      'gen-new',
+      'old',
+    ]);
+  });
+
   it('replaces an uploading source in place, preserves detail references and blocks pending generation', async () => {
     const revoke = vi.fn();
     vi.stubGlobal(

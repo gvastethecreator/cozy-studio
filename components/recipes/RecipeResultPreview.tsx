@@ -104,7 +104,7 @@ function useRecipeResultPreviewController({
   reference,
   onOpen,
   onToggleFavorite,
-  onUseAsReference,
+  onUseAsSource,
   variant = 'default',
   emptyTitle = 'Your next result starts here',
   isGenerating = false,
@@ -116,7 +116,7 @@ function useRecipeResultPreviewController({
   reference?: Attachment;
   onOpen?: (image: GeneratedImageWithConfig) => void;
   onToggleFavorite?: (id: string) => void;
-  onUseAsReference?: (image: GeneratedImageWithConfig) => void;
+  onUseAsSource?: (image: GeneratedImageWithConfig) => void;
   variant?: 'default' | 'stage';
   emptyTitle?: string;
   isGenerating?: boolean;
@@ -209,7 +209,7 @@ function useRecipeResultPreviewController({
     handleDownload,
     openConversion,
     onToggleFavorite,
-    onUseAsReference,
+    onUseAsSource,
     setBackground,
     panZoom,
     ...navigation,
@@ -256,7 +256,7 @@ export const RecipeResultPreview: React.FC<{
   reference?: Attachment;
   onOpen?: (image: GeneratedImageWithConfig) => void;
   onToggleFavorite?: (id: string) => void;
-  onUseAsReference?: (image: GeneratedImageWithConfig) => void;
+  onUseAsSource?: (image: GeneratedImageWithConfig) => void;
   variant?: 'default' | 'stage';
   emptyTitle?: string;
   isGenerating?: boolean;
@@ -284,7 +284,7 @@ function RecipeResultToolbar({
     | 'handleDownload'
     | 'openConversion'
     | 'onToggleFavorite'
-    | 'onUseAsReference'
+    | 'onUseAsSource'
     | 'onOpen'
     | 'background'
     | 'setBackground'
@@ -503,7 +503,7 @@ function RecipeResultImageActions({
     | 'selected'
     | 'showReference'
     | 'onToggleFavorite'
-    | 'onUseAsReference'
+    | 'onUseAsSource'
     | 'onOpen'
   >;
 }): React.ReactElement {
@@ -514,7 +514,7 @@ function RecipeResultImageActions({
     selected,
     showReference,
     onToggleFavorite,
-    onUseAsReference,
+    onUseAsSource,
     onOpen,
   } = model;
 
@@ -553,13 +553,9 @@ function RecipeResultImageActions({
           </button>
         </Tooltip>
       ) : null}
-      {onUseAsReference && selected ? (
+      {onUseAsSource && selected ? (
         <Tooltip content="Use as source">
-          <button
-            type="button"
-            aria-label="Use as source"
-            onClick={() => onUseAsReference(selected)}
-          >
+          <button type="button" aria-label="Use as source" onClick={() => onUseAsSource(selected)}>
             <Paperclip width={14} height={14} />
           </button>
         </Tooltip>

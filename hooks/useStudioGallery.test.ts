@@ -51,7 +51,7 @@ describe('buildStudioGalleryImages', () => {
     expect(images[0].config.prompt).toBe('Catalog config prompt');
   });
 
-  it('preserves catalog ordering so the grid can own visible sorting once', () => {
+  it('preserves catalog ordering for the grid', () => {
     const catalogView = createCatalogView([
       catalogImage({
         id: 'older-favorite',
@@ -72,7 +72,7 @@ describe('buildStudioGalleryImages', () => {
 });
 
 afterEach(cleanup);
-it('reuses gallery images for the same entries and keeps selection unique and visible', () => {
+it('keeps selection unique across empty searches and workspaces, including actions on hidden images', () => {
   const view = createCatalogView([catalogImage({ id: 'one' }), catalogImage({ id: 'two' })]);
   const props = {
     activeWorkspaceId: 'default',
@@ -85,8 +85,9 @@ it('reuses gallery images for the same entries and keeps selection unique and vi
     closeModal: vi.fn(),
   };
   const { result, rerender } = renderHook(
-    ({ catalogView }) => useStudioGallery({ ...props, catalogView }),
-    { initialProps: { catalogView: view } },
+    ({ catalogView, activeWorkspaceId }) =>
+      useStudioGallery({ ...props, catalogView, activeWorkspaceId }),
+    { initialProps: { catalogView: view, activeWorkspaceId: 'default' } },
   );
   const images = result.current.imagesWithConfig;
   act(() => {
@@ -94,10 +95,22 @@ it('reuses gallery images for the same entries and keeps selection unique and vi
     result.current.handleSelectionChange('one', true);
   });
   expect(result.current.selectedImageIds).toEqual(['one']);
-  rerender({ catalogView: { ...view } });
+  rerender({ catalogView: { ...view }, activeWorkspaceId: 'default' });
   expect(result.current.imagesWithConfig).toBe(images);
-  rerender({ catalogView: createCatalogView([catalogImage({ id: 'two' })]) });
+  rerender({ catalogView: createCatalogView([]), activeWorkspaceId: 'default' });
+  expect(result.current.selectedImageIds).toEqual(['one']);
+  expect(result.current.selectedImages[0].config.prompt).toBe('Catalog prompt');
+  rerender({
+    catalogView: createCatalogView([catalogImage({ id: 'two' })]),
+    activeWorkspaceId: 'default',
+  });
+  act(() => result.current.handleSelectAll(result.current.imagesWithConfig));
+  expect(result.current.selectedImageIds).toEqual(['one', 'two']);
+  rerender({ catalogView: createCatalogView([]), activeWorkspaceId: 'other' });
   expect(result.current.selectedImageIds).toEqual([]);
-  act(() => result.current.handleDeleteSelected(['one', 'two', 'two']));
-  expect(props.deleteImages).toHaveBeenCalledWith(['two']);
+  rerender({ catalogView: createCatalogView([]), activeWorkspaceId: 'default' });
+  expect(result.current.selectedImageIds).toEqual(['one', 'two']);
+  act(() => result.current.handleDeleteSelected(['one', 'two', 'two', 'unknown']));
+  expect(props.deleteImages).toHaveBeenCalledWith(['one', 'two']);
+  expect(result.current.selectedImageIds).toEqual([]);
 });

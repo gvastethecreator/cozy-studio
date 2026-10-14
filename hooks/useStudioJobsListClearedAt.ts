@@ -42,5 +42,17 @@ export function useStudioJobsListClearedAt(clearReviewJobsOnStartup?: boolean) {
     writeStudioJobsAttentionClearedAt(0);
   }, []);
 
-  return { clearedAt, clearListedJobs, attentionClearedAt, clearAttentionJobs, showAttentionJobs };
+  const showAllHistory = useCallback(() => {
+    writeStudioJobsListClearedAt(0);
+    writeStudioJobsAttentionClearedAt(0);
+  }, []);
+
+  return {
+    clearedAt,
+    clearListedJobs,
+    attentionClearedAt,
+    clearAttentionJobs,
+    showAttentionJobs,
+    showAllHistory,
+  };
 }

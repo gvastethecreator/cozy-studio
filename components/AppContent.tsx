@@ -231,7 +231,7 @@ function AppWorkspace({ model }: { model: AppWorkbenchModel }) {
             selectedId={shell.historySelection.id}
             onSelectId={shell.historySelection.setId}
             onToggleFavorite={shell.viewport.studioPageController.grid.handleToggleFavorite}
-            onUseAsReference={shell.viewport.studioPageController.grid.handleAddToContext}
+            onUseAsSource={shell.viewport.studioPageController.grid.handleUseAsSource}
           />
         ),
       }}
@@ -324,7 +324,7 @@ function AppWorkbench({ model }: { model: AppWorkbenchModel }) {
           GenerationDock={StudioGenerationDock}
           generationDockProps={shell.generationDock}
           onToggleFavorite={shell.viewport.studioPageController.grid.handleToggleFavorite}
-          onUseAsReference={shell.viewport.studioPageController.grid.handleAddToContext}
+          onUseAsSource={shell.viewport.studioPageController.grid.handleUseAsSource}
           images={stageImages}
           history={shell.history}
           selectedId={shell.historySelection.id}

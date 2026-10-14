@@ -63,11 +63,13 @@ interface StudioPageGridContext {
   allImages: StudioGridSurfaceProps['allImages'];
   imagesWithConfig: StudioGridSurfaceProps['imagesWithConfig'];
   selectedImageIds: StudioGridSurfaceProps['selectedImageIds'];
+  selectedImages: StudioGridSurfaceProps['selectedImages'];
   activeWorkspaceId: StudioGridSurfaceProps['activeWorkspaceId'];
   openModal: StudioGridSurfaceProps['openModal'];
   handleSelectionChange: StudioGridSurfaceProps['handleSelectionChange'];
   handleGenerate: StudioGridSurfaceProps['handleGenerate'];
   handleAddToContext: StudioGridSurfaceProps['handleAddToContext'];
+  handleUseAsSource: StudioGridSurfaceProps['handleUseAsSource'];
   handleLoadRecipe: StudioGridSurfaceProps['handleLoadRecipe'];
   handleDelete: StudioGridSurfaceProps['handleDelete'];
   handleToggleFavorite: StudioGridSurfaceProps['handleToggleFavorite'];
@@ -197,10 +199,12 @@ export function buildStudioPageController(
       allImages: args.grid.allImages,
       imagesWithConfig: args.grid.imagesWithConfig,
       selectedImageIds: args.grid.selectedImageIds,
+      selectedImages: args.grid.selectedImages,
       openModal: args.grid.openModal,
       handleSelectionChange: args.grid.handleSelectionChange,
       handleGenerate: args.grid.handleGenerate,
       handleAddToContext: args.grid.handleAddToContext,
+      handleUseAsSource: args.grid.handleUseAsSource,
       handleLoadRecipe: args.grid.handleLoadRecipe,
       handleDelete: args.grid.handleDelete,
       handleToggleFavorite: args.grid.handleToggleFavorite,

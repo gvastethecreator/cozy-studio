@@ -1,7 +1,11 @@
+/** @vitest-environment jsdom */
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import React from 'react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDefaultEditableStudioSettings } from '../packages/shared/src';
+import { StudioSettingsModal } from './StudioSettingsModal';
 import {
   buildStudioSettingsPatch,
   EXTERNAL_SCAN_PATH_HELP,
@@ -9,6 +13,80 @@ import {
   getStudioSettingsFormState,
   OUTPUT_SUBFOLDER_PRESETS,
 } from '../lib/studioSettingsForm';
+
+const theme = vi.hoisted(() => ({
+  preferences: {},
+  savedPreferences: {},
+  previewPreferences: vi.fn(),
+  commitPreferences: vi.fn(),
+}));
+vi.mock('../hooks/useTheme', () => ({ useTheme: () => theme }));
+
+afterEach(() => {
+  cleanup();
+  Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
+});
+
+it('explains blocked saving from every section and returns focus to the invalid filename', () => {
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: vi.fn(),
+  });
+  render(
+    React.createElement(StudioSettingsModal, {
+      isOpen: true,
+      settings: createDefaultEditableStudioSettings(),
+      libraryDir: 'D:/Library',
+      isLoading: false,
+      isSaving: false,
+      error: null,
+      providerCapabilities: null,
+      providerRuntimePreflight: null,
+      outputSources: null,
+      outputSourceFiles: {},
+      isLoadingOutputSources: false,
+      loadingOutputSourceFiles: {},
+      isRegisteringOutputSource: false,
+      importingOutputSources: {},
+      onClose: vi.fn(),
+      onRefresh: vi.fn(),
+      onUpdate: vi.fn(),
+      onExportLegacyWorkspaceSnapshot: vi.fn(),
+      onRegisterOutputSource: vi.fn(),
+      onLoadOutputSourceFiles: vi.fn(),
+      onImportOutputSourceFiles: vi.fn(),
+      maintenance: {
+        audit: null,
+        compactResult: null,
+        thumbnailBackfillResult: null,
+        toolingLogsPruneResult: null,
+        isLoadingAudit: false,
+        runningAction: null,
+        refreshAudit: vi.fn(),
+        compactStorage: vi.fn(),
+        backfillThumbnails: vi.fn(),
+        pruneToolingLogs: vi.fn(),
+      },
+      onResetStudio: vi.fn(),
+      isResettingStudio: false,
+    }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Files & naming' }));
+  fireEvent.change(screen.getByLabelText('File name template'), { target: { value: '{unknown}' } });
+  expect((screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(true);
+  const error = screen.getByRole('alert').textContent;
+  fireEvent.click(screen.getByRole('button', { name: 'Creation & startup' }));
+  expect(screen.getByRole('status').textContent).toContain(error);
+  expect(screen.getByRole('button', { name: 'Files & naming · Error' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Fix filename template' }));
+  expect(document.activeElement).toBe(screen.getByLabelText('File name template'));
+  fireEvent.click(screen.getByRole('button', { name: 'Fix filename template' }));
+  expect(document.activeElement).toBe(screen.getByLabelText('File name template'));
+  fireEvent.change(screen.getByLabelText('File name template'), { target: { value: '{jobId}' } });
+  expect((screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(false);
+  expect(screen.queryByRole('button', { name: 'Fix filename template' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Files & naming' })).toBeTruthy();
+});
 
 describe('StudioSettingsModal provider defaults', () => {
   it('round-trips editable provider defaults including nullable resets', () => {

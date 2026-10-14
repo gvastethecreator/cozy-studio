@@ -531,11 +531,11 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = (props) =
     '[aria-label="Close settings"]',
   );
 
-  const searchTarget = useRef<string | null>(null);
+  const [searchTarget, setSearchTarget] = useState<string | null>(null);
   useLayoutEffect(() => {
-    if (searchTarget.current === null) return;
-    const target = searchTarget.current;
-    searchTarget.current = null;
+    if (searchTarget === null) return;
+    const target = searchTarget;
+    setSearchTarget(null);
     const panel = dialogRef.current?.querySelector<HTMLElement>('.studio-settings-content');
     const control = target
       ? panel?.querySelector<HTMLElement>(`[aria-label="${target}"]`)
@@ -549,7 +549,7 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = (props) =
     }
     (control ?? panel)?.focus();
     control?.scrollIntoView({ block: 'nearest' });
-  }, [activeDomain, search, dialogRef]);
+  }, [activeDomain, search, searchTarget, dialogRef]);
 
   const [savedForm, setSavedForm] = useState(createInitialStudioSettingsFormState);
   const savedFormRef = useRef(savedForm);
@@ -647,7 +647,7 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = (props) =
           onSelect={(domain, target) => {
             setActiveDomain(domain);
             setSearch('');
-            searchTarget.current = target;
+            setSearchTarget(target);
           }}
         />
         <div className="studio-settings-layout">
@@ -662,6 +662,7 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = (props) =
               {STUDIO_SETTINGS_DOMAIN_TABS.map((tab) => (
                 <option key={tab.id} value={tab.id}>
                   {tab.label}
+                  {tab.id === 'output' && fileNameError ? ' · Error' : ''}
                 </option>
               ))}
             </select>
@@ -676,6 +677,12 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = (props) =
                 className={`studio-tab ${activeDomain === tab.id ? 'is-active' : ''}`}
               >
                 {tab.label}
+                {tab.id === 'output' && fileNameError ? (
+                  <>
+                    {' '}
+                    <span className="text-[color:var(--wb-danger)]">· Error</span>
+                  </>
+                ) : null}
               </button>
             ))}
           </nav>
@@ -708,7 +715,28 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = (props) =
         </div>
         <div className="studio-dialog-actions">
           <span role="status" className="mr-auto text-xs studio-muted">
-            {isSaving ? 'Saving settings…' : hasChanges ? 'Unsaved changes' : 'No unsaved changes'}
+            {fileNameError ? (
+              <span className="text-[color:var(--wb-danger)]">
+                <span className="block">{fileNameError}</span>
+                <button
+                  type="button"
+                  className="studio-hit-target underline"
+                  onClick={() => {
+                    setActiveDomain('output');
+                    setSearch('');
+                    setSearchTarget('File name template');
+                  }}
+                >
+                  Fix filename template
+                </button>
+              </span>
+            ) : isSaving ? (
+              'Saving settings…'
+            ) : hasChanges ? (
+              'Unsaved changes'
+            ) : (
+              'No unsaved changes'
+            )}
           </span>
           <button
             type="button"

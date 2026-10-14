@@ -194,6 +194,7 @@ export const StudioSystemOverlays: React.FC<StudioSystemOverlaysProps> = ({
               onRefresh={refreshOnboardingHealth}
               onStartAppServer={ensureAppServer}
               onOpenSettings={() => {
+                requestStudioSettingsDomain('providers');
                 settingsModule.open();
                 closeOnboarding();
               }}

@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateWorkflowPicker } from './CreateWorkflowPicker';
@@ -21,7 +21,10 @@ describe('CreateWorkflowPicker', () => {
       <CreateWorkflowPicker onSelectRecipe={onSelectRecipe} onPreviewRecipe={onPreviewRecipe} />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Workflow: Default' }));
+    const trigger = screen.getByRole('button', { name: 'Workflow: Default' });
+    expect(within(trigger).getByText('Workflow')).toBeTruthy();
+    expect(within(trigger).getByText('Default')).toBeTruthy();
+    fireEvent.click(trigger);
     const listbox = screen.getByRole('listbox', { name: 'Workflows' });
     expect(listbox).toBeTruthy();
     expect(listbox.className).toContain('custom-scrollbar');

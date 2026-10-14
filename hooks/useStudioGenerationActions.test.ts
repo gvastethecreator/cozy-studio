@@ -1,10 +1,13 @@
-import { describe, expect, it } from 'vitest';
+/** @vitest-environment jsdom */
+import { act, renderHook } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_GENERATION_CONFIG } from '../constants';
 import { prepareStudioGenerationRequest } from '../lib/studioGenerationRequest';
 import {
   buildGenerateOverridesWithCurrentAttachments,
   buildRecipeRestoreConfig,
+  useStudioGenerationActions,
 } from './useStudioGenerationActions';
 
 describe('prepareStudioGenerationRequest', () => {
@@ -238,5 +241,80 @@ describe('useStudioGenerationActions attachment reuse helpers', () => {
 
     currentAttachment.strength = 0.7;
     expect(restoredConfig.attachments[0]?.strength).toBe(0.4);
+  });
+
+  it('restores original references only when explicitly selected and clones them', () => {
+    const original = {
+      id: 'original',
+      name: 'source.png',
+      dataUrl: '/library/source.png',
+      strength: 0.9,
+    };
+    const config = { ...DEFAULT_GENERATION_CONFIG, attachments: [original] };
+    const restored = buildRecipeRestoreConfig(config, [], true);
+    expect(restored.attachments).toEqual([original]);
+    expect(restored.attachments[0]).not.toBe(original);
+    expect(buildRecipeRestoreConfig(config, []).attachments).toEqual([]);
+  });
+
+  it('keeps current references when an original is unavailable and restores after a readable retry', async () => {
+    const source = {
+      id: 'original',
+      name: 'source.png',
+      dataUrl: '/library/source.png',
+      strength: 1,
+    };
+    const config = { ...DEFAULT_GENERATION_CONFIG, attachments: [source] };
+    const setRecipeDraft = vi.fn();
+    const addToast = vi.fn();
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('', { status: 404 }))
+      .mockResolvedValueOnce(new Response('image', { headers: { 'Content-Type': 'image/png' } }));
+    vi.stubGlobal('fetch', fetch);
+    const { result, unmount } = renderHook(() =>
+      useStudioGenerationActions({
+        generationConfigRef: { current: { ...DEFAULT_GENERATION_CONFIG, attachments: [] } },
+        activeWorkspaceId: 'default',
+        setGenerationConfig: vi.fn(),
+        setRecipeDraft,
+        updateGenerationConfig: vi.fn(),
+        executeEdit: vi.fn(async () => {}),
+        executeGeneration: vi.fn(async () => {}),
+        addToast,
+        closeModal: vi.fn(),
+        closeOverlay: vi.fn(),
+        isModalOpen: false,
+        onRecipeSelection: vi.fn(),
+        onViewChange: vi.fn(),
+        activeProviderId: 'codex',
+        grokCanExecute: false,
+        activeRecipe: null,
+      }),
+    );
+    try {
+      await act(async () =>
+        expect(
+          await result.current.handleLoadRecipe(config, { restoreOriginalReferences: true }),
+        ).toBe(false),
+      );
+      expect(setRecipeDraft).not.toHaveBeenCalled();
+      expect(addToast).toHaveBeenLastCalledWith(
+        'Original references could not be read. Current references were kept.',
+        'warning',
+      );
+      await act(async () =>
+        expect(
+          await result.current.handleLoadRecipe(config, { restoreOriginalReferences: true }),
+        ).toBe(true),
+      );
+      expect(setRecipeDraft).toHaveBeenLastCalledWith(
+        null,
+        expect.objectContaining({ attachments: [source] }),
+      );
+    } finally {
+      unmount();
+      vi.unstubAllGlobals();
+    }
   });
 });

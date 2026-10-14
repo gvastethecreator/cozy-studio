@@ -37,11 +37,12 @@ describe('buildCatalogQuery', () => {
         libraryId: 'library-default',
         q: 'neo noir',
         favorite: true,
+        sort: 'asc',
         offset: 40,
         limit: 20,
       }),
     ).toBe(
-      '?workspace_id=ws-main&library_id=library-default&favorite=true&q=neo+noir&offset=40&limit=20',
+      '?workspace_id=ws-main&library_id=library-default&favorite=true&q=neo+noir&sort=asc&offset=40&limit=20',
     );
   });
 

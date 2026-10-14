@@ -26,6 +26,7 @@ import type {
 import type { ConfirmationRequest } from '../../hooks/useStudioActionConfirmations';
 import type { ArchivedImageGroup } from '../../lib/studioCatalogTrashView';
 import type { ShellActivityJob as StudioJob } from '../../lib/shellActivityJob';
+import type { ImageEditorDraft } from '../ImageEditorModal';
 
 export interface StudioImageOverlaysProps {
   modalImage: GeneratedImageWithConfig | null;
@@ -39,12 +40,16 @@ export interface StudioImageOverlaysProps {
     options?: { preventModal?: boolean; useCurrentAttachments?: boolean },
   ) => void;
   handleAddToContext: (image: GeneratedImageWithConfig) => void;
-  handleLoadRecipe: (config: ImageGenerationConfig) => void;
+  handleLoadRecipe: (
+    config: ImageGenerationConfig,
+    options?: { restoreOriginalReferences?: boolean },
+  ) => Promise<boolean>;
   handleToggleFavorite: (imageId: string) => void;
   setActiveCarouselId: (imageId: string) => void;
   isEditorOpen: boolean;
   closeEditor: () => void;
   imageToEdit: Attachment | null;
+  editorDrafts: Map<string, ImageEditorDraft>;
   handleExecuteEdit: (original: Attachment, mask: string, prompt: string) => Promise<unknown>;
   isEditingImage: boolean;
   imageEditNotice?: string | null;

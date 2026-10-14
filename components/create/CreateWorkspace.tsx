@@ -34,7 +34,7 @@ export interface CreateWorkspaceProps {
   GenerationDock: React.LazyExoticComponent<React.ComponentType<StudioGenerationDockProps>>;
   generationDockProps: StudioGenerationDockProps;
   onToggleFavorite?: (imageId: string) => void;
-  onUseAsReference?: (image: GeneratedImageWithConfig) => void;
+  onUseAsSource?: (image: GeneratedImageWithConfig) => void;
   tools?: React.ReactNode;
   workflowControls?: React.ReactNode;
   workflowName?: string;
@@ -56,7 +56,7 @@ export const CreateWorkspace: React.FC<CreateWorkspaceProps> = ({
   GenerationDock,
   generationDockProps,
   onToggleFavorite,
-  onUseAsReference,
+  onUseAsSource,
   tools,
   workflowControls,
   workflowName,
@@ -321,7 +321,7 @@ export const CreateWorkspace: React.FC<CreateWorkspaceProps> = ({
               selectedId={selectedId}
               onSelectId={onSelectId}
               onToggleFavorite={onToggleFavorite}
-              onUseAsReference={onUseAsReference}
+              onUseAsSource={onUseAsSource}
             />
           )}
         </section>
@@ -334,7 +334,7 @@ export function CreateResults({
   recipePageProps,
   images,
   onToggleFavorite,
-  onUseAsReference,
+  onUseAsSource,
   title,
   history,
   selectedId,
@@ -344,7 +344,7 @@ export function CreateResults({
   | 'recipePageProps'
   | 'images'
   | 'onToggleFavorite'
-  | 'onUseAsReference'
+  | 'onUseAsSource'
   | 'history'
   | 'selectedId'
   | 'onSelectId'
@@ -360,7 +360,7 @@ export function CreateResults({
       reference={draft.generationConfig.attachments[0]}
       onOpen={recipePageProps.openModal}
       onToggleFavorite={onToggleFavorite}
-      onUseAsReference={onUseAsReference}
+      onUseAsSource={onUseAsSource}
       emptyTitle={title ? `${title} results` : undefined}
       isGenerating={recipePageProps.isGenerating}
     />

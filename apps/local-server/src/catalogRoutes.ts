@@ -1,4 +1,9 @@
 import { Hono } from 'hono';
+import {
+  applyCatalogTagChanges,
+  CATALOG_SORT_OPTIONS,
+  validateCatalogTags,
+} from '../../../packages/shared/src';
 
 import type {
   CatalogBatchCommandResult,
@@ -53,6 +58,7 @@ function catalogFiltersFromUrl(url: string) {
     favorite: searchParams.has('favorite') ? searchParams.get('favorite') === 'true' : undefined,
     isDeleted: searchParams.get('deleted') === 'true',
     q: searchParams.get('q'),
+    sort: CATALOG_SORT_OPTIONS.find((option) => option === searchParams.get('sort')),
     offset: Number(searchParams.get('offset') || 0),
     limit: Number(searchParams.get('limit') || 50),
   };
@@ -82,7 +88,13 @@ export function createCatalogRoutes({
 }: CreateCatalogRoutesDependencies) {
   const routes = new Hono();
 
-  routes.get('/', (c) => c.json(catalogStore.queryCatalog(catalogFiltersFromUrl(c.req.url))));
+  routes.get('/', (c) => {
+    const filters = catalogFiltersFromUrl(c.req.url);
+    if (new URL(c.req.url).searchParams.has('sort') && !filters.sort) {
+      return c.json({ error: 'Invalid catalog sort' }, 400);
+    }
+    return c.json(catalogStore.queryCatalog(filters));
+  });
 
   routes.get('/search', (c) => {
     const url = new URL(c.req.url);
@@ -125,9 +137,24 @@ export function createCatalogRoutes({
 
   routes.patch('/:id', async (c) => {
     const body = await c.req.json().catch(() => ({}));
+    let tags: string[] | undefined;
+    try {
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        throw new Error('Expected an image update object.');
+      }
+      if (body.tags !== undefined) tags = validateCatalogTags(body.tags);
+      if (body.addTags !== undefined || body.removeTags !== undefined) {
+        if (body.tags !== undefined) throw new Error('Send tag changes or a tag list, not both.');
+        const current = catalogStore.getCatalogImage(c.req.param('id'));
+        if (!current) return jsonNotFound(c);
+        tags = applyCatalogTagChanges(current.tags, body);
+      }
+    } catch (error) {
+      return c.json({ error: error instanceof Error ? error.message : 'Invalid tags' }, 400);
+    }
     const result = catalogCommands.update(c.req.param('id'), {
       isFavorite: body.isFavorite,
-      tags: body.tags,
+      tags,
       workspaceId: body.workspaceId,
     });
     if (!result.ok) return jsonNotFound(c);

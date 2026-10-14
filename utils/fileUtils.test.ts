@@ -41,8 +41,8 @@ describe('download filenames', () => {
     );
   });
 
-  it('keeps ZIP names unique in selection order when fetches complete out of order', async () => {
-    const paths = ['/first/shot.png', '/second/SHOT.png', '/third/SHOT-000002.png'];
+  it('reports partial ZIPs and keeps unique names in selection order despite fetch completion order', async () => {
+    const paths = ['/first/shot.png', '/second/SHOT.png', '/third/SHOT-000002.png', '/missing.png'];
     const images: GeneratedImageWithConfig[] = paths.map((localPath, index) => ({
       id: String(index),
       src: `/image-${index}`,
@@ -55,17 +55,34 @@ describe('download filenames', () => {
     const first = new Promise<Response>((resolve) => {
       resolveFirst = resolve;
     });
-    const fetch = vi.fn((src: string) =>
-      src === '/image-0'
-        ? first
-        : Promise.resolve(new Response(new Blob([src], { type: 'image/png' }))),
-    );
+    const fetch = vi.fn((src: string) => {
+      if (src === '/image-0') return first;
+      return Promise.resolve(
+        new Response(new Blob([src], { type: 'image/png' }), {
+          status: src === '/image-3' ? 404 : 200,
+        }),
+      );
+    });
     vi.stubGlobal('fetch', fetch);
 
-    const download = downloadMultipleImagesAsZip(images, 'selection.zip');
-    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
+    let resolveOthers!: () => void;
+    const othersSettled = new Promise<void>((resolve) => {
+      resolveOthers = resolve;
+    });
+    const onProgress = vi.fn(({ completed }: { completed: number; total: number }) => {
+      if (completed === 3) resolveOthers();
+    });
+    const download = downloadMultipleImagesAsZip(images, 'selection.zip', onProgress);
+    expect(fetch).toHaveBeenCalledTimes(4);
+    await othersSettled;
     resolveFirst(new Response(new Blob(['first'], { type: 'image/png' })));
-    await download;
+    expect(await download).toEqual({ requested: 4, exported: 3, failedImages: [images[3]] });
+    expect(onProgress.mock.calls.map(([progress]) => progress)).toEqual([
+      { completed: 1, total: 4 },
+      { completed: 2, total: 4 },
+      { completed: 3, total: 4 },
+      { completed: 4, total: 4 },
+    ]);
 
     expect(archive.file.mock.calls.map(([name]) => name)).toEqual([
       'shot.png',
@@ -79,6 +96,66 @@ describe('download filenames', () => {
     ]);
     expect(archive.saveAs).toHaveBeenCalledWith('archive', 'selection.zip');
   });
+
+  it('reports all failed images and saves no empty archive for failed or empty selections', async () => {
+    const images: GeneratedImageWithConfig[] = ['one', 'two'].map((id) => ({
+      id,
+      src: `/missing-${id}`,
+      sourceUrl: `/original-${id}`,
+      batchId: 'download-batch',
+      createdAt: 0,
+      config: DEFAULT_GENERATION_CONFIG,
+    }));
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Offline')));
+    const onProgress = vi.fn();
+
+    expect(await downloadMultipleImagesAsZip(images, 'failed.zip', onProgress)).toEqual({
+      requested: 2,
+      exported: 0,
+      failedImages: images,
+    });
+    expect(onProgress.mock.calls.map(([progress]) => progress)).toEqual([
+      { completed: 1, total: 2 },
+      { completed: 2, total: 2 },
+    ]);
+    onProgress.mockClear();
+    expect(await downloadMultipleImagesAsZip([], 'empty.zip', onProgress)).toEqual({
+      requested: 0,
+      exported: 0,
+      failedImages: [],
+    });
+    expect(onProgress).not.toHaveBeenCalled();
+    expect(archive.file).not.toHaveBeenCalled();
+    expect(archive.generateAsync).not.toHaveBeenCalled();
+    expect(archive.saveAs).not.toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledWith('/original-one', { cache: 'no-cache' });
+    expect(fetch).not.toHaveBeenCalledWith('/missing-one', expect.anything());
+  });
+
+  it('propagates ZIP generation and save failures', async () => {
+    const image: GeneratedImageWithConfig = {
+      id: 'one',
+      src: '/image.png',
+      batchId: 'download-batch',
+      createdAt: 0,
+      config: DEFAULT_GENERATION_CONFIG,
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockImplementation(() =>
+          Promise.resolve(new Response(new Blob(['image'], { type: 'image/png' }))),
+        ),
+    );
+    archive.generateAsync.mockRejectedValueOnce(new Error('Encoding failed'));
+    await expect(downloadMultipleImagesAsZip([image])).rejects.toThrow('Encoding failed');
+    expect(archive.saveAs).not.toHaveBeenCalled();
+    archive.saveAs.mockImplementationOnce(() => {
+      throw new Error('Saving failed');
+    });
+    await expect(downloadMultipleImagesAsZip([image])).rejects.toThrow('Saving failed');
+  });
 });
 
 describe('fetchImageBlob', () => {
@@ -87,6 +164,7 @@ describe('fetchImageBlob', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(blob, { status: 200 })));
 
     const result = await fetchImageBlob('/image.png');
+    expect(fetch).toHaveBeenCalledWith('/image.png', { cache: 'no-cache' });
     expect(result.type).toBe('image/png');
     expect(
       generateSmartFilename('alpha', 'one', 'gpt-image-2', '1:1', undefined, result.type),

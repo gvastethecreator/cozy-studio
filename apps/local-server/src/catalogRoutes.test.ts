@@ -139,7 +139,7 @@ describe('catalog routes', () => {
     );
 
     const response = await routes.request(
-      '/?workspace_id=workspace-1&recipe_id=styles&job_id=job-1&batch_id=batch-1&favorite=true&deleted=false&q=studio&offset=5&limit=10',
+      '/?workspace_id=workspace-1&recipe_id=styles&job_id=job-1&batch_id=batch-1&favorite=true&deleted=false&q=studio&sort=asc&offset=5&limit=10',
     );
 
     await expect(response.json()).resolves.toEqual({
@@ -157,6 +157,7 @@ describe('catalog routes', () => {
         favorite: true,
         isDeleted: false,
         q: 'studio',
+        sort: 'asc',
         offset: 5,
         limit: 10,
       },
@@ -165,6 +166,9 @@ describe('catalog routes', () => {
     expect(calls.at(-1)?.recipeId).toBeNull();
     await routes.request('/');
     expect(calls.at(-1)?.recipeId).toBeUndefined();
+    const invalidSort = await routes.request('/?sort=invalid');
+    expect(invalidSort.status).toBe(400);
+    await expect(invalidSort.json()).resolves.toEqual({ error: 'Invalid catalog sort' });
   });
 
   it('updates and restores Catalog Entries without DB globals', async () => {
@@ -173,7 +177,7 @@ describe('catalog routes', () => {
 
     const patched = await routes.request('/image-99', {
       method: 'PATCH',
-      body: JSON.stringify({ isFavorite: true, tags: ['kept'] }),
+      body: JSON.stringify({ isFavorite: true, tags: ['imported reference', 'kept', 'kept'] }),
       headers: { 'Content-Type': 'application/json' },
     });
     const deleted = await routes.request('/image-99', { method: 'DELETE' });
@@ -183,7 +187,7 @@ describe('catalog routes', () => {
     await expect(patched.json()).resolves.toMatchObject({
       id: 'image-99',
       isFavorite: true,
-      tags: ['kept'],
+      tags: ['imported reference', 'kept'],
     });
     await expect(deleted.json()).resolves.toMatchObject({
       id: 'image-99',
@@ -194,6 +198,58 @@ describe('catalog routes', () => {
       isDeleted: false,
     });
     expect(missing.status).toBe(404);
+  });
+
+  it('rejects malformed or excessive tags before changing image metadata', async () => {
+    const store = createMemoryCatalogStore([catalogImage({ tags: ['imported reference'] })]);
+    const routes = createRoutes(store);
+    for (const tags of [
+      'jefe',
+      null,
+      [42],
+      [''],
+      ['x'.repeat(65)],
+      Array.from({ length: 33 }, (_, i) => `tag-${i}`),
+    ]) {
+      const response = await routes.request('/image-1', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isFavorite: true, tags }),
+      });
+      expect(response.status).toBe(400);
+      expect(store.getCatalogImage('image-1')).toMatchObject({
+        isFavorite: false,
+        tags: ['imported reference'],
+      });
+    }
+  });
+
+  it('merges tag changes with current metadata instead of replacing a stale client list', async () => {
+    const store = createMemoryCatalogStore([catalogImage({ tags: ['imported reference'] })]);
+    const routes = createRoutes(store);
+    const patch = (body: unknown) =>
+      routes.request('/image-1', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    const results = await Promise.all([
+      patch({ addTags: ['#ACCIÓN', 'accio\u0301n'] }),
+      patch({ addTags: ['jefe'] }),
+    ]);
+    expect(results.map((result) => result.status)).toEqual([200, 200]);
+    expect(store.getCatalogImage('image-1')?.tags).toEqual([
+      'imported reference',
+      'acción',
+      'jefe',
+    ]);
+    const invalid = await patch({ addTags: ['new tag'], isFavorite: true });
+    expect(invalid.status).toBe(400);
+    expect(store.getCatalogImage('image-1')?.isFavorite).toBe(false);
+    expect((await patch({ tags: [], addTags: ['other'] })).status).toBe(400);
+    await patch({ removeTags: ['acción'] });
+    const reopened = await routes.request('/image-1');
+    await expect(reopened.json()).resolves.toMatchObject({ tags: ['imported reference', 'jefe'] });
   });
 
   it('returns exact workspace summaries independent of catalog page budgets', async () => {

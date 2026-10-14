@@ -6,6 +6,8 @@ For installation and your first image, start with the [README](../README.md#quic
 
 Open Settings from the app header. Search opens the matching section and focuses its control. Changes apply when you select **Save**; **Discard** restores saved values, including appearance previews.
 
+An invalid filename template blocks Save and stays visible in the footer from any section. **Fix filename template** returns to the field. Provider settings and onboarding **Connections** open **Accounts & models**.
+
 | Section                | Use it for                                                     |
 | ---------------------- | -------------------------------------------------------------- |
 | Creation & startup     | Startup workflow and defaults for new style selections         |
@@ -16,6 +18,30 @@ Open Settings from the app header. Search opens the matching section and focuses
 | Styles & workflows     | Install style packs and enable built-in workflows              |
 | Advanced & maintenance | Agent access (MCP), storage diagnostics and repair controls    |
 | Help & updates         | Getting started, update checks and managed restart             |
+
+## Find, select and compare images
+
+The header labels **Workspace** and **Workflow** separately. Workspace chooses the image collection; Workflow chooses the creation tools.
+
+Library search, Favorites and sorting apply to the whole workspace before results are paged. Selections stay with each workspace while you search or load more images. The selection bar shows how many selected images are not currently shown. Download, convert and archive selected operate on that full selection. **Archive workspace** shows a fresh count and includes images hidden by filters.
+
+Open an image's details to add tags. Enter several hashtags, such as `#character #boss`, and press Enter or **Add tags** to save them. Remove a tag with its × button. Hashtags use lowercase letters, numbers, underscores or hyphens; accents are supported. Each image can have up to 32 tags, with 64 characters per tag. Existing metadata tags stay in place. If saving fails, the input stays available for retry.
+
+Search Library with `#boss` to match that exact tag, or `#boss #forest` to require both. You can combine tags with prompt text, Favorites and sorting. Tags are saved in the Studio catalog; original image files stay unchanged.
+
+Select exactly two images and choose **Compare 2 images**. Switch between A and B at the same zoom and position. Scroll or use the zoom buttons; drag or use arrow keys to pan. **Fit image** resets the view. Missing originals show an error.
+
+ZIP downloads show progress and the exported count. A partial download lists the missing count; **Retry missing images** puts those images in a separate ZIP. If every image fails, no empty ZIP is downloaded.
+
+## Keep and reuse creative work
+
+**Use as source** places the chosen result first in the references. **Use as reference** adds it to the references. In the image viewer, reuse settings can keep current references or restore the result's original references. If the originals cannot be read, current references stay in place.
+
+Closing the image editor keeps its instruction and mask for that image and workflow during the current tab session. **Discard draft** clears that edit. This editor draft does not survive reloading the tab.
+
+If a creation draft or reference cannot be saved, a persistent notice offers a retry and a local copy. Keep that copy before closing the tab if saving still fails.
+
+In Jobs, **Clear list** hides past terminal jobs. Active jobs remain visible when they later finish, and requests for review remain visible. **Show all history** restores hidden history and attention items.
 
 ## Where your files go
 

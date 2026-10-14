@@ -42,7 +42,7 @@ describe('studioJobsListClear', () => {
     rerender({ enabled: true });
     expect(readStudioJobsAttentionClearedAt()).toBe(0);
   });
-  it('hides jobs created at or before the clear time', () => {
+  it('hides jobs last updated at or before the clear time', () => {
     expect(isStudioJobVisibleAfterListClear('2026-07-18T00:00:00.000Z', 0)).toBe(true);
     const clearedAt = Date.parse('2026-07-18T12:00:00.000Z');
     expect(isStudioJobVisibleAfterListClear('2026-07-18T00:00:00.000Z', clearedAt)).toBe(false);
@@ -50,9 +50,16 @@ describe('studioJobsListClear', () => {
     expect(isStudioJobVisibleAfterListClear('2026-07-18T12:00:01.000Z', clearedAt)).toBe(true);
   });
 
-  it('round-trips the stored cutoff', () => {
-    writeStudioJobsListClearedAt(1_700_000_000_000);
+  it('round-trips the stored cutoff and restores both history filters', () => {
+    const { result } = renderHook(() => useStudioJobsListClearedAt());
+    act(() => {
+      writeStudioJobsListClearedAt(1_700_000_000_000);
+      writeStudioJobsAttentionClearedAt(1_700_000_000_000);
+    });
     expect(readStudioJobsListClearedAt()).toBe(1_700_000_000_000);
+    act(() => result.current.showAllHistory());
+    expect(result.current.clearedAt).toBe(0);
+    expect(result.current.attentionClearedAt).toBe(0);
   });
 
   it('hides only previously failed or review jobs, not later failures or completed work', () => {

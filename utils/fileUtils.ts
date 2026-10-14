@@ -80,17 +80,13 @@ export const generateSmartFilename = (
 export const downloadMultipleImagesAsZip = async (
   images: GeneratedImageWithConfig[],
   zipFilename: string = 'assets.zip',
-) => {
-  const [{ default: JSZip }, { saveAs }] = await Promise.all([
-    import('jszip'),
-    import('file-saver'),
-  ]);
-  const zip = new JSZip();
-
+  onProgress?: (progress: { completed: number; total: number }) => void,
+): Promise<{ requested: number; exported: number; failedImages: GeneratedImageWithConfig[] }> => {
+  let completed = 0;
   const files = await Promise.all(
     images.map(async (img, index) => {
       try {
-        const blob = await fetchImageBlob(img.src);
+        const blob = await fetchImageBlob(img.sourceUrl ?? img.src);
         const filename = generateSmartFilename(
           img.config.prompt,
           img.id,
@@ -104,9 +100,23 @@ export const downloadMultipleImagesAsZip = async (
       } catch (err) {
         runtimeLogger.error(`Failed to fetch image ${img.id} for zip`, err);
         return null;
+      } finally {
+        onProgress?.({ completed: ++completed, total: images.length });
       }
     }),
   );
+  const failedImages = images.filter((_, index) => !files[index]);
+  const result = {
+    requested: images.length,
+    exported: images.length - failedImages.length,
+    failedImages,
+  };
+  if (result.exported === 0) return result;
+  const [{ default: JSZip }, { saveAs }] = await Promise.all([
+    import('jszip'),
+    import('file-saver'),
+  ]);
+  const zip = new JSZip();
   const nameKey = (name: string) => name.normalize('NFC').toLowerCase();
   const originalNames = new Set(files.flatMap((file) => (file ? [nameKey(file.filename)] : [])));
   const usedNames = new Set<string>();
@@ -127,10 +137,12 @@ export const downloadMultipleImagesAsZip = async (
   }
   const content = await zip.generateAsync({ type: 'blob' });
   saveAs(content, zipFilename);
+  return result;
 };
 
 export async function fetchImageBlob(source: string) {
-  const response = await fetch(source);
+  // Revalidate originals: an earlier <img> response may lack CORS headers in browser cache.
+  const response = await fetch(source, { cache: 'no-cache' });
   if (!response.ok) {
     throw new Error(`Image request failed with HTTP ${response.status}.`);
   }

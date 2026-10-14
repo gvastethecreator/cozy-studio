@@ -39,7 +39,20 @@ export function useVaultTransfer({
       const images = buildWorkspaceExportImages({ catalogView });
 
       if (images.length > 0) {
-        await downloadMultipleImagesAsZip(images, `workspace-export-${Date.now()}.zip`);
+        const result = await downloadMultipleImagesAsZip(
+          images,
+          `workspace-export-${Date.now()}.zip`,
+        );
+        if (result.failedImages.length) {
+          addToast(
+            `Workspace export incomplete: ${result.exported} of ${result.requested} images downloaded.`,
+            'warning',
+          );
+          return false;
+        }
+      } else {
+        addToast('There are no loaded images to download.', 'info');
+        return false;
       }
 
       addToast('Workspace archive downloaded', 'success');

@@ -198,7 +198,7 @@ export function SettingsOutputPanel({
             className="studio-field"
             aria-label="File name template"
             aria-invalid={Boolean(error)}
-            aria-describedby="output-filename-help"
+            aria-describedby={`output-filename-help${error ? ' output-filename-error' : ''}`}
             value={value.outputFileNameTemplate}
             onChange={(event) =>
               onChange((current) => ({ ...current, outputFileNameTemplate: event.target.value }))
@@ -210,7 +210,11 @@ export function SettingsOutputPanel({
         </p>
       </details>
       {error ? (
-        <p role="alert" className="text-sm text-[color:var(--wb-danger)]">
+        <p
+          id="output-filename-error"
+          role="alert"
+          className="text-sm text-[color:var(--wb-danger)]"
+        >
           {error}
         </p>
       ) : (

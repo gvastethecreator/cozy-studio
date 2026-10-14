@@ -11,6 +11,10 @@ import type { CharacterLabModeId } from '../lib/characterLabCatalog.generated';
 import { projectStyleCompositionDraft } from '../components/recipes/styleCompositionDraft';
 
 const EMPTY_DRAFTS: Record<string, ImageGenerationConfig> = {};
+const recoverDrafts = (
+  saved: Record<string, ImageGenerationConfig> | undefined,
+  edited: Record<string, ImageGenerationConfig>,
+) => ({ ...saved, ...edited });
 
 function withWorkspaceAttachments(
   current: ImageGenerationConfig,
@@ -75,7 +79,7 @@ export function useScopedGenerationDraft(
   characterLabMode?: CharacterLabModeId,
 ) {
   // Preserve the original draft at its existing key; recipe drafts have explicit scopes.
-  const [legacy, , legacyReady] = useIndexedDBStorage<ImageGenerationConfig>(
+  const [legacy, , legacyReady, legacyPersistence] = useIndexedDBStorage<ImageGenerationConfig>(
     'generation-config',
     DEFAULT_GENERATION_CONFIG,
   );
@@ -84,9 +88,14 @@ export function useScopedGenerationDraft(
       Object.fromEntries(Object.entries(drafts).map(([key, value]) => [key, prepare(value)])),
     [prepare],
   );
-  const [drafts, setDrafts, draftsReady] = useIndexedDBStorage('generation-drafts', EMPTY_DRAFTS, {
-    prepareForPersist: prepareDrafts,
-  });
+  const [drafts, setDrafts, draftsReady, draftPersistence] = useIndexedDBStorage(
+    'generation-drafts',
+    EMPTY_DRAFTS,
+    {
+      prepareForPersist: prepareDrafts,
+      recoverAfterRead: recoverDrafts,
+    },
+  );
   const initial = useMemo(
     () =>
       scope === 'default:studio'
@@ -171,5 +180,18 @@ export function useScopedGenerationDraft(
     },
     [workspace, setDrafts, initial, legacyReady, draftsReady],
   );
-  return [config, setConfig, setRecipeDraft, legacyReady && draftsReady] as const;
+  const retry = useCallback(async () => {
+    if (legacyPersistence.error) await legacyPersistence.retry();
+    await draftPersistence.retry();
+  }, [legacyPersistence.error, legacyPersistence.retry, draftPersistence.retry]);
+  return [
+    config,
+    setConfig,
+    setRecipeDraft,
+    legacyReady && draftsReady,
+    {
+      error: draftPersistence.error ?? legacyPersistence.error,
+      retry,
+    },
+  ] as const;
 }

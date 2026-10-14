@@ -14,7 +14,7 @@ interface UseStudioGalleryProps {
   log: (message: string) => void;
   modalImage: GeneratedImageWithConfig | null;
   closeModal: () => void;
-  onRequestClearWorkspace?: (workspaceId: string, imageCount: number) => void;
+  onRequestClearWorkspace?: (workspaceId: string) => void | Promise<void>;
 }
 
 export function buildStudioGalleryImages(
@@ -47,6 +47,8 @@ export function useStudioGallery({
   const {
     allImages,
     selectedImageIds,
+    selectedImages,
+    clearWorkspaceSelection,
     handleSelectionChange,
     handleDelete,
     handleDeleteSelected,
@@ -55,6 +57,7 @@ export function useStudioGallery({
     handleToggleFavorite,
     handleClearWorkspace,
   } = useImageManager({
+    activeWorkspaceId,
     images: catalogImagesWithConfig,
     deleteImage,
     deleteImages,
@@ -70,6 +73,8 @@ export function useStudioGallery({
     allImages,
     imagesWithConfig: catalogImagesWithConfig,
     selectedImageIds,
+    selectedImages,
+    clearWorkspaceSelection,
     handleSelectionChange,
     handleDelete,
     handleDeleteSelected,

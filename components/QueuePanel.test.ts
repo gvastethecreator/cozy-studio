@@ -161,7 +161,7 @@ describe('QueuePanel views', () => {
     expect(screen.queryByText('No jobs running or queued')).toBeNull();
   });
 
-  it('hides the review backlog from Review and stays on that tab', () => {
+  it('keeps review requests visible when clearing finished jobs', () => {
     const review = {
       ...job('review-only', 'needs_review'),
       originalPrompt: 'Review image only',
@@ -188,19 +188,18 @@ describe('QueuePanel views', () => {
     );
     expect(screen.getByText('Review image only')).toBeTruthy();
     fireEvent.click(screen.getByLabelText('Job list options'));
-    fireEvent.click(screen.getByRole('button', { name: 'Hide jobs from this list' }));
-    expect(screen.queryByText('Review image only')).toBeNull();
-    expect(screen.getByText('Nothing to review')).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Review\s*0/ }).getAttribute('aria-pressed')).toBe(
+    fireEvent.click(screen.getByRole('button', { name: 'Hide finished jobs from this list' }));
+    expect(screen.getByText('Review image only')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Review\s*1/ }).getAttribute('aria-pressed')).toBe(
       'true',
     );
   });
 
-  it('clears completed history from the jobs list', () => {
+  it('hides prior finished jobs, preserves later results, and restores history', () => {
     const state: ReturnType<typeof useJobHistory> = {
       key: '',
       page: null,
-      open: [],
+      open: [{ ...job('running', 'running'), originalPrompt: 'Future result' }],
       history: [job('failed', 'failed')],
       nextCursor: null,
       seenHistoryIds: ['failed'],
@@ -212,7 +211,7 @@ describe('QueuePanel views', () => {
       retry: vi.fn(),
     };
     vi.mocked(useJobHistory).mockReturnValue(state);
-    render(
+    const { rerender } = render(
       React.createElement(QueuePanel, {
         onInspectJob: vi.fn(),
         onCancelServerJob: vi.fn(),
@@ -221,8 +220,37 @@ describe('QueuePanel views', () => {
     fireEvent.click(screen.getByRole('button', { name: 'History' }));
     expect(screen.getByRole('button', { name: 'Inspect job: Prompt' })).toBeTruthy();
     fireEvent.click(screen.getByLabelText('Job list options'));
-    fireEvent.click(screen.getByRole('button', { name: 'Hide jobs from this list' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hide finished jobs from this list' }));
     expect(screen.queryByRole('button', { name: 'Inspect job: Prompt' })).toBeNull();
+    const cutoff = Number(window.localStorage.getItem('studio-jobs-history-cleared-at'));
+    const result = {
+      ...job('running', 'completed'),
+      originalPrompt: 'Future result',
+      updatedAt: new Date(cutoff + 1).toISOString(),
+    };
+    state.open = [];
+    state.history.push(result);
+    rerender(
+      React.createElement(QueuePanel, {
+        onInspectJob: vi.fn(),
+        onCancelServerJob: vi.fn(),
+      }),
+    );
+    expect(screen.getByRole('button', { name: 'Inspect job: Future result' })).toBeTruthy();
+    state.open = [{ ...result, status: 'needs_review' }];
+    state.history.pop();
+    rerender(
+      React.createElement(QueuePanel, {
+        onInspectJob: vi.fn(),
+        onCancelServerJob: vi.fn(),
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Review\s*1/ }));
+    expect(screen.getByRole('button', { name: 'Inspect job: Future result' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Show all history' }));
+    fireEvent.click(screen.getByRole('button', { name: 'History' }));
+    expect(screen.getByRole('button', { name: 'Inspect job: Prompt' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Show all history' })).toBeNull();
   });
 
   it('clears failed and review jobs without hiding completed or active jobs', () => {

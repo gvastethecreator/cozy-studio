@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { DEFAULT_GENERATION_CONFIG } from '../constants';
 import { resolveGrokImagineGenerateBlock } from '../lib/grokImagineUiPolicy';
 import {
@@ -6,6 +6,10 @@ import {
   resolveStudioGenerateRecipeId,
 } from '../lib/studioGenerationRequest';
 import type { Attachment, ImageGenerationConfig, RecipeId } from '../types';
+import { fetchImageBlob } from '../utils/fileUtils';
+import { isInlineImageDataUrl } from '../lib/browserPersistenceBudget';
+import { toStudioAssetUrl } from '../services/studio-api/assetUrls';
+import { useLatestRef } from './useLatestRef';
 import type {
   CodexExecutionTransport,
   GenerationProviderId,
@@ -39,10 +43,13 @@ export function buildGenerateOverridesWithCurrentAttachments(
 export function buildRecipeRestoreConfig(
   nextConfig: ImageGenerationConfig,
   currentAttachments: Attachment[],
+  restoreOriginalReferences = false,
 ): ImageGenerationConfig {
   return {
     ...nextConfig,
-    attachments: cloneGenerationAttachments(currentAttachments),
+    attachments: cloneGenerationAttachments(
+      restoreOriginalReferences ? nextConfig.attachments : currentAttachments,
+    ),
   };
 }
 
@@ -105,6 +112,9 @@ export function useStudioGenerationActions({
   activeRecipe,
 }: UseStudioGenerationActionsProps) {
   const [isEditingImage, setIsEditingImage] = useState(false);
+  const restoreRequest = useRef(0);
+  const scope = `${activeWorkspaceId}:${activeRecipe ?? 'studio'}`;
+  const currentScope = useLatestRef(scope);
   const handleGenerate = useCallback(
     (
       promptOverride?: string,
@@ -213,21 +223,73 @@ export function useStudioGenerationActions({
   );
 
   const handleLoadRecipe = useCallback(
-    (nextConfig: ImageGenerationConfig) => {
-      addToast('Recipe restored', 'success');
+    async (
+      nextConfig: ImageGenerationConfig,
+      options?: { restoreOriginalReferences?: boolean },
+    ) => {
+      const request = ++restoreRequest.current;
+      if (options?.restoreOriginalReferences) {
+        if (!nextConfig.attachments.length) {
+          addToast(
+            'Original references are not available. Current references were kept.',
+            'warning',
+          );
+          return false;
+        }
+        try {
+          for (const attachment of nextConfig.attachments) {
+            const url = attachment.dataUrl || attachment.sourceUrl;
+            if (
+              !url ||
+              (!isInlineImageDataUrl(url) && !/^https?:\/\//i.test(url) && !/^\/(?!\/)/.test(url))
+            ) {
+              throw new Error('Original reference has no readable image URL.');
+            }
+            const blob = await fetchImageBlob(url.startsWith('/') ? toStudioAssetUrl(url) : url);
+            if (!blob.type.startsWith('image/'))
+              throw new Error('Original reference is not an image.');
+          }
+        } catch {
+          addToast(
+            'Original references could not be read. Current references were kept.',
+            'warning',
+          );
+          return false;
+        }
+      }
+      if (request !== restoreRequest.current || currentScope.current !== scope) return false;
 
       const detectedRecipe = nextConfig.recipeId ?? null;
       setRecipeDraft(
         detectedRecipe,
-        buildRecipeRestoreConfig(nextConfig, generationConfigRef.current.attachments),
+        buildRecipeRestoreConfig(
+          nextConfig,
+          generationConfigRef.current.attachments,
+          options?.restoreOriginalReferences,
+        ),
       );
       if (detectedRecipe) {
         onRecipeSelection(detectedRecipe);
       } else {
         onViewChange('recipes');
       }
+      addToast(
+        options?.restoreOriginalReferences
+          ? 'Settings and original references restored'
+          : 'Settings restored. Current references kept.',
+        'success',
+      );
+      return true;
     },
-    [addToast, onRecipeSelection, onViewChange, setRecipeDraft, generationConfigRef],
+    [
+      addToast,
+      onRecipeSelection,
+      onViewChange,
+      setRecipeDraft,
+      generationConfigRef,
+      currentScope,
+      scope,
+    ],
   );
 
   const resetGenerationUi = useCallback(() => {

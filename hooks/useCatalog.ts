@@ -1,7 +1,11 @@
 import { useCatalogWorkspaceSummaries } from './useCatalogWorkspaceSummaries';
 import { useCatalogPage, type UseCatalogResult } from './useCatalogPage';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import type { CatalogImage, CatalogWorkspaceSummary } from '../packages/shared/src';
+import type {
+  CatalogImage,
+  CatalogSortOption,
+  CatalogWorkspaceSummary,
+} from '../packages/shared/src';
 import { buildArchivedImageGroupsFromCatalog } from '../lib/studioCatalogTrashView';
 import {
   describeCatalogOperationResult,
@@ -24,6 +28,8 @@ import { toStudioAssetUrl } from '../services/studio-api/assetUrls';
 
 export interface UseStudioCatalogControllerOptions {
   query?: string;
+  favorites?: boolean;
+  sort?: CatalogSortOption;
   historyEnabled?: boolean;
   historyRecipeId?: string | null;
   historySelectedId?: string | null;
@@ -71,6 +77,8 @@ export function collectWorkspaceCatalogImageIds(entries: CatalogImage[], workspa
 
 export function useStudioCatalogController({
   query = '',
+  favorites = false,
+  sort = 'desc',
   historyEnabled = false,
   historyRecipeId,
   historySelectedId,
@@ -80,18 +88,24 @@ export function useStudioCatalogController({
 }: UseStudioCatalogControllerOptions): UseStudioCatalogControllerResult {
   const activeCatalog = useCatalogPage({
     q: query,
+    favorite: favorites ? true : undefined,
+    sort,
     workspaceId: activeWorkspaceId,
     deleted: false,
     pageSize: CATALOG_RENDER_BUDGET.activePageSize,
   });
+  const hasLibraryFilters = Boolean(query) || favorites || sort !== 'desc';
+  const historyCatalogEnabled = historyEnabled || hasLibraryFilters;
   const historyCatalog = useCatalogPage({
-    selectedId: historySelectedId,
+    selectedId: historyEnabled ? historySelectedId : undefined,
     workspaceId: activeWorkspaceId,
-    recipeId: historyRecipeId,
+    recipeId: historyEnabled ? historyRecipeId : undefined,
     deleted: false,
-    enabled: historyEnabled,
-    pageSize: CATALOG_RENDER_BUDGET.activePageSize,
-    preserveLoadedPages: true,
+    enabled: historyCatalogEnabled,
+    pageSize: historyEnabled
+      ? CATALOG_RENDER_BUDGET.activePageSize
+      : CATALOG_RENDER_BUDGET.queuePreviewLimit,
+    preserveLoadedPages: historyEnabled,
   });
   const refreshHistory = historyCatalog.refresh;
   const workspaceSummaryCatalog = useCatalogWorkspaceSummaries();
@@ -102,14 +116,14 @@ export function useStudioCatalogController({
   });
 
   const catalogVisualGroupCount = activeCatalog.view.byBatchId.size;
+  const queueEntries = hasLibraryFilters ? historyCatalog.entries : activeCatalog.entries;
   const queueResults = useMemo(
     () =>
-      buildStudioQueueResultPreviews(activeCatalog.view.entries, {
-        alreadySorted: true,
+      buildStudioQueueResultPreviews(queueEntries, {
         limit: CATALOG_RENDER_BUDGET.queuePreviewLimit,
         toAssetUrl: toStudioAssetUrl,
       }),
-    [activeCatalog.view.entries],
+    [queueEntries],
   );
   const queueResultPreviews = useMemo(
     () => queueResults.slice(0, 3).map(({ id, src }) => ({ id, src })),
@@ -126,7 +140,7 @@ export function useStudioCatalogController({
   const mutationReconciliationRef = useRef<CatalogMutationReconciliationPolicy | null>(null);
   const refreshCatalogs = useCallback(
     async (scope: CatalogRefreshScope = { kind: 'all' }) => {
-      if (historyEnabled) await refreshHistory().catch(() => undefined);
+      if (historyCatalogEnabled) await refreshHistory().catch(() => undefined);
       const reconciliationPolicy = mutationReconciliationRef.current;
       const reconciliationGeneration = reconciliationPolicy?.getGeneration();
       if (scope.kind === 'active') {
@@ -159,7 +173,7 @@ export function useStudioCatalogController({
       refreshWorkspaceSummaries,
       refreshTrashCatalog,
       isTrashOpen,
-      historyEnabled,
+      historyCatalogEnabled,
       refreshHistory,
     ],
   );
@@ -184,8 +198,10 @@ export function useStudioCatalogController({
         const toast = describeCatalogOperationResult(result);
         if (toast) addToast(toast.message, toast.type);
         mutationReconciliationRef.current?.request({ kind: 'all' });
+        return toast?.type !== 'error';
       } catch (error) {
         addToast(resolveCatalogMutationError(error, fallbackMessage), 'error');
+        return false;
       }
     },
     [addToast],
@@ -231,10 +247,11 @@ export function useStudioCatalogController({
 
   const clearCatalogWorkspace = useCallback(
     async (workspaceId: string) => {
-      await runCatalogMutation(
+      const succeeded = await runCatalogMutation(
         archiveCatalogByFilter({ workspaceId, isDeleted: false }),
         'Unable to archive workspace images',
       );
+      if (!succeeded) throw new Error('Unable to archive workspace images');
     },
     [runCatalogMutation],
   );

@@ -1,6 +1,7 @@
 import type { GeneratedImageWithConfig } from '../types';
+import type { CatalogSortOption } from '../packages/shared/src';
 
-export type ImageGridSortOption = 'desc' | 'asc' | 'prompt' | 'prompt_desc' | 'ratio' | 'id';
+export type ImageGridSortOption = CatalogSortOption;
 export type ImageGridViewMode = 'grid' | 'mosaic' | 'list' | 'cards';
 
 export const DEFAULT_THUMBNAIL_SIZE = 176;
@@ -15,37 +16,6 @@ export const IMAGE_GRID_MAX_COLUMNS = 12;
 export const IMAGE_GRID_CARD_MIN_WIDTH = 256;
 export const IMAGE_GRID_PRIORITY_VIEWPORT_OVERSCAN_PX = 96;
 export const IMAGE_GRID_VIRTUAL_OVERSCAN_PX = 960;
-
-export function filterImageGridImages(
-  images: GeneratedImageWithConfig[],
-  showFavoritesOnly: boolean,
-) {
-  return showFavoritesOnly ? images.filter((image) => image.isFavorite) : images;
-}
-
-export function sortImageGridImages(
-  images: GeneratedImageWithConfig[],
-  sortOrder: ImageGridSortOption,
-) {
-  return images.toSorted((a, b) => {
-    switch (sortOrder) {
-      case 'asc':
-        return a.createdAt - b.createdAt;
-      case 'desc':
-        return b.createdAt - a.createdAt;
-      case 'prompt':
-        return (a.config.prompt || a.id).localeCompare(b.config.prompt || b.id);
-      case 'prompt_desc':
-        return (b.config.prompt || b.id).localeCompare(a.config.prompt || a.id);
-      case 'ratio':
-        return a.config.aspectRatio.localeCompare(b.config.aspectRatio);
-      case 'id':
-        return a.id.localeCompare(b.id);
-      default:
-        return 0;
-    }
-  });
-}
 
 export function resolveImageGridColumnCount({
   viewportWidth,

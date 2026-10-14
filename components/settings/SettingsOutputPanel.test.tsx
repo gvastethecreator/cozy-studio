@@ -26,6 +26,7 @@ it('opens custom editors without changing saved values and exposes invalid filen
   expect(screen.getByLabelText('Folder levels').closest('details')?.open).toBe(true);
   fireEvent.change(filename, { target: { value: '{unknown}' } });
   expect(filename.getAttribute('aria-invalid')).toBe('true');
+  expect(filename.getAttribute('aria-describedby')).toContain('output-filename-error');
   expect(screen.getByRole('alert').textContent).toBeTruthy();
   fireEvent.change(screen.getByLabelText('Filename preset'), { target: { value: '{jobId}' } });
   expect(filename.value).toBe('{jobId}');

@@ -27,6 +27,7 @@ import {
 } from '../lib/browserPersistenceBudget';
 import { createContextImageDataUrl } from '../utils/imageUtils';
 import { resolveRecipeAlias, type RecipeAliasId } from '../lib/recipeAliases';
+import { exportToJson } from '../utils/fileUtils';
 
 interface UseGenerationConfigProps {
   scopeKey?: string;
@@ -136,7 +137,7 @@ export const useGenerationConfig = ({
   scopeKey = 'default:studio',
   recipeAliasId,
 }: UseGenerationConfigProps) => {
-  const [generationConfig, setGenerationConfig, setRecipeDraft, isDraftReady] =
+  const [generationConfig, setGenerationConfig, setRecipeDraft, isDraftReady, draftPersistence] =
     useScopedGenerationDraft(
       scopeKey,
       prepareGenerationConfigForPersist,
@@ -151,6 +152,93 @@ export const useGenerationConfig = ({
   const logRef = useLatestRef(log);
   const uploadPreviews = useRef(new Map<string, string>());
   const uploadScopes = useRef(new Map<string, string>());
+  const [referenceSaveFailures, setReferenceSaveFailures] = useState<Record<string, string>>({});
+  const referencePersistenceErrors = useMemo(
+    () =>
+      Object.fromEntries(
+        generationConfig.attachments
+          .filter(
+            (attachment) =>
+              isInlineImageDataUrl(attachment.dataUrl) &&
+              !attachment.localPath &&
+              !attachment.sourceUrl,
+          )
+          .map((attachment) => [
+            attachment.id,
+            referenceSaveFailures[attachment.id] ??
+              'Reference is only in this tab. Save it to Studio or keep a copy before closing.',
+          ]),
+      ),
+    [generationConfig.attachments, referenceSaveFailures],
+  );
+  const downloadDraftCopy = useCallback(
+    (prompt = generationConfig.prompt) => {
+      exportToJson(
+        { ...generationConfig, prompt },
+        `cozy-draft-${scopeKey.replaceAll(':', '-')}.json`,
+      );
+    },
+    [generationConfig, scopeKey],
+  );
+
+  const persistReference = useCallback(async (attachment: Attachment): Promise<Attachment> => {
+    const handoff = await createReferenceHandoff({
+      references: [
+        { name: attachment.name, dataUrl: attachment.dataUrl, strength: attachment.strength },
+      ],
+    });
+    const reference = handoff.references[0];
+    if (!reference) throw new Error('Studio did not return a saved reference.');
+    const sourceUrl = toStudioAssetUrl(reference.publicUrl);
+    return { ...attachment, dataUrl: sourceUrl, sourceUrl, localPath: reference.localPath };
+  }, []);
+
+  const retryReferencePersistence = useCallback(
+    async (id: string) => {
+      const attachment = generationConfig.attachments.find((item) => item.id === id);
+      if (!attachment || !isInlineImageDataUrl(attachment.dataUrl)) return;
+      setGenerationConfig((current) => ({
+        ...current,
+        attachments: current.attachments.map((item) =>
+          item.id === id ? { ...item, isProcessing: true } : item,
+        ),
+      }));
+      try {
+        const saved = await persistReference(attachment);
+        setGenerationConfig((current) => ({
+          ...current,
+          attachments: current.attachments.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  dataUrl: saved.dataUrl,
+                  sourceUrl: saved.sourceUrl,
+                  localPath: saved.localPath,
+                  isProcessing: false,
+                }
+              : item,
+          ),
+        }));
+        setReferenceSaveFailures((current) => {
+          const next = { ...current };
+          delete next[id];
+          return next;
+        });
+      } catch (failure) {
+        setGenerationConfig((current) => ({
+          ...current,
+          attachments: current.attachments.map((item) =>
+            item.id === id ? { ...item, isProcessing: false } : item,
+          ),
+        }));
+        setReferenceSaveFailures((current) => ({
+          ...current,
+          [id]: `Reference could not be saved to Studio: ${formatErrorMessage(failure)}. Keep a copy before closing this tab.`,
+        }));
+      }
+    },
+    [generationConfig.attachments, persistReference, setGenerationConfig],
+  );
 
   useEffect(() => {
     for (const [id, url] of uploadPreviews.current) {
@@ -360,26 +448,12 @@ export const useGenerationConfig = ({
 
             if (isInlineImageDataUrl(dataUrl)) {
               try {
-                const handoff = await createReferenceHandoff({
-                  references: [
-                    {
-                      name: attachmentName,
-                      dataUrl,
-                      strength: attachment.strength,
-                    },
-                  ],
-                });
-                const persistedReference = handoff.references[0];
-                if (persistedReference) {
-                  const sourceUrl = toStudioAssetUrl(persistedReference.publicUrl);
-                  attachment = {
-                    ...attachment,
-                    dataUrl: sourceUrl,
-                    localPath: persistedReference.localPath,
-                    sourceUrl,
-                  };
-                }
+                attachment = await persistReference(attachment);
               } catch (err) {
+                setReferenceSaveFailures((current) => ({
+                  ...current,
+                  [attachment.id]: `Reference could not be saved to Studio: ${formatErrorMessage(err)}. Keep a copy before closing this tab.`,
+                }));
                 log(
                   `Reference handoff failed for "${file.name}": ${formatErrorMessage(err)}. The WebP image will remain browser-only until generation starts.`,
                 );
@@ -413,7 +487,7 @@ export const useGenerationConfig = ({
         }),
       );
     },
-    [log, maxAttachments, setGenerationConfig, scopeKey],
+    [log, maxAttachments, setGenerationConfig, scopeKey, persistReference],
   );
 
   const handleFileSelect = useCallback(
@@ -461,17 +535,44 @@ export const useGenerationConfig = ({
     [log, maxAttachments, setGenerationConfig],
   );
 
+  const handleUseAsSource = useCallback(
+    (image: GeneratedImageWithConfig) => {
+      const attachment = buildGeneratedImageContextAttachment(image);
+      attachment.id = `gen-${image.id}`;
+      setGenerationConfig((current) => ({
+        ...current,
+        attachments: [
+          attachment,
+          ...current.attachments.filter(
+            (item) => item.id !== attachment.id && item.dataUrl !== attachment.dataUrl,
+          ),
+        ].slice(0, maxAttachments),
+      }));
+      log(
+        `Image set as the first source reference. Up to ${maxAttachments - 1} existing references are kept.`,
+      );
+    },
+    [log, maxAttachments, setGenerationConfig],
+  );
+
   return {
     generationConfig,
     setGenerationConfig,
     setRecipeDraft,
     isDraftReady,
+    draftScopeKey: scopeKey,
+    draftPersistenceError: draftPersistence.error,
+    retryDraftPersistence: draftPersistence.retry,
+    downloadDraftCopy,
+    referencePersistenceErrors,
+    retryReferencePersistence,
     updateGenerationConfig,
     updateAttachment,
     handleFileSelect,
     handlePastedFiles,
     handleRemoveAttachment,
     handleAddToContext,
+    handleUseAsSource,
     maxAttachments,
     codexModelCatalog: codexModelCatalogState.catalog,
     isLoadingCodexModelCatalog: codexModelCatalogState.isLoading,

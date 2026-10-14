@@ -37,9 +37,13 @@ it('keeps the canvas while hiding details and navigates from focused controls wi
     src: `/library/${id}.png`,
     batchId: 'batch',
     createdAt: 0,
-    config: DEFAULT_GENERATION_CONFIG,
+    config: {
+      ...DEFAULT_GENERATION_CONFIG,
+      attachments: [{ id: 'reference', name: 'source.png', dataUrl: '/source.png', strength: 1 }],
+    },
   }));
   const select = vi.fn();
+  const loadConfig = vi.fn();
   render(
     <ImageCarousel
       activeImage={images[0]}
@@ -49,7 +53,7 @@ it('keeps the canvas while hiding details and navigates from focused controls wi
       onDelete={vi.fn()}
       onRegenerate={vi.fn()}
       onAddToContext={vi.fn()}
-      onLoadConfig={vi.fn()}
+      onLoadConfig={loadConfig}
       onToggleFavorite={vi.fn()}
       onActiveImageChange={select}
     />,
@@ -82,6 +86,12 @@ it('keeps the canvas while hiding details and navigates from focused controls wi
   expect(screen.getByRole('group', { name: /Image pan and zoom area/ })).toBe(canvas);
   fireEvent.click(screen.getByRole('button', { name: 'Show image details' }));
   expect(screen.getByRole('complementary', { name: 'Image details' })).toBeDefined();
+  fireEvent.click(screen.getByRole('button', { name: 'Reuse settings · keep current references' }));
+  expect(loadConfig).toHaveBeenLastCalledWith(images[0].config);
+  fireEvent.click(screen.getByRole('button', { name: 'Reuse settings and original references' }));
+  expect(loadConfig).toHaveBeenLastCalledWith(images[0].config, {
+    restoreOriginalReferences: true,
+  });
   fireEvent.keyDown(screen.getByRole('button', { name: 'Next image' }), { key: 'ArrowRight' });
   expect(select).toHaveBeenCalledWith('second');
   select.mockClear();

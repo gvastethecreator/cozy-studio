@@ -13,6 +13,26 @@ const attachment: Attachment = {
 };
 
 describe('ReferenceTray', () => {
+  it('keeps save failure recovery visible outside thumbnail actions', () => {
+    const retry = vi.fn(async () => {});
+    render(
+      <ReferenceTray
+        attachments={[attachment]}
+        onEdit={vi.fn()}
+        onRemove={vi.fn()}
+        onFiles={vi.fn()}
+        density="thumbs"
+        persistenceErrors={{ [attachment.id]: 'Save failed. Keep a copy.' }}
+        onRetryPersistence={retry}
+      />,
+    );
+    expect(screen.getByRole('alert').textContent).toContain('Save failed');
+    fireEvent.click(screen.getByRole('button', { name: 'Retry saving' }));
+    expect(retry).toHaveBeenCalledWith(attachment.id);
+    expect(screen.getByRole('link', { name: 'Save a copy' }).getAttribute('download')).toBe(
+      'hero.png',
+    );
+  });
   it('removes a thumbnail from the Create references panel', () => {
     const onRemove = vi.fn();
     render(

@@ -11,6 +11,7 @@ import {
   getGenerationOutputSummary,
 } from '../packages/shared/src/generationRequirements';
 import { ReferenceTray } from './ReferenceTray';
+import { useGenerationDraft } from '../contexts/GenerationContext';
 import {
   Prohibition as Ban,
   Brain as BrainCircuit,
@@ -148,6 +149,7 @@ export const Toolbar: React.FC<ToolbarProps> = React.memo((props) => {
 });
 
 function useToolbarController(props: ToolbarProps) {
+  const draftPersistence = useGenerationDraft();
   const workbench = React.useContext(RecipeWorkbenchContext);
   const {
     generationConfig,
@@ -485,6 +487,7 @@ function useToolbarController(props: ToolbarProps) {
   );
 
   return {
+    draftPersistence,
     showCodexPromptTools,
     isNegativeOpen,
     generationConfig,
@@ -619,6 +622,7 @@ function ToolbarLayout({ model }: { model: ToolbarModel }) {
       {isRail ? null : (
         <div className="absolute inset-x-0 bottom-0 h-[106px] pointer-events-none bg-black/80 transition-colors duration-200 ease-out sm:h-[56px]" />
       )}
+      <ToolbarDraftPersistence model={model} />
 
       <div
         className={
@@ -646,6 +650,29 @@ function ToolbarLayout({ model }: { model: ToolbarModel }) {
 
       {/* Key Selector Popover (External) */}
       <KeyPopover isOpen={isKeyPopoverOpen} onClose={onOpenKeySelector} onSelectKey={onSelectKey} />
+    </div>
+  );
+}
+
+function ToolbarDraftPersistence({ model }: { model: ToolbarModel }) {
+  const { prompt } = React.useContext(RecipeWorkbenchContext);
+  const { draftPersistenceError, retryDraftPersistence, downloadDraftCopy } =
+    model.draftPersistence;
+  if (!draftPersistenceError) return null;
+  return (
+    <div
+      role="alert"
+      className="relative z-10 shrink-0 rounded-[var(--wb-radius)] border border-[color:var(--wb-danger)] bg-[color:var(--wb-panel)] p-3 text-xs text-[color:var(--wb-danger)]"
+    >
+      <p>{draftPersistenceError}</p>
+      <div className="mt-2 flex gap-3">
+        <button type="button" onClick={() => void retryDraftPersistence()}>
+          Retry saving draft
+        </button>
+        <button type="button" onClick={() => downloadDraftCopy(prompt?.value ?? model.localPrompt)}>
+          Save draft copy
+        </button>
+      </div>
     </div>
   );
 }
@@ -739,6 +766,8 @@ function ToolbarDockPrompt({ model }: { model: ToolbarModel }) {
         {hasAttachments && (
           <ReferenceTray
             attachments={generationConfig.attachments}
+            persistenceErrors={model.draftPersistence.referencePersistenceErrors}
+            onRetryPersistence={model.draftPersistence.retryReferencePersistence}
             onEdit={onOpenEditor}
             onRemove={onRemoveAttachment}
             onFiles={onFilesDrop}
@@ -2212,6 +2241,8 @@ function ToolbarReferenceList({ model }: { model: ToolbarModel }) {
       {hasAttachments ? (
         <ReferenceTray
           attachments={generationConfig.attachments}
+          persistenceErrors={model.draftPersistence.referencePersistenceErrors}
+          onRetryPersistence={model.draftPersistence.retryReferencePersistence}
           onEdit={onOpenEditor}
           onRemove={onRemoveAttachment}
           onFiles={onFilesDrop}

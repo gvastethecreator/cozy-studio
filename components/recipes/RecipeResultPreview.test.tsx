@@ -210,14 +210,14 @@ describe('RecipeResultPreview', () => {
 
   it('keeps recipe images in the library stage and exposes canvas actions', () => {
     const onToggleFavorite = vi.fn();
-    const onUseAsReference = vi.fn();
+    const onUseAsSource = vi.fn();
     render(
       <RecipeResultPreview
         variant="stage"
         images={[IMAGE, IMAGE_TWO]}
         onOpen={vi.fn()}
         onToggleFavorite={onToggleFavorite}
-        onUseAsReference={onUseAsReference}
+        onUseAsSource={onUseAsSource}
       />,
     );
 
@@ -247,7 +247,7 @@ describe('RecipeResultPreview', () => {
     expect(screen.getByRole('button', { name: 'Open result' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Zoom out' })).toBeTruthy();
     expect(onToggleFavorite).toHaveBeenCalledWith('img-2');
-    expect(onUseAsReference).toHaveBeenCalledWith(expect.objectContaining({ id: 'img-2' }));
+    expect(onUseAsSource).toHaveBeenCalledWith(expect.objectContaining({ id: 'img-2' }));
     expect(
       screen.getByRole('region', { name: 'Result preview' }).getAttribute('data-stage-background'),
     ).toBe('checkered');

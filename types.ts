@@ -82,6 +82,7 @@ export interface GeneratedImage {
   batchId: string;
   createdAt: number;
   isFavorite?: boolean; // Added for pinning
+  tags?: string[];
   localPath?: string;
   sourceUrl?: string;
 }

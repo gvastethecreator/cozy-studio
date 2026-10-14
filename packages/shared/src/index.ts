@@ -1,4 +1,5 @@
 export * from './types';
+export * from './catalogTags';
 export * from './jobRecovery';
 export * from './codexExecutionContract';
 export * from './jobBatches';

@@ -12,6 +12,12 @@ import { isImageEditorApplyDisabled } from '../lib/grokImagineUiPolicy';
 import type { Attachment } from '../types';
 import ActionButton from './ui/ActionButton';
 import Slider from './ui/Slider';
+import { useLatestRef } from '../hooks/useLatestRef';
+
+export interface ImageEditorDraft {
+  prompt: string;
+  mask: ImageData | null;
+}
 
 interface ImageEditorModalProps {
   isOpen: boolean;
@@ -22,6 +28,8 @@ interface ImageEditorModalProps {
   notice?: string | null;
   requireMask?: boolean;
   backgroundControl?: React.ReactNode;
+  draft?: ImageEditorDraft;
+  onDraftChange: (draft: ImageEditorDraft | null) => void;
 }
 
 interface ImageEditorControlsPanelProps {
@@ -141,15 +149,36 @@ function useImageEditor({
   image,
   onGenerate,
   isGenerating,
-}: Pick<ImageEditorModalProps, 'isOpen' | 'onClose' | 'image' | 'onGenerate' | 'isGenerating'>) {
+  draft,
+  onDraftChange,
+}: Pick<
+  ImageEditorModalProps,
+  'isOpen' | 'onClose' | 'image' | 'onGenerate' | 'isGenerating' | 'draft' | 'onDraftChange'
+>) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const brushCursorRef = useRef<HTMLDivElement>(null);
 
-  const [editPrompt, setEditPrompt] = useState('');
+  const initialDraft = useRef(draft);
+  const savedMask = useRef(draft?.mask ?? null);
+  const [editPrompt, setEditPrompt] = useState(draft?.prompt ?? '');
+  const promptRef = useLatestRef(editPrompt);
+  const onDraftChangeRef = useLatestRef(onDraftChange);
+  const saveDraft = useCallback(
+    (mask = savedMask.current) => {
+      savedMask.current = mask;
+      onDraftChangeRef.current({ prompt: promptRef.current, mask });
+    },
+    [onDraftChangeRef, promptRef],
+  );
+  const changePrompt = (prompt: string) => {
+    setEditPrompt(prompt);
+    promptRef.current = prompt;
+    saveDraft();
+  };
   const [brushSize, setBrushSize] = useState(40);
   const isDrawingRef = useRef(false);
-  const historyRef = useRef<ImageData[]>([]);
+  const historyRef = useRef<(ImageData | null)[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -171,7 +200,6 @@ function useImageEditor({
 
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.src = image.dataUrl;
     img.onload = () => {
       const containerWidth = container.clientWidth - 48;
       const containerHeight = container.clientHeight - 48;
@@ -190,11 +218,21 @@ function useImageEditor({
       canvas.style.height = `${displayHeight}px`;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const mask = initialDraft.current?.mask;
+      if (mask && mask.width === canvas.width && mask.height === canvas.height) {
+        ctx.putImageData(mask, 0, 0);
+        historyRef.current = [mask];
+        setHistoryIndex(0);
+      }
+    };
+    img.src = image.dataUrl;
+    return () => {
+      img.onload = null;
     };
   }, [image]);
 
   useEffect(() => {
-    setupCanvas();
+    return setupCanvas();
   }, [setupCanvas]);
 
   useEffect(() => {
@@ -230,18 +268,24 @@ function useImageEditor({
     };
   };
 
-  const saveHistory = useCallback(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx) return;
+  const saveHistory = useCallback(
+    (mask?: ImageData | null) => {
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d');
+      if (!canvas || !ctx) return;
 
-    const newHistory = historyRef.current.slice(0, historyIndex + 1);
-    if (newHistory.length > 20) newHistory.shift();
+      const newHistory = historyRef.current.slice(0, historyIndex + 1);
+      if (newHistory.length > 20) newHistory.shift();
 
-    newHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
-    historyRef.current = newHistory;
-    setHistoryIndex(newHistory.length - 1);
-  }, [historyIndex]);
+      const snapshot =
+        mask === undefined ? ctx.getImageData(0, 0, canvas.width, canvas.height) : mask;
+      newHistory.push(snapshot);
+      historyRef.current = newHistory;
+      setHistoryIndex(newHistory.length - 1);
+      saveDraft(snapshot);
+    },
+    [historyIndex, saveDraft],
+  );
 
   const moveBrushCursor = useCallback((clientX: number, clientY: number) => {
     if (!brushCursorRef.current) return;
@@ -310,19 +354,30 @@ function useImageEditor({
     if (historyIndex > 0) {
       const newIndex = historyIndex - 1;
       setHistoryIndex(newIndex);
-      ctx.putImageData(historyRef.current[newIndex], 0, 0);
+      const mask = historyRef.current[newIndex];
+      if (mask) ctx.putImageData(mask, 0, 0);
+      else ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      saveDraft(mask);
     } else {
       ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
       setHistoryIndex(-1);
+      saveDraft(null);
     }
   };
 
   const handleClose = useCallback(() => {
-    historyRef.current = [];
-    setHistoryIndex(-1);
-    setEditPrompt('');
+    const canvas = canvasRef.current;
+    const ctx = isDrawingRef.current ? canvas?.getContext('2d') : null;
+    saveDraft(
+      canvas && ctx ? ctx.getImageData(0, 0, canvas.width, canvas.height) : savedMask.current,
+    );
     onClose();
-  }, [onClose]);
+  }, [onClose, saveDraft]);
+
+  const discardDraft = () => {
+    onDraftChangeRef.current(null);
+    onClose();
+  };
 
   const handleGenerate = () => {
     if (!image || isGenerating || !canvasRef.current) return;
@@ -356,7 +411,7 @@ function useImageEditor({
     const ctx = canvasRef.current?.getContext('2d');
     if (ctx && canvasRef.current)
       ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    saveHistory();
+    saveHistory(null);
   }, [saveHistory]);
 
   return {
@@ -364,7 +419,7 @@ function useImageEditor({
     containerRef,
     brushCursorRef,
     editPrompt,
-    setEditPrompt,
+    setEditPrompt: changePrompt,
     brushSize,
     setBrushSize,
     historyIndex,
@@ -376,6 +431,7 @@ function useImageEditor({
     startDrawing,
     draw,
     stopDrawing,
+    discardDraft,
   };
 }
 
@@ -388,6 +444,8 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
   notice,
   requireMask = true,
   backgroundControl,
+  draft,
+  onDraftChange,
 }) => {
   const {
     canvasRef,
@@ -406,12 +464,14 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
     startDrawing,
     draw,
     stopDrawing,
-  } = useImageEditor({ isOpen, onClose, image, onGenerate, isGenerating });
+    discardDraft,
+  } = useImageEditor({ isOpen, onClose, image, onGenerate, isGenerating, draft, onDraftChange });
 
   const dialogRef = useDialogFocus<HTMLDialogElement>(
     isOpen,
     handleClose,
     image ? `[aria-label="Edit ${CSS.escape(image.name)}"]` : undefined,
+    '#image-editor-prompt',
   );
   if (!isOpen) return null;
 
@@ -435,16 +495,24 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
             <p className="hidden text-[length:var(--wbp-label)] text-[color:var(--wb-dim)] font-bold tracking-tight sm:block">
               {requireMask ? 'Edit masked area and regenerate' : 'Describe the change, then apply'}
             </p>
+            <p className="text-xs text-[color:var(--wb-muted)]">
+              Closing keeps this image's draft in this tab. Discard draft clears it.
+            </p>
           </div>
         </div>
-        <button
-          type="button"
-          aria-label="Close image editor"
-          onClick={handleClose}
-          className="rounded-[var(--wb-radius)] bg-[color:var(--wb-panel)] p-3 text-[color:var(--wb-dim)] shadow-xl transition-[background-color,color] hover:bg-[color:var(--wb-bar)] hover:text-[color:var(--wb-ink)]"
-        >
-          <X width={24} height={24} />
-        </button>
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={discardDraft} disabled={isGenerating}>
+            Discard draft
+          </button>
+          <button
+            type="button"
+            aria-label="Close image editor"
+            onClick={handleClose}
+            className="rounded-[var(--wb-radius)] bg-[color:var(--wb-panel)] p-3 text-[color:var(--wb-dim)] shadow-xl transition-[background-color,color] hover:bg-[color:var(--wb-bar)] hover:text-[color:var(--wb-ink)]"
+          >
+            <X width={24} height={24} />
+          </button>
+        </div>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">

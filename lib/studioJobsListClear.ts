@@ -24,11 +24,11 @@ export function writeStudioJobsAttentionClearedAt(at: number): void {
   window.dispatchEvent(new Event(STUDIO_JOBS_LIST_CLEARED_EVENT));
 }
 
-export function isStudioJobVisibleAfterListClear(createdAt: string, clearedAt: number): boolean {
+export function isStudioJobVisibleAfterListClear(updatedAt: string, clearedAt: number): boolean {
   if (clearedAt <= 0) return true;
-  const created = Date.parse(createdAt);
-  if (!Number.isFinite(created)) return true;
-  return created > clearedAt;
+  const updated = Date.parse(updatedAt);
+  if (!Number.isFinite(updated)) return true;
+  return updated > clearedAt;
 }
 
 export function isStudioJobVisibleAfterAttentionClear(

@@ -7,7 +7,12 @@ import { getDb } from './db/connection';
 import { getDefaultLibrary, getLibrary } from './libraries';
 import { resolveLibraryPathFromRoot, toPublicAssetUrl } from './library';
 import { buildCatalogWorkspaceClause } from './catalogWorkspaceClause';
-import type { CatalogCommandFilter, CatalogWorkspaceSummary } from '../../../packages/shared/src';
+import { MAX_CATALOG_TAGS, parseCatalogSearch } from '../../../packages/shared/src/catalogTags';
+import type {
+  CatalogCommandFilter,
+  CatalogSortOption,
+  CatalogWorkspaceSummary,
+} from '../../../packages/shared/src';
 
 export interface CatalogImage {
   id: string;
@@ -141,25 +146,28 @@ function mapCatalogImage(
   };
 }
 
-export function registerCatalogImage(input: {
-  libraryId?: string | null;
-  filePath: string;
-  thumbnailPath?: string | null;
-  prompt?: string | null;
-  negativePrompt?: string | null;
-  aspectRatio?: string | null;
-  imageSize?: string | null;
-  width?: number | null;
-  height?: number | null;
-  mimeType: string;
-  fileSizeBytes?: number | null;
-  jobId?: string | null;
-  workspaceId?: string | null;
-  batchId?: string | null;
-  recipeId?: string | null;
-  tags?: string[];
-  generationConfig?: Record<string, unknown> | null;
-}, db?: Database) {
+export function registerCatalogImage(
+  input: {
+    libraryId?: string | null;
+    filePath: string;
+    thumbnailPath?: string | null;
+    prompt?: string | null;
+    negativePrompt?: string | null;
+    aspectRatio?: string | null;
+    imageSize?: string | null;
+    width?: number | null;
+    height?: number | null;
+    mimeType: string;
+    fileSizeBytes?: number | null;
+    jobId?: string | null;
+    workspaceId?: string | null;
+    batchId?: string | null;
+    recipeId?: string | null;
+    tags?: string[];
+    generationConfig?: Record<string, unknown> | null;
+  },
+  db?: Database,
+) {
   const database = getDb(db);
   const library = input.libraryId ? getLibrary(input.libraryId, database) : getDefaultLibrary();
   if (!library) throw new Error('No studio library registered.');
@@ -243,6 +251,7 @@ function queryCatalogInternal(
     favorite?: boolean;
     isDeleted?: boolean;
     q?: string | null;
+    sort?: CatalogSortOption;
     offset?: number;
     limit?: number;
   } = {},
@@ -288,21 +297,38 @@ function queryCatalogInternal(
   clauses.push('is_deleted = ?');
   params.push(filters.isDeleted ? 1 : 0);
   if (filters.q) {
-    clauses.push('(prompt LIKE ? OR tags LIKE ?)');
-    params.push(`%${filters.q}%`, `%${filters.q}%`);
+    const search = parseCatalogSearch(filters.q);
+    if (search.tags.length > MAX_CATALOG_TAGS) return { images: [], total: 0, hasMore: false };
+    for (const tag of search.tags) {
+      clauses.push(
+        "EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(tags) THEN tags ELSE '[]' END) AS image_tag WHERE image_tag.value = ? COLLATE NOCASE)",
+      );
+      params.push(tag);
+    }
+    if (search.text) {
+      clauses.push('(prompt LIKE ? OR tags LIKE ?)');
+      params.push(`%${search.text}%`, `%${search.text}%`);
+    }
   }
   const where = `WHERE ${clauses.join(' AND ')}`;
   const limit = Math.min(Math.max(Number(filters.limit ?? 50), 1), 200);
   const offset = Math.max(Number(filters.offset ?? 0), 0);
+  const orderBy: Record<CatalogSortOption, string> = {
+    desc: 'created_at DESC, id DESC',
+    asc: 'created_at ASC, id ASC',
+    prompt: "COALESCE(NULLIF(prompt, ''), id) COLLATE NOCASE ASC, id ASC",
+    prompt_desc: "COALESCE(NULLIF(prompt, ''), id) COLLATE NOCASE DESC, id DESC",
+    ratio: "COALESCE(aspect_ratio, '1:1') ASC, id ASC",
+    id: 'id ASC',
+  };
   const total =
-    (
-      database.query(`SELECT COUNT(*) as count FROM catalog_images ${where}`).get(...params) as any
-    )?.count ?? 0;
+    (database.query(`SELECT COUNT(*) as count FROM catalog_images ${where}`).get(...params) as any)
+      ?.count ?? 0;
   const images = database
     .query(
       `SELECT ${
         options.includeGenerationConfig ? '*' : CATALOG_IMAGE_SUMMARY_COLUMNS
-      }, (SELECT provider_id FROM jobs WHERE jobs.id = catalog_images.job_id) AS provider_id FROM catalog_images ${where} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
+      }, (SELECT provider_id FROM jobs WHERE jobs.id = catalog_images.job_id) AS provider_id FROM catalog_images ${where} ORDER BY ${orderBy[filters.sort ?? 'desc']} LIMIT ? OFFSET ?`,
     )
     .all(...params, limit, offset)
     .map((row) => mapCatalogImage(row, options));

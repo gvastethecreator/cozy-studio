@@ -41,12 +41,15 @@ export const StudioImageOverlays: React.FC<StudioImageOverlaysProps & { provider
   isEditorOpen,
   closeEditor,
   imageToEdit,
+  editorDrafts,
   handleExecuteEdit,
   isEditingImage,
   imageEditNotice,
   requireMask = true,
 }) => {
   const { addToast } = useToastUi();
+  const { draftScopeKey } = useGenerationDraft();
+  const editorKey = `${draftScopeKey}:${imageToEdit?.localPath || imageToEdit?.sourceUrl || imageToEdit?.dataUrl || ''}`;
   return (
     <>
       {modalImage && (
@@ -68,9 +71,8 @@ export const StudioImageOverlays: React.FC<StudioImageOverlaysProps & { provider
             handleAddToContext(image);
             closeModal();
           }}
-          onLoadConfig={(config) => {
-            handleLoadRecipe(config);
-            closeModal();
+          onLoadConfig={async (config, options) => {
+            if (await handleLoadRecipe(config, options)) closeModal();
           }}
           onToggleFavorite={handleToggleFavorite}
           onActiveImageChange={setActiveCarouselId}
@@ -89,6 +91,7 @@ export const StudioImageOverlays: React.FC<StudioImageOverlaysProps & { provider
               }
             >
               <ImageEditorModal
+                key={editorKey}
                 isOpen={isEditorOpen}
                 onClose={closeEditor}
                 image={imageToEdit}
@@ -96,6 +99,11 @@ export const StudioImageOverlays: React.FC<StudioImageOverlaysProps & { provider
                 isGenerating={isEditingImage}
                 notice={imageEditNotice}
                 requireMask={requireMask}
+                draft={editorDrafts.get(editorKey)}
+                onDraftChange={(draft) => {
+                  if (draft) editorDrafts.set(editorKey, draft);
+                  else editorDrafts.delete(editorKey);
+                }}
                 backgroundControl={
                   imageToEdit ? (
                     <EditorBackground image={imageToEdit} providerId={providerId} />

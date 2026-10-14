@@ -51,7 +51,10 @@ interface ImageCarouselProps {
   onDelete: (id: string) => void;
   onRegenerate: (config: ImageGenerationConfig) => void;
   onAddToContext: (image: GeneratedImageWithConfig) => void;
-  onLoadConfig: (config: ImageGenerationConfig) => void;
+  onLoadConfig: (
+    config: ImageGenerationConfig,
+    options?: { restoreOriginalReferences?: boolean },
+  ) => void;
   onToggleFavorite: (id: string) => void;
   onActiveImageChange: (id: string) => void;
   transitionName?: string;
@@ -877,8 +880,15 @@ function CarouselDetailActions({
       <ActionButton
         onClick={() => onLoadConfig(currentImage.config)}
         icon={<History width={16} height={16} />}
-        label="Reuse settings"
+        label="Reuse settings · keep current references"
       />
+      {currentImage.config.attachments.length > 0 && (
+        <ActionButton
+          onClick={() => onLoadConfig(currentImage.config, { restoreOriginalReferences: true })}
+          icon={<History width={16} height={16} />}
+          label="Reuse settings and original references"
+        />
+      )}
       <ActionButton
         onClick={() => onRegenerate(currentImage.config)}
         icon={<RefreshCw width={16} height={16} />}

@@ -23,6 +23,7 @@ import { buildPortable } from './build-portable';
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const windowsLauncher = path.join(repoRoot, 'scripts', 'Cozy Studio.bat');
 const macLauncher = path.join(repoRoot, 'scripts', 'Cozy Studio.command');
+const unixLauncher = path.join(repoRoot, 'scripts', 'portable-launch.sh');
 const portableNote = path.join(repoRoot, 'PORTABLE.txt');
 
 describe('portable launchers', () => {
@@ -108,7 +109,8 @@ describe('portable launchers', () => {
 
   it('keeps missing-runtime copy and the ChatGPT login disclaimer in both launchers', () => {
     const bat = readFileSync(windowsLauncher, 'utf8');
-    const command = readFileSync(macLauncher, 'utf8');
+    const command = readFileSync(unixLauncher, 'utf8');
+    expect(readFileSync(macLauncher, 'utf8')).toContain('portable-launch.sh');
     const note = readFileSync(portableNote, 'utf8');
     for (const source of [bat, command]) {
       expect(source).toContain(ONBOARDING_BUN_INSTALL_URL);
@@ -226,6 +228,62 @@ describe('portable launchers', () => {
       }),
     ).rejects.toThrow(error);
     expect(waitMs).not.toHaveBeenCalled();
+  });
+});
+
+describe('Unix portable launchers', () => {
+  it('starts from another directory using bundled Bun for the macOS launcher', () => {
+    const bash =
+      process.platform === 'win32'
+        ? path.join(process.env.ProgramFiles ?? 'C:/Program Files', 'Git/bin/bash.exe')
+        : '/bin/bash';
+    const root = mkdtempSync(path.join(tmpdir(), 'cozy unix portable '));
+    try {
+      mkdirSync(path.join(root, 'runtime'));
+      mkdirSync(path.join(root, 'scripts'));
+      const bundledBun = path.join(root, 'runtime', 'bun');
+      writeFileSync(
+        bundledBun,
+        '#!/bin/bash\nprintf "PROBE|%s|%s|%s|%s\\n" "$STUDIO_PORTABLE" "$PWD" "$(command -v bun)" "$*"\n',
+      );
+      for (const source of [unixLauncher, macLauncher]) {
+        writeFileSync(
+          path.join(root, 'scripts', path.basename(source)),
+          readFileSync(source, 'utf8').replaceAll('\r\n', '\n'),
+        );
+      }
+      for (const launcherName of ['Cozy Studio.command']) {
+        const result = spawnSync(
+          bash,
+          [
+            '--noprofile',
+            '--norc',
+            '-c',
+            'chmod +x "$1"; exec /bin/bash "$2"',
+            'portable-test',
+            bundledBun,
+            path.join(root, 'scripts', launcherName),
+          ],
+          {
+            cwd: tmpdir(),
+            encoding: 'utf8',
+            timeout: 20_000,
+            env: { ...process.env, PATH: '/usr/bin:/bin', STUDIO_PORTABLE_NONINTERACTIVE: '1' },
+          },
+        );
+        expect(result.status, result.stderr).toBe(0);
+        const probe = result.stdout
+          .split('\n')
+          .find((line) => line.startsWith('PROBE|'))!
+          .split('|');
+        expect(probe[1]).toBe('1');
+        expect(probe[2]).toContain(path.basename(root));
+        expect(probe[3]).toBe(`${probe[2]}/runtime/bun`);
+        expect(probe[4]).toBe('run scripts/portable-start.ts');
+      }
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 

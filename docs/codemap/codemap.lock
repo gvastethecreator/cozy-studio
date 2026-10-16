@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
-  "source_commit": "a9d45434164adfa6c61aef521a4e390984199c66",
+  "source_commit": "d7403ad36f1d95ab2244a7759ccbf8bf08831de9",
   "working_tree_dirty": true,
-  "generated_at": "2026-10-16T06:54:33Z",
-  "generation_id": "8e66884354dfe7c70f1851c4dc8d0088b2cf37fe0e1ba66c7009b7ab696a5146",
+  "generated_at": "2026-10-16T07:20:09Z",
+  "generation_id": "6ba9f65673a825474a70f8a6579eb51a4ed7c348344e2e7ccb1c6ff952614d24",
   "analysis": {
     "version": "syntax-1",
     "digest": "96e36f012ebfed8f88e81298e738e1c64801c7245f18e598ae77c684b0b22329"
@@ -6121,7 +6121,7 @@
       },
       {
         "path": "scripts/Cozy Studio.sh",
-        "origin": "untracked",
+        "origin": "tracked",
         "state": "present",
         "digest": "342b1934777878e1caa10ca1550fd74928f24b61341abf2bb40b0348a10ab9e6",
         "size": 69
@@ -6170,7 +6170,7 @@
       },
       {
         "path": "scripts/build-portable.ts",
-        "origin": "untracked",
+        "origin": "tracked",
         "state": "present",
         "digest": "33c936738e8d4c75c2ad293fb96c2129b0c1dbda04433c4609586e4d64443b18",
         "size": 11387
@@ -6214,8 +6214,8 @@
         "path": "scripts/core-assets-browser-smoke.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "cc26ad1833a16aacfac3710c76b5eb3d5f83360dfa78a446f4230e45a6a15ddd",
-        "size": 11132
+        "digest": "927523eb795106a5ada21ec1015ddcefd9efcde68444d2671f0c75b1dcf17fb2",
+        "size": 11128
       },
       {
         "path": "scripts/core-assets-smoke.ts",
@@ -6387,7 +6387,7 @@
       },
       {
         "path": "scripts/portable-launch.sh",
-        "origin": "untracked",
+        "origin": "tracked",
         "state": "present",
         "digest": "90bf0e0ef90a38aa5c6ad60fda1d9b2a040bb25c76e2a85e65875ff025111742",
         "size": 911
@@ -7065,12 +7065,12 @@
         "size": 783
       }
     ],
-    "digest": "6fbe65bf3d662fd6e8c8129f013e12747def87d339d772c23b4fca0fd5f7dae5"
+    "digest": "f46fd1bbdd39cc1e399d5b6fde9bbbaa357df9fa0e6db84e21796c69c2f26124"
   },
-  "source_digest": "e8be5adbf17488aec6f81f327d822240261c097e59fb8451a324023f2c7730cf",
+  "source_digest": "8916e035882208b46b811a4b1acc0a2f302a225c62f44ddf07fe1e14807074e0",
   "artifact_hashes": {
-    "codemap.json": "9a1a30ed53a00ecb05f4d42557c6bd5b2c7511ab8553ca3532c446c3a48b78d1",
-    "codemap.md": "d523eafe0d4988eed69f361b95e2db3f8c01d1a07174062c9f5e3abada2e8a8d",
-    "codemap.html": "d461ae96fb3497fde8e3f74b93bcf848c0cd406a9fc4d07b9ab9409fb225c158"
+    "codemap.json": "fac212c4ff3cdc39b376c4f00fe6e07ac14699f9b1bf50a27bd6dc9f6a4cb6fe",
+    "codemap.md": "0c934bed950c4edd4ae9064e16873d58a6c99799b49d4eeb0573794d4ad988fb",
+    "codemap.html": "69859efb0ada1b29041c8469fe49373a0358c499298fd8faa9578c61e7ebbe0a"
   }
 }

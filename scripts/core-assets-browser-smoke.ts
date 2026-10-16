@@ -123,7 +123,7 @@ async function verifyLibraryUrl() {
       .getAttribute('aria-label')) ?? '',
     /amber/,
   );
-  await page.getByRole('button', { name: 'Favorites (1)', exact: true }).click();
+  await page.getByRole('button', { name: 'Favorites', exact: true }).click();
   await waitForLibraryCount(1);
   await page.waitForURL((url) => url.searchParams.get('favorites') === 'true');
   assert.equal(await page.evaluate(() => history.length), historyLength);

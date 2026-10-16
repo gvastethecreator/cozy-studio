@@ -5,6 +5,13 @@ cd /d "%~dp0.." || exit /b 1
 echo Cozy Studio portable launcher
 echo This launcher does not bundle ChatGPT login.
 
+set "STUDIO_BUN=%CD%\runtime\bun.exe"
+if exist "%STUDIO_BUN%" (
+  set "PATH=%CD%\runtime;%PATH%"
+  goto runtime_ready
+)
+
+set "STUDIO_BUN=bun"
 where bun >nul 2>nul
 if errorlevel 1 (
   echo Cozy Studio needs Bun. Install it from https://bun.sh/docs/installation then run this launcher again.
@@ -13,9 +20,10 @@ if errorlevel 1 (
   exit /b 1
 )
 
+:runtime_ready
 set "STUDIO_PORTABLE=1"
 
-bun run scripts/portable-start.ts
+"%STUDIO_BUN%" run scripts/portable-start.ts
 if errorlevel 1 (
   echo Cozy Studio failed to start.
   if not defined STUDIO_PORTABLE_NONINTERACTIVE pause

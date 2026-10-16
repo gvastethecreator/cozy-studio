@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -18,6 +18,7 @@ import {
   resolvePortableLibraryDir,
 } from './portableLaunch';
 import { runPortableStart } from './portable-start';
+import { buildPortable } from './build-portable';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const windowsLauncher = path.join(repoRoot, 'scripts', 'Cozy Studio.bat');
@@ -25,6 +26,9 @@ const macLauncher = path.join(repoRoot, 'scripts', 'Cozy Studio.command');
 const portableNote = path.join(repoRoot, 'PORTABLE.txt');
 
 describe('portable launchers', () => {
+  it('rejects an unsupported build target before downloading or creating an artifact', async () => {
+    await expect(buildPortable('../foreign-target')).rejects.toThrow('Unknown portable target');
+  });
   it('uses Codex Studio Library beside the unpack root when portable and env is unset', () => {
     expect(
       resolvePortableLibraryDir({
@@ -226,6 +230,50 @@ describe('portable launchers', () => {
 });
 
 describe('Windows portable dry-run', () => {
+  it('prefers bundled Bun and passes its PATH to child commands, including without global Bun', () => {
+    if (process.platform !== 'win32') return;
+    const root = mkdtempSync(path.join(tmpdir(), 'cozy portable runtime '));
+    try {
+      const runtimeDir = path.join(root, 'runtime');
+      const scriptDir = path.join(root, 'scripts');
+      mkdirSync(runtimeDir);
+      mkdirSync(scriptDir);
+      const discovery = spawnSync('bun', ['--print', 'process.execPath'], { encoding: 'utf8' });
+      expect(discovery.status).toBe(0);
+      const bundledBun = path.join(runtimeDir, 'bun.exe');
+      copyFileSync(discovery.stdout.trim(), bundledBun);
+      const launcher = path.join(scriptDir, 'Cozy Studio.bat');
+      copyFileSync(windowsLauncher, launcher);
+      writeFileSync(
+        path.join(scriptDir, 'portable-start.ts'),
+        [
+          'const child = Bun.spawnSync(["bun", "--print", "process.execPath"]);',
+          'console.log(JSON.stringify({',
+          'runtime: process.execPath, cwd: process.cwd(),',
+          'childRuntime: child.stdout.toString().trim(), portable: process.env.STUDIO_PORTABLE',
+          '}));',
+        ].join('\n'),
+      );
+      for (const initialPath of [process.env.PATH, 'C:\\Windows\\System32']) {
+        const result = spawnSync('cmd.exe', ['/c', `"${launcher}"`], {
+          cwd: tmpdir(),
+          encoding: 'utf8',
+          timeout: 20_000,
+          windowsVerbatimArguments: true,
+          env: { ...process.env, PATH: initialPath, STUDIO_PORTABLE_NONINTERACTIVE: '1' },
+        });
+        expect(result.status, result.stderr).toBe(0);
+        const output = JSON.parse(result.stdout.trim().split('\n').at(-1)!);
+        expect(output.runtime.toLowerCase()).toBe(bundledBun.toLowerCase());
+        expect(output.cwd).toBe(root);
+        expect(output.childRuntime.toLowerCase()).toBe(bundledBun.toLowerCase());
+        expect(output.portable).toBe('1');
+      }
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it('prints a readable Bun message and pauses when bun is missing from PATH', () => {
     if (process.platform !== 'win32') return;
     const result = spawnSync('cmd.exe', ['/c', `"${windowsLauncher}"`], {

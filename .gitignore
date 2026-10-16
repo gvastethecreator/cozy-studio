@@ -45,6 +45,7 @@ docs/codemap/.publisher.lock
 
 # Dependencies / build / coverage
 node_modules
+/runtime/
 dist
 dist-ssr
 .vite

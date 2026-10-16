@@ -86,7 +86,8 @@
     "preview:electron": "bun run scripts/preview-electron.ts",
     "tooling:logs": "bun run scripts/open-tooling-logs.ts",
     "tooling:logs:prune": "bun run scripts/tooling-task.ts tooling:logs:prune",
-    "start": "bun run scripts/portable-start.ts"
+    "start": "bun run scripts/portable-start.ts",
+    "portable:build": "bun run scripts/build-portable.ts"
   },
   "dependencies": {
     "@chenglou/pretext": "^1.0.0",

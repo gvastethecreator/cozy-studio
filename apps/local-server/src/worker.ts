@@ -208,28 +208,6 @@ export function createWorkerController({
     return limits.global;
   }
 
-  function buildCatalogGenerationConfig(prompt: string) {
-    const parsedPrompt = parsePromptTransportFn(prompt);
-    const executionOptions = resolveExecutionOptions();
-
-    return {
-      prompt: parsedPrompt.prompt,
-      recipeId: parsedPrompt.recipeId,
-      recipeParams: null,
-      attachments: [],
-      aspectRatio: parsedPrompt.aspectRatio,
-      imageSize: parsedPrompt.imageSize,
-      negativePrompt: parsedPrompt.negativePrompt,
-      temperature: 0.8,
-      model: 'codex-imagegen',
-      executionModel: executionOptions.model,
-      executionReasoningEffort: executionOptions.reasoningEffort,
-      executionSpeed: executionOptions.serviceTier ?? 'standard',
-      batchCount: 1,
-      useThinkingAndSearch: false,
-    };
-  }
-
   function buildCatalogGenerationConfigFromJob(job: Job) {
     if (job.sourceSpec) {
       const executionOptions = resolveExecutionOptions(job.execution);
@@ -678,6 +656,14 @@ export function createWorkerController({
         !runningJobs.has(jobId) &&
         (untracked.status === 'queued' || untracked.status === 'running')
       ) {
+        if (untracked.remoteExecution && untracked.remoteExecution.phase !== 'cancelled') {
+          const message =
+            'Local observation stopped; remote cancellation is not confirmed. Resume to reconcile the provider result.';
+          recordJobEvent(jobId, 'job.needs_review', message);
+          const job = updateJobStatusFn(jobId, 'needs_review', message);
+          publishEventFn('job.progress', job);
+          return job;
+        }
         recordJobEvent(jobId, 'job.cancelled', 'Cancelled a job that no worker was running.');
         const job = updateJobStatusFn(jobId, 'cancelled');
         publishEventFn('job.cancelled', job);

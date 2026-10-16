@@ -161,7 +161,7 @@ describe('QueuePanel views', () => {
     expect(screen.queryByText('No jobs running or queued')).toBeNull();
   });
 
-  it('keeps review requests visible when clearing finished jobs', () => {
+  it('keeps cleared review requests hidden after reopening the panel', () => {
     const review = {
       ...job('review-only', 'needs_review'),
       originalPrompt: 'Review image only',
@@ -180,19 +180,20 @@ describe('QueuePanel views', () => {
       loadMore: vi.fn(),
       retry: vi.fn(),
     });
-    render(
+    const { unmount } = render(
       React.createElement(QueuePanel, {
         onInspectJob: vi.fn(),
         onCancelServerJob: vi.fn(),
       }),
     );
     expect(screen.getByText('Review image only')).toBeTruthy();
-    fireEvent.click(screen.getByLabelText('Job list options'));
-    fireEvent.click(screen.getByRole('button', { name: 'Hide finished jobs from this list' }));
-    expect(screen.getByText('Review image only')).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Review\s*1/ }).getAttribute('aria-pressed')).toBe(
-      'true',
-    );
+    expect(screen.queryByLabelText('Job list options')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear finished and review jobs' }));
+    expect(screen.queryByText('Review image only')).toBeNull();
+    unmount();
+    render(React.createElement(QueuePanel, { onInspectJob: vi.fn(), onCancelServerJob: vi.fn() }));
+    fireEvent.click(screen.getByRole('button', { name: /Review\s*0/ }));
+    expect(screen.queryByText('Review image only')).toBeNull();
   });
 
   it('hides prior finished jobs, preserves later results, and restores history', () => {
@@ -219,8 +220,7 @@ describe('QueuePanel views', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'History' }));
     expect(screen.getByRole('button', { name: 'Inspect job: Prompt' })).toBeTruthy();
-    fireEvent.click(screen.getByLabelText('Job list options'));
-    fireEvent.click(screen.getByRole('button', { name: 'Hide finished jobs from this list' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear finished and review jobs' }));
     expect(screen.queryByRole('button', { name: 'Inspect job: Prompt' })).toBeNull();
     const cutoff = Number(window.localStorage.getItem('studio-jobs-history-cleared-at'));
     const result = {
@@ -247,13 +247,13 @@ describe('QueuePanel views', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /Review\s*1/ }));
     expect(screen.getByRole('button', { name: 'Inspect job: Future result' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Show all history' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show cleared jobs' }));
     fireEvent.click(screen.getByRole('button', { name: 'History' }));
     expect(screen.getByRole('button', { name: 'Inspect job: Prompt' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Show all history' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Show cleared jobs' })).toBeNull();
   });
 
-  it('clears failed and review jobs without hiding completed or active jobs', () => {
+  it('clears finished and review jobs without hiding active jobs and can restore them', () => {
     vi.mocked(useJobHistory).mockReturnValue({
       key: '',
       page: null,
@@ -280,16 +280,16 @@ describe('QueuePanel views', () => {
         onCancelServerJob: vi.fn(),
       }),
     );
-    fireEvent.click(screen.getByLabelText('Job list options'));
-    fireEvent.click(screen.getByRole('button', { name: 'Hide failed and review jobs' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear finished and review jobs' }));
     expect(screen.getByText('Running image')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Review\s*0/ })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'History' }));
-    expect(screen.getByText('Completed image')).toBeTruthy();
+    expect(screen.queryByText('Completed image')).toBeNull();
     expect(screen.queryByText('Failed image')).toBeNull();
     expect(window.localStorage.getItem('studio-jobs-attention-cleared-at')).not.toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Show hidden failed/review jobs' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show cleared jobs' }));
     expect(screen.getByText('Failed image')).toBeTruthy();
+    expect(screen.getByText('Completed image')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /Review\s*1/ }));
     expect(screen.getByText('Review image')).toBeTruthy();
   });

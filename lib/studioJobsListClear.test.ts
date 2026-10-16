@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { act, cleanup, renderHook } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useStudioJobsListClearedAt } from '../hooks/useStudioJobsListClearedAt';
 
 import {
@@ -16,6 +16,7 @@ import {
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   window.localStorage.removeItem(STUDIO_JOBS_LIST_CLEARED_AT_KEY);
   window.localStorage.removeItem(STUDIO_JOBS_ATTENTION_CLEARED_AT_KEY);
 });
@@ -37,10 +38,30 @@ describe('studioJobsListClear', () => {
         cutoff,
       ),
     ).toBe(true);
-    act(() => result.current.showAttentionJobs());
+    act(() => result.current.showAllHistory());
     rerender({ enabled: false });
     rerender({ enabled: true });
     expect(readStudioJobsAttentionClearedAt()).toBe(0);
+  });
+
+  it('keeps a manual clear when startup settings arrive later', () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1000);
+    const { result, rerender } = renderHook(
+      ({ enabled }: { enabled: boolean | undefined }) => useStudioJobsListClearedAt(enabled),
+      { initialProps: { enabled: undefined as boolean | undefined } },
+    );
+    now.mockReturnValue(3000);
+    act(() => result.current.clearListedJobs());
+    rerender({ enabled: true });
+    expect(result.current.clearedAt).toBe(3000);
+    expect(result.current.attentionClearedAt).toBe(3000);
+    expect(
+      isStudioJobVisibleAfterAttentionClear(
+        'needs_review',
+        new Date(2000).toISOString(),
+        result.current.attentionClearedAt,
+      ),
+    ).toBe(false);
   });
   it('hides jobs last updated at or before the clear time', () => {
     expect(isStudioJobVisibleAfterListClear('2026-07-18T00:00:00.000Z', 0)).toBe(true);
@@ -50,7 +71,7 @@ describe('studioJobsListClear', () => {
     expect(isStudioJobVisibleAfterListClear('2026-07-18T12:00:01.000Z', clearedAt)).toBe(true);
   });
 
-  it('round-trips the stored cutoff and restores both history filters', () => {
+  it('synchronizes local and cross-tab clears and restores both history filters', () => {
     const { result } = renderHook(() => useStudioJobsListClearedAt());
     act(() => {
       writeStudioJobsListClearedAt(1_700_000_000_000);
@@ -60,6 +81,18 @@ describe('studioJobsListClear', () => {
     act(() => result.current.showAllHistory());
     expect(result.current.clearedAt).toBe(0);
     expect(result.current.attentionClearedAt).toBe(0);
+    act(() => {
+      window.localStorage.setItem(STUDIO_JOBS_LIST_CLEARED_AT_KEY, '1700000000001');
+      window.localStorage.setItem(STUDIO_JOBS_ATTENTION_CLEARED_AT_KEY, '1700000000001');
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: STUDIO_JOBS_ATTENTION_CLEARED_AT_KEY,
+          storageArea: window.localStorage,
+        }),
+      );
+    });
+    expect(result.current.clearedAt).toBe(1_700_000_000_001);
+    expect(result.current.attentionClearedAt).toBe(1_700_000_000_001);
   });
 
   it('hides only previously failed or review jobs, not later failures or completed work', () => {

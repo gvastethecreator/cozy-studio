@@ -26,20 +26,16 @@ export function useStudioJobsListClearedAt(clearReviewJobsOnStartup?: boolean) {
     if (clearReviewJobsOnStartup === undefined || appliedStartupPreference.current) return;
     appliedStartupPreference.current = true;
     if (clearReviewJobsOnStartup) {
-      writeStudioJobsAttentionClearedAt(sessionStartedAt);
+      writeStudioJobsAttentionClearedAt(
+        Math.max(sessionStartedAt, readStudioJobsAttentionClearedAt()),
+      );
     }
   }, [clearReviewJobsOnStartup, sessionStartedAt]);
 
   const clearListedJobs = useCallback(() => {
-    writeStudioJobsListClearedAt(Date.now());
-  }, []);
-
-  const clearAttentionJobs = useCallback(() => {
-    writeStudioJobsAttentionClearedAt(Date.now());
-  }, []);
-
-  const showAttentionJobs = useCallback(() => {
-    writeStudioJobsAttentionClearedAt(0);
+    const at = Date.now();
+    writeStudioJobsListClearedAt(at);
+    writeStudioJobsAttentionClearedAt(at);
   }, []);
 
   const showAllHistory = useCallback(() => {
@@ -51,8 +47,6 @@ export function useStudioJobsListClearedAt(clearReviewJobsOnStartup?: boolean) {
     clearedAt,
     clearListedJobs,
     attentionClearedAt,
-    clearAttentionJobs,
-    showAttentionJobs,
     showAllHistory,
   };
 }

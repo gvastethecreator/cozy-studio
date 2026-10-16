@@ -19,9 +19,7 @@ import { ReferenceImportConflictError } from './referenceImport';
 interface Dependencies {
   request: (path: string, init?: RequestInit) => Promise<Response>;
   readSettings: () => EditableStudioSettings;
-  importReference?: (
-    input: StudioReferenceImportInput,
-  ) => Promise<StudioReferenceImportResult>;
+  importReference?: (input: StudioReferenceImportInput) => Promise<StudioReferenceImportResult>;
 }
 
 export function createMcpRoutes({ request, readSettings, importReference }: Dependencies) {
@@ -40,7 +38,8 @@ export function createMcpRoutes({ request, readSettings, importReference }: Depe
     ) {
       return c.json(
         {
-          error: 'MCP access denied. Change Agent access (MCP) in Studio Settings > Advanced & maintenance.',
+          error:
+            'MCP access denied. Change Agent access (MCP) in Studio Settings > Advanced & maintenance.',
           access: settings.mcpAccess,
         },
         403,

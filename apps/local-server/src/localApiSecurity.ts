@@ -93,6 +93,9 @@ export function createLocalApiSecurityMiddleware(
   const allowedOrigins = createAllowedOriginSet(options.allowedOrigins);
 
   return async (c, next) => {
+    if (!isLoopbackHostname(new URL(c.req.url).hostname)) {
+      return c.json({ error: 'Forbidden host', code: 'forbidden_host' }, 403);
+    }
     const origin = c.req.header('Origin');
     const normalizedOrigin = origin ? normalizeOrigin(origin) : null;
 

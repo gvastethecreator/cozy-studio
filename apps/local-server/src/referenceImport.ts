@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import {
   closeSync,
   existsSync,
@@ -25,10 +25,7 @@ import { getDb } from './db/connection';
 import { readImageMetadata } from './imagePipeline';
 import { resolveLibraryPathFromRoot } from './library';
 import { getDefaultLibrary, getLibrary } from './libraries';
-import {
-  prepareReferencesForPersistence,
-  ReferenceProcessingError,
-} from './referenceManager';
+import { prepareReferencesForPersistence, ReferenceProcessingError } from './referenceManager';
 
 const MIME_FORMAT = {
   'image/png': 'png',
@@ -217,8 +214,8 @@ async function validateReference(input: StudioReferenceImportInput): Promise<Val
   if (bytes.length === 0 || bytes.length > STUDIO_REFERENCE_IMPORT_MAX_BYTES) {
     throw new Error('Reference image exceeds 8 MiB.');
   }
-  const actualSha = createHash('sha256').update(bytes).digest('hex');
-  if (actualSha !== parsed.data.sha256) {
+  const actualSha = createHash('sha256').update(bytes).digest();
+  if (!timingSafeEqual(actualSha, Buffer.from(parsed.data.sha256, 'hex'))) {
     throw new Error('Reference digest does not match the image bytes.');
   }
   if (mimeFromSignature(bytes) !== parsed.data.mimeType) {
@@ -262,7 +259,11 @@ function restoreIfMissing(filePath: string, bytes: Buffer, libraryPath: string) 
   }
 }
 
-function reusableCatalogId(database: Database, library: ImportLibrary, validated: ValidatedReference) {
+function reusableCatalogId(
+  database: Database,
+  library: ImportLibrary,
+  validated: ValidatedReference,
+) {
   const rows = database
     .query(
       `SELECT catalog_image_id FROM reference_import_receipts

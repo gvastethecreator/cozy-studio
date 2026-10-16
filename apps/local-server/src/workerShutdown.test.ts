@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import { Cause, Effect, Exit } from 'effect';
 import { providerPromise, providerSync } from './providers/providerEffect';
 import { describe, expect, it, vi } from 'vitest';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -191,6 +191,79 @@ describe('worker shutdown', () => {
     expect(harness.jobs.get(first.id)?.status).toBe('cancelled');
     await harness.controller.shutdown();
   });
+  it.each([true, false])(
+    'holds Comfy capacity until remote cancellation settles: confirmed=%s',
+    async (confirmed) => {
+      const started = createDeferred();
+      const cleaning = createDeferred();
+      const releaseCleanup = createDeferred();
+      const nextStarted = createDeferred();
+      const first = { ...createJob('remote-cleanup-first'), providerId: 'comfy' as const };
+      const next = { ...createJob('remote-cleanup-next'), providerId: 'comfy' as const };
+      const checkpoint = {
+        providerId: 'comfy' as const,
+        runtimeIdentity: 'runtime-a',
+        promptId: 'remote-id',
+        phase: 'accepted' as const,
+        startedAt: 1,
+      };
+      let interrupted = false;
+      let cleanupFailed = false;
+      const harness = createWorkerHarness([first, next], ({ id, checkpointRemoteExecution }) =>
+        Effect.gen(function* () {
+          if (id !== first.id) {
+            nextStarted.resolve();
+            return { assets: [], transcript: '', threadId: null, turnId: null, durationMs: 0 };
+          }
+          checkpointRemoteExecution!(checkpoint);
+          return yield* Effect.uninterruptibleMask((restore) =>
+            Effect.gen(function* () {
+              started.resolve();
+              const exit = yield* Effect.exit(restore(Effect.never));
+              interrupted = Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause);
+              yield* providerPromise(async () => {
+                cleaning.resolve();
+                await releaseCleanup.promise;
+              });
+              if (!confirmed) {
+                cleanupFailed = true;
+                return yield* Effect.fail(
+                  new ProviderExecutionUncertainError('Comfy cancellation was not confirmed.'),
+                );
+              }
+              checkpointRemoteExecution!({ ...checkpoint, phase: 'cancelled' });
+              return yield* exit;
+            }),
+          );
+        }),
+      );
+      harness.controller.enqueueJob(first);
+      harness.controller.enqueueJob(next);
+      await started.promise;
+      harness.controller.cancelQueuedOrRunningJob(first.id);
+      await cleaning.promise;
+      expect(interrupted).toBe(true);
+      expect(harness.jobs.get(first.id)?.status).toBe('running');
+      expect(harness.jobs.get(next.id)?.status).toBe('queued');
+      expect(harness.controller.getWorkerStatus().activeByProvider).toEqual({ comfy: 1 });
+      releaseCleanup.resolve();
+      await nextStarted.promise;
+      expect(cleanupFailed).toBe(!confirmed);
+      expect(harness.jobs.get(first.id)).toMatchObject({
+        status: confirmed ? 'cancelled' : 'needs_review',
+        remoteExecution: { ...checkpoint, phase: confirmed ? 'cancelled' : 'accepted' },
+      });
+      const firstEvents = harness.addJobEvent.mock.calls
+        .filter(([id]) => id === first.id)
+        .map((call) => call[1]);
+      expect(firstEvents).toContain(confirmed ? 'job.cancelled' : 'job.needs_review');
+      expect(firstEvents).not.toContain(confirmed ? 'job.needs_review' : 'job.cancelled');
+      if (!confirmed) {
+        expect(harness.jobs.get(first.id)?.error).toContain('Remote cancellation is not confirmed');
+      }
+      await harness.controller.shutdown();
+    },
+  );
   it('rejects invalid resource limits and cancels reserved work before a provider starts', async () => {
     for (const global of [0, -1, 1.5, Infinity, 17]) {
       expect(() => validateWorkerLimits({ global, providers: {} })).toThrow('global capacity');
@@ -517,5 +590,30 @@ describe('worker shutdown', () => {
 
     expect(controller.cancelQueuedOrRunningJob(job.id)?.status).toBe('cancelled');
     expect(jobs.get(job.id)?.status).toBe('cancelled');
+  });
+
+  it('requires review when cancelling held work with an unconfirmed remote execution', async () => {
+    const job = {
+      ...createJob('job-held-remote'),
+      status: 'running' as const,
+      remoteExecution: {
+        providerId: 'comfy' as const,
+        runtimeIdentity: 'runtime-a',
+        promptId: 'remote-id',
+        phase: 'accepted' as const,
+        startedAt: 1,
+      },
+    };
+    const { controller, jobs, publishEvent } = createWorkerHarness([job]);
+    try {
+      expect(controller.cancelQueuedOrRunningJob(job.id)?.status).toBe('needs_review');
+      expect(jobs.get(job.id)?.error).toContain('remote cancellation is not confirmed');
+      expect(publishEvent).toHaveBeenCalledWith(
+        'job.progress',
+        expect.objectContaining({ status: 'needs_review', remoteExecution: job.remoteExecution }),
+      );
+    } finally {
+      await controller.shutdown();
+    }
   });
 });

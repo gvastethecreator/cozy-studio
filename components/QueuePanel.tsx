@@ -242,7 +242,7 @@ function QueueHistoryFilters({
         </details>
       ) : null}
       <p className="text-xs text-[color:var(--wb-muted)]">
-        {jobHistory.page?.counts.history ?? '—'} matching jobs
+        {jobHistory.page?.counts.history ?? '—'} recorded jobs
         {attentionClearedAt > 0 && (statusFilter === '' || statusFilter === 'failed')
           ? ' · prior failures hidden from this list'
           : ''}
@@ -294,14 +294,8 @@ function useQueuePanelData(
   const [view, setView] = useState<'active' | 'review' | 'history'>('active');
   const [autoSelectedView, setAutoSelectedView] = useState(false);
   const [visibleCount, setVisibleCount] = useState(20);
-  const {
-    clearedAt,
-    clearListedJobs,
-    attentionClearedAt,
-    clearAttentionJobs,
-    showAttentionJobs,
-    showAllHistory,
-  } = useStudioJobsListClearedAt();
+  const { clearedAt, clearListedJobs, attentionClearedAt, showAllHistory } =
+    useStudioJobsListClearedAt();
   const activeJobs = jobHistory.open.filter((job) => job.status !== 'needs_review');
   const reviewJobs = jobHistory.open.filter(
     (job) =>
@@ -402,8 +396,6 @@ function useQueuePanelData(
     clearedAt,
     showAllHistory,
     attentionClearedAt,
-    clearAttentionJobs,
-    showAttentionJobs,
     activeJobs,
     reviewJobs,
     jobs,
@@ -558,8 +550,6 @@ export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
       clearedAt,
       showAllHistory,
       attentionClearedAt,
-      clearAttentionJobs,
-      showAttentionJobs,
       activeJobs,
       reviewJobs,
       jobs,
@@ -578,34 +568,15 @@ export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
         <div className="flex items-center justify-between px-3 py-3">
           <h3 className="text-sm font-semibold text-[color:var(--wb-ink)]/90">Jobs</h3>
           <div className="flex shrink-0 items-center gap-1">
-            <details className="relative">
-              <summary
-                aria-label="Job list options"
-                className="studio-hit-target cursor-pointer rounded-[var(--wb-radius)] px-2 py-1.5 text-xs text-[color:var(--wb-muted)] hover:text-[color:var(--wb-ink)]"
-              >
-                Options
-              </summary>
-              <div className="absolute right-0 top-full z-10 flex w-56 flex-col items-stretch rounded-[var(--wb-radius)] border border-[color:var(--wb-border)] bg-[color:var(--wb-panel)] p-2 shadow-lg">
-                <button
-                  type="button"
-                  aria-label="Hide failed and review jobs"
-                  data-tooltip="Hide failed and review jobs from this list; records are kept"
-                  onClick={clearAttentionJobs}
-                  className="studio-hit-target whitespace-nowrap rounded-[var(--wb-radius)] px-2 py-1.5 text-xs text-[color:var(--wb-warning)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)]"
-                >
-                  Clear issues
-                </button>
-                <button
-                  type="button"
-                  aria-label="Hide finished jobs from this list"
-                  data-tooltip="Hide finished jobs; active jobs and review requests stay visible"
-                  onClick={() => clearListedJobs()}
-                  className="studio-hit-target whitespace-nowrap rounded-[var(--wb-radius)] px-2 py-1.5 text-xs text-[color:var(--wb-muted)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)]"
-                >
-                  Clear list
-                </button>
-              </div>
-            </details>
+            <button
+              type="button"
+              aria-label="Clear finished and review jobs"
+              data-tooltip="Hide finished and review jobs; active jobs, images and records are kept"
+              onClick={clearListedJobs}
+              className="studio-hit-target rounded-[var(--wb-radius)] px-2 py-1.5 text-xs text-[color:var(--wb-muted)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)]"
+            >
+              Clear
+            </button>
             {onClose ? (
               <button
                 type="button"
@@ -619,22 +590,13 @@ export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
             ) : null}
           </div>
         </div>
-        {clearedAt > 0 ? (
+        {clearedAt > 0 || attentionClearedAt > 0 ? (
           <button
             type="button"
             onClick={showAllHistory}
             className="border-b border-[color:var(--wb-border)] px-3 py-2 text-left text-xs text-[color:var(--wb-muted)] underline hover:text-[color:var(--wb-ink)]"
           >
-            Show all history
-          </button>
-        ) : null}
-        {attentionClearedAt > 0 ? (
-          <button
-            type="button"
-            onClick={showAttentionJobs}
-            className="border-b border-[color:var(--wb-border)] px-3 py-2 text-left text-xs text-[color:var(--wb-muted)] underline hover:text-[color:var(--wb-ink)]"
-          >
-            Show hidden failed/review jobs
+            Show cleared jobs
           </button>
         ) : null}
         <QueueNavigation

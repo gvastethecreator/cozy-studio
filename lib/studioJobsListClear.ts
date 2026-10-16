@@ -42,6 +42,20 @@ export function isStudioJobVisibleAfterAttentionClear(
 
 export function subscribeStudioJobsListCleared(listener: () => void): () => void {
   if (typeof window === 'undefined') return () => undefined;
+  const onStorage = (event: StorageEvent) => {
+    if (
+      event.storageArea === window.localStorage &&
+      (event.key === null ||
+        event.key === STUDIO_JOBS_LIST_CLEARED_AT_KEY ||
+        event.key === STUDIO_JOBS_ATTENTION_CLEARED_AT_KEY)
+    ) {
+      listener();
+    }
+  };
   window.addEventListener(STUDIO_JOBS_LIST_CLEARED_EVENT, listener);
-  return () => window.removeEventListener(STUDIO_JOBS_LIST_CLEARED_EVENT, listener);
+  window.addEventListener('storage', onStorage);
+  return () => {
+    window.removeEventListener(STUDIO_JOBS_LIST_CLEARED_EVENT, listener);
+    window.removeEventListener('storage', onStorage);
+  };
 }

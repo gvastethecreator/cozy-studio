@@ -30,6 +30,29 @@ describe('localApiSecurity', () => {
     expect(isAllowedLocalApiOrigin('invalid-url')).toBe(false);
   });
 
+  it('rejects rebinding hosts even without Origin and preserves allowed browser clients', async () => {
+    const app = new Hono();
+    app.use('*', createLocalApiSecurityMiddleware({ allowedOrigins: ['https://studio.example'] }));
+    app.get('/api/catalog', (c) => c.json({ ok: true }));
+    for (const origin of [undefined, 'http://localhost:17222']) {
+      const response = await app.request('http://rebound.attacker.test:17223/api/catalog', {
+        headers: origin ? { Origin: origin } : undefined,
+      });
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toEqual({
+        error: 'Forbidden host',
+        code: 'forbidden_host',
+      });
+    }
+    for (const hostname of ['localhost', '127.0.0.1', '[::1]']) {
+      const response = await app.request(`http://${hostname}:17223/api/catalog`, {
+        headers: { Origin: 'https://studio.example' },
+      });
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://studio.example');
+    }
+  });
+
   it('varies cached responses by Origin while preserving Vary and origin restrictions', async () => {
     const app = new Hono();
     app.use('*', async (c, next) => {

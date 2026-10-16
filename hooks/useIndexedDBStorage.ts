@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { get, set } from '../utils/idb';
 import { runtimeLogger } from '../utils/runtimeLogger';
 
@@ -36,7 +36,9 @@ function useIndexedDBStorage<T>(
   const edited = useRef(false);
   const latest = useRef(state.value);
   const saveAttempt = useRef(0);
-  latest.current = state.value;
+  useLayoutEffect(() => {
+    latest.current = state.value;
+  }, [state.value]);
   const prepareForPersist = options.prepareForPersist;
   const recoverAfterRead = options.recoverAfterRead;
 

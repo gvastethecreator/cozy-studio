@@ -168,7 +168,8 @@ describe('studio_import_reference', () => {
                   ? Response.json(image)
                   : Response.json({ error: 'Catalog image not found' }, { status: 404 });
               }
-              if (requestPath.startsWith('/api/catalog')) return Response.json(queryCatalog({}, database));
+              if (requestPath.startsWith('/api/catalog'))
+                return Response.json(queryCatalog({}, database));
               return Response.json({ ok: true });
             },
           }),
@@ -200,10 +201,12 @@ describe('studio_import_reference', () => {
       const retried = await call('studio_import_reference', input);
       expect(retried.status).toBe(200);
       expect(await retried.json()).toEqual(createdBody);
-      expect(await importStudioReference(input, {
-        database,
-        library: { id: 'another-library', path: path.join(libraryDir, 'another') },
-      })).toEqual(createdBody);
+      expect(
+        await importStudioReference(input, {
+          database,
+          library: { id: 'another-library', path: path.join(libraryDir, 'another') },
+        }),
+      ).toEqual(createdBody);
       expect(countRows(database, 'catalog_images')).toBe(1);
       expect(countRows(database, 'reference_import_receipts')).toBe(1);
 

@@ -18,7 +18,6 @@ import {
 import ToastContainer from './ToastContainer';
 import { materializeCatalogEntryImageWithConfig } from '../lib/studioCatalogImageAdapter';
 import { ControlTooltips } from './Tooltip';
-import { CreateWorkspace, CreateResults } from './create/CreateWorkspace';
 import { getRecipeShellTitle } from '../lib/recipeShellMetadata';
 import { resolveRecipeAlias } from '../lib/recipeAliases';
 import { StudioStatusBar } from './shell/StudioStatusBar';
@@ -31,6 +30,12 @@ import { cn } from '../lib/utils';
 
 const AppOverlays = React.lazy(() =>
   import('./AppOverlays').then((m) => ({ default: m.AppOverlays })),
+);
+const CreateWorkspace = React.lazy(() =>
+  import('./create/CreateWorkspace').then((module) => ({ default: module.CreateWorkspace })),
+);
+const CreateResults = React.lazy(() =>
+  import('./create/CreateWorkspace').then((module) => ({ default: module.CreateResults })),
 );
 const StudioGenerationDock = React.lazy(() =>
   import('./shell/StudioGenerationDock').then((module) => ({
@@ -231,17 +236,19 @@ function AppWorkspace({ model }: { model: AppWorkbenchModel }) {
           (image) => (image.config.recipeId ?? null) === (activeRecipe ?? null),
         )?.id,
         results: (
-          <CreateResults
-            key={`${shell.headerToolbar.props.activeWorkspaceId}:${activeRecipe ?? 'default'}`}
-            title={activeRecipe ? getRecipeShellTitle(activeRecipe) : undefined}
-            recipePageProps={shell.viewport.recipePageProps}
-            images={stageImages}
-            history={shell.history}
-            selectedId={shell.historySelection.id}
-            onSelectId={shell.historySelection.setId}
-            onToggleFavorite={shell.viewport.studioPageController.grid.handleToggleFavorite}
-            onUseAsSource={shell.viewport.studioPageController.grid.handleUseAsSource}
-          />
+          <Suspense fallback={<LazySurfaceFallback label="Loading results" />}>
+            <CreateResults
+              key={`${shell.headerToolbar.props.activeWorkspaceId}:${activeRecipe ?? 'default'}`}
+              title={activeRecipe ? getRecipeShellTitle(activeRecipe) : undefined}
+              recipePageProps={shell.viewport.recipePageProps}
+              images={stageImages}
+              history={shell.history}
+              selectedId={shell.historySelection.id}
+              onSelectId={shell.historySelection.setId}
+              onToggleFavorite={shell.viewport.studioPageController.grid.handleToggleFavorite}
+              onUseAsSource={shell.viewport.studioPageController.grid.handleUseAsSource}
+            />
+          </Suspense>
         ),
       }}
     >
@@ -324,33 +331,35 @@ function AppWorkbench({ model }: { model: AppWorkbenchModel }) {
       onPointerDownCapture={shell.root.onMainClick}
     >
       {isWorkspace ? (
-        <CreateWorkspace
-          key={`${shell.headerToolbar.props.activeWorkspaceId}:${activeRecipe ?? 'default'}:${shell.viewport.activeRecipeAliasId ?? ''}`}
-          workspaceTab={workspaceTab}
-          onNarrowChange={setIsNarrowWorkbench}
-          recipePageProps={shell.viewport.recipePageProps}
-          hasGenerationDock={hasGenerationDock}
-          GenerationDock={StudioGenerationDock}
-          generationDockProps={shell.generationDock}
-          onToggleFavorite={shell.viewport.studioPageController.grid.handleToggleFavorite}
-          onUseAsSource={shell.viewport.studioPageController.grid.handleUseAsSource}
-          images={stageImages}
-          history={shell.history}
-          selectedId={shell.historySelection.id}
-          onSelectId={shell.historySelection.setId}
-          routeKey={isRecipe ? `recipe-${activeRecipe ?? 'active'}` : 'recipes-list'}
-          onSidePanelTarget={setSidePanelTarget}
-          workflowName={
-            isRecipe && activeRecipe && activeRecipe !== 'styles'
-              ? (resolveRecipeAlias(shell.viewport.activeRecipeAliasId)?.title ??
-                getRecipeShellTitle(activeRecipe))
-              : undefined
-          }
-          workflowControls={<div ref={setControlsTarget} className="create-recipe-controls" />}
-          stage={<StudioViewport {...shell.viewport} />}
-          action={<div className="recipe-primary-action" ref={setActionTarget} />}
-          tools={<div ref={setCompactControls} className="create-recipe-controls" />}
-        />
+        <Suspense fallback={<LazySurfaceFallback label="Loading workspace" className="flex-1" />}>
+          <CreateWorkspace
+            key={`${shell.headerToolbar.props.activeWorkspaceId}:${activeRecipe ?? 'default'}:${shell.viewport.activeRecipeAliasId ?? ''}`}
+            workspaceTab={workspaceTab}
+            onNarrowChange={setIsNarrowWorkbench}
+            recipePageProps={shell.viewport.recipePageProps}
+            hasGenerationDock={hasGenerationDock}
+            GenerationDock={StudioGenerationDock}
+            generationDockProps={shell.generationDock}
+            onToggleFavorite={shell.viewport.studioPageController.grid.handleToggleFavorite}
+            onUseAsSource={shell.viewport.studioPageController.grid.handleUseAsSource}
+            images={stageImages}
+            history={shell.history}
+            selectedId={shell.historySelection.id}
+            onSelectId={shell.historySelection.setId}
+            routeKey={isRecipe ? `recipe-${activeRecipe ?? 'active'}` : 'recipes-list'}
+            onSidePanelTarget={setSidePanelTarget}
+            workflowName={
+              isRecipe && activeRecipe && activeRecipe !== 'styles'
+                ? (resolveRecipeAlias(shell.viewport.activeRecipeAliasId)?.title ??
+                  getRecipeShellTitle(activeRecipe))
+                : undefined
+            }
+            workflowControls={<div ref={setControlsTarget} className="create-recipe-controls" />}
+            stage={<StudioViewport {...shell.viewport} />}
+            action={<div className="recipe-primary-action" ref={setActionTarget} />}
+            tools={<div ref={setCompactControls} className="create-recipe-controls" />}
+          />
+        </Suspense>
       ) : (
         <div className="workbench-canvas relative min-w-0 flex-1 overflow-hidden">
           <StudioViewport {...shell.viewport} />

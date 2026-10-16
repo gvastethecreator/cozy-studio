@@ -29,6 +29,10 @@ export default defineConfig({
         codeSplitting: {
           groups: [
             {
+              name: 'react-runtime',
+              test: /[\\/]node_modules[\\/](?:react|react-dom|scheduler)[\\/]/,
+            },
+            {
               // Shell code shared by the entry and lazy surfaces. Keeping it in one chunk keeps
               // the entry small however the lazy recipe graph changes.
               name: 'shell-shared',

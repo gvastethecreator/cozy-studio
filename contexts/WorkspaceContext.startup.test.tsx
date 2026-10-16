@@ -52,6 +52,7 @@ describe('workspace startup', () => {
   it.each(['Create workspace', 'Delete workspace'])(
     'clears the previous collection on %s while preserving valid deep links',
     async (action) => {
+      const onUrlUpdate = vi.fn<(event: UrlUpdateEvent) => void>();
       vi.mocked(migrateIndexedDbWorkspacesToServer).mockResolvedValueOnce({
         workspaces: [
           { id: 'default', createdAt: 1 },
@@ -61,7 +62,11 @@ describe('workspace startup', () => {
         migrated: false,
       });
       render(
-        <NuqsTestingAdapter searchParams={'?workspace=current&collection=album'} hasMemory>
+        <NuqsTestingAdapter
+          searchParams={'?workspace=current&collection=album'}
+          onUrlUpdate={onUrlUpdate}
+          hasMemory
+        >
           <ToastUiProvider>
             <WorkspaceProvider>
               <ActiveWorkspace />
@@ -73,6 +78,11 @@ describe('workspace startup', () => {
         expect(screen.getByTestId('active-workspace').textContent).toBe('current'),
       );
       expect(screen.getByTestId('collection').textContent).toBe('album');
+      await waitFor(() =>
+        expect(onUrlUpdate.mock.lastCall?.[0].queryString).toBe(
+          '?workspace=current&collection=album',
+        ),
+      );
       fireEvent.click(screen.getByRole('button', { name: action }));
       await waitFor(() =>
         expect(screen.getByTestId('active-workspace').textContent).toBe(

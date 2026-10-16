@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { CreateWorkflowPicker } from './CreateWorkflowPicker';
 import { WORKFLOW_CATEGORIES } from '../../packages/shared/src/workflowCatalog';
@@ -9,6 +9,11 @@ vi.mock('../../lib/recipeRouteModules', () => ({ preloadRecipeComponent: vi.fn()
 vi.mock('../../lib/studioViewportRouteSurfaces', () => ({
   preloadStudioViewportSurface: vi.fn(),
 }));
+
+beforeAll(async () => {
+  // Keep Vite's cold module compilation outside the interaction wait.
+  await import('../recipes/RecipeDiscoveryList');
+});
 
 afterEach(cleanup);
 

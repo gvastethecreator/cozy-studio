@@ -17,6 +17,7 @@ import {
 } from './extensionInstaller';
 import type { ExtensionSourceClient, RemoteExtensionSource } from './extensionSources';
 import type { ExtensionStore } from './extensionStore';
+import { extractImageMetadata } from './metadataEmbedder';
 import {
   createLocalExtensionInstallHandler,
   LOCAL_EXTENSION_BODY_LIMIT,
@@ -307,6 +308,9 @@ export function createExtensionRoutes({
     if (!relativePath || !contentType) return c.json({ error: 'Unsupported file' }, 400);
     const file = await store.readFile(id, relativePath);
     if (!file) return c.json({ error: 'Not found' }, 404);
+    if (c.req.query('metadata') === 'true') {
+      return c.json({ metadata: extractImageMetadata(file, path.extname(relativePath)) });
+    }
     return c.body(new Uint8Array(file), 200, {
       'Content-Type': contentType,
       'Cache-Control': 'public, max-age=3600',

@@ -156,6 +156,7 @@ export function deleteWorkspaceFromDb(database: Database, id: string): DeleteWor
   if (!getWorkspaceFromDb(database, id)) {
     return { ok: false, status: 404, error: 'Workspace not found' };
   }
+  database.query('DELETE FROM catalog_collections WHERE workspace_id = ?').run(id);
   database.query('DELETE FROM workspaces WHERE id = ?').run(id);
   return { ok: true };
 }

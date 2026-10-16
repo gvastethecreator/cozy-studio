@@ -614,6 +614,7 @@ export async function createStudioApp(
       embedMetadata,
       getJob,
       updateCatalogImageFileSize,
+      publishEvent,
     }),
   );
 

@@ -535,11 +535,18 @@ function extractWebpMetadata(file: Buffer): ImageGenMetadata | null {
 export async function extractMetadata(filePath: string): Promise<ImageGenMetadata | null> {
   try {
     if (!existsSync(filePath)) return null;
-    const ext = path.extname(filePath).toLowerCase();
-    if (ext === '.jpg' || ext === '.jpeg') return extractJpegMetadata(readFileSync(filePath));
-    if (ext === '.webp') return extractWebpMetadata(readFileSync(filePath));
+    return extractImageMetadata(readFileSync(filePath), path.extname(filePath));
+  } catch {
+    return null;
+  }
+}
+
+export function extractImageMetadata(file: Buffer, extension: string): ImageGenMetadata | null {
+  try {
+    const ext = extension.toLowerCase();
+    if (ext === '.jpg' || ext === '.jpeg') return extractJpegMetadata(file);
+    if (ext === '.webp') return extractWebpMetadata(file);
     if (ext !== '.png') return null;
-    const file = readFileSync(filePath);
     if (!file.subarray(0, 8).equals(PNG_SIGNATURE)) return null;
     let offset = 8;
     while (offset < file.length) {

@@ -6,6 +6,26 @@ export interface CatalogTagChanges {
   removeTags?: string[];
 }
 
+export interface CatalogTag {
+  name: string;
+  color: string | null;
+  imageCount: number;
+  lastUsedAt: string | null;
+}
+
+export interface CatalogTagPatch {
+  name?: string;
+  color?: string | null;
+}
+
+export function validateTagColor(value: unknown): string | null {
+  if (value === null || value === '') return null;
+  if (typeof value !== 'string' || !/^#[\da-f]{6}$/i.test(value)) {
+    throw new Error('Choose a six-digit hex color.');
+  }
+  return value.toLowerCase();
+}
+
 const hashtagPattern = /^[\p{L}\p{M}\p{N}_-]+$/u;
 
 export function normalizeImageHashtag(value: string): string {
@@ -50,13 +70,22 @@ export function validateCatalogTags(value: unknown): string[] {
   return [...new Set(value as string[])];
 }
 
-export function applyCatalogTagChanges(current: string[], changes: CatalogTagChanges): string[] {
+export function applyCatalogTagChanges(
+  current: string[],
+  changes: CatalogTagChanges,
+  knownTags: readonly string[] = [],
+): string[] {
+  const known = new Set(knownTags);
   const added =
     changes.addTags === undefined
       ? []
-      : validateCatalogTags(changes.addTags).map(normalizeImageHashtag);
-  const removed = changes.removeTags === undefined ? [] : validateCatalogTags(changes.removeTags);
-  const kept = current.filter((tag) => !removed.includes(tag));
+      : validateCatalogTags(changes.addTags).map((tag) =>
+          known.has(tag) ? tag : normalizeImageHashtag(tag),
+        );
+  const removed = new Set(
+    changes.removeTags === undefined ? [] : validateCatalogTags(changes.removeTags),
+  );
+  const kept = current.filter((tag) => !removed.has(tag));
   // SQLite NOCASE folds ASCII only; preserve older Unicode tags beside the canonical hashtag.
   const existing = new Set(
     kept.map((tag) => tag.replace(/[A-Z]/g, (letter) => letter.toLowerCase())),
@@ -67,12 +96,27 @@ export function applyCatalogTagChanges(current: string[], changes: CatalogTagCha
 export function parseCatalogSearch(query: string) {
   const tags: string[] = [];
   const text = query
-    .replace(/(^|\s)#([\p{L}\p{M}\p{N}_-]+)(?=\s|$)/gu, (token, space, tag) => {
-      if (tag.length > MAX_CATALOG_TAG_LENGTH) return token;
-      tags.push(normalizeImageHashtag(tag));
+    .replace(/(^|\s)#("(?:[^"\\]|\\.)*"|[\p{L}\p{M}\p{N}_-]+)(?=\s|$)/gu, (token, space, tag) => {
+      try {
+        tags.push(
+          ...validateCatalogTags([
+            tag.startsWith('"') ? JSON.parse(tag) : normalizeImageHashtag(tag),
+          ]),
+        );
+      } catch {
+        return token;
+      }
       return space;
     })
     .trim()
     .replace(/\s+/gu, ' ');
   return { text, tags: [...new Set(tags)] };
+}
+
+export function formatCatalogSearchTag(tag: string) {
+  const canonical =
+    hashtagPattern.test(tag) &&
+    tag.length <= MAX_CATALOG_TAG_LENGTH &&
+    tag.toLowerCase().normalize('NFC') === tag;
+  return `#${canonical ? tag : JSON.stringify(tag)}`;
 }

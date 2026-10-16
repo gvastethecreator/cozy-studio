@@ -7,7 +7,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { buildCatalogWorkspaceClause } from './catalogWorkspaceClause';
 import { queryCatalog, updateCatalogImage } from './catalog';
-import { applyCatalogTagChanges } from '../../../packages/shared/src/catalogTags';
+import {
+  applyCatalogTagChanges,
+  formatCatalogSearchTag,
+} from '../../../packages/shared/src/catalogTags';
 
 const testDb = vi.hoisted(() => ({ current: undefined as Database | undefined }));
 vi.mock('./db/connection', () => ({ getDb: (db?: Database) => db ?? testDb.current }));
@@ -20,6 +23,7 @@ describe('buildCatalogWorkspaceClause', () => {
     try {
       sqlite.exec(`
         CREATE TABLE jobs (id TEXT, provider_id TEXT);
+        CREATE TABLE catalog_tags (workspace_id TEXT, name TEXT, color TEXT, last_used_at TEXT, PRIMARY KEY (workspace_id, name));
         CREATE TABLE catalog_images (
           id TEXT PRIMARY KEY, library_id TEXT, file_path TEXT DEFAULT '/missing-test-image.png', thumbnail_path TEXT,
           public_url TEXT, thumbnail_url TEXT, prompt TEXT, negative_prompt TEXT,
@@ -108,6 +112,18 @@ describe('buildCatalogWorkspaceClause', () => {
         ).images.map((image) => image.id),
       ).toEqual(['old']);
       expect(queryCatalog({ workspaceId: 'default', q: '#jefe%' }, database).total).toBe(0);
+      expect(
+        queryCatalog({ workspaceId: 'default', q: '#"imported reference"' }, database).images.map(
+          (image) => image.id,
+        ),
+      ).toEqual(['old']);
+      updateCatalogImage('old', { tags: ['ACCIÓN'] });
+      expect(
+        queryCatalog(
+          { workspaceId: 'default', q: formatCatalogSearchTag('ACCIÓN') },
+          database,
+        ).images.map((image) => image.id),
+      ).toEqual(['old']);
     } finally {
       testDb.current = undefined;
       sqlite.close();

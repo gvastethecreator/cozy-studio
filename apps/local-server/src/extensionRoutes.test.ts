@@ -3,6 +3,8 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import JSZip from 'jszip';
+import sharp from 'sharp';
+import { embedMetadata } from './metadataEmbedder';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createExtensionRoutes } from './extensionRoutes';
 import type { ExtensionSourceClient } from './extensionSources';
@@ -75,6 +77,23 @@ describe('extension routes', () => {
     expect((await routes.request('/cozy.pack-14/files/..%2Fsecret.json')).status).toBe(404);
     expect((await routes.request('/cozy.pack-14/files/extension.exe')).status).toBe(400);
     expect((await routes.request('/cozy.missing/files/pack.json')).status).toBe(404);
+    const original = path.join(source, 'cozy.pack-14', 'example.webp');
+    await sharp({ create: { width: 4, height: 3, channels: 4, background: '#818cf8' } })
+      .webp()
+      .toFile(original);
+    await embedMetadata(original, {
+      prompt: 'Original example prompt',
+      model: 'test',
+      generatedAt: '2026-10-15',
+      studioVersion: 'test',
+    });
+    const metadata = await routes.request('/cozy.pack-14/files/example.webp?metadata=true');
+    expect(await metadata.json()).toMatchObject({
+      metadata: { prompt: 'Original example prompt', model: 'test' },
+    });
+    expect(
+      (await routes.request('/cozy.pack-14/files/..%2Fsecret.json?metadata=true')).status,
+    ).toBe(404);
   });
 });
 

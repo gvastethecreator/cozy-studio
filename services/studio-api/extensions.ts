@@ -111,3 +111,13 @@ export async function getRemotePackPreview(sourceId: string, id: string) {
 export function previewImageUrl(imageBase: string, image: string) {
   return `${getStudioApiBase()}${imageBase}${image.split('/').map(encodeURIComponent).join('/')}`;
 }
+
+export async function getStyleImageMetadata(src: string) {
+  const url = new URL(src, window.location.href);
+  if (!url.pathname.startsWith('/api/extensions/')) return null;
+  url.searchParams.set('metadata', 'true');
+  const result = await request<{ metadata: Record<string, unknown> | null }>(
+    `${url.pathname}${url.search}`,
+  );
+  return result.metadata;
+}

@@ -7,6 +7,7 @@ import { getDb } from './db/connection';
 import { getDefaultLibrary, getLibrary } from './libraries';
 import { resolveLibraryPathFromRoot, toPublicAssetUrl } from './library';
 import { buildCatalogWorkspaceClause } from './catalogWorkspaceClause';
+import { recordCatalogTagUse } from './catalogTags';
 import { MAX_CATALOG_TAGS, parseCatalogSearch } from '../../../packages/shared/src/catalogTags';
 import type {
   CatalogCommandFilter,
@@ -215,6 +216,7 @@ export function registerCatalogImage(
       input.generationConfig === undefined ? null : JSON.stringify(input.generationConfig),
       createdAt,
     );
+  recordCatalogTagUse(input.workspaceId ?? 'default', input.tags ?? [], database);
   return getCatalogImage(id, database)!;
 }
 
@@ -248,6 +250,7 @@ function queryCatalogInternal(
     recipeId?: string | null;
     jobId?: string | null;
     batchId?: string | null;
+    collectionId?: string | null;
     favorite?: boolean;
     isDeleted?: boolean;
     q?: string | null;
@@ -289,6 +292,18 @@ function queryCatalogInternal(
   if (filters.batchId) {
     clauses.push('batch_id = ?');
     params.push(filters.batchId);
+  }
+  if (filters.collectionId) {
+    clauses.push(
+      `EXISTS (
+        SELECT 1 FROM catalog_collection_images
+        JOIN catalog_collections ON catalog_collections.id = catalog_collection_images.collection_id
+        WHERE catalog_collection_images.image_id = catalog_images.id
+          AND catalog_collection_images.collection_id = ?
+          AND catalog_collections.workspace_id = COALESCE(catalog_images.workspace_id, 'default')
+      )`,
+    );
+    params.push(filters.collectionId);
   }
   if (filters.favorite !== undefined) {
     clauses.push('is_favorite = ?');
@@ -479,6 +494,14 @@ export function updateCatalogImage(
       patch.workspaceId === undefined ? image.workspaceId : patch.workspaceId,
       id,
     );
+  const workspaceId = patch.workspaceId === undefined ? image.workspaceId : patch.workspaceId;
+  const previousTags = new Set(image.tags);
+  recordCatalogTagUse(
+    workspaceId ?? 'default',
+    (patch.tags ?? image.tags).filter(
+      (tag) => workspaceId !== image.workspaceId || !previousTags.has(tag),
+    ),
+  );
   return getCatalogImage(id);
 }
 

@@ -374,6 +374,55 @@ const DATABASE_MIGRATIONS = [
       );
     },
   },
+  {
+    version: 12,
+    name: 'catalog-collections',
+    migrate(database: Database) {
+      database.run(`CREATE TABLE catalog_collections (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`);
+      database.run(
+        'CREATE UNIQUE INDEX idx_catalog_collections_workspace_name ON catalog_collections(workspace_id, name COLLATE NOCASE)',
+      );
+      database.run(`CREATE TABLE catalog_collection_images (
+        collection_id TEXT NOT NULL REFERENCES catalog_collections(id) ON DELETE CASCADE,
+        image_id TEXT NOT NULL REFERENCES catalog_images(id) ON DELETE CASCADE,
+        added_at TEXT NOT NULL,
+        PRIMARY KEY (collection_id, image_id)
+      )`);
+      database.run(
+        'CREATE INDEX idx_catalog_collection_images_image ON catalog_collection_images(image_id)',
+      );
+    },
+  },
+  {
+    version: 13,
+    name: 'catalog-organization-presentation',
+    migrate(database: Database) {
+      database.run('ALTER TABLE catalog_collections ADD COLUMN emoji TEXT');
+      database.run('ALTER TABLE catalog_collections ADD COLUMN last_used_at TEXT');
+      database.run(`UPDATE catalog_collections SET last_used_at = (
+        SELECT MAX(added_at) FROM catalog_collection_images WHERE collection_id = catalog_collections.id
+      )`);
+      database.run(`CREATE TABLE catalog_tags (
+        workspace_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        color TEXT,
+        last_used_at TEXT,
+        PRIMARY KEY (workspace_id, name)
+      )`);
+      database.run(`INSERT INTO catalog_tags (workspace_id, name, last_used_at)
+        SELECT COALESCE(image.workspace_id, 'default'), tag.value, MAX(image.created_at)
+        FROM catalog_images image,
+          json_each(CASE WHEN json_valid(image.tags) THEN image.tags ELSE '[]' END) tag
+        WHERE tag.type = 'text'
+        GROUP BY COALESCE(image.workspace_id, 'default'), tag.value`);
+    },
+  },
 ] as const;
 
 function backfillJobOperationalColumns(database: Database) {

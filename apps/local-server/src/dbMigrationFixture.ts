@@ -505,7 +505,16 @@ try {
     JSON.stringify(getJob('comfy-legacy-queued', remoteDatabase)?.remoteExecution) ===
     JSON.stringify(remoteCheckpoint);
   remoteDatabase.close();
+  database
+    .query('UPDATE catalog_images SET tags = ? WHERE id = ?')
+    .run('{broken', 'catalog-sentinel');
   migrateDatabase(database);
+  if (
+    database.query<{ count: number }, []>('SELECT COUNT(*) AS count FROM catalog_tags').get()
+      ?.count !== 0
+  ) {
+    throw new Error('Invalid legacy tags must not become organization entries.');
+  }
   migrateDatabase(database);
   const migrationRows = database
     .query('SELECT version, name FROM schema_migrations ORDER BY version')

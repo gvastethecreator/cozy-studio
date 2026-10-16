@@ -250,6 +250,9 @@ describe('catalog routes', () => {
     await patch({ removeTags: ['acción'] });
     const reopened = await routes.request('/image-1');
     await expect(reopened.json()).resolves.toMatchObject({ tags: ['imported reference', 'jefe'] });
+    await patch({ removeTags: ['imported reference'] });
+    expect((await patch({ addTags: ['imported reference'] })).status).toBe(200);
+    expect(store.getCatalogImage('image-1')?.tags).toEqual(['jefe', 'imported reference']);
   });
 
   it('returns exact workspace summaries independent of catalog page budgets', async () => {
@@ -343,5 +346,125 @@ describe('catalog routes', () => {
       changedCount: 2,
       failed: [],
     });
+  });
+
+  it('rejects malformed batch filters without broadening their selection', async () => {
+    const image = catalogImage({ id: 'trashed-image', isDeleted: true });
+    const store = createMemoryCatalogStore([image]);
+    const routes = createRoutes(store);
+    for (const action of ['archive', 'restore', 'purge']) {
+      for (const body of [
+        '{',
+        'null',
+        '[]',
+        '{}',
+        '{"ids":42}',
+        '{"ids":[]}',
+        '{"ids":["trashed-image",42]}',
+        '{"workspaceId":null}',
+        '{"batchId":""}',
+        '{"isDeleted":"true"}',
+        '{"id":"trashed-image"}',
+      ]) {
+        const response = await routes.request(`/commands/${action}`, { method: 'POST', body });
+        expect(response.status, `${action}: ${body}`).toBe(400);
+        expect(store.getCatalogImage(image.id)?.isDeleted).toBe(true);
+      }
+    }
+    const response = await routes.request('/commands/purge', {
+      method: 'POST',
+      body: JSON.stringify({ isDeleted: true }),
+    });
+    expect(response.status).toBe(200);
+    expect(store.getCatalogImage(image.id)).toBeNull();
+  });
+
+  it('creates a collection from workspace images and forwards it as a catalog filter', async () => {
+    const calls: QueryCatalogFilters[] = [];
+    const store = createMemoryCatalogStore(
+      [
+        catalogImage({ id: 'image-1', workspaceId: 'default' }),
+        catalogImage({ id: 'image-2', workspaceId: 'other' }),
+      ],
+      (filters) => calls.push(filters ?? {}),
+    );
+    const routes = createRoutes(store);
+    const rejected = await routes.request('/collections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspaceId: 'default', name: ' ', imageIds: ['image-1'] }),
+    });
+    expect(rejected.status).toBe(400);
+    const created = await routes.request('/collections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        workspaceId: 'default',
+        name: 'Bosses',
+        imageIds: ['image-1', 'image-2'],
+      }),
+    });
+    expect(created.status).toBe(201);
+    await expect(created.json()).resolves.toMatchObject({ name: 'Bosses', imageCount: 1 });
+    const listed = await routes.request('/collections?workspace_id=default');
+    const collections = (await listed.json()) as Array<{ id: string }>;
+    expect(collections).toHaveLength(1);
+    const selection = await routes.request('/collections/selection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspaceId: 'default', imageIds: ['image-1', 'image-2', 'image-1'] }),
+    });
+    expect(selection.status).toBe(200);
+    await expect(selection.json()).resolves.toMatchObject([
+      { id: collections[0].id, selectedImageCount: 1 },
+    ]);
+    const invalidSelection = await routes.request('/collections/selection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspaceId: 'default', imageIds: [] }),
+    });
+    expect(invalidSelection.status).toBe(400);
+    await routes.request(`/?collection_id=${collections[0].id}`);
+    expect(calls.at(-1)?.collectionId).toBe(collections[0].id);
+    const removed = await routes.request(`/collections/${collections[0].id}`, { method: 'DELETE' });
+    expect(removed.status).toBe(200);
+    const remaining = await routes.request('/collections?workspace_id=default');
+    await expect(remaining.json()).resolves.toEqual([]);
+  });
+
+  it('validates organization appearance and renames tags within one workspace', async () => {
+    const store = createMemoryCatalogStore([
+      catalogImage({ tags: ['boss'] }),
+      catalogImage({ id: 'other', workspaceId: 'other', tags: ['boss'] }),
+    ]);
+    const routes = createRoutes(store);
+    const patch = (body: unknown) =>
+      routes.request('/tags/boss', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    expect((await patch({ workspaceId: 'default', color: 'red' })).status).toBe(400);
+    expect((await patch({ workspaceId: 'default', name: '#HERO', color: '#FB7185' })).status).toBe(
+      200,
+    );
+    expect(store.getCatalogImage('image-1')?.tags).toEqual(['hero']);
+    expect(store.getCatalogImage('other')?.tags).toEqual(['boss']);
+    const tags = await routes.request('/tags?workspace_id=default');
+    expect(await tags.json()).toEqual([
+      expect.objectContaining({ name: 'hero', color: '#fb7185' }),
+    ]);
+    for (const [emoji, status] of [
+      ['🎨', 201],
+      ['📷✨', 400],
+      ['text', 400],
+    ] as const) {
+      const response = await routes.request('/collections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspaceId: 'default', name: emoji, emoji }),
+      });
+      expect(response.status).toBe(status);
+    }
   });
 });

@@ -209,6 +209,27 @@ function createFakeCatalogStore(overrides?: Partial<StudioCatalogStore>): Studio
     softDeleteCatalogImage: vi.fn((id: string) => (id === image.id ? image : null)),
     restoreCatalogImage: vi.fn(() => image),
     purgeCatalogImage: vi.fn((id: string) => (id === image.id ? image : null)),
+    listCollections: vi.fn(() => []),
+    listCollectionSelection: vi.fn(() => []),
+    listTags: vi.fn(() => []),
+    createTag: vi.fn((workspaceId, name, color) => ({
+      workspaceId,
+      name,
+      color,
+      imageCount: 0,
+      lastUsedAt: null,
+    })),
+    updateTag: vi.fn(() => null),
+    createCollection: vi.fn(() => ({
+      id: 'collection-1',
+      workspaceId: 'default',
+      name: 'Collection',
+      imageCount: 0,
+      createdAt: image.createdAt,
+      updatedAt: image.createdAt,
+    })),
+    updateCollection: vi.fn(() => null),
+    deleteCollection: vi.fn(() => false),
   };
 
   return { ...store, ...overrides };

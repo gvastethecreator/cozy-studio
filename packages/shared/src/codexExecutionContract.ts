@@ -25,7 +25,7 @@ export interface CodexExecutionPolicy {
 
 // Studio's subscription adapter has one chat model contract. Public API model
 // support does not establish entitlement on the ChatGPT subscription endpoint.
-export const CODEX_HTTP_CHAT_MODEL = 'gpt-5.5';
+export const CODEX_HTTP_CHAT_MODEL = 'gpt-6-sol';
 // OpenAI's current default GPT Image model for everyday generation. Keep this
 // separate from the mainline chat model sent to the Responses endpoint.
 export const CODEX_HTTP_IMAGE_MODEL: CodexHttpImageModel = 'gpt-image-2.5-flare';
@@ -76,7 +76,7 @@ export const CODEX_HTTP_RATIO_SIZES: Record<string, string> = {
 export const CODEX_HTTP_MODEL: CodexModel = {
   id: CODEX_HTTP_CHAT_MODEL,
   model: CODEX_HTTP_CHAT_MODEL,
-  displayName: 'GPT-5.5',
+  displayName: 'GPT-6-Sol',
   description: 'ChatGPT HTTP image generation.',
   hidden: false,
   defaultReasoningEffort: CODEX_HTTP_REASONING,
@@ -244,7 +244,7 @@ export function resolveCodexExecutionPolicy(
     execution.serviceTier
   ) {
     throw new Error(
-      'ChatGPT HTTP uses GPT-5.5 with provider-managed reasoning and speed. Apply the HTTP settings before generating.',
+      `ChatGPT HTTP uses ${CODEX_HTTP_MODEL.displayName} with provider-managed reasoning and speed. Apply the HTTP settings before generating.`,
     );
   }
   if ((sourceSpec?.assets.length ?? 0) > CODEX_HTTP_MAX_INPUT_IMAGES) {

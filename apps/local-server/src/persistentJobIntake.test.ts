@@ -204,7 +204,7 @@ describe('persistentJobIntake', () => {
       kind: 'image_generate',
       providerId: 'chatgpt',
       prompt: 'draw',
-      execution: { model: 'gpt-5.4', reasoningEffort: 'high', serviceTier: 'fast' },
+      execution: { model: 'gpt-5.5', reasoningEffort: 'provider_default', serviceTier: null },
     });
     expect(unsupported).toMatchObject({
       ok: false,
@@ -216,7 +216,7 @@ describe('persistentJobIntake', () => {
       providerId: 'chatgpt',
       prompt: 'draw',
       execution: {
-        model: 'gpt-5.5',
+        model: 'gpt-6-sol',
         reasoningEffort: 'provider_default',
         serviceTier: null,
         providerOptions: {
@@ -251,7 +251,7 @@ describe('persistentJobIntake', () => {
       providerId: 'chatgpt',
       prompt: 'draw',
       execution: {
-        model: 'gpt-5.5',
+        model: 'gpt-6-sol',
         reasoningEffort: 'provider_default',
         serviceTier: null,
         providerOptions: { chatgpt: {} },

@@ -84,7 +84,7 @@ describe('composerProviderProjection', () => {
     };
     const projection = buildComposerProviderProjection(input);
     expect(projection.generateBlock).toBeNull();
-    expect(projection.execution.selectedModel?.id).toBe('gpt-5.5');
+    expect(projection.execution.selectedModel?.id).toBe('gpt-6-sol');
     expect(projection.execution.summary).toContain('Flare');
     expect(projection.execution.selectedImageModel?.id).toBe('gpt-image-2.5-flare');
     expect(projection.execution.imageModels.map((model) => model.id)).toEqual([

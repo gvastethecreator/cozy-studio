@@ -1,7 +1,6 @@
 import { effect, frame, init, surface } from "vgpu";
 import { DEFAULT_SHADE, resolveShadeId, SHADE_IDS } from "./shade-variants.js";
 import { createGlBackend } from "./shade-webgl.js";
-import shadeCommon from "./shade-common.wgsl";
 import shadeCommonGlsl from "./shade-common.glsl";
 import flowWgsl from "./shades/flow.wgsl";
 import grainWgsl from "./shades/grain.wgsl";
@@ -34,15 +33,13 @@ const GLSL_BODIES = {
   speckle: speckleGlsl,
 };
 
-export const SHADE_SOURCES = Object.fromEntries(
-  SHADE_IDS.map((id) => [id, `${shadeCommon}\n${BODIES[id]}`]),
-);
+export const SHADE_SOURCES = BODIES;
 
 export const SHADE_GLSL = Object.fromEntries(
   SHADE_IDS.map((id) => [id, `${shadeCommonGlsl}\n${GLSL_BODIES[id]}`]),
 );
 
-export const SHADE_WGSL = SHADE_SOURCES[DEFAULT_SHADE];
+export const SHADE_WGSL = SHADE_SOURCES[DEFAULT_SHADE].wgsl;
 
 let gpuPromise = null;
 
@@ -167,7 +164,9 @@ async function createGpuBackend(canvas, { gpu, variant, params }) {
       shade?.set({ params: next });
     },
     async setVariant(id) {
+      const previous = shade;
       shade = await compile(id);
+      previous?.dispose();
       shade.set({ params: bag });
     },
     draw() {
@@ -178,6 +177,7 @@ async function createGpuBackend(canvas, { gpu, variant, params }) {
     },
     dispose() {
       unsubResize();
+      shade?.dispose();
       canvasSurface.dispose();
     },
     size() {

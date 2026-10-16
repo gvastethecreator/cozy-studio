@@ -2,6 +2,7 @@ import type { ProviderDefaultSettings } from '../../packages/shared/src/studioSe
 import {
   CODEX_HTTP_CHAT_MODEL,
   CODEX_HTTP_IMAGE_DISPLAY_NAME,
+  CODEX_HTTP_MODEL,
   CODEX_HTTP_REASONING,
 } from '../../packages/shared/src/codexExecutionContract';
 
@@ -18,7 +19,9 @@ function ChatGptExecutionDefaults({
     value.serviceTier;
   return (
     <div className="md:col-span-2 space-y-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_4%,transparent)] p-4">
-      <p className="text-xs text-[color:var(--wb-ink)]">ChatGPT HTTP · GPT-5.5</p>
+      <p className="text-xs text-[color:var(--wb-ink)]">
+        ChatGPT HTTP · {CODEX_HTTP_MODEL.displayName}
+      </p>
       <p className="text-xs text-[color:var(--wb-muted)]">
         {CODEX_HTTP_IMAGE_DISPLAY_NAME} · Medium · Managed
       </p>

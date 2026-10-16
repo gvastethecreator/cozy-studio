@@ -11,7 +11,7 @@ The walkthrough screenshots show the running Studio interface, captured on 2026-
 
 ## Build
 
-You need Bun and Node 22.18 or newer.
+You need Bun and Node 22.22 or newer.
 
 ```bash
 cd landing
@@ -24,10 +24,7 @@ bun run build         # dist/, for GitHub Pages under /cozy-studio/
 
 In the repository's Pages settings, use GitHub Actions as the source and leave Custom domain empty. The production build uses `/cozy-studio/` for assets and links; `build:local` uses `/` for local preview.
 
-The build prints two notices that are not errors:
-
-- `Could not resolve "vgpu"`: the shader for hero icons is not rebuilt. The build keeps the copy in `kit/vendor/`. This page does not use it.
-- `Pretext is not installed`: the build keeps the copy in `kit/vendor/pretext/`.
+Install the locked dependencies before building. The build prepares the VGPU shaders and bundles Pretext from those installed versions. A failed bundle stops the build instead of shipping an older vendor copy.
 
 ## Deploy to Cloudflare
 

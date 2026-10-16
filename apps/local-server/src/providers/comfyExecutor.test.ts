@@ -343,9 +343,7 @@ describe('comfyExecutor', () => {
             signal.abort();
           }),
       });
-      await expect(
-        execute(executor, job, confirmed ? undefined : signal.signal),
-      ).rejects.toMatchObject({
+      await expect(execute(executor, job)).rejects.toMatchObject({
         name: confirmed ? 'AbortError' : 'ProviderExecutionUncertainError',
       });
       expect(job.remoteExecution?.phase).toBe(confirmed ? 'cancelled' : 'accepted');

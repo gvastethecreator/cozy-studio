@@ -114,7 +114,7 @@ describe('ChatGPT responses image executor and captured Codex HTTP jobs', () => 
       ],
     });
     expect(payload).toMatchObject({
-      model: 'gpt-5.5',
+      model: 'gpt-6-sol',
       tools: [
         {
           type: 'image_generation',

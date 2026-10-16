@@ -1,4 +1,5 @@
 export const GOOGLE_IMAGE_MODELS = [
+  'gemini-nano-banana-2.1',
   'gemini-3.1-flash-lite-image',
   'gemini-3.1-flash-image',
   'gemini-3-pro-image',
@@ -6,9 +7,10 @@ export const GOOGLE_IMAGE_MODELS = [
 
 export type GoogleImageModel = (typeof GOOGLE_IMAGE_MODELS)[number];
 
-export const DEFAULT_GOOGLE_IMAGE_MODEL: GoogleImageModel = 'gemini-3.1-flash-image';
+export const DEFAULT_GOOGLE_IMAGE_MODEL: GoogleImageModel = 'gemini-nano-banana-2.1';
 
 export const GOOGLE_IMAGE_SIZES_BY_MODEL = {
+  'gemini-nano-banana-2.1': ['1K', '2K', '4K'],
   'gemini-3.1-flash-lite-image': ['1K'],
   'gemini-3.1-flash-image': ['512', '1K', '2K', '4K'],
   'gemini-3-pro-image': ['1K', '2K', '4K'],

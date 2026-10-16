@@ -43,7 +43,7 @@ function createGoogleContext(
     ...overrides.sourceSpec,
   });
   const env = overrides.env ?? { GOOGLE_API_KEY: 'secret-google-value' };
-  const model = overrides.model ?? 'gemini-3.1-flash-image';
+  const model = overrides.model ?? 'gemini-nano-banana-2.1';
 
   return {
     providerId: 'google' as const,
@@ -119,7 +119,7 @@ describe('google executor', () => {
       'x-goog-api-key': 'secret-google-value',
     });
     expect(requestBody).toMatchObject({
-      model: 'gemini-3.1-flash-image',
+      model: 'gemini-nano-banana-2.1',
       input: [{ type: 'text', text: 'small brass key\n\nAvoid: blur' }],
       response_format: { type: 'image', mime_type: 'image/png', image_size: '1K' },
       store: false,
@@ -252,7 +252,10 @@ describe('google executor', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('keeps model-specific image sizes inside the supported catalog', async () => {
+  it.each([
+    ['gemini-3.1-flash-lite-image', '4K'],
+    ['gemini-nano-banana-2.1', '512'],
+  ])('rejects unsupported %s image size %s', async (model, imageSize) => {
     const executor = createGoogleImageExecutor({
       env: { GOOGLE_API_KEY: 'secret-google-value' },
       fetch: async () => new Response('{}'),
@@ -263,13 +266,13 @@ describe('google executor', () => {
         Effect.scoped(
           executor(
             createGoogleContext({
-              model: 'gemini-3.1-flash-lite-image',
-              sourceSpec: { output: { count: 1, imageSize: '4K' } },
+              model,
+              sourceSpec: { output: { count: 1, imageSize } },
             }),
           ),
         ),
       ),
-    ).rejects.toThrow('does not support 4K output');
+    ).rejects.toThrow(`does not support ${imageSize} output`);
   });
 
   it('uses Studio-owned OAuth with the billing project when no API key exists', async () => {

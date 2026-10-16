@@ -107,13 +107,13 @@ export const BUILT_IN_PROVIDER_CAPABILITIES = [
   },
   {
     providerId: 'google',
-    label: 'Nano Banana 2',
+    label: 'Nano Banana 2.1',
     runtimeKind: 'hosted_api',
     hasAdapter: true,
     requiresSecret: true,
-    activeDetail: 'Nano Banana 2 is ready through the Google Interactions API.',
-    subscriptionReadyDetail: 'Google OAuth is connected for direct Nano Banana 2 requests.',
-    plannedDetail: 'Google Nano Banana 2 adapter is available.',
+    activeDetail: 'Nano Banana 2.1 is ready through the Google Interactions API.',
+    subscriptionReadyDetail: 'Google OAuth is connected for direct Nano Banana 2.1 requests.',
+    plannedDetail: 'Google Nano Banana adapter is available.',
     missingDetail: 'Add a Google API key or connect Google OAuth in Studio Settings.',
   },
   {

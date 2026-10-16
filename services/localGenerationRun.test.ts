@@ -128,7 +128,7 @@ describe('localGenerationRun', () => {
         executionSpeed: 'fast',
       }),
     ).toEqual({
-      model: 'gpt-5.5',
+      model: 'gpt-6-sol',
       reasoningEffort: 'provider_default',
       serviceTier: null,
       providerOptions: {

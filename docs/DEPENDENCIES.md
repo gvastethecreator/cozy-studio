@@ -28,3 +28,11 @@ Read these files for current versions. A local run on another Bun release does n
 5. Record unresolved advisories and incompatible updates with their failing command. An outdated package is not, by itself, a failed gate.
 
 See [Tooling](TOOLING.md) for the command and logging contracts.
+
+## Provider currency
+
+`bun run providers:preflight` checks the configured routes, credentials and local model catalogs without generating an image. It does not prove account quota or successful generation. Codex and Grok use their local model catalogs; Antigravity also discovers models from its CLI. Keep saved job model choices intact when updating provider defaults.
+
+For local CLI maintenance, compare `codex --version` with the [Codex changelog](https://learn.chatgpt.com/docs/changelog), use `grok update --check --json`, and use Antigravity's `agy update`. Update through the CLI's existing installation method. A running server or CLI process may need a restart before using its newly installed version.
+
+Hosted contracts are documented by [Google](https://ai.google.dev/gemini-api/docs/image-generation), [xAI](https://docs.x.ai/developers/model-capabilities/images/generation), [fal.ai](https://fal.ai/models/fal-ai/flux/schnell/api), and [ComfyUI](https://docs.comfy.org/development/comfyui-server/comms_routes). API model availability does not establish entitlement on ChatGPT's subscription endpoint; verify that route independently before changing its chat-model contract.

@@ -25,9 +25,23 @@ The header labels **Workspace** and **Workflow** separately. Workspace chooses t
 
 Library search, Favorites and sorting apply to the whole workspace before results are paged. Selections stay with each workspace while you search or load more images. The selection bar shows how many selected images are not currently shown. Download, convert and archive selected operate on that full selection. **Archive workspace** shows a fresh count and includes images hidden by filters.
 
-Open an image's details to add tags. Enter several hashtags, such as `#character #boss`, and press Enter or **Add tags** to save them. Remove a tag with its × button. Hashtags use lowercase letters, numbers, underscores or hyphens; accents are supported. Each image can have up to 32 tags, with 64 characters per tag. Existing metadata tags stay in place. If saving fails, the input stays available for retry.
+### Tags and collections
 
-Search Library with `#boss` to match that exact tag, or `#boss #forest` to require both. You can combine tags with prompt text, Favorites and sorting. Tags are saved in the Studio catalog; original image files stay unchanged.
+Right-click an image or open **More image actions** in Library, the viewer or the workspace canvas. Choose **Tags** or **Collections**. **New tag** or **New collection** opens a creation popover. Recently used items appear first; scroll to load more. For several images, select them and use **Tags and collections** in the Library toolbar. The viewer's details panel has the same controls.
+
+Enter hashtags, such as `#character #boss`, and press Enter or **Add tags**. Remove a tag with ×. Counts show how many selected images have each tag; + adds it to the rest and × removes it from the selection.
+
+Hashtags use lowercase letters, numbers, underscores or hyphens; accents are supported. Each image can have up to 32 tags of 64 characters each. Existing metadata tags stay in place. If saving fails, the input stays available for retry.
+
+Check a collection to add the image or selection, and uncheck it to remove them. A mixed checkbox means only some selected images belong to that collection; click it to add the rest, or use × to remove the selection. Enter a name and click **Create** to make a collection containing these images. Changes save immediately. Removing membership keeps both the images and the collection.
+
+Right-click a carousel thumbnail to act on that image without changing the selected preview. Menus open to the right and below the pointer when space allows, then flip left or above. Keyboard users can use Shift+F10 on a focused thumbnail.
+
+The **Tags** and **Collections** buttons filter Library. In Settings → **Tags & collections**, rename items inline, choose tag colors or collection emojis, then **Save** or **Cancel** the row.
+
+Search Library with `#boss` to match that exact tag, or `#boss #forest` to require both. You can combine tags with prompt text, Favorites and sorting. Metadata tags with spaces use quoted searches, such as `#"imported reference"`. Tags are saved in the Studio catalog; original image files stay unchanged.
+
+Select images and open **Collections** in the Library toolbar to create a named collection from that selection, or add the selection to one that already exists. Choosing a collection shows only those images. Search, Favorites and sorting still apply inside it. Remove the selection from the open collection, or delete the collection, without deleting the images. An image can belong to more than one collection. Collections stay in the current workspace.
 
 Select exactly two images and choose **Compare 2 images**. Switch between A and B at the same zoom and position. Scroll or use the zoom buttons; drag or use arrow keys to pan. **Fit image** resets the view. Missing originals show an error.
 
@@ -35,13 +49,17 @@ ZIP downloads show progress and the exported count. A partial download lists the
 
 ## Keep and reuse creative work
 
+**Download image** saves the image file. In the viewer, the complete prompt and its copy button are in the right panel. Double-click the image to fit it in the canvas; **100%** shows one image pixel per screen pixel.
+
 **Use as source** places the chosen result first in the references. **Use as reference** adds it to the references. In the image viewer, reuse settings can keep current references or restore the result's original references. If the originals cannot be read, current references stay in place.
 
 Closing the image editor keeps its instruction and mask for that image and workflow during the current tab session. **Discard draft** clears that edit. This editor draft does not survive reloading the tab.
 
 If a creation draft or reference cannot be saved, a persistent notice offers a retry and a local copy. Keep that copy before closing the tab if saving still fails.
 
-In Jobs, **Clear list** hides past terminal jobs. Active jobs remain visible when they later finish, and requests for review remain visible. **Show all history** restores hidden history and attention items.
+In the Jobs header, **Clear** hides finished jobs and requests for review. The choice persists in this browser and syncs across its Studio tabs. Active jobs remain visible when they later finish. Images and job records are kept; **Show cleared jobs** restores the hidden items.
+
+While images are generating, the Generate button shows the animated Cozy cup. Hover or focus the button to see **Add to queue** with the current image count. Clicking adds that batch to the queue.
 
 ## Where your files go
 
@@ -141,9 +159,11 @@ Provider API keys stay in backend environment variables. Do not put Provider Sec
 
 ## Workflows and preferences
 
-Open the workflow picker in Create to switch between image, character, camera, animation and game-asset tools. Timeline Frame prepares neighboring storyboard frames; Animation Sequence owns frame sequences and GIF export. Character views share the source character within a workspace and keep separate action, prompt, appearance, format, and background drafts. The style catalog also holds the Medieval and TCG visual catalogs; the TCG finishes, layouts and crossover recipes open in Component Studio, which exports a digital PNG composition and does not certify a physical print process.
+The workflow picker uses the active workflow's icon and accent color. Open it in Create to switch between image, character, camera, animation and game-asset tools. Timeline Frame prepares neighboring storyboard frames; Animation Sequence owns frame sequences and GIF export. Character views share the source character within a workspace and keep separate action, prompt, appearance, format, and background drafts. The style catalog also holds the Medieval and TCG visual catalogs; the TCG finishes, layouts and crossover recipes open in Component Studio, which exports a digital PNG composition and does not certify a physical print process.
 
 Settings starts in Creation & startup. Choose a preferred workflow for startup and for new workspaces. Direct workflow links take priority. Save applies the draft; Discard restores saved settings, including the theme, accent, and motion preview. Search opens the matching section and focuses its control. Help & updates contains the Cozy guide.
+
+The docked style catalog supports three columns. Card names and actions stay below the preview, so hovering leaves the image visible. In **Explore**, open a style's information to inspect its examples. Each example has its prompt and copy action below it; click the image to open the viewer with zoom, download and available original metadata. Full cards appear when installed. **Style prompt** identifies the preset instructions when the image has no embedded original prompt.
 
 Every workflow offers Maintain background or Remove background. Maintain keeps the source background for image-guided work, while explicit prompt or action changes take priority. With text only, it follows the requested scene and uses workflow defaults only when unspecified. Remove requests native transparent PNG and suppresses automatic backdrops. Native alpha uses the ChatGPT HTTP provider and GPT Image models; Flare and Sunburst support transparent output, and GPT Image 2 support is in preview. See the [OpenAI image prompting guide](https://developers.openai.com/api/docs/guides/image-prompting). Provider rejection remains an error. Studio keeps opaque results and reports an alpha warning instead of applying a hidden cutout.
 

@@ -155,7 +155,7 @@ Use one of these credential paths:
 
 The Google Cloud project must have the Generative Language API enabled. OAuth users also need permission to consume services in the billing project. The preflight reports the missing field without returning its value.
 
-Studio supports `gemini-3.1-flash-lite-image`, `gemini-3.1-flash-image`, and `gemini-3-pro-image`. Flash Lite produces 1K images only. Remove an old `gemini-2.5-flash-image` override before retrying.
+New Google jobs default to `gemini-nano-banana-2.1` (1K, 2K or 4K). Studio also supports `gemini-3.1-flash-lite-image` (1K), `gemini-3.1-flash-image` (512px through 4K), and `gemini-3-pro-image` (1K through 4K). Saved jobs retain their selected model. Remove an old `gemini-2.5-flash-image` override before retrying. See [Google's image model guide](https://ai.google.dev/gemini-api/docs/image-generation).
 
 The OAuth callback binds to `127.0.0.1` on a temporary port. If the browser cannot return to Studio, allow local loopback traffic, cancel the pending login, and retry. A state mismatch closes that login. Studio does not reuse credentials from Antigravity, Gemini CLI, a browser profile, or another token store.
 

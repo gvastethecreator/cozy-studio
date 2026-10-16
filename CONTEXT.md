@@ -40,6 +40,10 @@ _Avoid_: asset table, gallery cache
 One image record inside the Image Catalog.
 _Avoid_: asset row, generated image record
 
+**Image Collection**:
+Named set of Catalog Entries inside one Workspace. An image can belong to many Image Collections. Stored in SQLite and opened from the Library beside tag search.
+_Avoid_: disk folder, Workspace, tag
+
 **Catalog Page**:
 Paginated metadata payload returned by `/api/catalog`.
 _Avoid_: gallery response, asset dump

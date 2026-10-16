@@ -43,13 +43,16 @@ graph TD
 
 ## Core frontend seams
 
+React's renderer lives in a separate cacheable runtime chunk. `AppContent` loads the Create workspace and its result canvas only for creation routes. Suspense keeps the shell visible while those surfaces load; Library startup does not load their module.
+
 - `hooks/useStudioShell.ts` composes navigation, runtime, overlays, page state, catalog state, and generation state into the shell.
 - `hooks/useGenerationQueueController.ts`, `hooks/useCatalogModalDetailHydration.ts`, and `hooks/useStudioReset.ts` own the cross-domain Queue, modal hydration, and reset policies. The shell only supplies their adapters.
 - `hooks/useStudioRuntime.ts` aggregates backend health, onboarding, diagnostics, session verification, and readiness.
   Status shows configured providers only. ChatGPT and Codex usage come from their respective sessions; absent Codex app-server usage is not replaced with ChatGPT usage.
 - `hooks/useLocalStudioSync.ts` mirrors jobs, logs, catalog changes, and SSE state.
 - `hooks/useCatalog.ts` owns Image Catalog reads, pagination, mutations, trash, queue-result previews, and refresh scopes. The image viewer loads the original asset URL for zoom; reduced variants stay in the grid and thumbnail navigation. An unavailable original produces an error instead of a reduced substitute.
-- `lib/imagePanZoom.ts` measures the original raster and viewport. Fit follows viewport changes; manual zoom and pan survive panel toggles and resizing. 100% maps one image pixel to one CSS pixel in both Create and Library. The fullscreen viewer has one compact action bar, a bounded thumbnail strip, a collapsible details panel with style badges, and a fixed-height prompt bar.
+- `ImageActionsMenu` serves the Library, viewer and workspace carousel. Tags and Collections open separate cascades with creation popovers, recent-first ordering and 15-row incremental lists. `ImageOrganizationPicker` handles individual membership; `ImageOrganizationDialog` retains the multi-selection editors and mixed counts. Tags use incremental per-image patches, retaining successful results when a batch partly fails. The read-only `POST /api/catalog/collections/selection` returns workspace collections with selected-image counts so membership controls do not load every collection's images.
+- `lib/imagePanZoom.ts` measures the original raster and viewport. Fit follows viewport changes; manual zoom and pan survive panel toggles and resizing. 100% maps one image pixel to one CSS pixel in both Create and Library. The fullscreen viewer has one compact action bar, a bounded thumbnail strip, a collapsible details panel with metadata, organization and the full prompt. Double-click fits the canvas.
 - `hooks/useImagePresentation.ts` keeps the current original and its metadata visible until the next original is decoded, then fades the new image in over the previous image. The old layer stays until the opacity transition ends. New requests cancel older loads; workspace changes clear the previous presentation immediately. Canvas controls stay mounted across image changes.
 - `TooltipBubble` owns the shared 300 ms reveal delay and short shape/position transition for both explicit and delegated tooltips. Hover actions reveal within their existing card bounds; static cards and controls do not move. Motion follows the system and Studio reduced-motion preference.
 - Each surface has one entry owner: native route transitions, CSS panel transitions, or GSAP. GSAP surfaces exclude CSS opacity and geometry transitions; interrupted tweens continue from their visible state. Presence retains closing surfaces for the 120 ms CSS exit. Catalog expansion and collection cards do not replay entry animations inside an already visible panel.
@@ -100,7 +103,7 @@ graph TD
 - `apps/local-server/src/codexRoutes.ts` owns Local Codex Session routes.
 - `apps/local-server/src/jobRoutes.ts` and `apps/local-server/src/persistentJobIntake.ts` own job creation, validation, provider selection, and enqueue behavior.
 - `apps/local-server/src/providerExecutionPolicy.ts` resolves effective execution fields at intake: explicit request, selected-provider default, then bootstrap fallback.
-- `apps/local-server/src/catalog.ts` owns Catalog Entry persistence. `apps/local-server/src/db/` separates the SQLite connection, ordered migrations, and domain stores for workspaces, jobs, assets, settings, events or logs, and Codex turns.
+- `apps/local-server/src/catalog.ts` owns Catalog Entry persistence. Image Collections are workspace-scoped albums of Catalog Entries (`catalogCollections.ts`); tag search still filters inside an open collection. `catalogTags.ts` owns workspace tag names, colors and usage timestamps; collections store an emoji and usage timestamp. Rename updates catalog membership transactionally and emits a workspace refresh. Studio Settings exposes inline organization editing. `apps/local-server/src/db/` separates the SQLite connection, ordered migrations, and domain stores for workspaces, jobs, assets, settings, events or logs, and Codex turns.
 - `apps/local-server/src/managedAssetPolicy.ts` validates provider assets against the captured Library root. `apps/local-server/src/workerAssetFinalizer.ts` owns recoverable file, Asset, Catalog, and job finalization.
 - `worker.ts` creates one Effect 4.0.0 `ManagedRuntime` per worker. `Context.Service` and `Layer` provide the generation providers. SQLite remains the job authority; the existing global and per-provider admission limits select which jobs receive a fiber. Capacity is released only after scoped resources and finalization finish.
 - `providers/providerEffect.ts` defines the typed failure boundary and scoped native operations. All provider executors and Codex turns return composable effects. HTTP bodies, SSE readers, CLI processes, temporary output directories, and Codex RPC listeners have explicit cleanup. Effect owns retry waits and execution deadlines; retries remain local to the operations that already allow them. There is no retry of an entire generation job.
@@ -128,7 +131,7 @@ graph TD
 
 - SQLite is the durable source of truth for jobs, cataloged assets, libraries, workspaces, settings, events, and system logs.
 - Ordered schema migrations in `apps/local-server/src/db/migrations.ts` are recorded in `schema_migrations` and applied in a transaction.
-- Workspace is the only user-visible organization entity (`/api/workspaces`).
+- Workspace is the top-level catalog scope (`/api/workspaces`). Tags and collections organize Catalog Entries within that scope; collection filters and counts exclude images moved to another workspace.
 - Project routes, contracts, columns, and tables are retired.
 - `StudioWorkspace` is the shared API contract. Shared Effect v4 schemas validate Workspace and Job intake with `decodeUnknownExit` and `Exit` before route logic runs. Optional fields and HTTP validation responses keep the same contract.
 - Persistent jobs carry immutable Library identity or root context, the output folder and naming captured at submit (`library_context_json`), and durable finalization checkpoints. Recovery can resume file, Asset, Catalog, or job completion without duplicating records or events.
@@ -206,7 +209,7 @@ Current concrete adapters:
 - **ChatGPT:** new jobs use subscription HTTP and `providerOptions.chatgpt`, independently of the
   local Codex executable and model catalog. The private credential store retains its internal
   `codex` identifier so existing Studio sign-ins remain connected.
-  Studio's HTTP adapter currently exposes `gpt-5.5`, GPT Image 2.5 Flare, GPT Image 2.5
+  Studio's HTTP adapter currently exposes `gpt-6-sol`, GPT Image 2.5 Flare, GPT Image 2.5
   Sunburst, and GPT Image 2 when available, with medium quality,
   and provider-managed reasoning and speed. This is Studio's supported contract, not a claim
   about every option offered by the public API. ChatGPT HTTP image jobs can request 1K, 2K, or
@@ -269,7 +272,7 @@ before emitting notifications, so an observer or log error cannot leave a batch 
 Heavy or optional UI must mount only when it is visible or the user asks for it:
 
 - recipe pages are route-lazy
-- style catalog search mounts on demand
+- style catalog search mounts on demand. The dock supports three columns; examples open in `StyleExampleModal` with pan/zoom, available original metadata, prompt copy and file download. `GET /api/extensions/:id/files/*?metadata=true` extracts metadata through the same registered-extension file boundary. Full cards are used when that layer is installed.
 - The style catalog can expand over the workspace. It keeps the same filters and selection, with a separate card-size preference. The editor and results remain mounted but inert while the explorer is expanded; panel exit restores their interaction before the closing animation finishes.
 - Style Pack data loads through one cached single-flight runtime registry. Rejected loads are evicted so the visible retry action can recover.
 - heavy catalog data, YAML parsing, ZIP export, and Three.js are lazy-loaded

@@ -32,11 +32,25 @@ Use one validation level per integration. Each broader gate includes the narrowe
 | `bun run core-assets:smoke`      | Build and route smoke without optional packs |
 | `bun run portability:smoke`      | Isolated local API health smoke              |
 
+## Complete test pass
+
+`bun run test` and `validate` run the complete Vitest suite. Native Bun cases use `bun:sqlite` and are excluded from Vitest. For a complete test pass, also run:
+
+```bash
+bun test apps/local-server/src/imagePipeline.bun.test.ts apps/local-server/src/mcpRoutes.bun.test.ts
+```
+
+The UI build checks chunk budgets. Keep optional surfaces demand-loaded and preserve the 500,000-byte main-entry limit; a smaller entry alone does not prove faster startup.
+
 ## Dependency maintenance
 
 Follow the scoped update workflow in [Dependencies](DEPENDENCIES.md). Keep unrelated packages unchanged.
 
-Effect remains pinned to `4.0.0`: `4.0.2` loses the unconfirmed Comfy cancellation error when its fiber is interrupted. The existing `comfyExecutor.test.ts` cancellation case reproduces the regression and passes on `4.0.0`. Require that case to pass before upgrading Effect. The landing overrides transitive `sharp` to `0.35.5` until Miniflare updates its vulnerable exact pin.
+Effect is pinned to `4.0.5`. Keep domain cancellation separate from fiber interruption in tests: the Comfy executor must report unconfirmed cancellation, and the worker must retain `needs_review` when an interrupted job has no confirmed remote cancellation. A raw interrupted fiber does not promise to return the domain error from its cleanup.
+
+Studio and the landing use Pretext `1.0.0`. The landing bundles its public entry instead of copying private implementation files. Its VGPU `0.6.0` shaders are prepared during the build with the matching `@vgpu/wgsl` version. Rebuild the tracked vendor output when updating these packages; do not retain stale output after a failed build. See the [Pretext release notes](https://github.com/chenglou/pretext/releases/tag/v1.0.0) and [VGPU migration guide](https://github.com/vercel-labs/vgpu/blob/v0.6.0/docs/migrations/0.6.0.docs.md).
+
+If Bun stalls after extracting dependencies on Windows, stop that install and retry with `bun install --backend copyfile`. Use the same backend with `--frozen-lockfile` when validating that checkout. This avoids changing the package manager or the lockfile by hand.
 
 ## CI
 

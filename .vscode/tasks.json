@@ -80,6 +80,7 @@
     },
     {
       "label": "🔌 Provider status",
+      "detail": "Check configured routes and model availability without generating images. This does not verify account quota or update installed CLIs.",
       "type": "process",
       "command": "bun",
       "args": ["run", "providers:preflight"],

@@ -1,14 +1,27 @@
 Cozy Studio portable start
 ===========================
 
-Install Bun on PATH and use an app folder with its dist/ UI build present.
-A source checkout needs bun install and bun run build first.
+Each portable ZIP is built for one operating system and CPU architecture.
+Choose windows-x64, windows-arm64, linux-x64, linux-arm64, macos-x64 or
+macos-arm64. macos-arm64 is for Apple Silicon; macos-x64 is for Intel Macs.
+Linux packages require glibc 2.28 or newer, Bash and a browser, not musl/Alpine.
+macOS packages require macOS 13 or newer.
+
+The ZIP includes the matching Bun runtime, license and source notices,
+production dependencies, and dist/ UI build. Extract it before starting.
+No global Bun install is needed. Windows uses runtime/bun.exe; Linux and
+macOS use runtime/bun. Every launcher prefers the included runtime and
+makes it available to child commands. portable.json records the target.
+A source checkout without a bundled runtime needs Bun on PATH, bun install
+and bun run build.
 
 Windows: open scripts/Cozy Studio.bat.
 macOS: open scripts/Cozy Studio.command. If needed, run:
   chmod +x "scripts/Cozy Studio.command"
-Linux: run from the app folder:
-  bash "scripts/Cozy Studio.command"
+Linux: open scripts/Cozy Studio.sh or run:
+  bash "scripts/Cozy Studio.sh"
+If an extractor drops Unix executable permissions, run:
+  chmod +x runtime/bun scripts/portable-launch.sh scripts/Cozy\ Studio.*
 
 The launcher locates the app from its own path, starts one local-server process
 and opens a browser. If automatic browser opening fails, open the printed URL.
@@ -22,6 +35,21 @@ Generated images still use the configured images destination.
 For a built app using normal per-user storage, run "bun run start" instead.
 For source development, use "bun run dev".
 
-Windows has local runtime checks. macOS and Linux path rules have automated
-fixtures, but native startup on those systems still needs validation.
+To build a ZIP, use the repository-pinned Bun and run:
+  bun run build
+  bun run portable:build
+The default target is the build host. Select another target explicitly:
+  bun run portable:build windows-x64
+  bun run portable:build windows-arm64
+  bun run portable:build linux-x64
+  bun run portable:build linux-arm64
+  bun run portable:build macos-x64
+  bun run portable:build macos-arm64
+The builder prints the ZIP path under .scratch/portable/ and writes its
+SHA-256 beside it. It verifies the official Bun release digest and keeps
+the bundled version aligned with packageManager. No user Library,
+credentials or .env.local file is included.
+
+Windows has local runtime checks. Unix launchers have executable shell
+fixtures. Cross-built Linux and macOS binaries need native startup validation.
 See docs/PLATFORMS.md for paths, permissions and useful error-report details.

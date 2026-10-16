@@ -23,6 +23,7 @@ import { buildPortable } from './build-portable';
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const windowsLauncher = path.join(repoRoot, 'scripts', 'Cozy Studio.bat');
 const macLauncher = path.join(repoRoot, 'scripts', 'Cozy Studio.command');
+const linuxLauncher = path.join(repoRoot, 'scripts', 'Cozy Studio.sh');
 const unixLauncher = path.join(repoRoot, 'scripts', 'portable-launch.sh');
 const portableNote = path.join(repoRoot, 'PORTABLE.txt');
 
@@ -111,6 +112,7 @@ describe('portable launchers', () => {
     const bat = readFileSync(windowsLauncher, 'utf8');
     const command = readFileSync(unixLauncher, 'utf8');
     expect(readFileSync(macLauncher, 'utf8')).toContain('portable-launch.sh');
+    expect(readFileSync(linuxLauncher, 'utf8')).toContain('portable-launch.sh');
     const note = readFileSync(portableNote, 'utf8');
     for (const source of [bat, command]) {
       expect(source).toContain(ONBOARDING_BUN_INSTALL_URL);
@@ -124,6 +126,7 @@ describe('portable launchers', () => {
     }
     expect(note).toMatch(/Linux/i);
     expect(note).toContain('scripts/Cozy Studio.command');
+    expect(note).toContain('scripts/Cozy Studio.sh');
     expect(note).toContain('does not bundle ChatGPT login');
     expect(missingBunMessage()).toContain(ONBOARDING_BUN_INSTALL_URL);
     expect(missingCodexCliMessage()).toContain(ONBOARDING_CODEX_INSTALL_URL);
@@ -232,7 +235,7 @@ describe('portable launchers', () => {
 });
 
 describe('Unix portable launchers', () => {
-  it('starts from another directory using bundled Bun for the macOS launcher', () => {
+  it('starts from another directory using bundled Bun for both Linux and macOS launchers', () => {
     const bash =
       process.platform === 'win32'
         ? path.join(process.env.ProgramFiles ?? 'C:/Program Files', 'Git/bin/bash.exe')
@@ -246,13 +249,13 @@ describe('Unix portable launchers', () => {
         bundledBun,
         '#!/bin/bash\nprintf "PROBE|%s|%s|%s|%s\\n" "$STUDIO_PORTABLE" "$PWD" "$(command -v bun)" "$*"\n',
       );
-      for (const source of [unixLauncher, macLauncher]) {
+      for (const source of [unixLauncher, macLauncher, linuxLauncher]) {
         writeFileSync(
           path.join(root, 'scripts', path.basename(source)),
           readFileSync(source, 'utf8').replaceAll('\r\n', '\n'),
         );
       }
-      for (const launcherName of ['Cozy Studio.command']) {
+      for (const launcherName of ['Cozy Studio.command', 'Cozy Studio.sh']) {
         const result = spawnSync(
           bash,
           [

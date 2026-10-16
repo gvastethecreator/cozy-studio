@@ -41,12 +41,14 @@ Screenshots show the desktop interface on October 8, 2026. Installed packs and r
 
 You need:
 
-- Bun on `PATH`. Install it yourself from <https://bun.sh/docs/installation>. Cozy Studio never silent-installs Bun.
+- Bun on `PATH` for source checkouts. Install it yourself from <https://bun.sh/docs/installation>. Each platform-specific portable ZIP includes Bun; Cozy Studio never silent-installs Bun globally.
 - A supported provider account for real image jobs. ChatGPT is recommended; sign in through Settings → Accounts & models. That login is not bundled.
 - A modern browser.
 - Optional, only for the Codex provider: Codex CLI from <https://github.com/openai/codex> with `codex login`.
 
-**Portable launch.** Open `scripts/Cozy Studio.bat` on Windows or `scripts/Cozy Studio.command` on macOS. On Linux, run `bash "scripts/Cozy Studio.command"`. Read [PORTABLE.txt](PORTABLE.txt) for prerequisites. With no explicit `STUDIO_LIBRARY_DIR`, these launchers keep the Library inside the app folder. [Platform support](docs/PLATFORMS.md) lists path rules and verification limits.
+**Portable launch.** Choose the ZIP for your OS and CPU. Open `scripts/Cozy Studio.bat` on Windows, `scripts/Cozy Studio.command` on macOS or `scripts/Cozy Studio.sh` on Linux. Read [PORTABLE.txt](PORTABLE.txt) for prerequisites. With no explicit `STUDIO_LIBRARY_DIR`, these launchers keep the Library inside the app folder. [Platform support](docs/PLATFORMS.md) lists path rules and verification limits.
+
+To build a portable ZIP, run `bun run build` and `bun run portable:build`. The default target is the host; select another with, for example, `bun run portable:build linux-x64` or `bun run portable:build macos-arm64`. Each ZIP includes its pinned Bun runtime, matching production dependencies, launcher and built UI. The builder prints its path under `.scratch/portable/` and writes a SHA-256 file beside it.
 
 **From a checkout.** Development also requires Node.js 22 (22.18 or newer), 24 (24.11 or newer), or 26+, as required by Vite+.
 

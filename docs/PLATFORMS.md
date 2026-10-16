@@ -4,15 +4,19 @@ Studio runs a local Bun server and opens a browser. Windows, macOS and Linux sha
 
 ## Start
 
-| Mode                           | Command or launcher                  |
-| ------------------------------ | ------------------------------------ |
-| Source development             | `bun run dev`                        |
-| Built app, normal user storage | `bun run start`                      |
-| Windows portable               | `scripts/Cozy Studio.bat`            |
-| macOS portable                 | `scripts/Cozy Studio.command`        |
-| Linux portable                 | `bash "scripts/Cozy Studio.command"` |
+| Mode                           | Command or launcher           |
+| ------------------------------ | ----------------------------- |
+| Source development             | `bun run dev`                 |
+| Built app, normal user storage | `bun run start`               |
+| Windows portable               | `scripts/Cozy Studio.bat`     |
+| macOS portable                 | `scripts/Cozy Studio.command` |
+| Linux portable                 | `scripts/Cozy Studio.sh`      |
 
 Portable and built-app modes require `dist/`; source checkouts produce it with `bun run build`. Launchers resolve the app folder from their own location, not the terminal's current folder. On macOS a downloaded script may need executable permission; use the command in [PORTABLE.txt](../PORTABLE.txt).
+
+Each portable ZIP targets one OS and CPU: `windows-x64`, `windows-arm64`, `linux-x64`, `linux-arm64`, `macos-x64` or `macos-arm64`. Windows includes `runtime/bun.exe`; Linux and macOS include `runtime/bun`. Launchers prefer this binary and add its directory to child-process `PATH`. The ZIP includes the matching production dependencies, license notices, executable Unix permissions and a `portable.json` target record. Linux requires glibc 2.28 or newer, not musl/Alpine; macOS requires version 13 or newer. x64 builds require SSE4.2.
+
+Build with `bun run build` followed by `bun run portable:build <target>`. Omitting the target uses the host OS and CPU. The builder installs production dependencies with explicit OS/CPU selection and prints the archive and checksum paths under `.scratch/portable/`. Cross-built packages need native execution checks on their target OS and CPU. The production ZIP omits package-manager CLI shims generated for the build host; Studio starts through its bundled runtime and launcher.
 
 Portable wrappers set `STUDIO_PORTABLE=1`. Without an explicit Library path, that stores the Library inside the app folder. It does not move existing data or change where credentials are stored. If browser opening is unavailable, use the printed loopback URL.
 

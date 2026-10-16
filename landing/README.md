@@ -26,6 +26,12 @@ In the repository's Pages settings, use GitHub Actions as the source and leave C
 
 Install the locked dependencies before building. The build prepares the VGPU shaders and bundles Pretext from those installed versions. A failed bundle stops the build instead of shipping an older vendor copy.
 
+## Structured data
+
+The root page builds one JSON-LD graph in `src/core/structured-data.ts`. It links WebSite, WebPage, SoftwareApplication and the FAQ rendered from `site.yaml`. The root suppresses the engine's separate FAQ script to avoid duplicate entities. Keep the local root-page and layout integration when updating the copied engine.
+
+The application is free; provider accounts can have their own costs and limits. Do not add ratings or reviews unless they exist on the page. Schema.org validation and [Google's software-app rich-result checks](https://developers.google.com/search/docs/appearance/structured-data/software-app) are separate. Keep any missing-review recommendation visible instead of inventing reviews. [FAQ rich results are restricted to eligible government and health sites](https://developers.google.com/search/docs/appearance/structured-data/faqpage).
+
 ## Deploy to Cloudflare
 
 The landing also runs at <https://cozy.gvaste.dev/> on the `cozy-studio-site` Worker. GitHub Pages remains the primary site and canonical URL.

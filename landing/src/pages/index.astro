@@ -1,8 +1,16 @@
 ---
 import ProjectLayout from "../layouts/ProjectLayout.astro";
 import { loadSite } from "../core/site";
+import { landingStructuredData } from "../core/structured-data";
 
 const view = loadSite();
+const structuredData = landingStructuredData({
+  project: view.project,
+  pageTitle: view.pageTitle,
+  sections: view.sections,
+  faq: view.faq,
+});
+if (view.faq) view.faq.jsonLd = undefined;
 ---
 
-<ProjectLayout view={view} />
+<ProjectLayout view={view} structuredData={structuredData} />

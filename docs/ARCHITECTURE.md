@@ -300,6 +300,8 @@ Codex SDK and scripts are automation surfaces, not the product runtime. They sup
 
 ## Project site
 
+The landing root emits one JSON-LD graph from `landing/src/core/structured-data.ts`. It links the website, page, application and visible FAQ. Other template routes retain their own section markup. App metadata describes the free MIT application separately from provider-account requirements and does not invent reviews or ratings.
+
 `landing/` builds the public page at <https://gvastethecreator.github.io/cozy-studio/> with the `/cozy-studio/` base path. It is separate from the app and has its own `package.json`. The content is `landing/site.yaml` and `landing/template.yaml`; the page engine is a copy of the gh-pages-template renderer. `.github/workflows/pages.yml` builds and deploys it when a push to `main` changes `landing/`. The Pages custom domain must be empty. A separate Cloudflare build uses `/` and deploys to <https://cozy.gvaste.dev/> through `landing/wrangler.jsonc`; GitHub Pages remains the canonical URL. See `landing/README.md`.
 
 ## Storage maintenance

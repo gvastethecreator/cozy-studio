@@ -4,7 +4,7 @@ import { renderHeaderHtml } from "../../kit/engine.mjs";
 import { accentRootCss } from "../../kit/accent.mjs";
 import KitSection from "../components/sections/KitSection.astro";
 
-const { view } = Astro.props;
+const { view, structuredData } = Astro.props;
 const frameQuery = Astro.url.searchParams.get("frame");
 const windowFrame = frameQuery === "window" || (frameQuery !== "full" && view.frameVariant === "window");
 const headerHtml = renderHeaderHtml(view);
@@ -89,6 +89,7 @@ const base = import.meta.env.BASE_URL;
       } catch (error) {}
     </script>
     <meta name="description" content={view.project.description} />
+    {structuredData && <script is:inline type="application/ld+json" set:html={structuredData} />}
     <title>{view.pageTitle}</title>
     {
       view.project.url && (

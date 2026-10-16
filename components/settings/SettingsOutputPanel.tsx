@@ -64,6 +64,8 @@ export function SettingsOutputPanel({
     ? value.outputSubfolderPreset
     : 'custom';
   const root = value.outputDirectory.trim() || `${libraryDir ?? 'Studio Library'}/outputs`;
+  const hasNamePreset = NAME_PRESETS.some((item) => item.value === value.outputFileNameTemplate);
+  const showCustomName = customName || !hasNamePreset;
   return (
     <section className="settings-form-stack">
       <label className="settings-row">
@@ -161,11 +163,7 @@ export function SettingsOutputPanel({
         <select
           className="studio-field"
           aria-label="Filename preset"
-          value={
-            !customName && NAME_PRESETS.some((item) => item.value === value.outputFileNameTemplate)
-              ? value.outputFileNameTemplate
-              : 'custom'
-          }
+          value={showCustomName ? 'custom' : value.outputFileNameTemplate}
           onChange={(event) => {
             setCustomName(event.target.value === 'custom');
             if (event.target.value !== 'custom')
@@ -180,14 +178,7 @@ export function SettingsOutputPanel({
           <option value="custom">Custom template</option>
         </select>
       </label>
-      <details
-        className="settings-disclosure"
-        open={
-          customName ||
-          Boolean(error) ||
-          !NAME_PRESETS.some((item) => item.value === value.outputFileNameTemplate)
-        }
-      >
+      <details className="settings-disclosure" open={showCustomName || Boolean(error)}>
         <summary>Customize filenames</summary>
         <label className="settings-row">
           <span>

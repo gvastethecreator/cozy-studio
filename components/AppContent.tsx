@@ -218,6 +218,15 @@ function AppWorkspace({ model }: { model: AppWorkbenchModel }) {
         compare,
         setCompare,
         history: isWorkspace ? shell.history : undefined,
+        imageActions: {
+          workspaceId: shell.headerToolbar.props.activeWorkspaceId,
+          onLoadConfig: shell.viewport.studioPageController.grid.handleLoadRecipe,
+          onRegenerate: (config) =>
+            shell.viewport.studioPageController.grid.handleGenerate(config.prompt, config, {
+              preventModal: true,
+            }),
+          onDelete: shell.viewport.studioPageController.grid.handleDelete,
+        },
         latestResultId: workflowImages.find(
           (image) => (image.config.recipeId ?? null) === (activeRecipe ?? null),
         )?.id,

@@ -35,6 +35,7 @@ describe('ImageConversionModal', () => {
   it('exposes format controls and sends the chosen settings for a library copy', async () => {
     convert.mockResolvedValue(result);
     render(<ImageConversionModal images={[images[0]]} onClose={vi.fn()} />);
+    expect(screen.getByRole('group', { name: 'Conversion options' })).toBeDefined();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Lossless WebP' }));
     expect(screen.queryByRole('slider', { name: 'Image quality' })).toBeNull();
     fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), {

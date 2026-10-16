@@ -67,7 +67,7 @@ describe('ToolbarLiveStatus', () => {
 
     function Harness() {
       parentRenders += 1;
-      return <GenerationElapsedStatus startTime={Date.now()} />;
+      return <GenerationElapsedStatus startTime={Date.now()} outputSummary="4 images" />;
     }
 
     render(<Harness />);

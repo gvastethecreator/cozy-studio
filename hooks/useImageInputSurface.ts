@@ -16,6 +16,17 @@ export function useImageInputSurface({ onFiles }: UseImageInputSurfaceProps) {
   const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
+    const clearDrag = () => setIsDragging(false);
+    // Nested reference trays consume drops before the shell's bubble handler.
+    window.addEventListener('drop', clearDrag, true);
+    window.addEventListener('dragend', clearDrag, true);
+    return () => {
+      window.removeEventListener('drop', clearDrag, true);
+      window.removeEventListener('dragend', clearDrag, true);
+    };
+  }, []);
+
+  useEffect(() => {
     const handleGlobalPaste = (event: ClipboardEvent) => {
       const items = event.clipboardData?.items;
       if (!items) return;

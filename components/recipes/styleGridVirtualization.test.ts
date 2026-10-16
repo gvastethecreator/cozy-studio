@@ -56,6 +56,7 @@ describe('styleGridVirtualization', () => {
     });
 
     expect(firstWindow.startIndex).toBe(0);
+    expect(firstWindow.cardHeight).toBeCloseTo(firstWindow.cardWidth * (4 / 3) + 64);
     expect(firstWindow.renderedPresetCount).toBeGreaterThanOrEqual(
       STYLE_GRID_WINDOW_TARGET_PRESET_COUNT,
     );

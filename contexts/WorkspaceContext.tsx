@@ -120,6 +120,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [retryVersion, setRetryVersion] = useState(0);
   const { addToast } = useToastUi();
   const activePersistRef = useRef<number | null>(null);
+  const normalizedInitialQuery = useRef(false);
   const requestedWorkspace = query.workspace ?? state.activeWorkspaceId;
   const activeWorkspaceId = state.workspaces.some(
     (workspace) => workspace.id === requestedWorkspace,
@@ -127,8 +128,13 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     ? requestedWorkspace
     : DEFAULT_WORKSPACE_ID;
   const libraryFilters = useMemo(
-    () => ({ q: query.q, favorites: query.favorites, sort: query.sort }),
-    [query.q, query.favorites, query.sort],
+    () => ({
+      q: query.q,
+      favorites: query.favorites,
+      sort: query.sort,
+      collection: query.collection,
+    }),
+    [query.q, query.favorites, query.sort, query.collection],
   );
   const setLibraryFilters = useCallback(
     (filters: Partial<LibraryFilters>) => {
@@ -139,8 +145,20 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   useEffect(() => {
     if (!isHydrated) return;
-    void setQuery({ ...query, workspace: activeWorkspaceId }, { history: 'replace' });
-  }, [isHydrated, query, activeWorkspaceId, setQuery]);
+    if (!normalizedInitialQuery.current) {
+      normalizedInitialQuery.current = true;
+      void setQuery(
+        {
+          ...query,
+          workspace: activeWorkspaceId,
+          collection: requestedWorkspace === activeWorkspaceId ? query.collection : null,
+        },
+        { history: 'replace' },
+      );
+    } else if (query.workspace !== activeWorkspaceId) {
+      void setQuery({ workspace: activeWorkspaceId, collection: null }, { history: 'replace' });
+    }
+  }, [isHydrated, query, requestedWorkspace, activeWorkspaceId, setQuery]);
 
   useEffect(() => {
     let cancelled = false;
@@ -194,7 +212,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     (workspace: Workspace, options?: { activate?: boolean }) => {
       dispatch({ type: 'CREATE', workspace, activate: options?.activate ?? true });
       if (options?.activate ?? true)
-        void setQuery({ workspace: workspace.id }, { history: 'push' });
+        void setQuery({ workspace: workspace.id, collection: null }, { history: 'push' });
       void createWorkspaceApi({
         id: workspace.id,
         name: workspace.name?.trim() || 'Untitled Workspace',
@@ -213,7 +231,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
               activate: options?.activate ?? true,
             });
             if (options?.activate ?? true)
-              void setQuery({ workspace: created.id }, { history: 'replace' });
+              void setQuery({ workspace: created.id, collection: null }, { history: 'replace' });
           }
         })
         .catch((error) => {
@@ -267,7 +285,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     (id: string) => {
       if (!state.workspaces.some((workspace) => workspace.id === id) || id === activeWorkspaceId)
         return;
-      void setQuery({ workspace: id }, { history: 'push' });
+      void setQuery({ workspace: id, collection: null }, { history: 'push' });
     },
     [state.workspaces, activeWorkspaceId, setQuery],
   );
@@ -275,7 +293,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
   const resetWorkspaces = useCallback(() => {
     dispatch({ type: 'RESET' });
     void setQuery(
-      { workspace: DEFAULT_WORKSPACE_ID, q: '', favorites: false, sort: 'desc' },
+      { workspace: DEFAULT_WORKSPACE_ID, q: '', favorites: false, sort: 'desc', collection: null },
       { history: 'replace' },
     );
   }, [setQuery]);

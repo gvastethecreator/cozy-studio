@@ -46,6 +46,8 @@ export interface EstimateStyleGridMountedPresetCountInput extends StyleGridMetri
 
 export const STYLE_GRID_CARD_GAP_PX = 10;
 export const STYLE_GRID_CARD_ASPECT_HEIGHT_RATIO = 4 / 3;
+// Matches the fixed caption and actions below each preview in studio-workspace.css.
+export const STYLE_GRID_CARD_FOOTER_HEIGHT_PX = 64;
 export const STYLE_GRID_FALLBACK_CARD_WIDTH_PX = 220;
 export const STYLE_GRID_MIN_CARD_WIDTH_PX = 120;
 export const STYLE_GRID_GROUP_HEADER_HEIGHT_PX = 40;
@@ -93,7 +95,8 @@ export function createStyleGridMetrics({
           (containerWidth - STYLE_GRID_CARD_GAP_PX * Math.max(0, columns - 1)) / columns,
         )
       : STYLE_GRID_FALLBACK_CARD_WIDTH_PX;
-  const cardHeight = cardWidth * STYLE_GRID_CARD_ASPECT_HEIGHT_RATIO;
+  const cardHeight =
+    cardWidth * STYLE_GRID_CARD_ASPECT_HEIGHT_RATIO + STYLE_GRID_CARD_FOOTER_HEIGHT_PX;
   const rowHeight = cardHeight + STYLE_GRID_CARD_GAP_PX;
   const totalHeight =
     totalRows > 0

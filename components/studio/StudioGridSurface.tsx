@@ -209,6 +209,7 @@ export const StudioGridSurface: React.FC<StudioGridSurfaceProps> = ({
           <ImageGrid
             libraryFilters={libraryFilters}
             onLibraryFiltersChange={onLibraryFiltersChange}
+            workspaceId={activeWorkspaceId}
             onCreate={onCreate}
             key={activeWorkspaceId}
             images={imagesWithConfig}

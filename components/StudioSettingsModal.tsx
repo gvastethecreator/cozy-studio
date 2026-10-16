@@ -2,6 +2,7 @@ import { CozyLoader as LoaderCircle } from './CozyMascot';
 import { useTheme } from '../hooks/useTheme';
 import { validateOutputTemplate } from '../packages/shared/src/outputLayout';
 import { SettingsGeneralPanel } from './settings/SettingsGeneralPanel';
+import { SettingsOrganizationPanel } from './settings/SettingsOrganizationPanel';
 import { SettingsUpdatesPanel } from './settings/SettingsUpdatesPanel';
 import { StudioHelpGuide } from './StudioHelpGuide';
 import { ConfirmationModal } from './ConfirmationModal';
@@ -82,6 +83,12 @@ const SETTINGS_SEARCH_ITEMS: {
   description: string;
   target: string;
 }[] = [
+  {
+    domain: 'organization',
+    label: 'Tags and collections',
+    description: 'Names, colors and emoji',
+    target: 'Manage tags',
+  },
   {
     domain: 'general',
     label: 'Startup workflow',
@@ -324,16 +331,20 @@ function SettingsDomainContent({
     onResetStudio,
   } = modal;
   const formDisabled = isSaving || !settings;
-  return (
-    <>
-      {activeDomain === 'general' && (
+  const domainLabel = STUDIO_SETTINGS_DOMAIN_TABS.find((tab) => tab.id === activeDomain)?.label;
+  switch (activeDomain) {
+    case 'general':
+      return (
         <fieldset disabled={formDisabled}>
+          <legend className="sr-only">{domainLabel}</legend>
           <SettingsGeneralPanel value={formState} onChange={setFormState} />
         </fieldset>
-      )}
-      {activeDomain === 'help' && (
+      );
+    case 'help':
+      return (
         <div className="settings-form-stack">
           <fieldset disabled={formDisabled}>
+            <legend className="sr-only">{domainLabel}</legend>
             <label className="settings-row">
               <span>
                 <strong>Notify me about updates</strong>
@@ -355,58 +366,16 @@ function SettingsDomainContent({
           <SettingsUpdatesPanel hasUnsavedChanges={hasChanges} />
           <StudioHelpGuide />
         </div>
-      )}
-      {activeDomain === 'appearance' ||
-      activeDomain === 'library' ||
-      activeDomain === 'providers' ||
-      activeDomain === 'output' ? (
-        <div className={activeDomain === 'output' ? 'grid gap-4' : undefined}>
-          <fieldset disabled={formDisabled} className="min-w-0">
-            <SettingsFormPanel
-              domain={activeDomain}
-              formState={formState}
-              onFormChange={setFormState}
-              libraryDir={libraryDir}
-              providerOptions={providerOptions}
-              providerCapabilities={providerCapabilities}
-              providerRuntimePreflight={providerRuntimePreflight}
-            />
-          </fieldset>
-          {activeDomain === 'library' ? (
-            <SettingsOutputSourcesPanel
-              outputSources={outputSources}
-              outputSourceFiles={outputSourceFiles}
-              loadingOutputSourceFiles={loadingOutputSourceFiles}
-              importingOutputSources={importingOutputSources}
-              isLoadingOutputSources={isLoadingOutputSources}
-              isRegisteringOutputSource={isRegisteringOutputSource}
-              onLoadOutputSourceFiles={onLoadOutputSourceFiles}
-              onImportOutputSourceFiles={onImportOutputSourceFiles}
-              onRegisterOutputSource={onRegisterOutputSource}
-            />
-          ) : null}
-        </div>
-      ) : null}
-      {activeDomain === 'library' && (
-        <details className="settings-disclosure mt-4">
-          <summary>Export workspace metadata</summary>
-          <p className="my-2 text-xs studio-muted">
-            Exports settings only. Image files are not included; this is not a library backup.
-          </p>
-          <button
-            type="button"
-            className="studio-ghost-control px-3"
-            aria-label="Export workspace metadata"
-            onClick={onExportLegacyWorkspaceSnapshot}
-          >
-            Export legacy snapshot
-          </button>
-        </details>
-      )}
-      {activeDomain === 'extensions' ? <SettingsExtensionsPanel /> : null}
-      {activeDomain === 'maintenance' ? (
+      );
+    case 'organization':
+      return <SettingsOrganizationPanel />;
+    case 'extensions':
+      return <SettingsExtensionsPanel />;
+    case 'maintenance':
+      return (
         <div className="settings-form-stack">
           <fieldset className="settings-group" disabled={formDisabled}>
+            <legend className="sr-only">Local agents</legend>
             <h3>Local agents</h3>
             <label className="settings-row">
               <span>
@@ -450,9 +419,54 @@ function SettingsDomainContent({
             </button>
           </details>
         </div>
-      ) : null}
-    </>
-  );
+      );
+    default:
+      return (
+        <div className={activeDomain === 'output' ? 'grid gap-4' : undefined}>
+          <fieldset disabled={formDisabled} className="min-w-0">
+            <legend className="sr-only">{domainLabel}</legend>
+            <SettingsFormPanel
+              domain={activeDomain}
+              formState={formState}
+              onFormChange={setFormState}
+              libraryDir={libraryDir}
+              providerOptions={providerOptions}
+              providerCapabilities={providerCapabilities}
+              providerRuntimePreflight={providerRuntimePreflight}
+            />
+          </fieldset>
+          {activeDomain === 'library' && (
+            <>
+              <SettingsOutputSourcesPanel
+                outputSources={outputSources}
+                outputSourceFiles={outputSourceFiles}
+                loadingOutputSourceFiles={loadingOutputSourceFiles}
+                importingOutputSources={importingOutputSources}
+                isLoadingOutputSources={isLoadingOutputSources}
+                isRegisteringOutputSource={isRegisteringOutputSource}
+                onLoadOutputSourceFiles={onLoadOutputSourceFiles}
+                onImportOutputSourceFiles={onImportOutputSourceFiles}
+                onRegisterOutputSource={onRegisterOutputSource}
+              />
+              <details className="settings-disclosure mt-4">
+                <summary>Export workspace metadata</summary>
+                <p className="my-2 text-xs studio-muted">
+                  Exports settings only. Image files are not included; this is not a library backup.
+                </p>
+                <button
+                  type="button"
+                  className="studio-ghost-control px-3"
+                  aria-label="Export workspace metadata"
+                  onClick={onExportLegacyWorkspaceSnapshot}
+                >
+                  Export legacy snapshot
+                </button>
+              </details>
+            </>
+          )}
+        </div>
+      );
+  }
 }
 
 function SettingsSearch({
@@ -499,6 +513,97 @@ function SettingsSearch({
   );
 }
 
+function SettingsDialogActions({
+  showChanges,
+  hasChanges,
+  isSaving,
+  fileNameError,
+  canSave,
+  onFixFileName,
+  onDiscard,
+  onClose,
+  onSave,
+}: {
+  showChanges: boolean;
+  hasChanges: boolean;
+  isSaving: boolean;
+  fileNameError: string | null;
+  canSave: boolean;
+  onFixFileName: () => void;
+  onDiscard: () => void;
+  onClose: () => void;
+  onSave: () => Promise<void>;
+}) {
+  return (
+    <div className="studio-dialog-actions">
+      {showChanges && (
+        <>
+          <span role="status" className="mr-auto text-xs studio-muted">
+            {fileNameError ? (
+              <span className="text-[color:var(--wb-danger)]">
+                <span className="block">{fileNameError}</span>
+                <button
+                  type="button"
+                  className="studio-hit-target underline"
+                  onClick={onFixFileName}
+                >
+                  Fix filename template
+                </button>
+              </span>
+            ) : isSaving ? (
+              'Saving settings…'
+            ) : hasChanges ? (
+              'Unsaved changes'
+            ) : null}
+          </span>
+          <button
+            type="button"
+            disabled={!hasChanges || isSaving}
+            className="studio-ghost-control px-4"
+            onClick={onDiscard}
+          >
+            Discard
+          </button>
+        </>
+      )}
+      <button type="button" onClick={onClose} className="studio-ghost-control px-4">
+        Close
+      </button>
+      {showChanges && (
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={!canSave}
+          className="studio-primary-control disabled:opacity-60"
+        >
+          {isSaving ? (
+            <LoaderCircle size={15} className="animate-spin" />
+          ) : (
+            <Save width={15} height={15} />
+          )}
+          {isSaving ? 'Saving…' : 'Save'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function focusSettingsControl(dialog: HTMLDialogElement | null, target: string) {
+  const panel = dialog?.querySelector<HTMLElement>('.studio-settings-content');
+  const control = target
+    ? panel?.querySelector<HTMLElement>(`[aria-label="${target}"]`)
+    : panel?.querySelector<HTMLElement>('button, input, select');
+  for (
+    let ancestor = control?.parentElement;
+    ancestor && ancestor !== panel;
+    ancestor = ancestor.parentElement
+  ) {
+    if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
+  }
+  (control ?? panel)?.focus();
+  control?.scrollIntoView({ block: 'nearest' });
+}
+
 export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = (props) => {
   const { isOpen, onClose, settings, isLoading, isSaving, error, onRefresh, onUpdate } = props;
   const [formState, setFormState] = useState<StudioSettingsFormState>(
@@ -531,25 +636,18 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = (props) =
     '[aria-label="Close settings"]',
   );
 
-  const [searchTarget, setSearchTarget] = useState<string | null>(null);
+  const searchTarget = useRef<string | null>(null);
+  const selectSearchTarget = (domain: StudioSettingsDomainId, target: string) => {
+    if (domain === activeDomain) focusSettingsControl(dialogRef.current, target);
+    else searchTarget.current = target;
+    setActiveDomain(domain);
+    setSearch('');
+  };
   useLayoutEffect(() => {
-    if (searchTarget === null) return;
-    const target = searchTarget;
-    setSearchTarget(null);
-    const panel = dialogRef.current?.querySelector<HTMLElement>('.studio-settings-content');
-    const control = target
-      ? panel?.querySelector<HTMLElement>(`[aria-label="${target}"]`)
-      : panel?.querySelector<HTMLElement>('button, input, select');
-    for (
-      let ancestor = control?.parentElement;
-      ancestor && ancestor !== panel;
-      ancestor = ancestor.parentElement
-    ) {
-      if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
-    }
-    (control ?? panel)?.focus();
-    control?.scrollIntoView({ block: 'nearest' });
-  }, [activeDomain, search, searchTarget, dialogRef]);
+    if (searchTarget.current === null) return;
+    focusSettingsControl(dialogRef.current, searchTarget.current);
+    searchTarget.current = null;
+  }, [activeDomain, dialogRef]);
 
   const [savedForm, setSavedForm] = useState(createInitialStudioSettingsFormState);
   const savedFormRef = useRef(savedForm);
@@ -641,15 +739,7 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = (props) =
           </div>
         </div>
 
-        <SettingsSearch
-          value={search}
-          onChange={setSearch}
-          onSelect={(domain, target) => {
-            setActiveDomain(domain);
-            setSearch('');
-            setSearchTarget(target);
-          }}
-        />
+        <SettingsSearch value={search} onChange={setSearch} onSelect={selectSearchTarget} />
         <div className="studio-settings-layout">
           <label className="studio-settings-section-select">
             <span>Section</span>
@@ -713,59 +803,20 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = (props) =
             />
           </div>
         </div>
-        <div className="studio-dialog-actions">
-          <span role="status" className="mr-auto text-xs studio-muted">
-            {fileNameError ? (
-              <span className="text-[color:var(--wb-danger)]">
-                <span className="block">{fileNameError}</span>
-                <button
-                  type="button"
-                  className="studio-hit-target underline"
-                  onClick={() => {
-                    setActiveDomain('output');
-                    setSearch('');
-                    setSearchTarget('File name template');
-                  }}
-                >
-                  Fix filename template
-                </button>
-              </span>
-            ) : isSaving ? (
-              'Saving settings…'
-            ) : hasChanges ? (
-              'Unsaved changes'
-            ) : (
-              'No unsaved changes'
-            )}
-          </span>
-          <button
-            type="button"
-            disabled={!hasChanges || isSaving}
-            className="studio-ghost-control px-4"
-            onClick={() => {
-              setFormState(savedForm);
-              previewPreferences(null);
-            }}
-          >
-            Discard
-          </button>
-          <button type="button" onClick={requestClose} className="studio-ghost-control px-4">
-            Close
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!canSave}
-            className="studio-primary-control disabled:opacity-60"
-          >
-            {isSaving ? (
-              <LoaderCircle size={15} className="animate-spin" />
-            ) : (
-              <Save width={15} height={15} />
-            )}
-            {isSaving ? 'Saving…' : 'Save'}
-          </button>
-        </div>
+        <SettingsDialogActions
+          showChanges={activeDomain !== 'organization' || hasChanges}
+          hasChanges={hasChanges}
+          isSaving={isSaving}
+          fileNameError={fileNameError}
+          canSave={canSave}
+          onFixFileName={() => selectSearchTarget('output', 'File name template')}
+          onDiscard={() => {
+            setFormState(savedForm);
+            previewPreferences(null);
+          }}
+          onClose={requestClose}
+          onSave={handleSave}
+        />
       </div>
       <ConfirmationModal
         isOpen={confirmDiscard}

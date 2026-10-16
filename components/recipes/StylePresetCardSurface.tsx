@@ -1,5 +1,12 @@
-import { CatalogCardBackdrop } from '../CatalogCardBackdrop';
-import { Check, Copy, Heart, Palette, InfoCircle as Eye, TextBox as TextPlus } from 'iconoir-react';
+import {
+  Check,
+  Copy,
+  Heart,
+  HeartSolid,
+  Palette,
+  InfoCircle as Eye,
+  TextBox as TextPlus,
+} from 'iconoir-react';
 import React, { useMemo } from 'react';
 
 import type { GeneratedImageWithConfig } from '../../types';
@@ -176,11 +183,11 @@ export const StylePresetCard = React.memo(function StylePresetCard({
         data-style-source-category={sourceProvenance?.sourceCategory ?? ''}
         data-style-collection-role={sourceProvenance?.collectionRole ?? ''}
         data-selected={active}
-        className="style-preset-tile catalog-art-card group relative aspect-[3/4] overflow-hidden rounded-[var(--wb-radius)] text-left"
+        className="style-preset-tile group relative overflow-hidden rounded-[var(--wb-radius)] text-left"
         style={
           {
             contentVisibility: 'auto',
-            containIntrinsicSize: '210px 280px',
+            containIntrinsicSize: '210px 344px',
           } as React.CSSProperties
         }
       >
@@ -196,22 +203,18 @@ export const StylePresetCard = React.memo(function StylePresetCard({
           />
         </div>
 
-        <CatalogCardBackdrop
-          label={presetDisplayName}
-          title={
-            <button
-              type="button"
-              className="style-tile-caption"
-              onClick={() => onApply(preset)}
-              disabled={selectionDisabled}
-              aria-pressed={active}
-              aria-label={`${active ? 'Remove' : 'Select'} style ${presetDisplayName}`}
-              data-tooltip={presetDisplayName}
-            >
-              {presetDisplayName}
-            </button>
-          }
-        >
+        <div className="style-card-footer">
+          <button
+            type="button"
+            className="style-tile-caption"
+            onClick={() => onApply(preset)}
+            disabled={selectionDisabled}
+            aria-pressed={active}
+            aria-label={`${active ? 'Remove' : 'Select'} style ${presetDisplayName}`}
+            data-tooltip={presetDisplayName}
+          >
+            {presetDisplayName}
+          </button>
           <StylePresetCardActions
             preset={preset}
             favorite={favorite}
@@ -221,7 +224,7 @@ export const StylePresetCard = React.memo(function StylePresetCard({
             onCopy={onCopy}
             onUsePrompt={onUsePrompt}
           />
-        </CatalogCardBackdrop>
+        </div>
       </div>
     </>
   );
@@ -241,14 +244,14 @@ function StylePresetCardActions({
 >) {
   const presetDisplayName = getStyleRuntimePresetDisplayName(preset);
   return (
-    <div className="style-card-actions catalog-hover-actions">
+    <div className="style-card-actions">
       <button
         type="button"
         aria-label={`${favorite ? 'Unfavorite' : 'Favorite'} ${presetDisplayName}`}
         aria-pressed={favorite}
         onClick={() => onToggleFavorite(preset.id)}
       >
-        <Heart width={14} height={14} fill={favorite ? 'currentColor' : 'none'} />
+        {favorite ? <HeartSolid width={14} height={14} /> : <Heart width={14} height={14} />}
       </button>
       <button
         type="button"

@@ -1,11 +1,12 @@
 import type { UseCatalogResult } from '../../hooks/useCatalogPage';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   NavArrowLeft as ChevronLeft,
   NavArrowRight as ChevronRight,
   Copy,
   Download,
   Heart,
+  HeartSolid,
   Minus,
   Plus,
   Expand as OpenFull,
@@ -23,6 +24,16 @@ import { useImageConversion } from '../../contexts/ImageConversionContext';
 import type { Attachment, GeneratedImageWithConfig } from '../../types';
 import { copyImageToClipboard, downloadImage, generateSmartFilename } from '../../utils/fileUtils';
 import Tooltip from '../Tooltip';
+import { RecipeWorkbenchContext } from './recipeWorkbenchContextState';
+import { getCatalogImageDetail } from '../../services/studio-api/catalog';
+import {
+  buildGenerationConfigFromCatalogImage,
+  getCatalogRegenerateIssue,
+} from '../../utils/catalogImageGenerationConfig';
+
+const ImageActionsMenu = React.lazy(() =>
+  import('../ImageActionsMenu').then((module) => ({ default: module.ImageActionsMenu })),
+);
 
 type StageBackground = 'dark' | 'light' | 'checkered';
 type NavSide = 'prev' | 'next' | null;
@@ -163,32 +174,39 @@ function useRecipeResultPreviewController({
     setShowReference(false);
   };
 
-  const handleCopy = async () => {
-    if (!src) return;
+  const handleCopy = async (image?: GeneratedImageWithConfig) => {
+    const source = image ? (image.sourceUrl ?? image.src) : src;
+    if (!source) return;
     try {
-      await copyImageToClipboard(src);
+      await copyImageToClipboard(source);
       addToast('Image copied to clipboard', 'success');
     } catch (error) {
       addToast(error instanceof Error ? error.message : 'Could not copy image', 'error');
     }
   };
 
-  const handleDownload = () => {
-    if (!src) return;
-    downloadImage(
-      src,
-      selected
-        ? generateSmartFilename(
-            selected.config.prompt,
-            selected.id,
-            selected.config.model,
-            selected.config.aspectRatio,
-            undefined,
-            selected.mimeType,
-            selected.localPath,
-          )
-        : 'reference.png',
-    );
+  const handleDownload = async (image?: GeneratedImageWithConfig) => {
+    const source = image ? (image.sourceUrl ?? image.src) : src;
+    const target = image ?? selected;
+    if (!source) return;
+    try {
+      await downloadImage(
+        source,
+        target
+          ? generateSmartFilename(
+              target.config.prompt,
+              target.id,
+              target.config.model,
+              target.config.aspectRatio,
+              undefined,
+              target.mimeType,
+              target.localPath,
+            )
+          : 'reference.png',
+      );
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Could not download image', 'error');
+    }
   };
 
   return {
@@ -226,8 +244,118 @@ function useRecipeResultPreviewController({
 
 type RecipeResultPreviewViewModel = ReturnType<typeof useRecipeResultPreviewController>;
 
+function WorkspaceImageMenu({
+  model,
+  open,
+  onOpenChange,
+  image: contextImage,
+  anchorPoint,
+  contextTriggerRef,
+}: {
+  model: RecipeResultPreviewViewModel;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  image?: GeneratedImageWithConfig | null;
+  anchorPoint?: { x: number; y: number } | null;
+  contextTriggerRef: React.RefObject<HTMLElement | null>;
+}) {
+  const { imageActions } = useContext(RecipeWorkbenchContext);
+  const { addToast } = useToastUi();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const image = contextImage ?? model.selected;
+  if (!image || (!contextImage && model.displayedReference) || !imageActions) return null;
+  const withDetail = async (
+    action: (config: GeneratedImageWithConfig['config']) => void | Promise<void>,
+  ) => {
+    try {
+      await action(buildGenerationConfigFromCatalogImage(await getCatalogImageDetail(image.id)));
+    } catch {
+      addToast('Could not complete image action. Please try again.', 'error');
+    }
+  };
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-label="More image actions"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="studio-icon-action studio-ghost-control"
+        onClick={() => {
+          contextTriggerRef.current = null;
+          onOpenChange(!open);
+        }}
+      >
+        •••
+      </button>
+      <React.Suspense fallback={null}>
+        {open && (
+          <ImageActionsMenu
+            image={image}
+            workspaceId={imageActions.workspaceId}
+            open={open}
+            onOpenChange={onOpenChange}
+            triggerRef={contextTriggerRef.current ? contextTriggerRef : triggerRef}
+            anchorPoint={contextTriggerRef.current ? anchorPoint : null}
+            onReference={() => model.onUseAsSource?.(image)}
+            onFavorite={() => model.onToggleFavorite?.(image.id)}
+            onDownload={() => void model.handleDownload(image)}
+            onCopyImage={() => void model.handleCopy(image)}
+            onCopyPrompt={() =>
+              void withDetail(async (config) => {
+                await navigator.clipboard.writeText(config.prompt ?? '');
+                addToast('Prompt copied', 'success');
+              })
+            }
+            onConvert={model.openConversion ? () => model.openConversion!([image]) : undefined}
+            onLoadConfig={() => void withDetail(imageActions.onLoadConfig)}
+            onRegenerate={() =>
+              void withDetail((config) => {
+                const issue = getCatalogRegenerateIssue(config);
+                if (issue) addToast(issue, 'info');
+                else imageActions.onRegenerate(config);
+              })
+            }
+            onDelete={() => imageActions.onDelete(image.id)}
+          />
+        )}
+      </React.Suspense>
+    </>
+  );
+}
+
 function RecipeResultPreviewView({ model }: { model: RecipeResultPreviewViewModel }) {
   const { isStage, variant, background, isGenerating, presentation, src, images } = model;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuTarget, setMenuTarget] = useState<{
+    image: GeneratedImageWithConfig;
+    point: { x: number; y: number } | null;
+  } | null>(null);
+  const contextTriggerRef = useRef<HTMLElement>(null);
+  const openImageMenu = (image: GeneratedImageWithConfig, event: React.MouseEvent<HTMLElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    contextTriggerRef.current = event.currentTarget.querySelector('button') ?? event.currentTarget;
+    setMenuTarget({
+      image,
+      point: event.clientX || event.clientY ? { x: event.clientX, y: event.clientY } : null,
+    });
+    setMenuOpen(true);
+  };
+  const menu = (
+    <WorkspaceImageMenu
+      model={model}
+      open={menuOpen}
+      onOpenChange={(open) => {
+        setMenuOpen(open);
+        if (!open) setMenuTarget(null);
+      }}
+      image={menuTarget?.image}
+      anchorPoint={menuTarget?.point}
+      contextTriggerRef={contextTriggerRef}
+    />
+  );
 
   return (
     <section
@@ -237,6 +365,11 @@ function RecipeResultPreviewView({ model }: { model: RecipeResultPreviewViewMode
       aria-label="Result preview"
       aria-busy={isGenerating || presentation.pending}
       data-image-transition={Boolean(presentation.previousSrc)}
+      onContextMenu={(event) => {
+        if (model.selected && !model.displayedReference) {
+          openImageMenu(model.selected, event);
+        }
+      }}
     >
       {isGenerating && (
         <div className="recipe-result-progress" role="status">
@@ -244,9 +377,9 @@ function RecipeResultPreviewView({ model }: { model: RecipeResultPreviewViewMode
         </div>
       )}
       {!isStage ? <RecipeResultHeading model={model} /> : null}
-      {isStage && src ? <RecipeResultToolbar model={model} /> : null}
+      {isStage && src ? <RecipeResultToolbar model={model} menu={menu} /> : menu}
       <RecipeResultCanvas model={model} />
-      {images.length > 0 && <RecipeResultStrip model={model} />}
+      {images.length > 0 && <RecipeResultStrip model={model} onImageMenu={openImageMenu} />}
     </section>
   );
 }
@@ -270,7 +403,9 @@ export const RecipeResultPreview: React.FC<{
 
 function RecipeResultToolbar({
   model,
+  menu,
 }: {
+  menu?: React.ReactNode;
   model: Pick<
     RecipeResultPreviewViewModel,
     | 'displayedReference'
@@ -302,6 +437,7 @@ function RecipeResultToolbar({
       >
         <RecipeResultContext model={model} />
         <RecipeResultImageActions model={model} />
+        {menu}
         <div className="result-view-controls">
           <div className="recipe-result-background" role="group" aria-label="Canvas background">
             <Tooltip content="Dark background">
@@ -429,6 +565,7 @@ function RecipeResultStageCanvas({
       tabIndex={src ? 0 : undefined}
       data-nav-side={navSide ?? undefined}
       {...panZoom.viewportProps}
+      onDoubleClick={panZoom.fit}
       ref={panZoom.viewportRef}
       onPointerMove={(event) => {
         panZoom.viewportProps.onPointerMove(event);
@@ -526,7 +663,7 @@ function RecipeResultImageActions({
         </button>
       </Tooltip>
       <Tooltip content="Download image">
-        <button type="button" aria-label="Download image" onClick={handleDownload}>
+        <button type="button" aria-label="Download image" onClick={() => void handleDownload()}>
           <Download width={14} height={14} />
         </button>
       </Tooltip>
@@ -549,7 +686,11 @@ function RecipeResultImageActions({
             aria-pressed={Boolean(selected?.isFavorite)}
             onClick={() => selected && onToggleFavorite(selected.id)}
           >
-            <Heart width={14} height={14} />
+            {selected?.isFavorite ? (
+              <HeartSolid width={14} height={14} />
+            ) : (
+              <Heart width={14} height={14} />
+            )}
           </button>
         </Tooltip>
       ) : null}
@@ -601,8 +742,10 @@ function RecipeResultHeading({
 
 function RecipeResultStrip({
   model,
+  onImageMenu,
 }: {
   model: React.ComponentProps<typeof RecipeResultPreviewView>['model'];
+  onImageMenu: (image: GeneratedImageWithConfig, event: React.MouseEvent<HTMLElement>) => void;
 }) {
   const {
     isStage,
@@ -625,17 +768,22 @@ function RecipeResultStrip({
         (image, index) => {
           const resultIndex = isStage ? (thumbnailWindow[index]?.index ?? index) : index;
           return (
-            <button
-              type="button"
+            <div
               key={image.id}
-              draggable
-              onDragStart={(event) => writeCatalogImageDrag(event, image.id)}
-              aria-label={`View result ${resultIndex + 1}`}
-              aria-pressed={requestedImage?.id === image.id && !showReference}
-              onClick={() => selectIndex(resultIndex)}
+              className="relative shrink-0"
+              onContextMenu={(event) => onImageMenu(image, event)}
             >
-              <img src={image.thumbnail || image.src} alt="" draggable={false} />
-            </button>
+              <button
+                type="button"
+                draggable
+                onDragStart={(event) => writeCatalogImageDrag(event, image.id)}
+                aria-label={`View result ${resultIndex + 1}`}
+                aria-pressed={requestedImage?.id === image.id && !showReference}
+                onClick={() => selectIndex(resultIndex)}
+              >
+                <img src={image.thumbnail || image.src} alt="" draggable={false} />
+              </button>
+            </div>
           );
         },
       )}

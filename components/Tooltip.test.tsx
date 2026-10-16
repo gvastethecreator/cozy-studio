@@ -74,6 +74,12 @@ it('delays hover help, keeps it stable across child icons and cancels a pending 
   });
   expect(screen.getByRole('tooltip').textContent).toBe('Settings');
   expect(settings.getAttribute('aria-describedby')).toBe(screen.getByRole('tooltip').id);
+  fireEvent.contextMenu(settings);
+  expect(screen.queryByRole('tooltip')).toBeNull();
+  fireEvent.pointerOver(icon);
+  act(() => {
+    vi.advanceTimersByTime(300);
+  });
   fireEvent.pointerOut(icon);
   expect(screen.queryByRole('tooltip')).toBeNull();
   expect(settings.hasAttribute('aria-describedby')).toBe(false);
@@ -82,7 +88,7 @@ it('delays hover help, keeps it stable across child icons and cancels a pending 
   act(() => {
     vi.advanceTimersByTime(200);
   });
-  fireEvent.keyDown(help, { key: 'Escape' });
+  fireEvent.contextMenu(help);
   act(() => {
     vi.advanceTimersByTime(500);
   });

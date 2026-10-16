@@ -1,5 +1,6 @@
 import type { UseCatalogResult } from '../../hooks/useCatalogPage';
 import { createContext, type ReactNode } from 'react';
+import type { ImageGenerationConfig } from '../../types';
 export type CanvasCompareChrome = {
   showReference: boolean;
   toggle: () => void;
@@ -24,6 +25,12 @@ export const RecipeWorkbenchContext = createContext<{
   history?: UseCatalogResult;
   results?: ReactNode;
   latestResultId?: string;
+  imageActions?: {
+    workspaceId: string;
+    onLoadConfig: (config: ImageGenerationConfig) => void;
+    onRegenerate: (config: ImageGenerationConfig) => void;
+    onDelete: (id: string) => void;
+  };
   prompt?: WorkflowPrompt | null;
   setPrompt?: (prompt: WorkflowPrompt | null) => void;
   primaryAction?: WorkflowAction | null;

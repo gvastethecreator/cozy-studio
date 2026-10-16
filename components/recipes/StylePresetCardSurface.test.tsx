@@ -1,14 +1,24 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { StyleRuntimePreset } from './styles/runtimeTypes';
 import { StylePresetCard } from './StylePresetCardSurface';
+import StyleDetailPreview from './StyleDetailPreview';
+import { getStyleImageMetadata } from '../../services/studio-api/extensions';
+
+vi.mock('../../contexts/GlobalContext', () => ({ useToastUi: () => ({ addToast: vi.fn() }) }));
+vi.mock('../../services/studio-api/extensions', () => ({
+  getStyleImageMetadata: vi.fn().mockResolvedValue({ prompt: 'Original example prompt' }),
+}));
 
 afterEach(cleanup);
 beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
   };
 });
 
@@ -29,6 +39,61 @@ const PRESET: StyleRuntimePreset = {
 };
 
 describe('StylePresetCard', () => {
+  it('retains full-size examples for equivalent data and closes them when the style or sources change', async () => {
+    const props = {
+      preset: PRESET,
+      selected: false,
+      selectionDisabled: false,
+      onApply: vi.fn(),
+      onCopy: vi.fn(),
+      onUsePrompt: vi.fn(),
+      onClone: vi.fn(),
+      onClose: vi.fn(),
+    };
+    const visualState = {
+      presetPackName: 'Materials',
+      defaultImage: '/style.webp',
+      resultImages: [],
+      defaultImageVariants: [],
+      exampleImageSrc: null,
+      previewImage: undefined,
+    };
+    vi.mocked(getStyleImageMetadata).mockClear();
+    const { rerender } = render(
+      <StyleDetailPreview {...props} visualState={{ ...visualState }} copied />,
+    );
+    await waitFor(() => expect(screen.getByText('Original example prompt')).toBeTruthy());
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Open Polished Glass example 1 at full size' }),
+    );
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    rerender(<StyleDetailPreview {...props} visualState={{ ...visualState }} copied={false} />);
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(getStyleImageMetadata).toHaveBeenCalledTimes(1);
+    rerender(
+      <StyleDetailPreview
+        {...props}
+        visualState={{ ...visualState, defaultImage: '/updated-style.webp' }}
+        copied={false}
+      />,
+    );
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await waitFor(() => expect(screen.getByText('Original example prompt')).toBeTruthy());
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Open Polished Glass example 1 at full size' }),
+    );
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    rerender(
+      <StyleDetailPreview
+        {...props}
+        preset={{ ...PRESET, id: 'another-style' }}
+        visualState={{ ...visualState, defaultImage: '/updated-style.webp' }}
+        copied={false}
+      />,
+    );
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it('opens details without changing the mix and preserves prompt actions', () => {
     const onApply = vi.fn();
     const onInspect = vi.fn();

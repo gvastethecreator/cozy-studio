@@ -1285,6 +1285,7 @@ function AnimationSequenceControls({
                 onChange={(value) => setParam('continuity', value)}
               />
               <fieldset
+                aria-label="Export background"
                 disabled={contract.background === 'transparent'}
                 className="grid gap-1.5 disabled:opacity-50"
               >

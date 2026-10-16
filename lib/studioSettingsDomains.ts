@@ -4,6 +4,7 @@ export const STUDIO_SETTINGS_DOMAIN_TABS = [
   { id: 'providers', label: 'Accounts & models' },
   { id: 'output', label: 'Files & naming' },
   { id: 'library', label: 'Library & imports' },
+  { id: 'organization', label: 'Tags & collections' },
   { id: 'extensions', label: 'Styles & workflows' },
   { id: 'maintenance', label: 'Advanced & maintenance' },
   { id: 'help', label: 'Help & updates' },

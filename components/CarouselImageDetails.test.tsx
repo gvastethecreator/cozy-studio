@@ -1,16 +1,198 @@
 /** @vitest-environment jsdom */
 import React from 'react';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { DEFAULT_GENERATION_CONFIG } from '../constants';
 import type { GeneratedImageWithConfig } from '../types';
 import { CarouselImageDetails } from './CarouselImageDetails';
-import { updateCatalogImage } from '../services/studio-api/catalog';
+import { ImageTagsEditor } from './ImageTagsEditor';
+import { ImageCollectionsEditor } from './ImageCollectionsEditor';
+import { ImageOrganizationPicker } from './ImageOrganizationPicker';
+import {
+  createCatalogCollection,
+  getCatalogCollectionSelection,
+  updateCatalogCollection,
+  updateCatalogImage,
+  listCatalogTags,
+  listCatalogCollections,
+  CATALOG_ORGANIZATION_CHANGED,
+} from '../services/studio-api/catalog';
+import { useCatalogOrganization } from '../hooks/useCatalogOrganization';
 import { applyCatalogTagChanges } from '../packages/shared/src/catalogTags';
 
-vi.mock('../services/studio-api/catalog', () => ({ updateCatalogImage: vi.fn() }));
+vi.mock('../services/studio-api/catalog', () => ({
+  CATALOG_ORGANIZATION_CHANGED: 'studio:catalog-organization-changed',
+  listCatalogTags: vi.fn().mockResolvedValue([]),
+  listCatalogCollections: vi.fn().mockResolvedValue([]),
+  notifyCatalogOrganizationChanged: vi.fn(),
+  updateCatalogImage: vi.fn(),
+  getCatalogCollectionSelection: vi.fn().mockResolvedValue([]),
+  updateCatalogCollection: vi.fn(),
+  createCatalogCollection: vi.fn(),
+}));
 
 afterEach(cleanup);
+
+it('refreshes collection checkboxes after another control changes membership', async () => {
+  let selectedImageCount = 0;
+  const collection = {
+    id: 'album',
+    workspaceId: 'default',
+    name: 'Album',
+    imageCount: 1,
+    createdAt: '',
+    updatedAt: '',
+  };
+  vi.mocked(listCatalogCollections).mockImplementation(async () => [{ ...collection }]);
+  vi.mocked(getCatalogCollectionSelection).mockImplementation(async () => [
+    { ...collection, selectedImageCount },
+  ]);
+  render(
+    <ImageOrganizationPicker kind="collection" workspaceId="default" images={[taggedImage]} />,
+  );
+  const checkbox = await screen.findByRole('menuitemcheckbox', { name: 'Album' });
+  expect(checkbox.getAttribute('aria-checked')).toBe('false');
+  selectedImageCount = 1;
+  act(() => {
+    window.dispatchEvent(new Event(CATALOG_ORGANIZATION_CHANGED));
+  });
+  await waitFor(() => expect(checkbox.getAttribute('aria-checked')).toBe('true'));
+  vi.mocked(updateCatalogCollection).mockResolvedValue(collection);
+  fireEvent.click(checkbox);
+  await waitFor(() =>
+    expect(updateCatalogCollection).toHaveBeenLastCalledWith('album', {
+      removeImageIds: ['tagged'],
+    }),
+  );
+  vi.mocked(listCatalogCollections).mockResolvedValue([]);
+  vi.mocked(getCatalogCollectionSelection).mockResolvedValue([]);
+});
+
+it('does not expose the previous workspace organization when a new scope fails, and retries', async () => {
+  const collections = [
+    {
+      id: 'references',
+      workspaceId: 'second',
+      name: 'References',
+      imageCount: 2,
+      createdAt: '',
+      updatedAt: '',
+    },
+  ];
+  vi.mocked(listCatalogCollections)
+    .mockResolvedValueOnce([])
+    .mockResolvedValueOnce(collections)
+    .mockResolvedValueOnce(collections);
+  vi.mocked(listCatalogTags)
+    .mockResolvedValueOnce([{ name: 'private-tag', color: null, imageCount: 1, lastUsedAt: null }])
+    .mockRejectedValueOnce(new Error('Offline'))
+    .mockResolvedValueOnce([]);
+  const { result, rerender } = renderHook(
+    ({ workspaceId }) => useCatalogOrganization(workspaceId),
+    { initialProps: { workspaceId: 'first' } },
+  );
+  await waitFor(() => expect(result.current.tags[0]?.name).toBe('private-tag'));
+  rerender({ workspaceId: 'second' });
+  expect(result.current.tags).toEqual([]);
+  await waitFor(() => expect(result.current.errors.tag).toBe('Offline'));
+  expect(result.current.errors.collection).toBe('');
+  expect(result.current.collections).toEqual(collections);
+  act(() => result.current.refresh());
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  expect(result.current.errors).toEqual({ tag: '', collection: '' });
+  expect(result.current.tags).toEqual([]);
+});
+
+it('applies batch tag changes without replacing unrelated tags and keeps partial failures retryable', async () => {
+  const images = [
+    { ...taggedImage, tags: ['boss'] },
+    { ...taggedImage, id: 'second', tags: ['forest'] },
+  ];
+  const stored = new Map(images.map((image) => [image.id, image.tags]));
+  let failSecond = true;
+  vi.mocked(updateCatalogImage)
+    .mockReset()
+    .mockImplementation(async (id, patch) => {
+      if (id === 'second' && failSecond) throw new Error('Offline');
+      const tags = applyCatalogTagChanges(stored.get(id)!, patch);
+      stored.set(id, tags);
+      return { tags } as Awaited<ReturnType<typeof updateCatalogImage>>;
+    });
+  render(<ImageTagsEditor images={images} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Add tag boss to all selected images' }));
+  await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('1 of 2'));
+  expect(stored.get('second')).toEqual(['forest']);
+  failSecond = false;
+  fireEvent.click(screen.getByRole('button', { name: 'Add tag boss to all selected images' }));
+  await waitFor(() => expect(screen.getByText('2/2')).toBeDefined());
+  expect(stored.get('second')).toEqual(['forest', 'boss']);
+  fireEvent.click(screen.getByRole('button', { name: 'Remove tag boss' }));
+  await waitFor(() => expect(screen.queryByText('#boss')).toBeNull());
+  expect(stored.get('second')).toEqual(['forest']);
+  expect(updateCatalogImage).toHaveBeenLastCalledWith('second', { removeTags: ['boss'] });
+});
+
+it('adds and removes collection membership for a mixed selection and preserves failed creation input', async () => {
+  let selectedImageCount = 1;
+  const collection = {
+    id: 'album',
+    workspaceId: 'default',
+    name: 'Bosses',
+    imageCount: 3,
+    createdAt: '',
+    updatedAt: '',
+  };
+  vi.mocked(getCatalogCollectionSelection).mockImplementation(async () => [
+    { ...collection, selectedImageCount },
+  ]);
+  vi.mocked(updateCatalogCollection).mockImplementation(async (_id, patch) => {
+    selectedImageCount = patch.addImageIds ? 2 : 0;
+    return collection;
+  });
+  vi.mocked(createCatalogCollection)
+    .mockRejectedValueOnce(new Error('Offline'))
+    .mockResolvedValueOnce(collection);
+  render(<ImageCollectionsEditor workspaceId="default" imageIds={['one', 'two']} />);
+  const checkbox = await screen.findByRole('checkbox', { name: 'Bosses' });
+  expect(checkbox.getAttribute('aria-checked')).toBe('mixed');
+  fireEvent.click(screen.getByRole('button', { name: 'Remove selected images from Bosses' }));
+  await waitFor(() => expect(checkbox.getAttribute('aria-checked')).toBe('false'));
+  fireEvent.click(checkbox);
+  await waitFor(() => expect(checkbox.getAttribute('aria-checked')).toBe('true'));
+  expect(updateCatalogCollection).toHaveBeenLastCalledWith('album', {
+    addImageIds: ['one', 'two'],
+  });
+  fireEvent.click(checkbox);
+  await waitFor(() => expect(checkbox.getAttribute('aria-checked')).toBe('false'));
+  expect(updateCatalogCollection).toHaveBeenLastCalledWith('album', {
+    removeImageIds: ['one', 'two'],
+  });
+  const input = screen.getByRole('textbox', { name: 'New collection' }) as HTMLInputElement;
+  fireEvent.change(input, { target: { value: 'New album' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+  expect(screen.getByRole('status').textContent).toBe('Saving collections…');
+  expect(input.disabled).toBe(true);
+  expect((screen.getByRole('button', { name: 'Create' }) as HTMLButtonElement).disabled).toBe(true);
+  await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Offline'));
+  expect(screen.queryByRole('status')).toBeNull();
+  expect(input.value).toBe('New album');
+  fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+  await waitFor(() => expect(input.value).toBe(''));
+  expect(createCatalogCollection).toHaveBeenLastCalledWith({
+    workspaceId: 'default',
+    name: 'New album',
+    imageIds: ['one', 'two'],
+  });
+  vi.mocked(getCatalogCollectionSelection).mockResolvedValue([]);
+});
 
 const taggedImage: GeneratedImageWithConfig = {
   id: 'tagged',
@@ -28,7 +210,9 @@ it('adds multiple normalized hashtags without losing existing metadata and remov
     stored = applyCatalogTagChanges(stored, patch);
     return { tags: stored } as Awaited<ReturnType<typeof updateCatalogImage>>;
   });
-  const view = render(<CarouselImageDetails image={taggedImage} />);
+  const view = render(
+    <ImageTagsEditor key={taggedImage.id} workspaceId="default" images={[taggedImage]} />,
+  );
   fireEvent.change(screen.getByRole('textbox', { name: 'Add hashtags' }), {
     target: { value: '#ACCIÓN #accio\u0301n, #Jefe' },
   });
@@ -36,7 +220,11 @@ it('adds multiple normalized hashtags without losing existing metadata and remov
   await waitFor(() => expect(screen.getByText('#acción')).toBeDefined());
   expect(update).toHaveBeenLastCalledWith('tagged', { addTags: ['acción', 'jefe'] });
   view.rerender(
-    <CarouselImageDetails image={{ ...taggedImage, tags: ['imported reference', 'acción'] }} />,
+    <ImageTagsEditor
+      key={taggedImage.id}
+      workspaceId="default"
+      images={[{ ...taggedImage, tags: ['imported reference', 'acción'] }]}
+    />,
   );
   expect(screen.getByText('#jefe')).toBeDefined();
   fireEvent.click(screen.getByRole('button', { name: 'Remove tag jefe' }));
@@ -52,13 +240,17 @@ it('keeps failed hashtag input for retry and does not apply partial invalid inpu
     .mockResolvedValueOnce({ tags: ['imported reference', 'jefe'] } as Awaited<
       ReturnType<typeof updateCatalogImage>
     >);
-  render(<CarouselImageDetails image={taggedImage} />);
+  render(<ImageTagsEditor key={taggedImage.id} workspaceId="default" images={[taggedImage]} />);
   const input = screen.getByRole('textbox', { name: 'Add hashtags' }) as HTMLInputElement;
   fireEvent.change(input, { target: { value: '#jefe #bad!' } });
   fireEvent.click(screen.getByRole('button', { name: 'Add tags' }));
   expect(update).not.toHaveBeenCalled();
   expect(screen.getByRole('alert').textContent).toContain('Use letters');
+  expect(input.getAttribute('aria-invalid')).toBe('true');
+  expect(input.getAttribute('aria-describedby')).toBe(screen.getByRole('alert').id);
   fireEvent.change(input, { target: { value: '#jefe' } });
+  expect(input.getAttribute('aria-invalid')).toBe('false');
+  expect(input.hasAttribute('aria-describedby')).toBe(false);
   fireEvent.click(screen.getByRole('button', { name: 'Add tags' }));
   await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Offline'));
   expect(input.value).toBe('#jefe');
@@ -75,7 +267,9 @@ it('blocks overlapping saves and isolates a late result after navigating to anot
       finish = resolve;
     }),
   );
-  const view = render(<CarouselImageDetails image={taggedImage} />);
+  const view = render(
+    <ImageTagsEditor key={taggedImage.id} workspaceId="default" images={[taggedImage]} />,
+  );
   fireEvent.change(screen.getByRole('textbox', { name: 'Add hashtags' }), {
     target: { value: '#jefe' },
   });
@@ -86,7 +280,13 @@ it('blocks overlapping saves and isolates a late result after navigating to anot
   expect(remove.disabled).toBe(true);
   fireEvent.click(remove);
   expect(update).toHaveBeenCalledTimes(1);
-  view.rerender(<CarouselImageDetails image={{ ...taggedImage, id: 'other', tags: ['cielo'] }} />);
+  view.rerender(
+    <ImageTagsEditor
+      key="other"
+      workspaceId="default"
+      images={[{ ...taggedImage, id: 'other', tags: ['cielo'] }]}
+    />,
+  );
   await act(async () => {
     finish({ tags: ['imported reference', 'jefe'] } as Awaited<
       ReturnType<typeof updateCatalogImage>
@@ -96,7 +296,7 @@ it('blocks overlapping saves and isolates a late result after navigating to anot
   expect(screen.queryByText('#jefe')).toBeNull();
 });
 
-it('shows original metadata and active style badges, preserving unknown file size', () => {
+it('shows original metadata and active style badges, omitting missing file size', () => {
   const image: GeneratedImageWithConfig = {
     id: 'image',
     src: '/image.png',
@@ -120,13 +320,13 @@ it('shows original metadata and active style badges, preserving unknown file siz
     },
   };
   const view = render(
-    <CarouselImageDetails image={image}>
+    <CarouselImageDetails workspaceId="default" image={image}>
       <button>Download</button>
     </CarouselImageDetails>,
   );
   expect(screen.getByText('2048 × 1536')).toBeDefined();
   expect(screen.getByText('1.5 MiB')).toBeDefined();
-  expect(screen.getByText('image/png')).toBeDefined();
+  expect(screen.getByText('PNG')).toBeDefined();
   expect(screen.getByText('ChatGPT')).toBeDefined();
   expect(screen.getByText(new Date(image.createdAt).toLocaleString())).toBeDefined();
   expect(screen.getByText('Woodcut').getAttribute('title')).toBe('Print');
@@ -139,6 +339,7 @@ it('shows original metadata and active style badges, preserving unknown file siz
   const fileSize = screen.getByText('1.5 MiB');
   view.rerender(
     <CarouselImageDetails
+      workspaceId="default"
       image={{
         ...image,
         id: 'next-image',
@@ -151,5 +352,5 @@ it('shows original metadata and active style badges, preserving unknown file siz
   expect(screen.getByText('ChatGPT')).toBe(provider);
   expect(screen.getByText('2048 × 1536')).toBe(dimensions);
   expect(fileSize.isConnected).toBe(false);
-  expect(screen.getByText('File size').nextElementSibling?.textContent).toBe('Unknown');
+  expect(screen.queryByText('File size')).toBeNull();
 });

@@ -1,23 +1,21 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Copy, Check, Plus, Xmark as X } from 'iconoir-react';
 import { resolveStyleFullCardUrl } from '../../lib/styleThumbnailCatalog';
 import type { StylePresetVisualState } from './StylePresetCardSurface';
 import { getStyleRuntimePresetDisplayName, type StyleRuntimePreset } from './stylesData';
 import { buildStylePromptText } from './stylePromptText';
+import { StyleExampleModal, type StyleExample } from './StyleExampleModal';
+import { getStyleImageMetadata } from '../../services/studio-api/extensions';
+import { getCatalogImageDetail } from '../../services/studio-api/catalog';
+import { useToastUi } from '../../contexts/GlobalContext';
 
-export default function StyleDetailPreview({
-  preset,
-  visualState,
-  selected,
-  selectionDisabled,
-  copied,
-  onApply,
-  onCopy,
-  onUsePrompt,
-  onEdit,
-  onClone,
-  onClose,
-}: {
+interface StyleExampleSource {
+  src: string;
+  label: string;
+  imageId?: string;
+}
+
+interface StyleDetailPreviewProps {
   preset: StyleRuntimePreset;
   visualState?: StylePresetVisualState;
   selected: boolean;
@@ -29,25 +27,109 @@ export default function StyleDetailPreview({
   onEdit?: () => void;
   onClone: () => void;
   onClose: () => void;
-}) {
+}
+
+export default function StyleDetailPreview(props: StyleDetailPreviewProps) {
+  const { visualState } = props;
+  const seen = new Set<string>();
+  const sourcesKey = JSON.stringify(
+    [
+      ...(visualState?.defaultImage ? [{ src: visualState.defaultImage, label: 'Main card' }] : []),
+      ...(visualState?.defaultImageVariants ?? []),
+      ...(visualState?.resultImages ?? []).map((image) => ({
+        src: image.sourceUrl ?? image.src,
+        label: 'Generated image',
+        imageId: image.id,
+      })),
+    ]
+      .filter((entry) => {
+        if (seen.has(entry.src)) return false;
+        seen.add(entry.src);
+        return true;
+      })
+      .slice(0, 3),
+  );
+  return (
+    <StyleDetailPreviewContent
+      key={`${props.preset.id}:${sourcesKey}`}
+      {...props}
+      sourcesKey={sourcesKey}
+    />
+  );
+}
+
+function StyleDetailPreviewContent({
+  preset,
+  visualState,
+  selected,
+  selectionDisabled,
+  copied,
+  onApply,
+  onCopy,
+  onUsePrompt,
+  onEdit,
+  onClone,
+  onClose,
+  sourcesKey,
+}: StyleDetailPreviewProps & { sourcesKey: string }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     closeRef.current?.focus({ preventScroll: true });
   }, [preset.id]);
   const name = getStyleRuntimePresetDisplayName(preset);
-  const images = useMemo(
-    () =>
-      [
-        ...new Set(
-          [
-            visualState?.defaultImage,
-            ...(visualState?.defaultImageVariants.map((image) => image.src) ?? []),
-            ...(visualState?.resultImages.map((image) => image.src) ?? []),
-          ].filter((src): src is string => Boolean(src)),
-        ),
-      ].slice(0, 3),
-    [visualState],
-  );
+  const { addToast } = useToastUi();
+  const [preview, setPreview] = useState<number | null>(null);
+  const [examples, setExamples] = useState<StyleExample[]>([]);
+  const [metadataError, setMetadataError] = useState('');
+  const stylePrompt = buildStylePromptText(preset);
+  const category = preset.category;
+  const packName = visualState?.presetPackName;
+  useEffect(() => {
+    let cancelled = false;
+    const sourceImages: StyleExampleSource[] = JSON.parse(sourcesKey);
+    setMetadataError('');
+    const initial = sourceImages.map((entry) => ({
+      src: resolveStyleFullCardUrl(entry.src) ?? entry.src,
+      thumbnail: entry.src,
+      label: `${name} · ${entry.label}`,
+      prompt: stylePrompt,
+      promptLabel: 'Style prompt',
+      metadata: { style: name, pack: packName, category },
+    }));
+    setExamples(initial);
+    void Promise.all(
+      initial.map(async (example, index) => {
+        const entry = sourceImages[index];
+        try {
+          const metadata = entry.imageId
+            ? await getCatalogImageDetail(entry.imageId)
+            : await getStyleImageMetadata(example.src);
+          if (!metadata) return example;
+          const prompt = typeof metadata.prompt === 'string' ? metadata.prompt : example.prompt;
+          return {
+            ...example,
+            prompt,
+            promptLabel: metadata.prompt ? 'Original prompt' : example.promptLabel,
+            metadata: { ...example.metadata, ...metadata },
+          };
+        } catch {
+          if (!cancelled) setMetadataError('Some original metadata could not be loaded.');
+          return example;
+        }
+      }),
+    ).then((value) => {
+      if (!cancelled) setExamples(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [name, stylePrompt, category, sourcesKey, packName]);
+  const copyPrompt = (prompt: string) => {
+    void navigator.clipboard.writeText(prompt).then(
+      () => addToast('Prompt copied', 'success'),
+      () => addToast('Could not copy prompt.', 'error'),
+    );
+  };
   return (
     <section
       className="style-detail-preview"
@@ -99,23 +181,39 @@ export default function StyleDetailPreview({
           </button>
         )}
       </div>
+      {metadataError && <p role="alert">{metadataError}</p>}
       <div className="style-detail-body">
         <div className="style-detail-examples" aria-label="Style examples">
-          {[0, 1, 2].map((index) => (
-            <figure key={index}>
-              {images[index] ? (
-                <a
-                  href={resolveStyleFullCardUrl(images[index]) ?? images[index]}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={`Open ${name} example ${index + 1} at full size`}
+          {examples.map((example, index) => (
+            <figure key={example.src}>
+              <button
+                type="button"
+                className="style-example-image"
+                aria-label={`Open ${name} example ${index + 1} at full size`}
+                onClick={() => setPreview(index)}
+              >
+                <img
+                  src={example.thumbnail}
+                  alt={`${name} example ${index + 1}`}
+                  decoding="async"
+                />
+              </button>
+              <figcaption>
+                <span>{example.label}</span>
+                <button
+                  type="button"
+                  aria-label={`Copy prompt for example ${index + 1}`}
+                  onClick={() => copyPrompt(example.prompt)}
                 >
-                  <img src={images[index]} alt={`${name} example ${index + 1}`} decoding="async" />
-                </a>
-              ) : (
-                <div className="style-example-missing">No example available</div>
+                  <Copy width={15} />
+                </button>
+              </figcaption>
+              {example.prompt && (
+                <div className="style-example-prompt">
+                  <span>{example.promptLabel}</span>
+                  <p>{example.prompt}</p>
+                </div>
               )}
-              <figcaption>{index === 0 ? 'Main card' : `Example ${index + 1}`}</figcaption>
             </figure>
           ))}
         </div>
@@ -137,6 +235,9 @@ export default function StyleDetailPreview({
           </details>
         </aside>
       </div>
+      {preview !== null && examples[preview] && (
+        <StyleExampleModal example={examples[preview]} onClose={() => setPreview(null)} />
+      )}
     </section>
   );
 }

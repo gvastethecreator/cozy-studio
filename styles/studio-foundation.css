@@ -1,3 +1,22 @@
+@layer base {
+  :where(
+    input:not(
+      [type='range'],
+      [type='checkbox'],
+      [type='radio'],
+      [type='color'],
+      [type='file'],
+      [type='hidden'],
+      [type='button'],
+      [type='submit']
+    ),
+    textarea,
+    select
+  ) {
+    padding-inline: 12px;
+  }
+}
+
 @theme {
   --font-sans: 'Manrope', system-ui, sans-serif;
   --color-accent-50: rgb(var(--accent-50));

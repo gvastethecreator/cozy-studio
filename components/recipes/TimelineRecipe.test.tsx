@@ -153,6 +153,7 @@ it('hydrates timeline indices, retries failures, and keeps later history pages n
   expect(screen.getAllByRole('button', { name: 'SEQ.1' })).toHaveLength(1);
   fireEvent.click(screen.getByRole('button', { name: 'SEQ.1' }));
   expect(screen.getByText('Frame: 1')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Replace keyframe' })).toBeDefined();
   // Summaries from a refresh must not drop the known index of the selected frame.
   fireEvent.click(screen.getByRole('button', { name: 'Refresh catalog' }));
   await waitFor(() => expect(api.query).toHaveBeenCalledTimes(3));
@@ -193,4 +194,27 @@ it('hydrates timeline indices, retries failures, and keeps later history pages n
     'story-b',
     'frame-2',
   ]);
+});
+
+it('opens the first-keyframe upload without nesting a file input inside its button', () => {
+  const onFileSelect = vi.fn();
+  render(
+    <TimelineRecipe
+      config={{ ...DEFAULT_GENERATION_CONFIG, recipeId: 'timeline', attachments: [] }}
+      updateConfig={vi.fn()}
+      updateAttachment={vi.fn()}
+      onFileSelect={onFileSelect}
+      onGenerate={vi.fn()}
+      isGenerating={false}
+    />,
+  );
+  const upload = screen.getByLabelText('Upload file');
+  const openFilePicker = vi.spyOn(upload, 'click');
+  const button = screen.getByRole('button', { name: /Add first keyframe/ });
+  expect(button.contains(upload)).toBe(false);
+  fireEvent.click(button);
+  expect(openFilePicker).toHaveBeenCalledOnce();
+  const file = new File(['image'], 'frame.png', { type: 'image/png' });
+  fireEvent.change(upload, { target: { files: [file] } });
+  expect(onFileSelect).toHaveBeenCalledWith([file], undefined, { strength: 1 });
 });

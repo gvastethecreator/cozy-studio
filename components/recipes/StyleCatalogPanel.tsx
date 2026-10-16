@@ -86,7 +86,7 @@ function StyleGridPlaceholderCells({
         <div
           key={index}
           data-style-grid-placeholder-card
-          className="aspect-[3/4] rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)]/32 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
+          className="style-card-loading rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)]/32 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
         >
           <div className="h-full rounded-[var(--wb-radius)] bg-linear-to-b from-white/[0.035] via-transparent to-black/20" />
         </div>
@@ -1236,6 +1236,21 @@ function StyleCatalogFolder({
     setStyleScrollWidth,
     styleRecipeNavigationSections,
   } = model;
+  const measureScrollRoot = useCallback(
+    (node: HTMLDivElement | null) => {
+      styleScrollRootRef.current = node;
+      if (!node) return;
+      const updateWidth = () => setStyleScrollWidth(node.clientWidth);
+      updateWidth();
+      const observer = new ResizeObserver(updateWidth);
+      observer.observe(node);
+      return () => {
+        observer.disconnect();
+        styleScrollRootRef.current = null;
+      };
+    },
+    [styleScrollRootRef, setStyleScrollWidth],
+  );
   return (
     <div data-style-folder={currentPackId} className="flex min-h-0 flex-1 flex-col">
       {currentPackId === USER_STYLE_PACK_ID && userStyleError && userStylePresets.length > 0 ? (
@@ -1267,7 +1282,7 @@ function StyleCatalogFolder({
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {unsearchedFavoritesRoute && archivedFavoritePresets.length > 0 ? (
             <div
-              ref={styleScrollRootRef}
+              ref={measureScrollRoot}
               data-style-archived-favorites
               className="max-h-[38vh] min-h-0 shrink-0 overflow-y-auto px-4 pb-3"
             >
@@ -1345,7 +1360,7 @@ function StyleCatalogFolder({
             </aside>
           )}
           <div
-            ref={styleScrollRootRef}
+            ref={measureScrollRoot}
             className="min-h-0 min-w-0 overflow-y-auto pb-12 custom-scrollbar"
           >
             <React.Suspense

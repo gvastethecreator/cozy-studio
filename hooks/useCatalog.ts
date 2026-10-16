@@ -29,6 +29,7 @@ import { toStudioAssetUrl } from '../services/studio-api/assetUrls';
 export interface UseStudioCatalogControllerOptions {
   query?: string;
   favorites?: boolean;
+  collectionId?: string;
   sort?: CatalogSortOption;
   historyEnabled?: boolean;
   historyRecipeId?: string | null;
@@ -78,6 +79,7 @@ export function collectWorkspaceCatalogImageIds(entries: CatalogImage[], workspa
 export function useStudioCatalogController({
   query = '',
   favorites = false,
+  collectionId,
   sort = 'desc',
   historyEnabled = false,
   historyRecipeId,
@@ -91,10 +93,11 @@ export function useStudioCatalogController({
     favorite: favorites ? true : undefined,
     sort,
     workspaceId: activeWorkspaceId,
+    collectionId,
     deleted: false,
     pageSize: CATALOG_RENDER_BUDGET.activePageSize,
   });
-  const hasLibraryFilters = Boolean(query) || favorites || sort !== 'desc';
+  const hasLibraryFilters = Boolean(query) || favorites || sort !== 'desc' || Boolean(collectionId);
   const historyCatalogEnabled = historyEnabled || hasLibraryFilters;
   const historyCatalog = useCatalogPage({
     selectedId: historyEnabled ? historySelectedId : undefined,

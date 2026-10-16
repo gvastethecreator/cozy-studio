@@ -33,6 +33,40 @@ beforeAll(() => {
 });
 
 describe('GsapDropdown Workbench Ambient', () => {
+  it('anchors a context menu at the cursor and flips at viewport edges', async () => {
+    const trigger = document.createElement('button');
+    document.body.append(trigger);
+    const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(200);
+    const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(120);
+    try {
+      const { rerender } = render(
+        <GsapDropdown open portal triggerRef={{ current: trigger }} anchorPoint={{ x: 30, y: 40 }}>
+          <button role="menuitem">Action</button>
+        </GsapDropdown>,
+      );
+      await waitFor(() => expect(screen.getByRole('menu').style.left).toBe('30px'));
+      expect(screen.getByRole('menu').style.top).toBe('40px');
+      rerender(
+        <GsapDropdown
+          open
+          portal
+          triggerRef={{ current: trigger }}
+          anchorPoint={{ x: window.innerWidth - 10, y: window.innerHeight - 10 }}
+        >
+          <button role="menuitem">Action</button>
+        </GsapDropdown>,
+      );
+      await waitFor(() =>
+        expect(screen.getByRole('menu').style.left).toBe(`${window.innerWidth - 210}px`),
+      );
+      expect(screen.getByRole('menu').style.top).toBe(`${window.innerHeight - 130}px`);
+    } finally {
+      width.mockRestore();
+      height.mockRestore();
+      trigger.remove();
+    }
+  });
+
   it('focuses a dialog field after opening and restores the trigger on Escape', async () => {
     function DisplayOptions() {
       const triggerRef = useRef<HTMLButtonElement>(null);

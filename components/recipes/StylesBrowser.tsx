@@ -883,20 +883,6 @@ function useStylesBrowserController({
     [loadStyleRuntimePacks, styleCollectionsModule],
   );
 
-  // react-doctor-disable-next-line react-doctor/no-initialize-state
-  useEffect(() => {
-    const node = styleScrollRootRef.current;
-    if (!node || typeof ResizeObserver === 'undefined') return;
-
-    const updateWidth = () => setStyleScrollWidth(node.clientWidth);
-    // react-doctor-disable-next-line react-doctor/no-initialize-state
-    updateWidth();
-
-    const observer = new ResizeObserver(updateWidth);
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [styleScrollRootRef, setStyleScrollWidth, currentPackId, isPackLandingOpen, explorerOpen]);
-
   const loadedRuntimeStylePacks = useMemo(
     () =>
       styleRuntimePackIds().flatMap((packId) => {

@@ -153,6 +153,26 @@ function renderToolbar(overrides: Partial<ToolbarProps> = {}) {
 }
 
 describe('Toolbar composer chrome', () => {
+  it('keeps generation available to enqueue images while showing the working mascot', () => {
+    const { container, props } = renderToolbar({
+      isGenerating: true,
+      generationStartTime: Date.now(),
+      activeProviderId: 'chatgpt',
+      codexTransport: 'subscription_http',
+      codexAvailableTransports: ['subscription_http'],
+    });
+    const button = screen.getByRole('button', { name: 'Add to queue 4 images' });
+    expect(button).toHaveProperty('disabled', false);
+    expect(button.querySelector('.cozy-mascot')).not.toBeNull();
+    expect(container.querySelector('.create-generate-spinner')).toBeNull();
+    fireEvent.click(button);
+    expect(props.onGenerate).toHaveBeenCalledWith(
+      'A lantern',
+      { recipeId: null, codexTransport: 'subscription_http', imageSize: undefined, batchCount: 4 },
+      { preventModal: true },
+    );
+  });
+
   it('keeps one draft recovery banner in rail and dock, with a copy of the latest prompt', () => {
     const previous = vi.mocked(useGenerationDraft).getMockImplementation()!;
     const downloadDraftCopy = vi.fn();

@@ -27,7 +27,11 @@ const Tooltip: React.FC<TooltipProps> = ({
     const root = ref.current;
     const close = () => setOpen(false);
     root?.addEventListener('click', close);
-    return () => root?.removeEventListener('click', close);
+    root?.addEventListener('contextmenu', close, true);
+    return () => {
+      root?.removeEventListener('click', close);
+      root?.removeEventListener('contextmenu', close, true);
+    };
   }, []);
   useEffect(() => {
     if (!open) return;
@@ -114,6 +118,7 @@ export function ControlTooltips() {
     document.addEventListener('pointerout', leave);
     document.addEventListener('focusout', leave);
     document.addEventListener('click', leave);
+    document.addEventListener('contextmenu', leave, true);
     document.addEventListener('keydown', key, true);
     return () => {
       document.removeEventListener('pointerover', enter);
@@ -121,6 +126,7 @@ export function ControlTooltips() {
       document.removeEventListener('pointerout', leave);
       document.removeEventListener('focusout', leave);
       document.removeEventListener('click', leave);
+      document.removeEventListener('contextmenu', leave, true);
       document.removeEventListener('keydown', key, true);
     };
   }, []);

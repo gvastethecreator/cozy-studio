@@ -5,6 +5,7 @@ import type { ImageGridSortOption } from '../lib/imageGridPresentation';
 export const libraryQueryParsers = {
   workspace: parseAsString,
   q: parseAsString.withDefault(''),
+  collection: parseAsString,
   favorites: parseAsBoolean.withDefault(false),
   sort: parseAsStringLiteral([
     'desc',
@@ -20,6 +21,7 @@ export interface LibraryFilters {
   q: string;
   favorites: boolean;
   sort: ImageGridSortOption;
+  collection?: string | null;
 }
 
 export function useLibraryUrlState() {

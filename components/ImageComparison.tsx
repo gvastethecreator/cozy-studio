@@ -62,7 +62,7 @@ export function ImageComparison({
           <img
             ref={zoom.contentRef}
             src={image.sourceUrl ?? image.src}
-            alt={`Image ${index === 0 ? 'A' : 'B'}: ${image.config.prompt || 'Selected result'}`}
+            alt={`${index === 0 ? 'A' : 'B'}: ${image.config.prompt || 'Selected result'}`}
             draggable={false}
             className={status === 'ready' ? '' : 'invisible'}
             onLoad={(event) => {

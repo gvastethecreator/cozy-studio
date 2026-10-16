@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_GENERATION_CONFIG } from '../constants';
 import type { GeneratedImageWithConfig } from '../types';
-import { downloadMultipleImagesAsZip, fetchImageBlob, generateSmartFilename } from './fileUtils';
+import {
+  downloadImage,
+  downloadMultipleImagesAsZip,
+  fetchImageBlob,
+  generateSmartFilename,
+} from './fileUtils';
 
 const archive = vi.hoisted(() => ({
   file: vi.fn(),
@@ -18,8 +23,49 @@ vi.mock('jszip', () => ({
 vi.mock('file-saver', () => ({ saveAs: archive.saveAs }));
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   vi.clearAllMocks();
+});
+
+describe('downloadImage', () => {
+  it('saves fetched bytes through a temporary blob URL and releases it after download starts', async () => {
+    vi.useFakeTimers();
+    const blob = new Blob(['image'], { type: 'image/png' });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(blob)));
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:download');
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const link = { href: '', download: '', click: vi.fn(), remove: vi.fn() };
+    const appendChild = vi.fn();
+    vi.stubGlobal('document', { createElement: vi.fn(() => link), body: { appendChild } });
+
+    await downloadImage('https://images.example/original.png', 'original.png');
+    expect(fetch).toHaveBeenCalledWith('https://images.example/original.png', {
+      cache: 'no-cache',
+    });
+    expect(createObjectURL).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'image/png', size: blob.size }),
+    );
+    expect(link.href).toBe('blob:download');
+    expect(link.download).toBe('original.png');
+    expect(appendChild).toHaveBeenCalledWith(link);
+    expect(link.click).toHaveBeenCalledOnce();
+    expect(link.remove).toHaveBeenCalledOnce();
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+    vi.runAllTimers();
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:download');
+  });
+
+  it('rejects a failed image request before creating a download link', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('missing', { status: 404 })));
+    const createElement = vi.fn();
+    vi.stubGlobal('document', { createElement });
+    await expect(downloadImage('/missing.png', 'missing.png')).rejects.toThrow(
+      'Image request failed with HTTP 404.',
+    );
+    expect(createElement).not.toHaveBeenCalled();
+  });
 });
 
 describe('download filenames', () => {

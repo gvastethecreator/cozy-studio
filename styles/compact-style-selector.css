@@ -1089,11 +1089,12 @@
   outline-offset: 2px;
 }
 .style-preset-tile {
-  border: var(--wb-border-width) solid var(--wb-line);
+  outline: var(--wb-border-width) solid var(--wb-line);
+  outline-offset: calc(-1 * var(--wb-border-width));
   background: var(--wb-panel);
 }
 .style-preset-tile[data-selected='true'] {
-  border-color: var(--wb-ink);
+  outline-color: var(--wb-ink);
   box-shadow: inset 0 0 0 1px var(--wb-ink);
 }
 .style-preset-tile .style-preset-thumbnail {

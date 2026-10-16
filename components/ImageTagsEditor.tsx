@@ -1,22 +1,42 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { parseImageHashtags, type CatalogTagChanges } from '../packages/shared/src/catalogTags';
-import { updateCatalogImage } from '../services/studio-api/catalog';
+import {
+  updateCatalogImage,
+  notifyCatalogOrganizationChanged,
+} from '../services/studio-api/catalog';
 import type { GeneratedImage } from '../types';
+import { useCatalogOrganization } from '../hooks/useCatalogOrganization';
 
-export function ImageTagsEditor({ image }: { image: GeneratedImage }) {
+export function ImageTagsEditor({
+  images,
+  onSaved,
+  workspaceId = 'default',
+}: {
+  images: GeneratedImage[];
+  onSaved?: () => void;
+  workspaceId?: string;
+}) {
+  const { tags: definitions } = useCatalogOrganization(workspaceId);
   const inputId = useId();
-  const [tags, setTags] = useState(image.tags ?? []);
+  const [imageTags, setImageTags] = useState(() =>
+    images.map((image) => ({ id: image.id, tags: image.tags ?? [] })),
+  );
   const [input, setInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
   const savingRef = useRef(false);
   const confirmedRef = useRef(false);
-  const tagsKey = JSON.stringify(image.tags ?? []);
+  const tagsKey = JSON.stringify(images.map((image) => ({ id: image.id, tags: image.tags ?? [] })));
   useEffect(() => {
     // A delayed catalog refresh must not replace this editor's confirmed save.
-    if (!confirmedRef.current) setTags(JSON.parse(tagsKey) as string[]);
+    if (!confirmedRef.current) setImageTags(JSON.parse(tagsKey));
   }, [tagsKey]);
+  const tagCounts = new Map<string, number>();
+  const tagColors = new Map(definitions.map((tag) => [tag.name, tag.color ?? undefined]));
+  for (const image of imageTags) {
+    for (const tag of image.tags) tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+  }
 
   const save = async (changes: CatalogTagChanges, clearInput = false) => {
     if (savingRef.current) return;
@@ -25,11 +45,35 @@ export function ImageTagsEditor({ image }: { image: GeneratedImage }) {
     setSaved(false);
     try {
       setSaving(true);
-      const result = await updateCatalogImage(image.id, changes);
-      confirmedRef.current = true;
-      setTags(result.tags);
-      if (clearInput) setInput('');
-      setSaved(true);
+      const results = await Promise.allSettled(
+        imageTags.map(async (image) => {
+          const result = await updateCatalogImage(image.id, changes);
+          return { id: image.id, tags: result.tags };
+        }),
+      );
+      const updated = new Map(
+        results.flatMap((result) =>
+          result.status === 'fulfilled' ? [[result.value.id, result.value.tags] as const] : [],
+        ),
+      );
+      if (updated.size) {
+        confirmedRef.current = true;
+        setImageTags((current) =>
+          current.map((image) => ({ ...image, tags: updated.get(image.id) ?? image.tags })),
+        );
+        onSaved?.();
+        notifyCatalogOrganizationChanged();
+      }
+      const failed = results.filter((result) => result.status === 'rejected');
+      if (failed.length) {
+        const cause = failed[0].reason;
+        setError(
+          `${failed.length} of ${imageTags.length} images could not be updated. ${cause instanceof Error ? cause.message : 'Try again.'}`,
+        );
+      } else {
+        if (clearInput) setInput('');
+        setSaved(true);
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not save tags. Try again.');
     } finally {
@@ -42,12 +86,29 @@ export function ImageTagsEditor({ image }: { image: GeneratedImage }) {
     <section aria-label="Image tags" className="space-y-2 text-xs">
       <h3 className="text-[color:var(--wb-muted)]">Tags</h3>
       <div className="flex flex-wrap gap-1.5">
-        {tags.map((tag) => (
+        {[...tagCounts].map(([tag, count]) => (
           <span
             key={tag}
+            style={{ borderColor: tagColors.get(tag) }}
             className="inline-flex max-w-full items-center gap-1 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] px-2 py-1"
           >
             <span className="break-all">{tag.includes(' ') ? tag : `#${tag}`}</span>
+            {imageTags.length > 1 && (
+              <span className="text-[color:var(--wb-muted)]">
+                {count}/{imageTags.length}
+              </span>
+            )}
+            {count < imageTags.length && (
+              <button
+                type="button"
+                className="studio-ghost-control rounded px-1"
+                aria-label={`Add tag ${tag} to all selected images`}
+                disabled={saving}
+                onClick={() => void save({ addTags: [tag] })}
+              >
+                +
+              </button>
+            )}
             <button
               type="button"
               className="studio-ghost-control rounded px-1"
@@ -59,7 +120,6 @@ export function ImageTagsEditor({ image }: { image: GeneratedImage }) {
             </button>
           </span>
         ))}
-        {tags.length === 0 && <span className="text-[color:var(--wb-muted)]">No tags yet</span>}
       </div>
       <form
         onSubmit={(event) => {
@@ -86,8 +146,8 @@ export function ImageTagsEditor({ image }: { image: GeneratedImage }) {
           }}
           disabled={saving}
           placeholder="#character #boss"
-          aria-describedby={`${inputId}-help`}
           aria-invalid={!!error}
+          aria-describedby={error ? `${inputId}-error` : undefined}
           maxLength={2200}
           className="studio-well min-w-0 flex-1 px-2 py-2"
         />
@@ -99,12 +159,8 @@ export function ImageTagsEditor({ image }: { image: GeneratedImage }) {
           {saving ? 'Saving…' : 'Add tags'}
         </button>
       </form>
-      <p id={`${inputId}-help`} className="text-[color:var(--wb-muted)]">
-        Separate hashtags with spaces or commas. Press Enter to save. Search Library with #tag;
-        multiple hashtags match all tags.
-      </p>
       {error && (
-        <p role="alert" className="text-[color:var(--wb-danger)]">
+        <p id={`${inputId}-error`} role="alert" className="text-[color:var(--wb-danger)]">
           {error} Your input is kept. Try again.
         </p>
       )}

@@ -71,6 +71,21 @@ export function CozyMascot({
         timeline
           .to(steam, { y: -14, opacity: 0.65, duration: 0.85, stagger: 0.12, ease: 'sine.inOut' })
           .to(steam, { y: 0, opacity: 1, duration: 0.85, stagger: 0.12, ease: 'sine.inOut' });
+        if (compact && state === 'working')
+          timeline.fromTo(
+            element.querySelector('svg'),
+            { rotation: -8, y: 0 },
+            {
+              rotation: 8,
+              y: -2,
+              transformOrigin: '50% 85%',
+              yoyo: true,
+              repeat: 3,
+              duration: 0.4,
+              ease: 'sine.inOut',
+            },
+            0,
+          );
         if (!compact)
           timeline.fromTo(
             element.querySelector('[id$="-torso"]'),

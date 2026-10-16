@@ -13,8 +13,8 @@ import {
   Trash as Trash2,
   Check,
   List as ClipboardList,
-  Clock as History,
   Heart,
+  HeartSolid,
   MediaImageXmark as ImageOff,
   MediaImage as Photo,
   Sort as ArrowUpDown,
@@ -25,9 +25,13 @@ import {
   CheckSquare,
   Square,
   ViewColumns2,
+  FolderPlus,
 } from 'iconoir-react';
+import { ImageActionsMenu } from './ImageActionsMenu';
+import { ImageTagsMenu, ImageCollectionsMenu } from './ImageCollectionsMenu';
+import { ImageOrganizationDialog } from './ImageOrganizationDialog';
 import { DemandMountedGsapDropdown } from './ui/DemandMountedGsapDropdown';
-import { downloadImage, generateSmartFilename } from '../utils/fileUtils';
+import { copyImageToClipboard, downloadImage, generateSmartFilename } from '../utils/fileUtils';
 import Tooltip from './Tooltip';
 import ActionButton from './ui/ActionButton';
 import { getCatalogImageDetail } from '../services/studio-api/catalog';
@@ -64,6 +68,7 @@ import {
 } from '../lib/imageGridPresentation';
 
 interface ImageItemProps {
+  workspaceId: string;
   image: GeneratedImageWithConfig;
   isSelected: boolean;
   onImageClick: (image: GeneratedImageWithConfig, rect: DOMRect) => void;
@@ -271,6 +276,7 @@ export interface ImageGridProps {
   onDownloadAll: (images: GeneratedImageWithConfig[]) => void;
   onDeleteSelected: (images: GeneratedImageWithConfig[]) => void;
   onClearWorkspace: () => void;
+  workspaceId: string;
   libraryFilters: LibraryFilters;
   onLibraryFiltersChange: (filters: Partial<LibraryFilters>) => void;
   onCreate?: () => void;
@@ -332,8 +338,8 @@ function useImageItem(props: ImageItemProps) {
   const [isActionSurfaceActive, setIsActionSurfaceActive] = useState(false);
   const [isActionSurfaceFocused, setIsActionSurfaceFocused] = useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+  const [actionMenuPoint, setActionMenuPoint] = useState<{ x: number; y: number } | null>(null);
   const actionMenuTriggerRef = useRef<HTMLButtonElement>(null);
-  const actionMenuId = React.useId();
   const [isCoarsePointer] = useState(
     () => typeof window !== 'undefined' && !!window.matchMedia?.('(hover: none)').matches,
   );
@@ -396,6 +402,9 @@ function useImageItem(props: ImageItemProps) {
   const handleContextMenu = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
+    setActionMenuPoint(
+      event.clientX || event.clientY ? { x: event.clientX, y: event.clientY } : null,
+    );
     setIsActionMenuOpen(true);
   };
 
@@ -403,6 +412,7 @@ function useImageItem(props: ImageItemProps) {
     if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
       event.preventDefault();
       actionMenuTriggerRef.current?.focus();
+      setActionMenuPoint(null);
       setIsActionMenuOpen(true);
     }
   };
@@ -429,7 +439,9 @@ function useImageItem(props: ImageItemProps) {
       image.mimeType,
       image.localPath,
     );
-    downloadImage(image.src, smartName);
+    void downloadImage(image.sourceUrl ?? image.src, smartName).catch(() =>
+      addToast('Could not download image.', 'error'),
+    );
   };
 
   const withFullConfig = async (
@@ -455,6 +467,7 @@ function useImageItem(props: ImageItemProps) {
 
   return {
     frameAspectRatio,
+    workspaceId: props.workspaceId,
     transitionName,
     imageLoadFailed,
     imageSrc,
@@ -467,12 +480,14 @@ function useImageItem(props: ImageItemProps) {
     handleCopyPrompt,
     copiedPrompt,
     handleDownload,
+    addToast,
     onToggleFavorite,
     handleSelectClick,
     isSelected,
     actionMenuTriggerRef,
+    actionMenuPoint,
+    setActionMenuPoint,
     isActionMenuOpen,
-    actionMenuId,
     setIsActionMenuOpen,
     viewMode,
     openConversion,
@@ -688,8 +703,9 @@ function ImageItemActions({ model, compact }: { model: ImageItemModel; compact: 
     handleSelectClick,
     isSelected,
     actionMenuTriggerRef,
+    actionMenuPoint,
+    setActionMenuPoint,
     isActionMenuOpen,
-    actionMenuId,
     setIsActionMenuOpen,
     viewMode,
     openConversion,
@@ -729,7 +745,13 @@ function ImageItemActions({ model, compact }: { model: ImageItemModel; compact: 
       {
         <CompactActionButton
           onClick={() => onToggleFavorite(image.id)}
-          icon={<Heart width={14} height={14} fill={image.isFavorite ? 'currentColor' : 'none'} />}
+          icon={
+            image.isFavorite ? (
+              <HeartSolid width={14} height={14} />
+            ) : (
+              <Heart width={14} height={14} />
+            )
+          }
           label={image.isFavorite ? 'Remove favorite' : 'Add favorite'}
           isActive={image.isFavorite}
         />
@@ -749,70 +771,37 @@ function ImageItemActions({ model, compact }: { model: ImageItemModel; compact: 
           aria-label="More image actions"
           aria-haspopup="menu"
           aria-expanded={isActionMenuOpen}
-          aria-controls={actionMenuId}
           data-tooltip="More image actions"
           onClick={(event) => {
             event.stopPropagation();
+            setActionMenuPoint(null);
             setIsActionMenuOpen((open) => !open);
           }}
         >
           •••
         </button>
-        <DemandMountedGsapDropdown
-          id={actionMenuId}
+        <ImageActionsMenu
+          image={image}
+          workspaceId={model.workspaceId}
           open={isActionMenuOpen}
           onOpenChange={setIsActionMenuOpen}
           triggerRef={actionMenuTriggerRef}
-          portal
-          placement={isWideImageGridFrame(image, viewMode) ? 'top-right' : 'bottom-right'}
-          className="library-image-menu studio-popover"
-          aria-label="Image actions"
-          onClick={(event) => {
-            event.stopPropagation();
-            if ((event.target as HTMLElement).closest('[role="menuitem"]')) {
-              actionMenuTriggerRef.current?.focus();
-              setIsActionMenuOpen(false);
-            }
+          anchorPoint={actionMenuPoint}
+          onReference={() => onAddToContext(image)}
+          onFavorite={() => onToggleFavorite(image.id)}
+          onDownload={handleDownload}
+          onCopyPrompt={handleCopyPrompt}
+          onCopyImage={() => {
+            void copyImageToClipboard(image.sourceUrl ?? image.src).then(
+              () => model.addToast('Image copied', 'success'),
+              () => model.addToast('Could not copy image.', 'error'),
+            );
           }}
-        >
-          <button type="button" role="menuitem" onClick={() => onAddToContext(image)}>
-            <PlusCircle width={14} height={14} /> Use as reference
-          </button>
-          {compact ? (
-            <>
-              <button type="button" role="menuitem" onClick={handleCopyPrompt}>
-                {copiedPrompt ? (
-                  <Check width={14} height={14} />
-                ) : (
-                  <ClipboardList width={14} height={14} />
-                )}{' '}
-                {copiedPrompt ? 'Prompt copied' : 'Copy prompt'}
-              </button>
-              <button type="button" role="menuitem" onClick={handleDownload}>
-                <Download width={14} height={14} /> Download
-              </button>
-            </>
-          ) : null}
-          {openConversion && (
-            <button type="button" role="menuitem" onClick={() => openConversion([image])}>
-              <Photo width={14} height={14} /> Convert or compress
-            </button>
-          )}
-          <button type="button" role="menuitem" onClick={() => void withFullConfig(onLoadConfig)}>
-            <History width={14} height={14} /> Load configuration
-          </button>
-          <button type="button" role="menuitem" onClick={() => void withFullConfig(onRegenerate)}>
-            <RefreshCw width={14} height={14} /> Regenerate
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            className="is-danger"
-            onClick={() => onDelete(image.id)}
-          >
-            <Trash2 width={14} height={14} /> Move to trash
-          </button>
-        </DemandMountedGsapDropdown>
+          onConvert={openConversion ? () => openConversion([image]) : undefined}
+          onLoadConfig={() => void withFullConfig(onLoadConfig)}
+          onRegenerate={() => void withFullConfig(onRegenerate)}
+          onDelete={() => onDelete(image.id)}
+        />
       </div>
     </div>
   );
@@ -840,7 +829,13 @@ function useImageGrid(props: ImageGridProps) {
     onDownloadAll,
     onDeleteSelected,
     onClearWorkspace,
-    libraryFilters: { q: searchQuery, sort: sortOrder, favorites: showFavoritesOnly },
+    workspaceId,
+    libraryFilters: {
+      q: searchQuery,
+      sort: sortOrder,
+      favorites: showFavoritesOnly,
+      collection: collectionId = null,
+    },
     onLibraryFiltersChange,
     onCreate,
     catalogTotal,
@@ -852,6 +847,15 @@ function useImageGrid(props: ImageGridProps) {
     generationPlaceholders = EMPTY_GENERATION_PLACEHOLDERS,
   } = props;
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+  const [organizationSelection, setOrganizationSelection] = useState<{
+    workspaceId: string;
+    images: GeneratedImageWithConfig[];
+  } | null>(null);
+  if (organizationSelection && organizationSelection.workspaceId !== workspaceId)
+    setOrganizationSelection(null);
+  const organizationImages = organizationSelection?.images ?? null;
+  const setOrganizationImages = (images: GeneratedImageWithConfig[] | null) =>
+    setOrganizationSelection(images ? { workspaceId, images } : null);
   const openConversion = useImageConversion();
   const [thumbnailSize, setThumbnailSize] = useState(DEFAULT_THUMBNAIL_SIZE);
   const [viewMode, setViewMode] = useState<ImageGridViewMode>(DEFAULT_IMAGE_GRID_VIEW_MODE);
@@ -1192,6 +1196,8 @@ function useImageGrid(props: ImageGridProps) {
 
   return {
     selectedImageIdSet,
+    organizationImages,
+    setOrganizationImages,
     viewMode,
     activeModalImageId,
     selectedImageIds,
@@ -1216,6 +1222,8 @@ function useImageGrid(props: ImageGridProps) {
     isCatalogLoading,
     searchQuery,
     showFavoritesOnly,
+    collectionId,
+    workspaceId,
     onLibraryFiltersChange,
     onCreate,
     selectedImageCount,
@@ -1287,6 +1295,14 @@ function ImageGridView({ model }: { model: ImageGridModel }) {
         {hiddenSelectedImageCount > 0 && ` · ${hiddenSelectedImageCount} selected not shown`}
       </p>
       <ImageGridToolbar model={model} />
+      {model.organizationImages && (
+        <ImageOrganizationDialog
+          images={model.organizationImages}
+          workspaceId={model.workspaceId}
+          onClose={() => model.setOrganizationImages(null)}
+          onSaved={model.onRetryCatalog}
+        />
+      )}
       {emptyContent || (
         <div
           ref={scrollContainerRef}
@@ -1342,6 +1358,18 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
         />
       </label>
       <div className="library-toolbar-actions" role="toolbar" aria-label="Library actions">
+        <ImageTagsMenu
+          workspaceId={model.workspaceId}
+          query={searchQuery}
+          onQueryChange={(q) => model.onLibraryFiltersChange({ q })}
+        />
+        <ImageCollectionsMenu
+          workspaceId={model.workspaceId}
+          collectionId={model.collectionId}
+          selectedImageIds={model.selectedImageIds}
+          onOpenCollection={(collection) => model.onLibraryFiltersChange({ collection })}
+          onCatalogChanged={model.onRetryCatalog}
+        />
         <ImageGridActions model={model} />
         <div
           role="group"
@@ -1470,16 +1498,7 @@ function ImageGridActions({ model }: { model: ImageGridModel }) {
     sortedImages,
     onLibraryFiltersChange,
     showFavoritesOnly,
-    selectedImages,
-    isExporting,
-    onCompareSelected,
     selectedImageCount,
-    isPartialCatalog,
-    onDownloadAll,
-    onClearWorkspace,
-    onDownloadSelected,
-    openConversion,
-    onDeleteSelected,
   } = model;
   return (
     <div className="flex items-center gap-1 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-1 shadow-2xl backdrop-blur-md">
@@ -1518,6 +1537,28 @@ function ImageGridActions({ model }: { model: ImageGridModel }) {
         isActive={showFavoritesOnly}
         tooltipPosition="bottom"
       />
+      <ImageGridBulkActions model={model} />
+    </div>
+  );
+}
+
+function ImageGridBulkActions({ model }: { model: ImageGridModel }) {
+  const {
+    imageCount,
+    sortedImages,
+    selectedImages,
+    isExporting,
+    onCompareSelected,
+    selectedImageCount,
+    isPartialCatalog,
+    onDownloadAll,
+    onClearWorkspace,
+    onDownloadSelected,
+    openConversion,
+    onDeleteSelected,
+  } = model;
+  return (
+    <>
       {selectedImageCount === 0 && imageCount > 0 && !isPartialCatalog && (
         <>
           <ActionButton
@@ -1542,6 +1583,12 @@ function ImageGridActions({ model }: { model: ImageGridModel }) {
       )}
       {selectedImageCount > 0 && (
         <>
+          <ActionButton
+            onClick={() => model.setOrganizationImages(selectedImages)}
+            icon={<FolderPlus width={16} height={16} />}
+            label={`Tags and collections (${selectedImageCount} selected)`}
+            tooltipPosition="bottom"
+          />
           {selectedImages.length === 2 && onCompareSelected && (
             <ActionButton
               onClick={onCompareSelected}
@@ -1576,7 +1623,7 @@ function ImageGridActions({ model }: { model: ImageGridModel }) {
           />
         </>
       )}
-    </div>
+    </>
   );
 }
 
@@ -1644,6 +1691,7 @@ function ImageGridVirtualCells({ model }: { model: ImageGridModel }) {
         className={activeModalImageId === item.image.id ? 'opacity-0' : 'opacity-100'}
       >
         <ImageItem
+          workspaceId={model.workspaceId}
           image={item.image}
           isSelected={selectedImageIdSet.has(item.image.id)}
           onImageClick={onImageClick}
@@ -1764,28 +1812,31 @@ function ImageGridPagination({ model }: { model: ImageGridModel }) {
 }
 
 function ImageGridNoMatches({ model }: { model: ImageGridModel }) {
-  const { searchQuery, showFavoritesOnly, onLibraryFiltersChange, onCreate } = model;
+  const { searchQuery, showFavoritesOnly, collectionId, onLibraryFiltersChange, onCreate } = model;
+  const filtered = Boolean(searchQuery || showFavoritesOnly || collectionId);
   return (
     <div className="max-w-md space-y-3">
       <h2 className="text-lg font-semibold">
-        {searchQuery || showFavoritesOnly ? 'No matching images' : 'Your library starts here'}
+        {filtered ? 'No matching images' : 'Your library starts here'}
       </h2>
       <p className="text-sm text-[color:var(--wb-muted)]">
         {searchQuery
           ? `No results for “${searchQuery}” in this workspace.`
-          : showFavoritesOnly
-            ? 'No favorite images in this view.'
-            : 'Create an image to add your first result to this workspace.'}
+          : collectionId
+            ? 'No images in this collection.'
+            : showFavoritesOnly
+              ? 'No favorite images in this view.'
+              : 'Create an image to add your first result to this workspace.'}
       </p>
-      {searchQuery || showFavoritesOnly ? (
+      {filtered ? (
         <button
           type="button"
           className="studio-ghost-control px-4 py-2"
           onClick={() => {
-            onLibraryFiltersChange({ q: '', favorites: false });
+            onLibraryFiltersChange({ q: '', favorites: false, collection: null });
           }}
         >
-          Clear filters
+          {collectionId && !searchQuery && !showFavoritesOnly ? 'Show all images' : 'Clear filters'}
         </button>
       ) : (
         <button type="button" className="studio-ghost-control px-4 py-2" onClick={onCreate}>

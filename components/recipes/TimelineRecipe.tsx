@@ -427,6 +427,7 @@ function TimelineCanvas({
               </div>
               <button
                 type="button"
+                aria-label="Replace keyframe"
                 onClick={() => fileInputRef.current?.click()}
                 className="absolute bottom-4 right-4 z-30 p-2 rounded-[var(--wb-radius)] bg-[color:var(--wb-panel)]/60 text-[color:var(--wb-muted)] hover:text-[color:var(--wb-ink)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] transition-colors pointer-events-auto border border-[color:var(--wb-line)] flex items-center gap-2"
               >
@@ -455,16 +456,6 @@ function TimelineCanvas({
                 onClick={() => fileInputRef.current?.click()}
                 className="group flex size-full cursor-pointer flex-col items-center justify-center gap-6 bg-white/1 transition-colors hover:bg-white/3 appearance-none border-none p-0 m-0"
               >
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={(e) =>
-                    e.target.files && onLocalUpload(Array.from(e.target.files) as File[])
-                  }
-                  aria-label="Upload file"
-                  className="hidden"
-                  accept="image/*"
-                />
                 <div className="size-20 rounded-full bg-[color:var(--wb-panel)] border border-[color:var(--wb-line)] flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xl">
                   <Clock
                     width={32}
@@ -478,6 +469,16 @@ function TimelineCanvas({
                   maxTitleFontSize={20}
                 />
               </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={(e) =>
+                  e.target.files && onLocalUpload(Array.from(e.target.files) as File[])
+                }
+                aria-label="Upload file"
+                className="hidden"
+                accept="image/*"
+              />
               <button
                 type="button"
                 className="studio-ghost-control mb-6 px-4 py-2"

@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { NuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing';
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ToastUiProvider } from './ToastUiContext';
 import { WorkspaceProvider, useWorkspaceState } from './WorkspaceContext';
@@ -15,13 +15,30 @@ vi.mock('../lib/workspaceIdbMigration', () => ({
   loadDurableWorkspacesFromApi: vi.fn(),
 }));
 vi.mock('../utils/idb', () => ({ set: vi.fn(async () => undefined) }));
+vi.mock('../services/studio-api/workspaces', () => ({
+  createWorkspace: vi.fn(async (workspace) => workspace),
+  deleteWorkspace: vi.fn(async () => undefined),
+}));
 
 function ActiveWorkspace() {
-  const { activeWorkspaceId, hasInitialLibraryLink } = useWorkspaceState();
+  const {
+    activeWorkspaceId,
+    hasInitialLibraryLink,
+    libraryFilters,
+    createWorkspace,
+    deleteWorkspace,
+  } = useWorkspaceState();
   return (
-    <div data-testid="active-workspace" data-explicit={hasInitialLibraryLink}>
-      {activeWorkspaceId}
-    </div>
+    <>
+      <div data-testid="active-workspace" data-explicit={hasInitialLibraryLink}>
+        {activeWorkspaceId}
+      </div>
+      <div data-testid="collection">{libraryFilters.collection}</div>
+      <button onClick={() => createWorkspace({ id: 'created', createdAt: 3 })}>
+        Create workspace
+      </button>
+      <button onClick={() => deleteWorkspace(activeWorkspaceId)}>Delete workspace</button>
+    </>
   );
 }
 
@@ -32,6 +49,40 @@ afterEach(() => {
 });
 
 describe('workspace startup', () => {
+  it.each(['Create workspace', 'Delete workspace'])(
+    'clears the previous collection on %s while preserving valid deep links',
+    async (action) => {
+      vi.mocked(migrateIndexedDbWorkspacesToServer).mockResolvedValueOnce({
+        workspaces: [
+          { id: 'default', createdAt: 1 },
+          { id: 'current', createdAt: 2 },
+        ],
+        activeWorkspaceId: 'current',
+        migrated: false,
+      });
+      render(
+        <NuqsTestingAdapter searchParams={'?workspace=current&collection=album'} hasMemory>
+          <ToastUiProvider>
+            <WorkspaceProvider>
+              <ActiveWorkspace />
+            </WorkspaceProvider>
+          </ToastUiProvider>
+        </NuqsTestingAdapter>,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId('active-workspace').textContent).toBe('current'),
+      );
+      expect(screen.getByTestId('collection').textContent).toBe('album');
+      fireEvent.click(screen.getByRole('button', { name: action }));
+      await waitFor(() =>
+        expect(screen.getByTestId('active-workspace').textContent).toBe(
+          action === 'Create workspace' ? 'created' : 'default',
+        ),
+      );
+      await waitFor(() => expect(screen.getByTestId('collection').textContent).toBe(''));
+    },
+  );
+
   it.each([
     ['', 'current', false],
     ['?workspace=default', 'default', true],

@@ -211,9 +211,14 @@ export function useStudioShell(): StudioShellController {
     emptyCatalogTrash,
     hydrateCatalogDetail,
   } = useStudioCatalogController({
-    query: route.view === 'studio' ? deferredCatalogQuery : '',
-    favorites: route.view === 'studio' && libraryFilters.favorites,
-    sort: route.view === 'studio' ? libraryFilters.sort : 'desc',
+    ...(route.view === 'studio'
+      ? {
+          query: deferredCatalogQuery,
+          favorites: libraryFilters.favorites,
+          collectionId: libraryFilters.collection || undefined,
+          sort: libraryFilters.sort,
+        }
+      : { query: '', favorites: false, sort: 'desc' }),
     historyEnabled: route.view !== 'studio',
     historySelectedId,
     historyRecipeId: historyRecipeFilter(
@@ -438,7 +443,15 @@ export function useStudioShell(): StudioShellController {
     () => historyCatalog.entries.map(materializeCatalogEntryImageWithConfig),
     [historyCatalog.entries],
   );
-  const carouselImages = route.view === 'studio' ? imagesWithConfig : historyImages;
+  const carouselSource =
+    route.view === 'studio'
+      ? { images: imagesWithConfig, view: activeCatalog.view, hydrateDetail: hydrateCatalogDetail }
+      : {
+          images: historyImages,
+          view: historyCatalog.view,
+          hydrateDetail: historyCatalog.hydrateDetail,
+        };
+  const carouselImages = carouselSource.images;
   const activeCarouselImage = useMemo(
     () =>
       resolveStudioCarouselImage({
@@ -452,9 +465,8 @@ export function useStudioShell(): StudioShellController {
   useCatalogModalDetailHydration({
     isModalOpen: modal.isModalOpen,
     activeImageId: modal.activeCarouselId,
-    catalogById: route.view === 'studio' ? activeCatalog.view.byId : historyCatalog.view.byId,
-    hydrateCatalogDetail:
-      route.view === 'studio' ? hydrateCatalogDetail : historyCatalog.hydrateDetail,
+    catalogById: carouselSource.view.byId,
+    hydrateCatalogDetail: carouselSource.hydrateDetail,
     log,
   });
 

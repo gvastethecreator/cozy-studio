@@ -28,6 +28,7 @@ export interface GsapDropdownProps extends Omit<React.HTMLAttributes<HTMLDivElem
   portal?: boolean;
   portalOffset?: number;
   portalZIndex?: number;
+  anchorPoint?: { x: number; y: number } | null;
 }
 
 function resolveTransformOrigin(placement: DropdownPlacement) {
@@ -52,12 +53,14 @@ function resolvePortalStyle({
   placement,
   portalOffset,
   portalZIndex,
+  anchorPoint,
 }: {
   trigger: HTMLElement;
   panel: HTMLElement;
   placement: DropdownPlacement;
   portalOffset: number;
   portalZIndex: number;
+  anchorPoint?: { x: number; y: number } | null;
 }): React.CSSProperties {
   const triggerRect = trigger.getBoundingClientRect();
   panel.style.setProperty('--dropdown-trigger-width', `${triggerRect.width}px`);
@@ -65,6 +68,26 @@ function resolvePortalStyle({
   // GSAP transforms affect client rects while a menu opens. Position from its layout size.
   const panelWidth = panel.offsetWidth || triggerRect.width;
   const panelHeight = panel.offsetHeight || 1;
+  if (anchorPoint) {
+    const left =
+      anchorPoint.x + panelWidth <= window.innerWidth - viewportPadding
+        ? anchorPoint.x
+        : anchorPoint.x - panelWidth;
+    const below = window.innerHeight - anchorPoint.y - viewportPadding;
+    const above = anchorPoint.y - viewportPadding;
+    const top =
+      below >= panelHeight || below >= above ? anchorPoint.y : anchorPoint.y - panelHeight;
+    return {
+      position: 'fixed',
+      margin: 0,
+      maxWidth: 'calc(100vw - 16px)',
+      left: `${clamp(left, viewportPadding, window.innerWidth - panelWidth - viewportPadding)}px`,
+      top: `${clamp(top, viewportPadding, window.innerHeight - panelHeight - viewportPadding)}px`,
+      right: 'auto',
+      bottom: 'auto',
+      zIndex: portalZIndex,
+    };
+  }
   const desiredLeft = placement.endsWith('right')
     ? triggerRect.right - panelWidth
     : triggerRect.left;
@@ -101,6 +124,7 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
       portal = false,
       portalOffset = 8,
       portalZIndex = 120,
+      anchorPoint,
       className,
       children,
       role = 'menu',
@@ -153,6 +177,7 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
         placement,
         portalOffset,
         portalZIndex,
+        anchorPoint,
       });
       setPortalStyle((current) =>
         current &&
@@ -162,7 +187,7 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
           ? current
           : nextStyle,
       );
-    }, [placement, portal, portalOffset, portalZIndex, triggerRef]);
+    }, [placement, portal, portalOffset, portalZIndex, triggerRef, anchorPoint]);
 
     useLayoutEffect(() => {
       if (!portal || !isMounted) {
@@ -200,6 +225,21 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
       };
 
       const handleKeyDown = (event: KeyboardEvent) => {
+        const origin = event.target instanceof HTMLElement ? event.target : null;
+        const dialog = origin?.closest('[role="dialog"]');
+        if (dialog && dialog !== panelRef.current) return;
+        if (
+          event.key !== 'Escape' &&
+          origin?.closest('input, textarea, select, [contenteditable="true"]')
+        )
+          return;
+        const activeMenu = origin?.closest<HTMLElement>('[role="menu"], [role="listbox"]');
+        if (
+          activeMenu &&
+          activeMenu !== panelRef.current &&
+          (event.key === 'Escape' || event.key === 'ArrowLeft')
+        )
+          return;
         if (event.key === 'Escape') {
           event.preventDefault();
           event.stopPropagation();
@@ -220,8 +260,14 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
           return;
         }
         const items = Array.from(
-          panel.querySelectorAll<HTMLElement>('[role="option"], [role^="menuitem"]'),
-        ).filter((item) => !item.matches(':disabled, [aria-disabled="true"]'));
+          (activeMenu ?? panel).querySelectorAll<HTMLElement>(
+            '[role="option"], [role^="menuitem"]',
+          ),
+        ).filter(
+          (item) =>
+            !item.matches(':disabled, [aria-disabled="true"]') &&
+            item.closest('[role="menu"], [role="listbox"]') === (activeMenu ?? panel),
+        );
         if (!items.length) return;
         const index = items.indexOf(document.activeElement as HTMLElement);
         const next =

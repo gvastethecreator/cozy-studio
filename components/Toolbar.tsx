@@ -2284,6 +2284,7 @@ function ToolbarGenerateButton({ model }: { model: ToolbarModel }) {
         requirement ? 'generation-requirement' : generateBlock ? 'grok-generate-block' : undefined
       }
       data-studio-generate-button
+      aria-label={isGenerating ? `Add to queue ${outputSummary}` : undefined}
       data-generate-active={isGenerating ? 'true' : 'false'}
       className={
         isRail
@@ -2297,10 +2298,7 @@ function ToolbarGenerateButton({ model }: { model: ToolbarModel }) {
       }
     >
       {isGenerating ? (
-        <GenerationElapsedStatus
-          startTime={generationStartTime}
-          variant={isRail ? 'rail' : 'dock'}
-        />
+        <GenerationElapsedStatus startTime={generationStartTime} outputSummary={outputSummary} />
       ) : isRail ? (
         <>
           <Sparkles width={17} height={17} aria-hidden="true" />

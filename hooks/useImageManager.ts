@@ -101,9 +101,8 @@ export const useImageManager = ({
 
   const handleDeleteSelected = useCallback(
     (imageIds = selectedImageIds) => {
-      imageIds = [...new Set(imageIds)].filter(
-        (id) => availableIds.has(id) || selectedImageIds.includes(id),
-      );
+      const selectedIds = new Set(selectedImageIds);
+      imageIds = [...new Set(imageIds)].filter((id) => availableIds.has(id) || selectedIds.has(id));
       const performDelete = () => {
         if (imageIds.length > 0) {
           const imageIdSet = new Set(imageIds);

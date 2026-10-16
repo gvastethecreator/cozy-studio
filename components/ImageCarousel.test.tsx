@@ -1,12 +1,21 @@
 /** @vitest-environment jsdom */
 import React from 'react';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { DEFAULT_GENERATION_CONFIG } from '../constants';
 import ImageCarousel from './ImageCarousel';
 
 vi.mock('../contexts/GlobalContext', () => ({
   useToastUi: () => ({ addToast: vi.fn() }),
+}));
+vi.mock('../contexts/WorkspaceContext', () => ({
+  useWorkspaceState: () => ({ activeWorkspaceId: 'default' }),
+}));
+vi.mock('../services/studio-api/catalog', () => ({
+  CATALOG_ORGANIZATION_CHANGED: 'studio:catalog-organization-changed',
+  listCatalogTags: vi.fn().mockResolvedValue([]),
+  listCatalogCollections: vi.fn().mockResolvedValue([]),
+  getCatalogCollectionSelection: vi.fn().mockResolvedValue([]),
 }));
 
 afterEach(() => {
@@ -96,5 +105,73 @@ it('keeps the canvas while hiding details and navigates from focused controls wi
   expect(select).toHaveBeenCalledWith('second');
   select.mockClear();
   fireEvent.keyDown(canvas, { key: 'ArrowLeft' });
+  expect(select).not.toHaveBeenCalled();
+});
+
+it('opens full actions for an inactive thumbnail without changing selection or navigating with menu arrows', async () => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: vi.fn(),
+  });
+  const images = ['first', 'second'].map((id) => ({
+    id,
+    src: `/library/${id}.png`,
+    batchId: 'batch',
+    createdAt: 0,
+    config: DEFAULT_GENERATION_CONFIG,
+  }));
+  const favorite = vi.fn();
+  const select = vi.fn();
+  const remove = vi.fn();
+  render(
+    <ImageCarousel
+      activeImage={images[0]}
+      allImages={images}
+      activeGenerationConfig={null}
+      onClose={vi.fn()}
+      onDelete={remove}
+      onRegenerate={vi.fn()}
+      onAddToContext={vi.fn()}
+      onLoadConfig={vi.fn()}
+      onToggleFavorite={favorite}
+      onActiveImageChange={select}
+    />,
+  );
+  fireEvent.contextMenu(screen.getByRole('button', { name: 'Open image 2 of 2' }), {
+    clientX: 77,
+    clientY: 88,
+  });
+  const action = await screen.findByRole('menuitem', { name: 'Add favorite' });
+  await waitFor(() =>
+    expect(screen.getByRole('menu', { name: 'Image actions' }).style.left).toBe('77px'),
+  );
+  expect(screen.getByRole('menu', { name: 'Image actions' }).style.top).toBe('88px');
+  for (const name of [
+    'Use as reference',
+    'Tags',
+    'Collections',
+    'Copy prompt',
+    'Copy image',
+    'Download',
+    'Load configuration',
+    'Regenerate',
+    'Move to trash',
+  ]) {
+    expect(screen.getByRole('menuitem', { name })).toBeDefined();
+  }
+  fireEvent.keyDown(screen.getByRole('menuitem', { name: 'Copy prompt' }), { key: 'ArrowRight' });
+  expect(select).not.toHaveBeenCalled();
+  fireEvent.click(action);
+  expect(favorite).toHaveBeenCalledWith('second');
+  fireEvent.contextMenu(screen.getByRole('button', { name: 'Open image 2 of 2' }));
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'Move to trash' }));
+  expect(remove).toHaveBeenCalledWith('second');
   expect(select).not.toHaveBeenCalled();
 });

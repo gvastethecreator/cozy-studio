@@ -8,7 +8,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { NavArrowDown, Network } from 'iconoir-react';
+import { NavArrowDown, MediaImage } from 'iconoir-react';
 
 import type { RecipeAliasId } from '../../lib/recipeAliases';
 import { createRecipeDiscoveryProjection } from '../../lib/recipeDiscoveryProjection';
@@ -22,6 +22,8 @@ const loadWorkflowCards = () => import('../recipes/RecipeDiscoveryList');
 const RecipeDiscoveryList = lazy(() =>
   loadWorkflowCards().then((module) => ({ default: module.RecipeDiscoveryList })),
 );
+
+const WorkflowIcon = lazy(() => import('./WorkflowIcon'));
 
 export interface CreateWorkflowPickerProps {
   onSelectRecipe: (id: RecipeId, aliasId?: RecipeAliasId | null) => void;
@@ -58,6 +60,7 @@ export const CreateWorkflowPicker: React.FC<CreateWorkflowPickerProps> = ({
     recipeDiscovery.entries.find(
       (entry) => entry.title.toLowerCase() === selectedLabel.toLowerCase(),
     )?.id;
+  const active = recipeDiscovery.entries.find((entry) => entry.id === activeId);
 
   const handlePreviewRecipe = useCallback(
     (recipeId: RecipeId) => {
@@ -127,6 +130,8 @@ export const CreateWorkflowPicker: React.FC<CreateWorkflowPickerProps> = ({
           <button
             type="button"
             className="create-workflow-quiet-select studio-control"
+            data-workflow-accent={active?.accentColor ?? 'purple'}
+            data-workflow-icon={activeId ?? 'default'}
             aria-label={`Workflow: ${selectedLabel}`}
             aria-haspopup="listbox"
             aria-expanded={Boolean(open)}
@@ -141,7 +146,9 @@ export const CreateWorkflowPicker: React.FC<CreateWorkflowPickerProps> = ({
               }
             }}
           >
-            <Network width={16} height={16} aria-hidden="true" />
+            <Suspense fallback={<MediaImage width={16} height={16} aria-hidden="true" />}>
+              <WorkflowIcon id={activeId ?? 'default'} />
+            </Suspense>
             <span className="text-[color:var(--wb-muted)]">Workflow</span>
             <span id="create-workflow-value">{selectedLabel}</span>
             <NavArrowDown

@@ -245,6 +245,7 @@ export function useStudioGenerationActions({
             ) {
               throw new Error('Original reference has no readable image URL.');
             }
+            // react-doctor-disable-next-line react-doctor/async-await-in-loop -- Validate one full-size reference at a time to bound memory and stop on the first unreadable image.
             const blob = await fetchImageBlob(url.startsWith('/') ? toStudioAssetUrl(url) : url);
             if (!blob.type.startsWith('image/'))
               throw new Error('Original reference is not an image.');

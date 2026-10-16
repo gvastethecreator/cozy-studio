@@ -139,7 +139,7 @@ export function WorkspaceStrip({
   return (
     <div
       ref={workspacesContainerRef}
-      className={`vt-workspace-list gap-1 px-1 ${isCompact ? 'grid max-h-[min(70vh,26rem)] w-[min(82vw,22rem)] overflow-y-auto py-1 custom-scrollbar' : 'hidden max-w-[44vw] items-center overflow-x-auto py-0.5 no-scrollbar md:flex xl:max-w-[52vw]'}`}
+      className={`vt-workspace-list gap-1 px-1 ${isCompact ? 'grid max-h-[min(70vh,26rem)] w-[min(82vw,22rem)] overflow-x-hidden overflow-y-auto py-1 custom-scrollbar' : 'hidden max-w-[44vw] items-center overflow-x-auto py-0.5 no-scrollbar md:flex xl:max-w-[52vw]'}`}
     >
       {workspaces.map((workspace, index) => {
         const label = getWorkspaceLabel(workspace, index);
@@ -171,10 +171,11 @@ export function WorkspaceStrip({
         return (
           <div
             key={workspace.id}
-            className={`relative group flex shrink-0 items-center gap-1 ${isCompact ? 'w-full' : ''}`}
+            className={`relative group flex shrink-0 items-center gap-1 ${isCompact ? 'w-full min-w-0' : ''}`}
           >
             <Tooltip
               content={tooltipContent}
+              className={isCompact ? 'min-w-0 flex-1' : ''}
               contentClassName={contextMenuWorkspaceId === workspace.id ? 'hidden' : ''}
               position="bottom"
             >
@@ -258,6 +259,7 @@ export function WorkspaceStrip({
             </Tooltip>
             <Tooltip
               content="Workspace menu"
+              className="shrink-0"
               contentClassName={contextMenuWorkspaceId === workspace.id ? 'hidden' : ''}
               position="bottom"
             >

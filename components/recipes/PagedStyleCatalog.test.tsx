@@ -101,7 +101,8 @@ describe('PagedStyleCatalog', () => {
     expect(loadPacks).not.toHaveBeenCalledWith(expect.arrayContaining(['pack_02']));
 
     const scroll = view.container.querySelector<HTMLDivElement>('.paged-style-catalog-scroll')!;
-    scroll.scrollTop = 32000;
+    const content = scroll.querySelector<HTMLElement>(':scope > div')!;
+    scroll.scrollTop = Number.parseFloat(content.style.height) - scroll.clientHeight;
     fireEvent.scroll(scroll);
     await waitFor(() => expect(loadPacks).toHaveBeenCalledWith(['pack_02']));
     await waitFor(() => expect(screen.queryByText('pack_02-199')).not.toBeNull());

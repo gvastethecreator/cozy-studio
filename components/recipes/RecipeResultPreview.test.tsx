@@ -3,8 +3,9 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+const toast = vi.hoisted(() => ({ addToast: vi.fn() }));
 vi.mock('../../contexts/GlobalContext', () => ({
-  useToastUi: () => ({ addToast: vi.fn() }),
+  useToastUi: () => toast,
 }));
 const { openConversion } = vi.hoisted(() => ({ openConversion: vi.fn() }));
 vi.mock('../../contexts/ImageConversionContext', () => ({
@@ -17,10 +18,12 @@ vi.mock('../../hooks/useImagePresentation', () => ({
 
 import { MODELS } from '../../constants';
 import { RecipeResultPreview } from './RecipeResultPreview';
+import { RecipeWorkbenchContext } from './recipeWorkbenchContextState';
 import type { Attachment, GeneratedImageWithConfig } from '../../types';
 
 afterEach(() => {
   cleanup();
+  toast.addToast.mockClear();
   openConversion.mockClear();
   vi.useRealTimers();
   vi.unstubAllGlobals();
@@ -253,7 +256,7 @@ describe('RecipeResultPreview', () => {
     ).toBe('checkered');
   });
 
-  it('puts Compare, the prompt, and backgrounds on the stage toolbar', () => {
+  it('puts Compare, the prompt, and backgrounds on the stage toolbar', async () => {
     const reference: Attachment = {
       id: 'ref-1',
       name: 'ref.png',
@@ -266,6 +269,11 @@ describe('RecipeResultPreview', () => {
     expect(screen.getByText('A lantern')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Copy image' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Download image' })).toBeTruthy();
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Offline')));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Download image' }));
+    });
+    expect(toast.addToast).toHaveBeenCalledWith('Offline', 'error');
     fireEvent.click(screen.getByRole('button', { name: 'Convert or compress image' }));
     expect(openConversion).toHaveBeenCalledWith([IMAGE]);
     fireEvent.click(screen.getByRole('button', { name: 'Compare reference' }));
@@ -278,4 +286,57 @@ describe('RecipeResultPreview', () => {
     expect(screen.getByText('Not a source')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Previous result' })).toBeNull();
   });
+});
+
+it('targets the thumbnail actions independently from the selected result', async () => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
+  const favorite = vi.fn();
+  const select = vi.fn();
+  const reference = vi.fn();
+  render(
+    <RecipeWorkbenchContext.Provider
+      value={{
+        controls: null,
+        action: null,
+        overlay: null,
+        sidePanel: null,
+        compare: null,
+        setCompare: vi.fn(),
+        imageActions: {
+          workspaceId: 'default',
+          onLoadConfig: vi.fn(),
+          onRegenerate: vi.fn(),
+          onDelete: vi.fn(),
+        },
+      }}
+    >
+      <RecipeResultPreview
+        variant="stage"
+        images={[IMAGE, IMAGE_TWO]}
+        selectedId={IMAGE.id}
+        onSelectId={select}
+        onToggleFavorite={favorite}
+        onUseAsSource={reference}
+      />
+    </RecipeWorkbenchContext.Provider>,
+  );
+  fireEvent.contextMenu(screen.getByRole('button', { name: 'View result 2' }), {
+    clientX: 90,
+    clientY: 100,
+  });
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'Add favorite' }));
+  expect(favorite).toHaveBeenCalledWith(IMAGE_TWO.id);
+  expect(screen.getByRole('button', { name: 'View result 1' }).getAttribute('aria-pressed')).toBe(
+    'true',
+  );
+  fireEvent.contextMenu(screen.getByRole('button', { name: 'View result 2' }));
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'Use as reference' }));
+  expect(reference).toHaveBeenCalledWith(IMAGE_TWO);
+  expect(select).not.toHaveBeenCalled();
 });

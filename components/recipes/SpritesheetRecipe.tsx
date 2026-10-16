@@ -310,6 +310,7 @@ function useSpritesheetRecipeController({
           <summary>Advanced appearance</summary>
           <div className="recipe-advanced-grid">
             <fieldset
+              aria-label="Background"
               disabled={config.outputBackground === 'transparent'}
               className="contents disabled:opacity-50"
             >

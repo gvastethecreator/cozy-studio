@@ -1,13 +1,20 @@
 import type { GeneratedImageWithConfig } from '../types';
 import { runtimeLogger } from './runtimeLogger';
 
-export const downloadImage = (src: string, filename: string) => {
+export const downloadImage = async (src: string, filename: string) => {
+  const blob = await fetchImageBlob(src);
+  const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  link.href = src;
+  link.href = url;
   link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  try {
+    document.body.appendChild(link);
+    link.click();
+  } finally {
+    link.remove();
+    // Keep the blob alive until the browser has started the download.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 };
 
 const IMAGE_EXTENSIONS: Record<string, string> = {

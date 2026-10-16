@@ -63,6 +63,7 @@ function ConversionOptionsFields({
 }) {
   return (
     <fieldset disabled={started} className="space-y-5 disabled:opacity-70">
+      <legend className="sr-only">Conversion options</legend>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-2 text-sm">
           <span className="block">Format</span>

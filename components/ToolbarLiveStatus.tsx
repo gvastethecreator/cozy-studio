@@ -1,4 +1,4 @@
-import { SendDiagonal as Send } from 'iconoir-react';
+import { CozyMascot } from './CozyMascot';
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 
 const SCRAMBLE_CHARACTERS =
@@ -117,10 +117,10 @@ export function LivePromptTextarea({
 
 export function GenerationElapsedStatus({
   startTime,
-  variant = 'dock',
+  outputSummary,
 }: {
   startTime: number | null;
-  variant?: 'dock' | 'rail';
+  outputSummary: string;
 }) {
   const [tick, setTick] = useState(0);
 
@@ -136,25 +136,12 @@ export function GenerationElapsedStatus({
     return ((Date.now() - startTime) / 1000).toFixed(1);
   }, [startTime, tick]);
 
-  if (variant === 'rail') {
-    return (
-      <div className="create-generate-status" data-generation-elapsed-status>
-        <span className="create-generate-spinner" aria-hidden="true" />
-        <span>Generating</span>
-        <span className="create-generate-elapsed">{elapsedTime}s</span>
-      </div>
-    );
-  }
-
   return (
-    <>
-      <div className="relative z-10 flex items-center gap-2" data-generation-elapsed-status>
-        <Send width={14} height={14} className="text-accent-200" />
-        <span className="text-white">QUEUE</span>
-        <span className="hidden w-12 text-right text-[length:var(--wbp-label)] tabular-nums text-accent-300/80 sm:inline">
-          {elapsedTime}s
-        </span>
-      </div>
-    </>
+    <div className="create-generate-status" data-generation-elapsed-status aria-hidden="true">
+      <CozyMascot size={28} compact state="working" />
+      <span className="create-generate-progress">Generating</span>
+      <span className="create-generate-elapsed">{elapsedTime}s</span>
+      <span className="create-generate-queue-label">Add to queue {outputSummary}</span>
+    </div>
   );
 }

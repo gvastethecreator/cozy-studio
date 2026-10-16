@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useToastUi } from '../contexts/GlobalContext';
+import { useWorkspaceState } from '../contexts/WorkspaceContext';
 import { useImageConversion } from '../contexts/ImageConversionContext';
 import {
   NavArrowLeft as ChevronLeft,
@@ -16,6 +17,7 @@ import {
   Clock as History,
   Check,
   Heart,
+  HeartSolid,
   ViewColumns2 as SplitSquareHorizontal,
   Plus,
   Minus,
@@ -26,6 +28,7 @@ import {
 import type { GeneratedImageWithConfig, ImageGenerationConfig } from '../types';
 import ActionButton from './ui/ActionButton';
 import { RecipeWorkbenchContext } from './recipes/recipeWorkbenchContextState';
+import { ImageActionsMenu } from './ImageActionsMenu';
 import { CarouselImageDetails } from './CarouselImageDetails';
 import { copyImageToClipboard, downloadImage, generateSmartFilename } from '../utils/fileUtils';
 import {
@@ -42,6 +45,11 @@ import { writeCatalogImageDrag } from '../lib/catalogImageDrag';
 import { useImagePanZoom } from '../lib/imagePanZoom';
 import { useImagePresentation } from '../hooks/useImagePresentation';
 import { prefersReducedMotion } from '../lib/motionPreference';
+import { getCatalogImageDetail } from '../services/studio-api/catalog';
+import {
+  buildGenerationConfigFromCatalogImage,
+  getCatalogRegenerateIssue,
+} from '../utils/catalogImageGenerationConfig';
 
 interface ImageCarouselProps {
   activeImage: GeneratedImageWithConfig | null;
@@ -82,10 +90,7 @@ const CarouselImageItem: React.FC<{
         tabIndex={0}
         aria-label="Image pan and zoom area. Use plus and minus to zoom, arrows to pan, zero to fit."
         {...panZoom.viewportProps}
-        onDoubleClick={() => {
-          if (Math.abs(panZoom.scale - panZoom.fitScale) > 0.01) panZoom.fit();
-          else panZoom.actualSize();
-        }}
+        onDoubleClick={panZoom.fit}
       >
         {controlsTarget &&
           createPortal(
@@ -275,12 +280,14 @@ function CarouselFilmstrip({
   activeIndex,
   total,
   onJumpTo,
+  onImageMenu,
 }: {
   navScrollRef: React.RefObject<HTMLDivElement | null>;
   thumbnailWindow: CarouselThumbnailWindowItem<GeneratedImageWithConfig>[];
   activeIndex: number;
   total: number;
   onJumpTo: (index: number) => void;
+  onImageMenu: (image: GeneratedImageWithConfig, event: React.MouseEvent<HTMLElement>) => void;
 }) {
   const thumbnailDrag = useHorizontalDragScroll(navScrollRef);
   return (
@@ -292,39 +299,44 @@ function CarouselFilmstrip({
       {...thumbnailDrag}
     >
       {thumbnailWindow.map(({ item: img, index: idx }) => (
-        <button
-          type="button"
+        <div
           key={img.id}
-          data-carousel-index={idx}
-          draggable
-          onDragStart={(event) => writeCatalogImageDrag(event, img.id)}
-          aria-label={`Open image ${idx + 1} of ${total}`}
-          aria-pressed={idx === activeIndex}
-          onClick={() => onJumpTo(idx)}
-          className={`carousel-thumbnail relative shrink-0 rounded-[var(--wb-radius)] overflow-hidden border snap-center cursor-pointer transition-[border-color,box-shadow,opacity] duration-150
+          className="relative shrink-0 first:ml-auto last:mr-auto"
+          onContextMenu={(event) => onImageMenu(img, event)}
+        >
+          <button
+            type="button"
+            data-carousel-index={idx}
+            draggable
+            onDragStart={(event) => writeCatalogImageDrag(event, img.id)}
+            aria-label={`Open image ${idx + 1} of ${total}`}
+            aria-pressed={idx === activeIndex}
+            onClick={() => onJumpTo(idx)}
+            className={`carousel-thumbnail relative shrink-0 rounded-[var(--wb-radius)] overflow-hidden border snap-center cursor-pointer transition-[border-color,box-shadow,opacity] duration-150
                             ${
                               idx === activeIndex
                                 ? 'ring-2 ring-[var(--wb-accent)] border-transparent opacity-100'
                                 : 'opacity-60 hover:opacity-100 border-transparent'
                             }
                         `}
-        >
-          <img
-            src={img.thumbnail || img.src}
-            draggable={false}
-            alt=""
-            width={40}
-            height={40}
-            className="size-full object-cover"
-            loading="lazy"
-            decoding="async"
-          />
-          {img.isFavorite && (
-            <div className="absolute top-1 right-1">
-              <Heart width={8} height={8} className="text-accent-400 fill-accent-400" />
-            </div>
-          )}
-        </button>
+          >
+            <img
+              src={img.thumbnail || img.src}
+              draggable={false}
+              alt=""
+              width={40}
+              height={40}
+              className="size-full object-cover"
+              loading="lazy"
+              decoding="async"
+            />
+            {img.isFavorite && (
+              <div className="absolute top-1 right-1">
+                <Heart width={8} height={8} className="text-accent-400 fill-accent-400" />
+              </div>
+            )}
+          </button>
+        </div>
       ))}
     </div>
   );
@@ -537,22 +549,22 @@ function useImageCarousel(props: ImageCarouselProps) {
     [activeIndex, allImages],
   );
 
-  const executeDownload = async () => {
-    if (!currentImage || isProcessingDownloadRef.current) return;
+  const executeDownload = async (image = currentImage) => {
+    if (!image || isProcessingDownloadRef.current) return;
     isProcessingDownloadRef.current = true;
 
     try {
-      const promptSlug = currentImage.config.prompt ? currentImage.config.prompt : 'image';
+      const promptSlug = image.config.prompt ? image.config.prompt : 'image';
       const smartName = generateSmartFilename(
         promptSlug,
-        currentImage.id,
-        currentImage.config.model,
-        currentImage.config.aspectRatio,
+        image.id,
+        image.config.model,
+        image.config.aspectRatio,
         undefined,
-        currentImage.mimeType,
-        currentImage.localPath,
+        image.mimeType,
+        image.localPath,
       );
-      downloadImage(currentImage.sourceUrl ?? currentImage.src, smartName);
+      await downloadImage(image.sourceUrl ?? image.src, smartName);
     } catch {
       addToast('Could not download image.', 'error');
     } finally {
@@ -591,6 +603,7 @@ function useImageCarousel(props: ImageCarouselProps) {
     detailsOpen,
     setControlsTarget,
     handleDownloadClick,
+    executeDownload,
     openConversion,
     onToggleFavorite,
     onAddToContext,
@@ -619,6 +632,7 @@ function useImageCarousel(props: ImageCarouselProps) {
 }
 type ImageCarouselModel = ReturnType<typeof useImageCarousel>;
 function ImageCarouselView({ model }: { model: ImageCarouselModel }) {
+  const { activeWorkspaceId } = useWorkspaceState();
   const {
     currentImage,
     containerRef,
@@ -642,10 +656,40 @@ function ImageCarouselView({ model }: { model: ImageCarouselModel }) {
     navScrollRef,
     thumbnailWindow,
     handleJumpTo,
-    handleCopyPrompt,
-    copiedPrompt,
   } = model;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLButtonElement>(null);
+  const contextTriggerRef = useRef<HTMLElement>(null);
+  const [menuTarget, setMenuTarget] = useState<{
+    image: GeneratedImageWithConfig;
+    point: { x: number; y: number } | null;
+  } | null>(null);
   if (!currentImage) return null;
+  const menuImage =
+    allImages.find((image) => image.id === menuTarget?.image.id) ??
+    menuTarget?.image ??
+    currentImage;
+  const openImageMenu = (image: GeneratedImageWithConfig, event: React.MouseEvent<HTMLElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    contextTriggerRef.current = event.currentTarget.querySelector('button') ?? event.currentTarget;
+    setMenuTarget({
+      image,
+      point: event.clientX || event.clientY ? { x: event.clientX, y: event.clientY } : null,
+    });
+    setMenuOpen(true);
+  };
+  const withMenuConfig = async (
+    action: (config: ImageGenerationConfig) => void | Promise<void>,
+  ) => {
+    try {
+      await action(
+        buildGenerationConfigFromCatalogImage(await getCatalogImageDetail(menuImage.id)),
+      );
+    } catch {
+      addToast('Could not complete image action. Please try again.', 'error');
+    }
+  };
 
   const handleToggleFullscreen = async () => {
     try {
@@ -674,7 +718,64 @@ function ImageCarouselView({ model }: { model: ImageCarouselModel }) {
       >
         <CarouselTopBar
           setControlsTarget={setControlsTarget}
-          actions={<CarouselImageActions model={{ ...model, currentImage }} />}
+          actions={
+            <>
+              <CarouselImageActions model={{ ...model, currentImage }} />
+              <button
+                ref={menuRef}
+                type="button"
+                className="studio-icon-action studio-ghost-control"
+                aria-label="More image actions"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                onClick={() => {
+                  contextTriggerRef.current = null;
+                  setMenuTarget(null);
+                  setMenuOpen(!menuOpen);
+                }}
+              >
+                •••
+              </button>
+              <ImageActionsMenu
+                image={menuImage}
+                workspaceId={activeWorkspaceId}
+                open={menuOpen}
+                onOpenChange={(open) => {
+                  setMenuOpen(open);
+                  if (!open) setMenuTarget(null);
+                }}
+                triggerRef={contextTriggerRef.current ? contextTriggerRef : menuRef}
+                anchorPoint={menuTarget?.point}
+                onReference={() => model.onAddToContext(menuImage)}
+                onFavorite={() => model.onToggleFavorite(menuImage.id)}
+                onDownload={() => void model.executeDownload(menuImage)}
+                onCopyPrompt={() =>
+                  void withMenuConfig(async (config) => {
+                    await navigator.clipboard.writeText(config.prompt ?? '');
+                    addToast('Prompt copied', 'success');
+                  })
+                }
+                onCopyImage={() => {
+                  void copyImageToClipboard(menuImage.sourceUrl ?? menuImage.src).then(
+                    () => addToast('Image copied', 'success'),
+                    () => addToast('Could not copy image', 'error'),
+                  );
+                }}
+                onConvert={
+                  model.openConversion ? () => model.openConversion!([menuImage]) : undefined
+                }
+                onLoadConfig={() => void withMenuConfig(model.onLoadConfig)}
+                onRegenerate={() =>
+                  void withMenuConfig((config) => {
+                    const issue = getCatalogRegenerateIssue(config);
+                    if (issue) addToast(issue, 'info');
+                    else model.onRegenerate(config);
+                  })
+                }
+                onDelete={() => model.onDelete(menuImage.id)}
+              />
+            </>
+          }
           activeIndex={Math.max(0, displayedIndex)}
           total={history?.total ?? allImages.length}
           loading={history?.isLoading ?? false}
@@ -695,6 +796,9 @@ function ImageCarouselView({ model }: { model: ImageCarouselModel }) {
           <div className="carousel-canvas-column">
             <section
               aria-label="Full image preview"
+              onContextMenu={(event) => {
+                openImageMenu(currentImage, event);
+              }}
               className="flex-1 min-h-0 relative overflow-hidden flex items-center justify-center"
             >
               {allImages.length > 1 && (
@@ -748,9 +852,13 @@ function ImageCarouselView({ model }: { model: ImageCarouselModel }) {
               activeIndex={activeIndex}
               total={history?.total ?? allImages.length}
               onJumpTo={handleJumpTo}
+              onImageMenu={openImageMenu}
             />
           </div>
           <CarouselImageDetails
+            onCopyPrompt={model.handleCopyPrompt}
+            copiedPrompt={model.copiedPrompt}
+            workspaceId={activeWorkspaceId}
             hidden={!detailsOpen}
             image={
               presentation.width && !presentation.value.isComparing
@@ -761,24 +869,6 @@ function ImageCarouselView({ model }: { model: ImageCarouselModel }) {
             <CarouselDetailActions model={{ ...model, currentImage }} />
           </CarouselImageDetails>
         </div>
-        <footer className="carousel-prompt-bar" aria-label="Image prompt">
-          <span className="text-xs text-[var(--wb-muted)]">Prompt</span>
-          <p key={currentImage.config.prompt} className="image-metadata-enter">
-            {currentImage.config.prompt || 'No prompt saved.'}
-          </p>
-          <ActionButton
-            onClick={handleCopyPrompt}
-            icon={
-              copiedPrompt ? (
-                <Check width={16} height={16} />
-              ) : (
-                <ClipboardList width={16} height={16} />
-              )
-            }
-            label="Copy prompt"
-            disabled={!currentImage.config.prompt}
-          />
-        </footer>
       </div>
     </dialog>
   );
@@ -822,7 +912,13 @@ function CarouselImageActions({
         />
       )}
       <ActionButton
-        icon={<Heart width={16} height={16} />}
+        icon={
+          currentImage.isFavorite ? (
+            <HeartSolid width={16} height={16} />
+          ) : (
+            <Heart width={16} height={16} />
+          )
+        }
         label={currentImage.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
         isActive={currentImage.isFavorite}
         onClick={() => onToggleFavorite(currentImage.id)}

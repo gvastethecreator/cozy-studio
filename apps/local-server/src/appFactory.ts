@@ -72,7 +72,7 @@ import {
   type ProcessedReference,
   ReferenceProcessingError,
 } from './referenceManager';
-import { importStudioReference } from './referenceImport';
+import { importStudioReference, importStudioReferenceFile } from './referenceImport';
 import { createWorkspaceRoutes, type WorkspaceRoutesDependencies } from './workspaceRoutes';
 import { resetStudioData } from './reset';
 import {
@@ -638,6 +638,13 @@ export async function createStudioApp(
       importReference: (input) => {
         const library = getDefaultLibrary();
         return importStudioReference(input, {
+          database: getDb(),
+          library: { id: library.id, path: library.path },
+        });
+      },
+      importReferenceFile: (input, allowedRoots) => {
+        const library = getDefaultLibrary();
+        return importStudioReferenceFile(input, allowedRoots, {
           database: getDb(),
           library: { id: library.id, path: library.path },
         });

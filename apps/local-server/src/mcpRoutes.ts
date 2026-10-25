@@ -9,6 +9,7 @@ import {
   isStudioMcpMutation,
   type StudioMcpToolName,
   type StudioReferenceImportInput,
+  type StudioReferenceFileImportInput,
   type StudioReferenceImportResult,
 } from '../../../packages/shared/src/studioMcp';
 import type { EditableStudioSettings } from '../../../packages/shared/src/studioSettings';
@@ -20,9 +21,18 @@ interface Dependencies {
   request: (path: string, init?: RequestInit) => Promise<Response>;
   readSettings: () => EditableStudioSettings;
   importReference?: (input: StudioReferenceImportInput) => Promise<StudioReferenceImportResult>;
+  importReferenceFile?: (
+    input: StudioReferenceFileImportInput,
+    allowedRoots: string[],
+  ) => Promise<StudioReferenceImportResult>;
 }
 
-export function createMcpRoutes({ request, readSettings, importReference }: Dependencies) {
+export function createMcpRoutes({
+  request,
+  readSettings,
+  importReference,
+  importReferenceFile,
+}: Dependencies) {
   const routes = new Hono();
   routes.use('/call', bodyLimit({ maxSize: STUDIO_REFERENCE_IMPORT_MAX_BASE64_CHARS + 16 * 1024 }));
   routes.post('/call', async (c) => {
@@ -160,6 +170,20 @@ export function createMcpRoutes({ request, readSettings, importReference }: Depe
           const status = error instanceof ReferenceImportConflictError ? 409 : 400;
           return c.json(
             { error: error instanceof Error ? error.message : 'Invalid reference import' },
+            status,
+          );
+        }
+      }
+      case 'studio_import_reference_file': {
+        if (!importReferenceFile)
+          return c.json({ error: 'Reference file import is unavailable.' }, 400);
+        try {
+          const input = studioMcpTools.studio_import_reference_file.schema.parse(args);
+          return c.json(await importReferenceFile(input, settings.mcpAllowedImportRoots));
+        } catch (error) {
+          const status = error instanceof ReferenceImportConflictError ? 409 : 400;
+          return c.json(
+            { error: error instanceof Error ? error.message : 'Invalid reference file import' },
             status,
           );
         }

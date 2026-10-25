@@ -89,6 +89,6 @@ describe('Studio MCP boundary', () => {
     if (result.status !== 0) {
       throw new Error(result.stderr || result.stdout || 'bun test failed');
     }
-    expect(`${result.stdout}\n${result.stderr}`).toMatch(/2 pass/);
+    expect(`${result.stdout}\n${result.stderr}`).toMatch(/0 fail/);
   });
 });

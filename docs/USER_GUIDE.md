@@ -16,8 +16,10 @@ An invalid filename template blocks Save and stays visible in the footer from an
 | Files & naming         | Generated image destination, subfolders and filename templates |
 | Library & imports      | Scan and import external images; export workspace metadata     |
 | Styles & workflows     | Install style packs and enable built-in workflows              |
-| Advanced & maintenance | Agent access (MCP), storage diagnostics and repair controls    |
+| Advanced & maintenance | Agent access, allowed import folders, diagnostics and repair   |
 | Help & updates         | Getting started, update checks and managed restart             |
+
+To let an agent import local image references by path, open **Advanced & maintenance**. Set **Agent access (MCP)** to **Generate and cancel**, enter one absolute path per line in **Allowed import folders**, then save. The permission includes subfolders. An empty list disables import by path. Studio copies and optimizes the image without changing the source. See [Studio MCP](agents/mcp.md#import-an-image-reference) for limits and tool inputs.
 
 ## Find, select and compare images
 

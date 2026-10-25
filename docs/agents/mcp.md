@@ -30,6 +30,8 @@ Settings > Advanced & maintenance > **Agent access (MCP)** controls every call, 
 
 The setting controls the MCP gateway, not the app's own UI/API. Local MCP clients share this setting; there are no per-client credentials. Existing loopback host and browser-origin checks still apply. Provider secrets and transcripts are not exposed as MCP tools.
 
+**Allowed import folders**, in the same Settings section, controls which local folders agents can read through `studio_import_reference_file`. Enter one absolute folder path per line and save. The default is empty, which disables import by path. This permission includes subfolders. Remove a folder or clear the list to revoke access on the next call. Write access is also required. MCP tools cannot change these settings.
+
 ## Workflow
 
 1. Call `studio_status`, `studio_providers` and `studio_recipes`. Use existing workspace IDs from `studio_workspaces`.
@@ -39,10 +41,26 @@ The setting controls the MCP gateway, not the app's own UI/API. Local MCP client
 5. Poll `studio_batch` or `studio_job`. Query `studio_catalog` with `job_id` or `batch_id` to find output URLs and reusable image IDs. `studio_jobs` lists recent jobs with pagination.
 6. Call `studio_cancel` with a job ID. Completed jobs remain unchanged. Jobs awaiting human review keep Studio's existing review requirement. Cancelling does not guarantee a provider refund.
 
-Recipe validation, disabled modules, provider readiness and managed reference checks use Studio's normal intake. Generation references must be catalog image IDs. To add an image, call `studio_import_reference` first; the MCP never accepts arbitrary filesystem paths. The tools do not delete library data, install extensions, change account settings or record human creative approval. ACP is not implemented: this interface provides app tools, rather than a conversational agent runtime.
+Recipe validation, disabled modules, provider readiness and managed reference checks use Studio's normal intake. Generation references must be catalog image IDs. To add a local image, call `studio_import_reference_file` from an allowed folder, or use `studio_import_reference` for image bytes. Raw filesystem paths are not generation inputs. The tools do not delete library data, install extensions, change account settings or record human creative approval. ACP is not implemented: this interface provides app tools, rather than a conversational agent runtime.
 
 ## Import an image reference
 
-`studio_import_reference` requires write access and accepts `{requestId, name, mimeType, base64, sha256}`. Use a stable `reference-` request ID and the SHA-256 of the decoded bytes. Supported types are PNG, JPEG, WebP and GIF, up to 8 MiB and 2560 pixels per dimension. Studio checks the signature, decoded dimensions and digest through its image processing boundary.
+`studio_import_reference_file` accepts `{requestId, path, name?}`. The path must be absolute and inside an allowed folder on the machine running Studio. The optional name defaults to the filename. Studio reads the file directly; image bytes do not pass through the model. Both the file and allowed folders are resolved with `realpath`. Paths with parent traversal, paths outside allowed folders, symlink or junction escapes, directories and other non-files are rejected. Files that change during reading are rejected. Missing or inaccessible allowed folders grant no access.
 
-The result contains `{requestId, catalogImageId, sha256, mimeType, byteLength}`. Use `catalogImageId` in `studio_generate.referenceIds` with `task: "image_edit"`. No generation or provider call occurs during import. The catalog record and request receipt persist locally. Retry an uncertain import with the same ID and identical input; changing the content or name under an existing ID is a conflict, including after a restart.
+For example, after allowing `C:/Images`, call:
+
+```json
+{
+  "requestId": "reference-character-sheet-1",
+  "path": "C:/Images/character.webp",
+  "name": "Character sheet"
+}
+```
+
+`studio_import_reference` accepts `{requestId, name, mimeType, base64, sha256}`. Use the SHA-256 of the decoded source bytes. This tool accepts no filesystem paths and does not require an allowed folder. Prefer the file tool for local images to avoid sending base64 through the model.
+
+Both tools require write access and a stable `reference-` request ID. They accept PNG, JPEG, WebP and GIF, up to 8 MiB and 40 million decoded pixels. Studio checks the signature and decoded image. Animated inputs supply their first frame. New imports are stored as WebP, downscaled to fit 2048 × 2048 without enlargement and with orientation applied. Images with transparency, or at most 512 × 512 source pixels, use lossless WebP. Larger opaque images use quality 90. Alpha is preserved; resizing changes pixels. An optimized file over 8 MiB is rejected. The source file is never changed.
+
+The result contains `{requestId, catalogImageId, sha256, storedSha256, mimeType, byteLength}`. `sha256` identifies the original bytes. `storedSha256`, `mimeType` and `byteLength` describe the stored file. Both hashes are saved with the import receipt and new Catalog Entry. Existing receipts keep their original files and catalog identities.
+
+Use `catalogImageId` in `studio_generate.referenceIds` with `task: "image_edit"`. No generation or provider call occurs during import. The Catalog Entry and request receipt persist locally. Retry an uncertain import with the same ID and identical content and name, including after a restart. Reusing an ID for changed content or a changed name is a conflict. A file retry still needs permission to read its source. Restart Studio after updating the backend, and reload the MCP connection to discover the new tool.

@@ -423,6 +423,16 @@ const DATABASE_MIGRATIONS = [
         GROUP BY COALESCE(image.workspace_id, 'default'), tag.value`);
     },
   },
+  {
+    version: 14,
+    name: 'reference-import-stored-digest',
+    migrate(database: Database) {
+      database.run(
+        "ALTER TABLE reference_import_receipts ADD COLUMN stored_sha256 TEXT NOT NULL DEFAULT ''",
+      );
+      database.run('UPDATE reference_import_receipts SET stored_sha256 = sha256');
+    },
+  },
 ] as const;
 
 function backfillJobOperationalColumns(database: Database) {

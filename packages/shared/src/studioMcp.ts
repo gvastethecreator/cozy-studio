@@ -10,7 +10,8 @@ const empty = z.strictObject({});
 const referenceMimeType = z.enum(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 
 export const STUDIO_REFERENCE_IMPORT_MAX_BYTES = 8 * 1024 * 1024;
-export const STUDIO_REFERENCE_IMPORT_MAX_DIMENSION = 2560;
+export const STUDIO_REFERENCE_IMPORT_MAX_DIMENSION = 2048;
+export const STUDIO_REFERENCE_IMPORT_MAX_PIXELS = 40_000_000;
 export const STUDIO_REFERENCE_IMPORT_MAX_BASE64_CHARS =
   4 * Math.ceil(STUDIO_REFERENCE_IMPORT_MAX_BYTES / 3);
 
@@ -39,11 +40,23 @@ export const referenceImportResult = z.strictObject({
   requestId: referenceImportInput.shape.requestId,
   catalogImageId: id,
   sha256: referenceImportInput.shape.sha256,
+  storedSha256: referenceImportInput.shape.sha256,
   mimeType: referenceMimeType,
   byteLength: z.number().int().positive().max(STUDIO_REFERENCE_IMPORT_MAX_BYTES),
 });
 
+export const referenceFileImportInput = z.strictObject({
+  requestId: referenceImportInput.shape.requestId,
+  path: z
+    .string()
+    .min(1)
+    .max(4096)
+    .regex(/^[^\0]+$/),
+  name: referenceImportInput.shape.name.optional(),
+});
+
 export type StudioReferenceImportInput = z.infer<typeof referenceImportInput>;
+export type StudioReferenceFileImportInput = z.infer<typeof referenceFileImportInput>;
 export type StudioReferenceImportResult = z.infer<typeof referenceImportResult>;
 
 export const generationInput = z.strictObject({
@@ -147,11 +160,19 @@ export const studioMcpTools = {
       'Import an image into the Studio Library as a catalog reference. Requires Generate and cancel access. Reuse the same reference- requestId and identical input after a timeout. Returns a catalog image ID for studio_generate referenceIds. Does not accept filesystem paths or start a provider.',
     schema: referenceImportInput,
   },
+  studio_import_reference_file: {
+    description:
+      'Import a local image by absolute path from Allowed import folders in Studio Settings. Requires Generate and cancel access. Reuse the same reference- requestId and identical input after a timeout. Stores optimized WebP and returns a catalog image ID for studio_generate referenceIds. Does not start a provider.',
+    schema: referenceFileImportInput,
+  },
 } as const;
 
 export type StudioMcpToolName = keyof typeof studioMcpTools;
 export function isStudioMcpMutation(name: string) {
   return (
-    name === 'studio_generate' || name === 'studio_cancel' || name === 'studio_import_reference'
+    name === 'studio_generate' ||
+    name === 'studio_cancel' ||
+    name === 'studio_import_reference' ||
+    name === 'studio_import_reference_file'
   );
 }

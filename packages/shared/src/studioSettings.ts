@@ -43,6 +43,7 @@ export interface EditableStudioSettings {
   defaultStyleIntensity: number;
   defaultStyleReferenceMode: 'preserve' | 'reinterpret';
   mcpAccess: StudioMcpAccess;
+  mcpAllowedImportRoots: string[];
   commandCenterCompactMode: boolean;
   intentionalStylesV1: boolean;
   /** Optional workflow modules the user turned off (ADR 0011). */
@@ -73,6 +74,7 @@ export interface EditableStudioSettingsPatch {
   defaultStyleIntensity?: number;
   defaultStyleReferenceMode?: 'preserve' | 'reinterpret';
   mcpAccess?: StudioMcpAccess;
+  mcpAllowedImportRoots?: string[];
   commandCenterCompactMode?: boolean;
   intentionalStylesV1?: boolean;
   disabledWorkflowModules?: WorkflowModuleId[];
@@ -199,6 +201,7 @@ export function createDefaultEditableStudioSettings(): EditableStudioSettings {
     defaultStyleIntensity: 0.75,
     defaultStyleReferenceMode: 'preserve',
     mcpAccess: 'read',
+    mcpAllowedImportRoots: [],
     commandCenterCompactMode: false,
     intentionalStylesV1: false,
     disabledWorkflowModules: [],
@@ -261,6 +264,16 @@ export function sanitizeEditableStudioSettingsPatch(value: unknown): EditableStu
   }
   if (value.mcpAccess === 'off' || value.mcpAccess === 'read' || value.mcpAccess === 'write') {
     patch.mcpAccess = value.mcpAccess;
+  }
+  if (Array.isArray(value.mcpAllowedImportRoots)) {
+    patch.mcpAllowedImportRoots = [
+      ...new Set(
+        value.mcpAllowedImportRoots
+          .filter((root): root is string => typeof root === 'string')
+          .map((root) => root.trim())
+          .filter((root) => root.length > 0 && root.length <= 4096 && !root.includes('\0')),
+      ),
+    ];
   }
 
   if (typeof value.notifyOnUpdates === 'boolean') {
@@ -386,6 +399,7 @@ export function mergeEditableStudioSettingsPatch(
     defaultOutputMode: patch.defaultOutputMode ?? current.defaultOutputMode,
     autoDetectOutputSources: patch.autoDetectOutputSources ?? current.autoDetectOutputSources,
     mcpAccess: patch.mcpAccess ?? current.mcpAccess ?? 'read',
+    mcpAllowedImportRoots: patch.mcpAllowedImportRoots ?? current.mcpAllowedImportRoots ?? [],
     notifyOnUpdates: patch.notifyOnUpdates ?? current.notifyOnUpdates ?? false,
     clearReviewJobsOnStartup:
       patch.clearReviewJobsOnStartup ?? current.clearReviewJobsOnStartup ?? false,

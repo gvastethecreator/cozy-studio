@@ -99,6 +99,7 @@ describe('StudioSettingsModal provider defaults', () => {
     };
 
     settings.mcpAccess = 'write';
+    settings.mcpAllowedImportRoots = ['C:/References', 'D:/Art'];
     settings.clearReviewJobsOnStartup = true;
     settings.toolsPanelSide = 'right';
     settings.jobsPanelSide = 'left';
@@ -107,6 +108,13 @@ describe('StudioSettingsModal provider defaults', () => {
     const patch = buildStudioSettingsPatch(getStudioSettingsFormState(settings));
 
     expect(patch.mcpAccess).toBe('write');
+    expect(patch.mcpAllowedImportRoots).toEqual(settings.mcpAllowedImportRoots);
+    expect(
+      buildStudioSettingsPatch({
+        ...getStudioSettingsFormState(settings),
+        mcpAllowedImportRoots: '',
+      }).mcpAllowedImportRoots,
+    ).toEqual([]);
     expect(patch.toolsPanelSide).toBe('right');
     expect(patch.jobsPanelSide).toBe('left');
     expect(patch.clearReviewJobsOnStartup).toBe(true);

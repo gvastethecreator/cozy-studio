@@ -45,6 +45,7 @@ export interface StudioSettingsFormState {
   defaultStyleIntensity: number;
   defaultStyleReferenceMode: EditableStudioSettings['defaultStyleReferenceMode'];
   mcpAccess: EditableStudioSettings['mcpAccess'];
+  mcpAllowedImportRoots: string;
   commandCenterCompactMode: boolean;
   intentionalStylesV1: boolean;
   showWorkspaceHistoryInCarousel: boolean;
@@ -73,6 +74,7 @@ export function createInitialStudioSettingsFormState(): StudioSettingsFormState 
     defaultStyleIntensity: 0.75,
     defaultStyleReferenceMode: 'preserve',
     mcpAccess: 'read',
+    mcpAllowedImportRoots: '',
     commandCenterCompactMode: false,
     intentionalStylesV1: false,
     showWorkspaceHistoryInCarousel: true,
@@ -99,6 +101,7 @@ export function getStudioSettingsFormState(
     defaultStyleIntensity: settings.defaultStyleIntensity,
     defaultStyleReferenceMode: settings.defaultStyleReferenceMode,
     mcpAccess: settings.mcpAccess,
+    mcpAllowedImportRoots: settings.mcpAllowedImportRoots.join('\n'),
     commandCenterCompactMode: settings.commandCenterCompactMode,
     intentionalStylesV1: settings.intentionalStylesV1,
     showWorkspaceHistoryInCarousel: settings.showWorkspaceHistoryInCarousel ?? true,
@@ -132,6 +135,10 @@ export function buildStudioSettingsPatch(
     defaultStyleIntensity: formState.defaultStyleIntensity,
     defaultStyleReferenceMode: formState.defaultStyleReferenceMode,
     mcpAccess: formState.mcpAccess,
+    mcpAllowedImportRoots: formState.mcpAllowedImportRoots
+      .split(/\r?\n/)
+      .map((root) => root.trim())
+      .filter(Boolean),
     commandCenterCompactMode: formState.commandCenterCompactMode,
     intentionalStylesV1: formState.intentionalStylesV1,
     showWorkspaceHistoryInCarousel: formState.showWorkspaceHistoryInCarousel,

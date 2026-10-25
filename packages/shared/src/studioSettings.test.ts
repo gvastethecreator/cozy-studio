@@ -24,6 +24,7 @@ describe('studioSettings', () => {
       defaultStyleIntensity: 0.75,
       defaultStyleReferenceMode: 'preserve',
       mcpAccess: 'read',
+      mcpAllowedImportRoots: [],
       commandCenterCompactMode: false,
       intentionalStylesV1: false,
       disabledWorkflowModules: [],
@@ -73,6 +74,7 @@ describe('studioSettings', () => {
       toolsPanelSide: 'invalid',
       jobsPanelSide: null,
       disabledWorkflowModules: ['timeline', 'not-a-module', 'remaster', 'timeline'],
+      mcpAllowedImportRoots: [' C:/Images ', '', 42, 'C:/Images', 'bad\0folder'],
       providerDefaults: {
         fal: {
           providerId: 'fal',
@@ -85,6 +87,7 @@ describe('studioSettings', () => {
     expect(patch).toEqual({
       defaultProviderId: 'fal',
       disabledWorkflowModules: ['remaster', 'timeline'],
+      mcpAllowedImportRoots: ['C:/Images'],
       providerDefaults: {
         fal: {
           providerId: 'fal',

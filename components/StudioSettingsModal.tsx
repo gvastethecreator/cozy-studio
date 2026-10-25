@@ -247,6 +247,12 @@ const SETTINGS_SEARCH_ITEMS: {
   },
   {
     domain: 'maintenance',
+    label: 'Allowed import folders',
+    description: 'Folders agents can read to import image references',
+    target: 'Allowed import folders',
+  },
+  {
+    domain: 'maintenance',
     label: 'Storage audit',
     description: 'Inspect library storage',
     target: 'Audit storage',
@@ -400,6 +406,28 @@ function SettingsDomainContent({
                 <option value="read">Read only</option>
                 <option value="write">Generate and cancel</option>
               </select>
+            </label>
+            <label className="settings-row">
+              <span>
+                <strong>Allowed import folders</strong>
+                <small>
+                  Agents with Generate and cancel access can import images from these folders and
+                  their subfolders. Enter one absolute folder path per line. Leave empty to disable
+                  import by path.
+                </small>
+              </span>
+              <textarea
+                className="studio-field"
+                aria-label="Allowed import folders"
+                rows={3}
+                value={formState.mcpAllowedImportRoots}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    mcpAllowedImportRoots: event.target.value,
+                  }))
+                }
+              />
             </label>
           </fieldset>
           <SettingsMaintenancePanel maintenance={maintenance} />

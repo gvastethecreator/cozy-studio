@@ -123,7 +123,7 @@ React's renderer lives in a separate cacheable runtime chunk. `AppContent` loads
 4. The backend prepares every batch item, captures its Library Context and execution policy, then commits the requested count, ordered membership, and all jobs in one SQLite transaction before dispatch.
 5. The Provider Boundary compiles the Generation Task Spec into provider-specific input.
 6. New Codex jobs capture `codex app-server`; new ChatGPT jobs capture subscription HTTP. Historical Codex jobs retain their captured HTTP or app-server contract. Grok Imagine selects its HTTP or CLI executor under its preflight and fallback policy. Other providers run only when concrete preflight passes.
-7. Completed jobs write Local Assets, Catalog Entries, transcripts, and logs into the Studio Library.
+7. Completed jobs write Local Assets, Catalog Entries, transcripts, and logs into the Studio Library. HTTP image results keep their original pixels and actual dimensions. A returned aspect-ratio difference is a diagnostic event and does not require job review.
 8. The UI refreshes `/api/catalog` by job id and shows catalog-derived images.
 9. The legacy workspace JSON shape is derived from current Catalog Entries only when the user exports it.
 

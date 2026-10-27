@@ -26,10 +26,19 @@ describe('resolveActiveRecipeGenerationConfig', () => {
   it('does not silently enqueue a generic job from an active Recipe route', () => {
     const config = resolveActiveRecipeGenerationConfig(
       { ...DEFAULT_GENERATION_CONFIG, prompt: 'a brass robot' },
+      'camera',
+    );
+
+    expect(config.recipeId).toBe('camera');
+  });
+
+  it('keeps Default generation style-free when the styles route is open', () => {
+    const config = resolveActiveRecipeGenerationConfig(
+      { ...DEFAULT_GENERATION_CONFIG, prompt: 'a brass robot', recipeId: null },
       'styles',
     );
 
-    expect(config.recipeId).toBe('styles');
+    expect(config.recipeId).toBeNull();
   });
 
   it('preserves an explicit recipe carried by the request', () => {

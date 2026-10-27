@@ -52,15 +52,16 @@ describe('workerAssetFinalizer', () => {
   });
 
   it.each([
-    { requestedSize: '1024x1536', width: 1024, height: 1536, needsReview: false },
-    { requestedSize: '2048x1536', width: 1024, height: 1536, needsReview: true },
-    { requestedSize: '1024x1024', width: 1254, height: 1254, needsReview: false },
-    { requestedSize: '1024x1536', width: 1254, height: 1881, needsReview: false },
-    { requestedSize: '1536x864', width: 1672, height: 941, needsReview: false },
-    { requestedSize: '1536x864', width: 1672, height: 960, needsReview: true },
+    { requestedSize: '1024x1536', width: 1024, height: 1536, ratioMismatch: false },
+    { requestedSize: '2048x1536', width: 1024, height: 1536, ratioMismatch: true },
+    { requestedSize: '1024x1024', width: 1254, height: 1254, ratioMismatch: false },
+    { requestedSize: '1024x1536', width: 1254, height: 1881, ratioMismatch: false },
+    { requestedSize: '1536x864', width: 1672, height: 941, ratioMismatch: false },
+    { requestedSize: '1536x864', width: 1672, height: 960, ratioMismatch: true },
+    { requestedSize: '1280x1024', width: 1447, height: 1087, ratioMismatch: true },
   ])(
-    'preserves $width x $height against $requestedSize (review: $needsReview)',
-    async ({ requestedSize, width, height, needsReview }) => {
+    'completes and preserves $width x $height against $requestedSize (mismatch: $ratioMismatch)',
+    async ({ requestedSize, width, height, ratioMismatch }) => {
       const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'worker-asset-finalizer-'));
       const organizedPath = path.join(tempRoot, 'outputs', 'final.png');
       mkdirSync(path.dirname(organizedPath), { recursive: true });
@@ -233,28 +234,34 @@ describe('workerAssetFinalizer', () => {
         );
         expect(embedMetadataMock.mock.calls[0][1].prompt).toContain('Avoid:\nsin texto');
         expect(readFileSync(organizedPath).subarray(0, original.length)).toEqual(original);
-        if (needsReview) {
-          expect(updateJobStatus).toHaveBeenCalledWith(
-            'job-finalizer-1',
-            'needs_review',
-            expect.stringContaining(`returned ${width}x${height} with a different aspect ratio`),
-          );
+        if (ratioMismatch) {
           expect(addJobEvent).toHaveBeenCalledWith(
             'job-finalizer-1',
-            'job.needs_review',
-            expect.stringContaining('saved in Library'),
+            'asset.dimensions.info',
+            expect.stringContaining(`provider returned ${width}x${height}`),
             expect.objectContaining({
               requestedSize,
               actualSize: `${width}x${height}`,
               catalogId: 'catalog-1',
             }),
           );
-          expect(publishEvent).not.toHaveBeenCalledWith('job.completed', expect.anything());
         } else {
-          expect(updateJobStatus).toHaveBeenCalledWith('job-finalizer-1', 'completed');
-          expect(publishEvent).toHaveBeenCalledWith('job.completed', expect.anything());
-          expect(publishEvent).not.toHaveBeenCalledWith('job.needs_review', expect.anything());
+          expect(addJobEvent).not.toHaveBeenCalledWith(
+            'job-finalizer-1',
+            'asset.dimensions.info',
+            expect.anything(),
+            expect.anything(),
+          );
         }
+        expect(updateJobStatus).toHaveBeenCalledExactlyOnceWith('job-finalizer-1', 'completed');
+        expect(publishEvent).toHaveBeenCalledWith('job.completed', expect.anything());
+        expect(publishEvent).not.toHaveBeenCalledWith('job.needs_review', expect.anything());
+        expect(logger).toHaveBeenCalledWith(
+          'info',
+          'worker',
+          expect.stringContaining('job completed.'),
+          'job-finalizer-1',
+        );
         expect(updateJobFinalization.mock.calls.map((call) => call[1].state)).toEqual([
           'moving_asset',
           'asset_moved',

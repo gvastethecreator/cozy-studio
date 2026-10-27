@@ -42,7 +42,7 @@ export function resolveActiveRecipeGenerationConfig(
   config: ImageGenerationConfig,
   activeRecipe: RecipeId,
 ): ImageGenerationConfig {
-  if (config.recipeId || !activeRecipe) return config;
+  if (config.recipeId || !activeRecipe || activeRecipe === 'styles') return config;
   return { ...config, recipeId: activeRecipe };
 }
 

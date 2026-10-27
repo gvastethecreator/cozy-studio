@@ -117,7 +117,7 @@ export function createWorkerAssetFinalizer({
               : undefined);
           let width = options.width ?? null;
           let height = options.height ?? null;
-          let outputWarning: string | null = null;
+          let dimensionNote: string | null = null;
           if (httpImage) {
             const metadata = yield* providerPromise(() =>
               authoringSharp(readFileSync(organizedImagePath)).metadata(),
@@ -131,7 +131,7 @@ export function createWorkerAssetFinalizer({
               Math.abs(width * requestedHeight - height * requestedWidth) >
               Math.max(requestedWidth, requestedHeight)
             ) {
-              outputWarning = `Requested the aspect ratio of ${httpImage.size}, but the provider returned ${width}x${height} with a different aspect ratio. The original image was saved in Library without resizing. Review it before generating again.`;
+              dimensionNote = `Requested image size ${httpImage.size}; provider returned ${width}x${height}. Original dimensions preserved.`;
             }
           }
           if (job.sourceSpec?.output.background === 'transparent') {
@@ -293,23 +293,19 @@ export function createWorkerAssetFinalizer({
             assetId: asset.id,
             catalogId: catalogImage.id,
           });
-          if (outputWarning) {
-            addJobEvent(job.id, 'job.needs_review', outputWarning, {
+          if (dimensionNote) {
+            addJobEvent(job.id, 'asset.dimensions.info', dimensionNote, {
               requestedSize: httpImage?.size,
               actualSize: `${width}x${height}`,
               catalogId: catalogImage.id,
             });
-            updateJobStatus(job.id, 'needs_review', outputWarning);
-            publishEvent('job.needs_review', getJob(job.id));
-          } else {
-            updateJobStatus(job.id, 'completed');
-            publishEvent('job.completed', getJob(job.id));
           }
+          updateJobStatus(job.id, 'completed');
+          publishEvent('job.completed', getJob(job.id));
           logger(
-            outputWarning ? 'warn' : 'info',
+            'info',
             'worker',
-            outputWarning ??
-              `${options.logPrefix} job completed. Asset: ${path.basename(asset.filePath)}`,
+            `${options.logPrefix} job completed. Asset: ${path.basename(asset.filePath)}`,
             job.id,
           );
         }),

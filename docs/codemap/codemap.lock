@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
-  "source_commit": "9b5f9c1963c5366d77571b4f2e86ffaca3b1dd5e",
+  "source_commit": "949251327bd5fd580c7d17348e7ebc676f5786ba",
   "working_tree_dirty": true,
-  "generated_at": "2026-10-25T21:42:52Z",
-  "generation_id": "d7c7a0af6eb7145e650d39a508777d16b2e2c6ca139cba8d25fa216a6548051e",
+  "generated_at": "2026-10-26T22:04:54Z",
+  "generation_id": "717186de5a2420094e3dd9b8ca5d4585b9a3b182395b634e72d1b5b40e8ef204",
   "analysis": {
     "version": "syntax-1",
     "digest": "aac5588c813568478eb34b9cb090e19685ad183efe6d8b3496f261834a7c0f44"
@@ -1972,15 +1972,15 @@
         "path": "apps/local-server/src/workerAssetFinalizer.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "b3c982d62762fc71bf7ad1314efc86b9cac99c7620c12030970fd6988f6c766d",
-        "size": 15480
+        "digest": "51b61114a86aa699600dec45fb51af7b2c06214bbd794886c4faf123280350e7",
+        "size": 15684
       },
       {
         "path": "apps/local-server/src/workerAssetFinalizer.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "5102513910c1b1f890d50c674084fb8cdd76c03773218aadde4c0841f063ecd6",
-        "size": 12542
+        "digest": "b7e4425a594c8d521ab00f08dfdd7ad419772b2def36915d92138919dc106b42",
+        "size": 12229
       },
       {
         "path": "apps/local-server/src/workerAssetPathing.test.ts",
@@ -3946,15 +3946,15 @@
         "path": "hooks/useGenerationPipeline.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "43310828558b5139e7fe88f0763fd1ec8e34175cb1c3ae6dec654c6ce856ee51",
-        "size": 3422
+        "digest": "f724011edc4411a9573e79f9ff88d0efda04c0e0dbc2e0aca7a8e75f365ebdfc",
+        "size": 3712
       },
       {
         "path": "hooks/useGenerationPipeline.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "8890edc616462d7bb5f935292c231015baf1c907fd601975a96302f4fc75c840",
-        "size": 11902
+        "digest": "7200ab1946136b11c5a8ff21a72dfc29319336a133f68874fa1eca59a6aaae4a",
+        "size": 11931
       },
       {
         "path": "hooks/useGenerationQueueController.test.tsx",
@@ -7065,12 +7065,12 @@
         "size": 783
       }
     ],
-    "digest": "1c067afff36e0eb152d963b485668503c84695221b392c4c23922051935e4c11"
+    "digest": "3454518475c6681ad396051829161e5e88f587a78a08e90edc8f33816d44c2fb"
   },
-  "source_digest": "1dd56cb1c4973772c0e0a005cf89436b352ae28b703f8c5c7ad1c80e1f6478c6",
+  "source_digest": "23ef6ce95f11f98fb0ba3d45e082a275f554cd3da644959d604dc396db9bcd49",
   "artifact_hashes": {
-    "codemap.json": "3773ef782df21ca8673440c4c77e6ef636d06bfbd59325299a0aa3fc889fd41e",
-    "codemap.md": "6c952c97c9bb4d9c81d7db6b28563bcc0a9edb3235006751fbf9958e4aee8b6e",
-    "codemap.html": "d9a5f884122fd3e32494e363a26262edbc994a059d41222ff6eb1d08dce43b7e"
+    "codemap.json": "08e2246b9048bede577a9016a13c2378c35cdb0d999cf611372b338d6576db3e",
+    "codemap.md": "1fac855c4fdbd760f5ac45dbbe5cc6e463fa03f30e25bc7137363aae3a30fa86",
+    "codemap.html": "4ea226efdfffa93ea543b4c7be577b584c6c3925fdeed57d5f332076710e06d7"
   }
 }

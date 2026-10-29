@@ -16,10 +16,13 @@ Bring a Cozy Studio checkout to a runnable local state:
 - `.env.local` bootstrap present and sane
 - Studio Library initialized outside the repo
 - SQLite migrations, default library, and default workspace created
-- Studio Settings Sign in present, with the ChatGPT provider selected for image jobs
+- requested image route ready; ordinary image jobs use ChatGPT after Studio Settings Sign in
 - UI and backend start cleanly
 - Codex CLI and `codex app-server` only when the user explicitly wants the Codex provider
 - closeout checks run once
+
+Reuse explicit route instructions or confirmed user choices already in the task.
+A stored Codex setting alone does not request the Codex app-server route.
 
 ## Onboarding loop
 
@@ -32,14 +35,14 @@ The product loop is detect, consent, mutate, stream, re-validate. One primary CT
 1. Missing Bun: open <https://bun.sh/docs/installation>. Never silent-install Bun.
 2. ChatGPT login missing: Sign in from the welcome flow or Studio Settings and keep the
    ChatGPT provider. Login is not bundled. Codex CLI is not required for this path.
-3. Codex provider selected and Codex CLI missing: open <https://github.com/openai/codex>.
+3. Codex route explicitly requested and Codex CLI missing: open <https://github.com/openai/codex>.
    Never silent-install Codex. Run `codex login` only when the user explicitly wants the
    Codex app-server route.
 4. Studio Library or Bootstrap Configuration missing: in-app Setup, or
    `bun run studio:onboard --setup`. A setup request authorizes these ordinary setup steps; reuse that consent.
-5. Codex provider selected, and Codex Product Runtime is not ready: start app-server
-   through the local backend. Leave app-server stopped when ChatGPT HTTP is the selected
-   image route.
+5. Codex route explicitly requested, and Codex Product Runtime is not ready: start app-server
+   through the local backend. ChatGPT HTTP setup does not start app-server; preserve
+   any existing session unless its shutdown is authorized.
 6. Ready: Open Studio.
 
 Ask Codex is an extra path when Codex CLI exists. Grok Imagine is an optional provider
@@ -61,9 +64,6 @@ The current naming template and an example are in `docs/USER_GUIDE.md` and Setti
   explicitly confirms that destructive operation.
 - Keep generated images, SQLite files, transcripts, logs, local outputs, and
   `.env.local` uncommitted.
-- Use `apply_patch` for manual repo edits.
-- Run broad gates only at closeout unless a focused failure requires a small
-  targeted check.
 
 ## Required Context
 
@@ -71,18 +71,17 @@ Before changing repo files, read:
 
 1. `AGENTS.md`
 2. `README.md`
-3. `docs/TROUBLESHOOTING.md`
 
-For UI onboarding changes, also read:
+Read `docs/TROUBLESHOOTING.md` for a setup failure. For product UI/runtime changes,
+follow `AGENTS.md` and its code map to identify the affected onboarding flow; load
+only its needed components and hooks.
 
-1. `components/OnboardingModal.tsx`
-2. `hooks/useStudioOnboarding.ts`
-3. `hooks/useStudioRuntime.ts`
-4. `components/overlays/StudioSystemOverlays.tsx`
 
 ## Setup Workflow
 
 1. Inspect current state.
+   - Confirm the selected Cozy Studio checkout before running commands. Repo paths
+     below are relative to that checkout, not the installed skill folder.
    - `git status --short`
    - Bun can run repo scripts. Collect tool metadata only when it helps diagnosis.
    - Check existing processes and configured ports before starting services. Reuse a healthy instance.
@@ -105,11 +104,14 @@ For UI onboarding changes, also read:
    - Use `bun run dev:server` and `bun run dev:ui` separately only when that
      makes diagnosis clearer.
    - Check `GET /api/health` and `/api/onboarding/probe`, and open the UI. Default ports are UI `17222` and API `17223`; read configured overrides without printing secrets.
-   - MCP access defaults to Read only. The checkout registers the server as `cozy-studio-mcp` in `.mcp.json` and `.cursor/mcp.json`. When those tools are connected, read the current mode from `studio_status`. Leave it unchanged unless the user asks agents to generate or cancel. Report the mode and Settings → Advanced & maintenance → Agent access (MCP). Follow `skills/cozy-studio-mcp/SKILL.md` before generation or cancellation.
+   - MCP access defaults to Read only. The checkout registers the server as `cozy-studio-mcp` in `.mcp.json` and `.cursor/mcp.json`. When connected, read the mode from `studio_status` and leave it unchanged for setup. Report the mode and Settings → Advanced & maintenance → Agent access (MCP). For generation or cancellation, follow `skills/cozy-studio-mcp/SKILL.md`; missing write access is a user action in Settings.
    - Check `/api/codex/session` only for an explicitly requested Codex provider.
    - Use `/api/app-server/start` or the UI button to start `codex app-server`
-     only for an explicitly requested Codex provider when backend health says app-server is down. Leave it stopped for ChatGPT HTTP.
-   - If ChatGPT auth is missing, stop and ask the user to Sign in from Studio Settings, then select the ChatGPT provider. Do not run `codex login` or start app-server unless the user explicitly wants the Codex route. Do not fake readiness.
+     only for an explicitly requested Codex provider when backend health says app-server is down. ChatGPT HTTP setup does not start app-server or shut down an existing session without authority.
+   - If ChatGPT auth is missing, ask the user to Sign in from Studio Settings and
+     keep provider readiness pending. Continue independent initialization and
+     read-only checks. Do not run `codex login` or start app-server unless the user
+     explicitly wants the Codex route. Do not fake readiness.
 
 4. Diagnose failures.
    - For missing Codex CLI on the requested Codex route, report the PATH/install issue and exact failed command.

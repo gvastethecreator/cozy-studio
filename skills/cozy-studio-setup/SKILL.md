@@ -76,7 +76,6 @@ Read `docs/TROUBLESHOOTING.md` for a setup failure. For product UI/runtime chang
 follow `AGENTS.md` and its code map to identify the affected onboarding flow; load
 only its needed components and hooks.
 
-
 ## Setup Workflow
 
 1. Inspect current state.

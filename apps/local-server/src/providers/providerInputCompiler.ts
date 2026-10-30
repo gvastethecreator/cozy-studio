@@ -7,6 +7,8 @@ import {
   compileComfyWorkflowInput,
   compileFalImageApiInput,
   compileGoogleImageApiInput,
+  compileOpenaiImageApiInput,
+  compileReplicateImageApiInput,
 } from './externalProviderInputs';
 import type { GenerationProviderJob } from './types';
 
@@ -20,6 +22,8 @@ const PROVIDER_INPUT_COMPILERS = {
   dry_run: compileDryRunInput,
   google: compileGoogleImageApiInput,
   fal: compileFalImageApiInput,
+  openai: compileOpenaiImageApiInput,
+  replicate: compileReplicateImageApiInput,
   comfy: compileComfyWorkflowInput,
 } satisfies Record<string, ProviderInputCompiler>;
 

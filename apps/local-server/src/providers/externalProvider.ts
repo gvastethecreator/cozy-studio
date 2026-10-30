@@ -8,6 +8,8 @@ import { createAntigravityImageExecutor } from './antigravityImageExecutor';
 import { createFalImageExecutor } from './falExecutor';
 import { createGoogleImageExecutor } from './googleExecutor';
 import { createGrokRuntimeExecutor } from './grokRuntimeExecutor';
+import { createOpenaiImagesExecutor } from './openaiImagesExecutor';
+import { createReplicateImageExecutor } from './replicateExecutor';
 import {
   getExternalProviderRuntimePreflight,
   isExternalExecutableProviderId,
@@ -48,6 +50,10 @@ function createDefaultExecutor(providerId: ExternalExecutableProviderId) {
       return createGrokRuntimeExecutor();
     case 'fal':
       return createFalImageExecutor();
+    case 'openai':
+      return createOpenaiImagesExecutor();
+    case 'replicate':
+      return createReplicateImageExecutor();
     case 'comfy':
       return createComfyWorkflowExecutor();
   }

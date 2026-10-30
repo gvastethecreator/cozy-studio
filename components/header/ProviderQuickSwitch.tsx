@@ -5,7 +5,8 @@ import { cn } from '../../lib/utils';
 import { requestStudioSettingsDomain } from '../../lib/studioSettingsDomains';
 import type { CommandCenterProviderProjection } from '../../lib/commandCenterProjection';
 import type { GenerationProviderId } from '../../packages/shared/src';
-import { ProviderBrandMark } from '../ProviderBrandMark';
+import { isUntestedGenerationProvider } from '../../packages/shared/src/generationContracts';
+import { ProviderBrandMark, ProviderUntestedBadge } from '../ProviderBrandMark';
 import Tooltip from '../Tooltip';
 import { DemandMountedGsapDropdown } from '../ui/DemandMountedGsapDropdown';
 
@@ -134,7 +135,9 @@ function ProviderOption({
       type="button"
       data-dropdown-item
       aria-pressed={isSelected}
-      aria-label={option.label}
+      aria-label={
+        isUntestedGenerationProvider(option.id) ? `${option.label}, untested` : option.label
+      }
       disabled={isProviderSaving || isUnavailable}
       data-tooltip={option.tooltip}
       onClick={() => selectProvider(option.id)}
@@ -151,8 +154,11 @@ function ProviderOption({
         status={option.status}
       />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[length:var(--wbp-label)] font-semibold tracking-normal">
-          {option.label}
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate text-[length:var(--wbp-label)] font-semibold tracking-normal">
+            {option.label}
+          </span>
+          <ProviderUntestedBadge providerId={option.id} />
         </span>
         <span className="mt-0.5 block text-[length:var(--wbp-label)] font-bold text-[color:var(--wb-muted)]">
           {option.statusDetail}

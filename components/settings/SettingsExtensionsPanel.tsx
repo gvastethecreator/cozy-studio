@@ -397,6 +397,7 @@ export function SettingsExtensionsPanel() {
         const count = extension.stylePack.presetCount;
         return {
           key: `installed:${extension.id}`,
+          version: extension.version,
           title: extension.title,
           subtitle: `${
             hidden > 0
@@ -417,6 +418,7 @@ export function SettingsExtensionsPanel() {
           source.id,
           source.extensions.map((extension) => ({
             key: `remote:${source.id}:${extension.id}`,
+            version: extension.version,
             title: extension.title,
             subtitle: `${statusLabel(extension)} · ${formatBytes(extension.bytes)}`,
             loadPreview: () => getRemotePackPreview(source.id, extension.id),

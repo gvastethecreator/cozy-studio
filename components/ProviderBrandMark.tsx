@@ -6,6 +6,7 @@ import antigravityMark from '../assets/providers/antigravity.svg';
 import falMark from '../assets/providers/fal.svg';
 import comfyMark from '../assets/providers/comfy.svg';
 import { providerBrandWellClass, providerRuntimeStatusDotClass } from '../lib/providerBrand';
+import { isUntestedGenerationProvider } from '../packages/shared/src/generationContracts';
 
 const SIZE = {
   xs: { well: 'size-6', icon: 18 },
@@ -88,6 +89,19 @@ export function ProviderBrandMark({
           )}`}
         />
       ) : null}
+    </span>
+  );
+}
+
+/** Marks adapters that have not been verified against the live service. */
+export function ProviderUntestedBadge({ providerId }: { providerId: string }) {
+  if (!isUntestedGenerationProvider(providerId)) return null;
+  return (
+    <span
+      title="This adapter has not been tested against the live service."
+      className="inline-flex shrink-0 items-center rounded-[var(--wb-radius)] border border-amber-500/20 bg-amber-500/12 px-1 text-[10px] font-semibold text-[color:var(--wb-warning)]"
+    >
+      Untested
     </span>
   );
 }

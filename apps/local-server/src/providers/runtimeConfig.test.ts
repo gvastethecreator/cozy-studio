@@ -49,9 +49,16 @@ describe('provider runtime config', () => {
     const preflights = readExternalProviderRuntimePreflights({
       GOOGLE_API_KEY: 'google-secret-value',
       FAL_KEY: 'fal-secret-value',
+      OPENAI_API_KEY: 'openai-secret-value',
     });
 
-    expect(preflights.map((preflight) => preflight.providerId)).toEqual(['google', 'fal', 'comfy']);
+    expect(preflights.map((preflight) => preflight.providerId)).toEqual([
+      'google',
+      'fal',
+      'openai',
+      'replicate',
+      'comfy',
+    ]);
 
     expect(preflights).toEqual(
       expect.arrayContaining([
@@ -67,10 +74,23 @@ describe('provider runtime config', () => {
           secretSource: 'FAL_KEY',
           canAttemptExecution: true,
         }),
+        expect.objectContaining({
+          providerId: 'openai',
+          secretState: 'configured',
+          secretSource: 'OPENAI_API_KEY',
+          canAttemptExecution: true,
+        }),
+        expect.objectContaining({
+          providerId: 'replicate',
+          secretState: 'missing',
+          canAttemptExecution: false,
+          diagnostics: ['Missing Provider Secret source: REPLICATE_API_TOKEN.'],
+        }),
       ]),
     );
     expect(JSON.stringify(preflights)).not.toContain('google-secret-value');
     expect(JSON.stringify(preflights)).not.toContain('fal-secret-value');
+    expect(JSON.stringify(preflights)).not.toContain('openai-secret-value');
   });
 
   it('validates local runtime endpoint shape before Comfy can attempt execution', () => {

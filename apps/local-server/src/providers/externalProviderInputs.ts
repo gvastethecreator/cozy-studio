@@ -16,7 +16,7 @@ import {
 } from '../../../../packages/shared/src/recipeProviderDirectives';
 import type { GenerationProviderJob } from './types';
 
-export type HostedImageApiProviderId = 'google' | 'fal';
+export type HostedImageApiProviderId = 'google' | 'fal' | 'openai' | 'replicate';
 
 export interface ProviderAssetInputRef {
   role: GenerationTaskAssetRef['role'];
@@ -29,7 +29,7 @@ export interface ProviderAssetInputRef {
 }
 
 export interface HostedImageApiCompiledPayload {
-  apiFamily: 'google_image' | 'fal_image';
+  apiFamily: 'google_image' | 'fal_image' | 'openai_image' | 'replicate_image';
   model: string | null;
   prompt: string;
   negativePrompt: string | null;
@@ -89,6 +89,28 @@ const FAL_IMAGE_API_SESSION_CONTRACT = createProviderSessionContract({
   outputRules: ['Return imported Local Assets and Catalog Entries through the standard job flow.'],
 });
 
+const OPENAI_IMAGE_API_SESSION_CONTRACT = createProviderSessionContract({
+  id: 'openai-image-api-v1',
+  providerId: 'openai',
+  stableInstructions: [
+    'Use the backend OpenAI Images API adapter for hosted image generation.',
+    'Read Provider Secrets from backend configuration only.',
+    'Do not serialize API keys or user secrets into compiled provider inputs.',
+  ],
+  outputRules: ['Return imported Local Assets and Catalog Entries through the standard job flow.'],
+});
+
+const REPLICATE_IMAGE_API_SESSION_CONTRACT = createProviderSessionContract({
+  id: 'replicate-image-api-v1',
+  providerId: 'replicate',
+  stableInstructions: [
+    'Use the backend Replicate adapter for hosted image generation.',
+    'Read Provider Secrets from backend configuration only.',
+    'Do not serialize API keys or user secrets into compiled provider inputs.',
+  ],
+  outputRules: ['Return imported Local Assets and Catalog Entries through the standard job flow.'],
+});
+
 const COMFY_WORKFLOW_SESSION_CONTRACT = createProviderSessionContract({
   id: 'comfy-workflow-v1',
   providerId: 'comfy',
@@ -118,6 +140,28 @@ export function compileFalImageApiInput(job: GenerationProviderJob): HostedImage
     providerId: 'fal',
     apiFamily: 'fal_image',
     contract: FAL_IMAGE_API_SESSION_CONTRACT,
+  });
+}
+
+export function compileOpenaiImageApiInput(
+  job: GenerationProviderJob,
+): HostedImageApiCompiledInput {
+  return compileHostedImageApiInput({
+    job,
+    providerId: 'openai',
+    apiFamily: 'openai_image',
+    contract: OPENAI_IMAGE_API_SESSION_CONTRACT,
+  });
+}
+
+export function compileReplicateImageApiInput(
+  job: GenerationProviderJob,
+): HostedImageApiCompiledInput {
+  return compileHostedImageApiInput({
+    job,
+    providerId: 'replicate',
+    apiFamily: 'replicate_image',
+    contract: REPLICATE_IMAGE_API_SESSION_CONTRACT,
   });
 }
 

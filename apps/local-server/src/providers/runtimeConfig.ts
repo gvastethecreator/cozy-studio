@@ -34,6 +34,8 @@ export type ExternalExecutableProviderId =
   | 'google'
   | 'antigravity'
   | 'fal'
+  | 'openai'
+  | 'replicate'
   | 'comfy';
 
 interface ExternalProviderRuntimeDefinition {
@@ -49,6 +51,18 @@ const EXTERNAL_PROVIDER_RUNTIMES: ExternalProviderRuntimeDefinition[] = [
     providerId: 'fal',
     runtimeKind: 'hosted_api',
     secretEnvNames: ['FAL_KEY', 'FAL_API_KEY'],
+    localRuntimeEnvNames: [],
+  },
+  {
+    providerId: 'openai',
+    runtimeKind: 'hosted_api',
+    secretEnvNames: ['OPENAI_API_KEY'],
+    localRuntimeEnvNames: [],
+  },
+  {
+    providerId: 'replicate',
+    runtimeKind: 'hosted_api',
+    secretEnvNames: ['REPLICATE_API_TOKEN'],
     localRuntimeEnvNames: [],
   },
   {
@@ -69,6 +83,8 @@ export function isExternalExecutableProviderId(
     providerId === 'google' ||
     providerId === 'antigravity' ||
     providerId === 'fal' ||
+    providerId === 'openai' ||
+    providerId === 'replicate' ||
     providerId === 'comfy'
   );
 }

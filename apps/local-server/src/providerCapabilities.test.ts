@@ -88,6 +88,8 @@ describe('providerCapabilities', () => {
       'google',
       'antigravity',
       'fal',
+      'openai',
+      'replicate',
       'comfy',
       'dry_run',
     ]);

@@ -42,7 +42,14 @@ export const PROVIDER_BATCH_MAX = 10;
 export const STUDIO_MAX_INPUT_IMAGES = 10;
 
 export function resolveProviderMaxOutputCount(providerId: GenerationProviderId): number {
-  if (providerId === 'grok' || providerId === 'google' || providerId === 'antigravity') return 1;
+  if (
+    providerId === 'grok' ||
+    providerId === 'google' ||
+    providerId === 'antigravity' ||
+    providerId === 'openai' ||
+    providerId === 'replicate'
+  )
+    return 1;
   if (providerId === 'fal') return 4;
   return PROVIDER_BATCH_MAX;
 }

@@ -141,7 +141,7 @@ Use the provider control in the Create footer to choose the provider for the nex
 2. `XAI_API_KEY` in `.env.local` also works on the same HTTP path.
 3. Make sure that `bun run providers:preflight -- --provider=grok` reports `canAttempt=true`.
 
-**Google Nano Banana.**
+**Google Nano Banana (Untested).**
 
 1. Set `GOOGLE_API_KEY` or `GEMINI_API_KEY` to a restricted Gemini key; or enable the Generative Language API, create a Desktop app OAuth client, and set `GOOGLE_OAUTH_CLIENT_ID` plus `GOOGLE_CLOUD_PROJECT_ID`.
 2. For OAuth, add your account to the consent-screen test users when the app is still in testing, then connect Google from Studio Settings. `GOOGLE_OAUTH_CLIENT_SECRET` is optional.
@@ -156,6 +156,14 @@ Direct requests use the Interactions API and current Nano Banana models. An API 
 3. Select Antigravity in Studio. Its model setting chooses an Antigravity reasoning model; Nano Banana runs behind the CLI as the `generate_image` tool.
 
 Studio never reads or copies Antigravity credentials. It runs one sandboxed headless conversation in a temporary workspace, imports one validated image, and leaves Antigravity's own artifact history in place. Grok Build keeps its CLI login under `GROK_HOME`.
+
+**Untested providers.** Settings marks these adapters Untested: they follow each API's documented request shape but have not run against the live service. Each reports Setup until its backend setting exists.
+
+- Google Nano Banana: see above.
+- fal.ai: `FAL_KEY` or `FAL_API_KEY`; `FAL_MODEL` overrides the model.
+- OpenAI Images API: `OPENAI_API_KEY`; `OPENAI_IMAGE_MODEL` overrides `gpt-image-1`. Text-to-image only.
+- Replicate: `REPLICATE_API_TOKEN`; `REPLICATE_MODEL` overrides `black-forest-labs/flux-schnell`. Text-to-image only.
+- ComfyUI local: `COMFY_API_URL` or `COMFYUI_API_URL` plus `COMFY_WORKFLOW_TEMPLATE_PATH`.
 
 Provider API keys stay in backend environment variables. Do not put Provider Secrets in SQLite, logs, screenshots, docs, or committed files.
 

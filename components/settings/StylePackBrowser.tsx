@@ -8,20 +8,25 @@ import {
 /** A pack the browser can show, installed or published by a remote source. */
 export interface BrowsablePack {
   key: string;
+  /** Pack version; a new release gets a fresh preview. */
+  version: string;
   title: string;
   subtitle: string;
   loadPreview: () => Promise<StylePackPreviewResponse>;
 }
 
-// Previews are small and change only with a new pack version, so one fetch per session is enough.
+// Previews are small and change only with a new pack version, so one fetch per version per session.
 const previewCache = new Map<string, Promise<StylePackPreviewResponse>>();
 
+const previewCacheKey = (pack: BrowsablePack) => `${pack.key}@${pack.version}`;
+
 function loadCachedPreview(pack: BrowsablePack) {
-  let pending = previewCache.get(pack.key);
+  const key = previewCacheKey(pack);
+  let pending = previewCache.get(key);
   if (!pending) {
     pending = pack.loadPreview();
-    previewCache.set(pack.key, pending);
-    pending.catch(() => previewCache.delete(pack.key));
+    previewCache.set(key, pending);
+    pending.catch(() => previewCache.delete(key));
   }
   return pending;
 }
@@ -35,6 +40,7 @@ type PreviewState =
 function usePackPreview(pack: BrowsablePack, eager = false) {
   const ref = useRef<HTMLElement | null>(null);
   const [state, setState] = useState<PreviewState>({ status: 'idle' });
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,9 +73,14 @@ function usePackPreview(pack: BrowsablePack, eager = false) {
       cancelled = true;
       observer.disconnect();
     };
-  }, [eager, pack]);
+  }, [eager, pack, attempt]);
 
-  return { ref, state };
+  const retry = () => {
+    previewCache.delete(previewCacheKey(pack));
+    setAttempt((value) => value + 1);
+  };
+
+  return { ref, state, retry };
 }
 
 function PackCover({ pack, onOpen }: { pack: BrowsablePack; onOpen: () => void }) {
@@ -136,7 +147,7 @@ export function PackDetail({
   actions?: ReactNode;
   onBack: () => void;
 }) {
-  const { state } = usePackPreview(pack, true);
+  const { state, retry } = usePackPreview(pack, true);
   const preview = state.status === 'ready' ? state.value.preview : null;
   return (
     <section className="grid gap-3" aria-label={`${pack.title} preview`}>
@@ -160,9 +171,19 @@ export function PackDetail({
         <p className="text-xs studio-muted">Loading preview…</p>
       ) : null}
       {state.status === 'error' ? (
-        <p role="alert" className="text-xs text-[color:var(--wb-danger)]">
-          {state.message}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p role="alert" className="text-xs text-[color:var(--wb-danger)]">
+            {state.message}
+          </p>
+          <button
+            type="button"
+            onClick={retry}
+            className="studio-ghost-control px-3"
+            aria-label={`Retry loading ${pack.title} preview`}
+          >
+            Retry
+          </button>
+        </div>
       ) : null}
       {preview ? (
         <>

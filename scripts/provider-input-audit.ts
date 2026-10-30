@@ -67,6 +67,8 @@ const EXTERNAL_FIXTURE_PROVIDERS: GenerationProviderId[] = [
   'google',
   'antigravity',
   'fal',
+  'openai',
+  'replicate',
   'comfy',
 ];
 const SECRET_LIKE_PATTERN =

@@ -9,6 +9,8 @@ export function providerBrandChipLabel(providerId: string) {
   if (providerId === 'google') return 'Google';
   if (providerId === 'antigravity') return 'Antigravity';
   if (providerId === 'fal') return 'fal.ai';
+  if (providerId === 'openai') return 'OpenAI';
+  if (providerId === 'replicate') return 'Replicate';
   if (providerId === 'comfy') return 'Comfy';
   if (providerId === 'dry_run') return 'Dry run';
   return providerId;

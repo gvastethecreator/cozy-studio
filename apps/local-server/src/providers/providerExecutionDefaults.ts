@@ -6,6 +6,8 @@ import { readGrokRuntimeDoctor, type GrokRuntimeDoctorReport } from '../grokRunt
 
 export { DEFAULT_GOOGLE_IMAGE_MODEL };
 export const DEFAULT_FAL_IMAGE_MODEL = 'fal-ai/flux/schnell';
+export const DEFAULT_OPENAI_IMAGE_MODEL = 'gpt-image-1';
+export const DEFAULT_REPLICATE_IMAGE_MODEL = 'black-forest-labs/flux-schnell';
 export const DEFAULT_COMFY_MODEL = 'workflow-template';
 
 export interface ResolveBootstrapProviderExecutionOptionsInput {
@@ -56,6 +58,22 @@ export function resolveBootstrapProviderExecutionOptions(
   if (providerId === 'fal') {
     return {
       model: env.FAL_MODEL?.trim() || DEFAULT_FAL_IMAGE_MODEL,
+      reasoningEffort: 'minimal',
+      serviceTier: null,
+    };
+  }
+
+  if (providerId === 'openai') {
+    return {
+      model: env.OPENAI_IMAGE_MODEL?.trim() || DEFAULT_OPENAI_IMAGE_MODEL,
+      reasoningEffort: 'minimal',
+      serviceTier: null,
+    };
+  }
+
+  if (providerId === 'replicate') {
+    return {
+      model: env.REPLICATE_MODEL?.trim() || DEFAULT_REPLICATE_IMAGE_MODEL,
       reasoningEffort: 'minimal',
       serviceTier: null,
     };

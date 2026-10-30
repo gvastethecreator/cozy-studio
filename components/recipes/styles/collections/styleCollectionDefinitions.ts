@@ -87,7 +87,7 @@ export const STYLE_COLLECTIONS = [
     title: 'Portable Studies',
     familyId: 'illustration_art_media',
     description:
-      'Twelve authored ink, print and paper studies. Preview images and visual evaluation are pending.',
+      'Authored ink, print and paper studies. Preview images and visual evaluation are pending.',
     icon: 'pen',
     order: 5,
     sourcePackIds: ['pack_19', 'pack_20', 'pack_21'],

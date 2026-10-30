@@ -19,6 +19,8 @@ export const BUILT_IN_GENERATION_PROVIDERS = [
   'google',
   'antigravity',
   'fal',
+  'openai',
+  'replicate',
   'comfy',
   'dry_run',
 ] as const;
@@ -34,8 +36,23 @@ export const GENERATION_PROVIDER_PRESENTATION_ORDER = [
   'antigravity',
   'google',
   'fal',
+  'openai',
+  'replicate',
   'comfy',
 ] as const satisfies readonly GenerationProviderId[];
+
+/** Adapters not yet verified against the live service. The UI and docs label them Untested. */
+const UNTESTED_GENERATION_PROVIDERS: readonly string[] = [
+  'google',
+  'fal',
+  'openai',
+  'replicate',
+  'comfy',
+] satisfies readonly GenerationProviderId[];
+
+export function isUntestedGenerationProvider(providerId: string) {
+  return UNTESTED_GENERATION_PROVIDERS.includes(providerId);
+}
 
 export function compareGenerationProviderPresentation(left: string, right: string) {
   const rank = (providerId: string) => {

@@ -28,6 +28,8 @@ graph TD
     GROK --> GHTTP["Authenticated xAI HTTP"]
     GROK --> GCLI["Grok Build CLI under fallback policy"]
     PROVIDERS --> FAL["fal.ai hosted API"]
+    PROVIDERS --> OPENAI["OpenAI Images API"]
+    PROVIDERS --> REPLICATE["Replicate hosted API"]
     PROVIDERS --> GOOGLE["Google Gemini image API"]
     PROVIDERS --> COMFY["ComfyUI local runtime"]
     PROVIDERS --> AGY["Antigravity headless CLI"]
@@ -235,7 +237,10 @@ Current concrete adapters:
   The CLI executor uses a fresh bounded headless session and an exact `image_gen` or `image_edit`
   allowlist. Both paths import verified images into the captured Studio Library.
 - **Antigravity:** a sandboxed headless CLI session with one `generate_image` call and one validated image. Studio stages managed references in a temporary workspace and leaves CLI-owned credentials and artifact history untouched.
+- **Untested adapters:** Google, fal.ai, OpenAI Images, Replicate and ComfyUI follow documented API shapes but have not run against the live services. `isUntestedGenerationProvider` in `generationContracts.ts` drives the Untested label in provider lists.
 - **fal.ai:** hosted executor using `FAL_KEY` or `FAL_API_KEY` from backend env only.
+- **OpenAI Images API:** hosted text-to-image executor using `OPENAI_API_KEY` from backend env only.
+- **Replicate:** hosted text-to-image executor using `REPLICATE_API_TOKEN` from backend env only; one synchronous `Prefer: wait` prediction.
 - **Google Gemini image API:** hosted executor using `GOOGLE_API_KEY`, `GEMINI_API_KEY`, or `NANO_BANANA_API_KEY` from backend env only.
 - **ComfyUI:** local executor using `COMFY_API_URL` or `COMFYUI_API_URL` plus `COMFY_WORKFLOW_TEMPLATE_PATH`.
   The API workflow is checked against the configured runtime's node definitions and model enums.

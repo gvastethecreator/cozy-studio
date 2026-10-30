@@ -32,6 +32,8 @@ export function resolveWorkerRuntimeTarget(
     providerId === 'google' ||
     providerId === 'antigravity' ||
     providerId === 'fal' ||
+    providerId === 'openai' ||
+    providerId === 'replicate' ||
     providerId === 'comfy'
   ) {
     return 'external';

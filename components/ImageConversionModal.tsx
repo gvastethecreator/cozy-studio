@@ -176,7 +176,8 @@ function ConversionOptionsFields({
           Preserve image metadata
           <span className="mt-1 block text-xs text-[color:var(--wb-muted)]">
             Keeps the embedded prompt, model, EXIF and descriptive metadata when available. Turn off
-            to remove them. The color profile is always kept to preserve appearance.
+            for a copy to share without them. The color profile is always kept to preserve
+            appearance.
           </span>
         </span>
       </label>

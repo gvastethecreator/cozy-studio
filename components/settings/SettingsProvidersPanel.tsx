@@ -16,7 +16,7 @@ import {
   providerSecretLabel,
 } from '../../lib/subscriptionAuthUi';
 import { providerBrandChipLabel, providerReadyPillClass } from '../../lib/providerBrand';
-import { ProviderBrandMark } from '../ProviderBrandMark';
+import { ProviderBrandMark, ProviderUntestedBadge } from '../ProviderBrandMark';
 import { SubscriptionAuthControls } from './SubscriptionAuthControls';
 import { ProviderExecutionDefaultsFields } from './ProviderExecutionDefaultsFields';
 
@@ -108,8 +108,9 @@ export function SettingsProvidersPanel({
                   className="sr-only"
                 />
                 <ProviderBrandMark providerId={providerId} size="sm" />
-                <span className="min-w-0 text-xs font-medium">
+                <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs font-medium">
                   {providerBrandChipLabel(providerId)}
+                  <ProviderUntestedBadge providerId={providerId} />
                 </span>
               </label>
             );
@@ -183,14 +184,17 @@ export function SettingsProvidersPanel({
                           <span>{provider.label}</span>
                           {provider.isDefault ? <small>Default</small> : null}
                         </div>
-                        <StatusPill
-                          className={providerReadyPillClass({
-                            canExecute: provider.canExecute,
-                            status: provider.status,
-                          })}
-                        >
-                          {readyLabel}
-                        </StatusPill>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <ProviderUntestedBadge providerId={provider.providerId} />
+                          <StatusPill
+                            className={providerReadyPillClass({
+                              canExecute: provider.canExecute,
+                              status: provider.status,
+                            })}
+                          >
+                            {readyLabel}
+                          </StatusPill>
+                        </div>
                       </div>
                     </div>
                     {runtimeLabel || secretLabel ? (

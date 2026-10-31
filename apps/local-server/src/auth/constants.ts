@@ -45,5 +45,5 @@ export function studioUserAgent() {
 }
 
 export function studioCodexOriginator(env: Record<string, string | undefined> = process.env) {
-  return env.STUDIO_CODEX_ORIGINATOR?.trim() || 'codex-studio';
+  return env.STUDIO_CODEX_ORIGINATOR?.trim() || 'cozy-studio';
 }

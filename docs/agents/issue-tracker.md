@@ -7,7 +7,7 @@ GitHub Issues and the linked GitHub Project hold live work state. Local Markdown
 - Repository: `gvastethecreator/cozy-studio`
 - Project owner: `gvastethecreator`
 - Project number: `8`
-- Project title: `Codex Studio`
+- Project title: `Cozy Studio`
 - Project URL: `https://github.com/users/gvastethecreator/projects/8`
 - Local root: `.scratch/cozy-studio/`
 

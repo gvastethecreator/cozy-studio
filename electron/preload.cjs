@@ -1,6 +1,6 @@
 const { contextBridge } = require('electron');
 
-contextBridge.exposeInMainWorld('codexStudio', {
+contextBridge.exposeInMainWorld('cozyStudio', {
   apiBase: process.env.STUDIO_ELECTRON_API_BASE || 'http://localhost:17223',
   desktop: true,
   platform: process.platform,

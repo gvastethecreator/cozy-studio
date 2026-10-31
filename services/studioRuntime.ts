@@ -41,7 +41,7 @@ export interface StudioRuntimeInfo {
 }
 
 export interface StudioRuntimeSources {
-  desktopBridge?: Window['codexStudio'];
+  desktopBridge?: Window['cozyStudio'];
   envApiBase?: string;
   pageOrigin?: string;
   productionUi?: boolean;
@@ -143,7 +143,7 @@ export function resolveStudioRuntimeFromSources({
 
 export function resolveStudioRuntime(): StudioRuntimeInfo {
   return resolveStudioRuntimeFromSources({
-    desktopBridge: typeof window !== 'undefined' ? window.codexStudio : undefined,
+    desktopBridge: typeof window !== 'undefined' ? window.cozyStudio : undefined,
     envApiBase: import.meta.env.VITE_STUDIO_API_BASE,
     pageOrigin: typeof window !== 'undefined' ? window.location.origin : undefined,
     productionUi: import.meta.env.PROD,

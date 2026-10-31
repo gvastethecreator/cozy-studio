@@ -5,7 +5,7 @@ interface ImportMetaEnv {
 }
 
 interface Window {
-  codexStudio?: {
+  cozyStudio?: {
     apiBase?: string;
     desktop?: boolean;
     platform?: string;

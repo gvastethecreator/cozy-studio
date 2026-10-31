@@ -517,7 +517,7 @@ describe('runtimeRoutes', () => {
     const routes = createRuntimeRoutes({
       readSubscriptionFacts: () => ({ codexSignedIn: false, grokSignedIn: false }),
       readSettings: () => ({
-        libraryDir: 'D:/Codex Studio',
+        libraryDir: 'D:/Cozy Studio',
         serverPort: 17223,
         codexWsPort: 17224,
         codexImagegenModel: 'gpt-image-1',
@@ -568,7 +568,7 @@ describe('runtimeRoutes', () => {
     expect(readCodexRuntimeDoctor).not.toHaveBeenCalled();
 
     const probe = (await probeResponse.json()) as OnboardingProbe;
-    expect(probe.studioLibraryPath).toBe('D:/Codex Studio');
+    expect(probe.studioLibraryPath).toBe('D:/Cozy Studio');
     expect(probe.checks).toHaveLength(6);
     expect(probe.primaryCta).toBe(resolvePrimaryCta(probe.facts));
     expect(probe.facts.studioLibraryReady).toBe(false);
@@ -617,7 +617,7 @@ describe('runtimeRoutes', () => {
       readSettings: () => ({
         libraryDir:
           files.get('D:/repo/.env.local')?.match(/^STUDIO_LIBRARY_DIR=(.*)$/m)?.[1] ??
-          'D:/Codex Studio',
+          'D:/Cozy Studio',
         serverPort: 17223,
         codexWsPort: 17224,
         codexImagegenModel: 'gpt-image-1',
@@ -679,7 +679,7 @@ describe('runtimeRoutes', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         consent: true,
-        libraryPath: 'C:/Users/a/OneDrive/Codex Studio',
+        libraryPath: 'C:/Users/a/OneDrive/Cozy Studio',
       }),
     });
     expect(blocked.status).toBe(409);
@@ -695,7 +695,7 @@ describe('runtimeRoutes', () => {
       body: JSON.stringify({
         consent: true,
         confirmCloudSync: true,
-        libraryPath: 'C:/Users/a/OneDrive/Codex Studio',
+        libraryPath: 'C:/Users/a/OneDrive/Cozy Studio',
       }),
     });
     expect(confirmed.status).toBe(200);

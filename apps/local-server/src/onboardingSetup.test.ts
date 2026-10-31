@@ -136,7 +136,7 @@ describe('onboardingSetup', () => {
     const writes: string[] = [];
     try {
       applyOnboardingSetup(
-        { consent: true, libraryPath: 'C:/Users/a/OneDrive/Codex Studio' },
+        { consent: true, libraryPath: 'C:/Users/a/OneDrive/Cozy Studio' },
         {
           writeFile: () => writes.push('env'),
           initLibrary: () => writes.push('init'),
@@ -154,7 +154,7 @@ describe('onboardingSetup', () => {
       {
         consent: true,
         confirmCloudSync: true,
-        libraryPath: 'C:/Users/a/OneDrive/Codex Studio',
+        libraryPath: 'C:/Users/a/OneDrive/Cozy Studio',
       },
       {
         readEnvLocalPath: () => 'D:/repo/.env.local',
@@ -176,7 +176,7 @@ describe('onboardingSetup', () => {
     const result = applyOnboardingSetup(
       { consent: true },
       {
-        resolveDefaultLibraryPath: () => 'D:/Codex Studio',
+        resolveDefaultLibraryPath: () => 'D:/Cozy Studio',
         readExistingLibraryDir: () => 'D:/existing-library',
         readEnvLocalPath: () => 'D:/repo/.env.local',
         readFile: (filePath) => files.get(filePath) ?? null,
@@ -190,7 +190,7 @@ describe('onboardingSetup', () => {
     );
     expect(result.libraryPath).toBe('D:/existing-library');
     expect(files.get('D:/repo/.env.local')).toContain('STUDIO_LIBRARY_DIR=D:/existing-library');
-    expect(result.libraryPath).not.toBe('D:/Codex Studio');
+    expect(result.libraryPath).not.toBe('D:/Cozy Studio');
   });
 
   it('does not put provider secrets on the Setup result', () => {
@@ -210,7 +210,7 @@ describe('onboardingSetup', () => {
     const skipped = applyOnboardingSetup(
       { consent: true, initLibrary: false, installDeps: true },
       {
-        resolveDefaultLibraryPath: () => 'D:/Codex Studio',
+        resolveDefaultLibraryPath: () => 'D:/Cozy Studio',
         readExistingLibraryDir: () => null,
         isAbsolutePath: () => true,
         depsNeedInstall: () => false,
@@ -223,7 +223,7 @@ describe('onboardingSetup', () => {
     const ran = applyOnboardingSetup(
       { consent: true, initLibrary: false, installDeps: true },
       {
-        resolveDefaultLibraryPath: () => 'D:/Codex Studio',
+        resolveDefaultLibraryPath: () => 'D:/Cozy Studio',
         readExistingLibraryDir: () => null,
         isAbsolutePath: () => true,
         depsNeedInstall: () => true,

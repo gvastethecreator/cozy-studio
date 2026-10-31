@@ -11,6 +11,6 @@ Use the same [setup requirements](../README.md#quick-start) as the browser app. 
 
 ## Runtime boundary
 
-The renderer uses Studio Runtime, not direct desktop APIs. It resolves `apiBase` from `window.codexStudio?.apiBase`, then `VITE_STUDIO_API_BASE`, then localhost. [preload.cjs](../electron/preload.cjs) exposes the narrow bridge; [main.cjs](../electron/main.cjs) owns the window and navigation policy.
+The renderer uses Studio Runtime, not direct desktop APIs. It resolves `apiBase` from `window.cozyStudio?.apiBase`, then `VITE_STUDIO_API_BASE`, then localhost. [preload.cjs](../electron/preload.cjs) exposes the narrow bridge; [main.cjs](../electron/main.cjs) owns the window and navigation policy.
 
 Keep `nodeIntegration: false`, `contextIsolation: true` and `sandbox: true`. Preserve the explicit preload, blocked unexpected navigation and restricted window opens. A working development window is not evidence that runtime packaging, installation or updates are ready for distribution.

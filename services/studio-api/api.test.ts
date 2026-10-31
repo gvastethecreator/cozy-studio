@@ -114,7 +114,7 @@ describe('runOnboardingSetup', () => {
   it('posts Setup and invalidates the runtime snapshot cache', async () => {
     const setupResponse = {
       ok: true,
-      libraryPath: 'D:/Codex Studio',
+      libraryPath: 'D:/Cozy Studio',
       wroteEnv: true,
       initializedLibrary: true,
       installedDeps: false,
@@ -133,12 +133,12 @@ describe('runOnboardingSetup', () => {
     await expect(
       runOnboardingSetup({
         consent: true,
-        libraryPath: 'D:/Codex Studio',
+        libraryPath: 'D:/Cozy Studio',
         confirmCloudSync: false,
         initLibrary: true,
         installDeps: true,
       }),
-    ).resolves.toMatchObject({ ok: true, libraryPath: 'D:/Codex Studio' });
+    ).resolves.toMatchObject({ ok: true, libraryPath: 'D:/Cozy Studio' });
     await getStudioRuntimeSnapshot();
 
     const setupCall = fetchMock.mock.calls[1];

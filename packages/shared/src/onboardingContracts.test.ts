@@ -17,7 +17,7 @@ const readyFacts: OnboardingFacts = {
   codexCliAvailable: true,
   chatgptLoggedIn: true,
   studioLibraryReady: true,
-  studioLibraryPath: 'D:/Codex Studio',
+  studioLibraryPath: 'D:/Cozy Studio',
   bootstrapConfigReady: true,
   appServerReady: true,
   grokCliAvailable: false,
@@ -128,10 +128,10 @@ describe('buildOnboardingProbe', () => {
     const probe = buildOnboardingProbe({
       ...readyFacts,
       studioLibraryReady: false,
-      studioLibraryPath: '  D:/Codex Studio  ',
+      studioLibraryPath: '  D:/Cozy Studio  ',
     });
     expect(probe.primaryCta).toBe('in_app_setup');
-    expect(probe.studioLibraryPath).toBe('D:/Codex Studio');
+    expect(probe.studioLibraryPath).toBe('D:/Cozy Studio');
     expect(probe.checks.map((check) => check.id)).toEqual([
       'bun',
       'codex_cli',
@@ -142,7 +142,7 @@ describe('buildOnboardingProbe', () => {
     ]);
     expect(probe.checks.find((check) => check.id === 'studio_library')).toMatchObject({
       ready: false,
-      meta: 'D:/Codex Studio',
+      meta: 'D:/Cozy Studio',
     });
     expect(probe.checks.map((check) => check.id)).not.toContain('grok');
     expect(probe.grok).toMatchObject({ cliAvailable: false, loggedIn: false });
@@ -188,7 +188,7 @@ describe('onboardingFactsFromHealth', () => {
         codexCliAvailable: true,
         chatgptLoggedIn: true,
         studioLibraryReady: true,
-        studioLibraryPath: 'D:/Codex Studio',
+        studioLibraryPath: 'D:/Cozy Studio',
         bootstrapConfigReady: true,
         appServerReady: true,
       }).bunAvailable,
@@ -198,17 +198,17 @@ describe('onboardingFactsFromHealth', () => {
 
 describe('detectCloudSyncLibraryPath', () => {
   it('flags OneDrive-like paths without treating them as invalid', () => {
-    expect(detectCloudSyncLibraryPath('C:\\Users\\a\\OneDrive\\Codex Studio')).toBe('OneDrive');
-    expect(detectCloudSyncLibraryPath('D:/Codex Studio')).toBe(null);
+    expect(detectCloudSyncLibraryPath('C:\\Users\\a\\OneDrive\\Cozy Studio')).toBe('OneDrive');
+    expect(detectCloudSyncLibraryPath('D:/Cozy Studio')).toBe(null);
   });
 });
 
 describe('looksLikeAbsoluteLibraryPath', () => {
   it('accepts Windows, POSIX, and UNC paths', () => {
-    expect(looksLikeAbsoluteLibraryPath('D:/Codex Studio')).toBe(true);
-    expect(looksLikeAbsoluteLibraryPath('C:\\Users\\a\\Codex Studio')).toBe(true);
-    expect(looksLikeAbsoluteLibraryPath('/home/a/Codex Studio')).toBe(true);
-    expect(looksLikeAbsoluteLibraryPath('Codex Studio')).toBe(false);
+    expect(looksLikeAbsoluteLibraryPath('D:/Cozy Studio')).toBe(true);
+    expect(looksLikeAbsoluteLibraryPath('C:\\Users\\a\\Cozy Studio')).toBe(true);
+    expect(looksLikeAbsoluteLibraryPath('/home/a/Cozy Studio')).toBe(true);
+    expect(looksLikeAbsoluteLibraryPath('Cozy Studio')).toBe(false);
   });
 });
 

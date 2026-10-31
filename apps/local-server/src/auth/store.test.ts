@@ -95,7 +95,7 @@ describe('subscription auth store', () => {
         homeDir: 'C:\\Users\\studio',
         env: {
           LOCALAPPDATA: 'C:\\Users\\studio\\AppData\\Local',
-          STUDIO_LIBRARY_DIR: 'D:\\Portable\\Codex Studio Library',
+          STUDIO_LIBRARY_DIR: 'D:\\Portable\\Cozy Studio Library',
         },
       }),
     ).toBe('C:\\Users\\studio\\AppData\\Local\\Cozy Studio\\auth\\studio-oauth.json');

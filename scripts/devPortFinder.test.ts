@@ -61,7 +61,7 @@ describe('devPortFinder', () => {
     const server = http.createServer((req, res) => {
       methods.push(req.method!);
       res.writeHead(ready ? 200 : 503, { 'Content-Type': 'text/html' });
-      res.end('<h1>Codex Studio</h1>');
+      res.end('<h1>Cozy Studio</h1>');
       notifyRequest();
     });
 

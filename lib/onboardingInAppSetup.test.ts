@@ -14,7 +14,7 @@ const probe = buildOnboardingProbe({
   codexCliAvailable: true,
   chatgptLoggedIn: true,
   studioLibraryReady: false,
-  studioLibraryPath: 'D:/Codex Studio',
+  studioLibraryPath: 'D:/Cozy Studio',
   bootstrapConfigReady: false,
   appServerReady: false,
   grokCliAvailable: false,
@@ -23,7 +23,7 @@ const probe = buildOnboardingProbe({
 
 describe('in-app Setup form', () => {
   it('shows the resolved Studio Library path from the probe', () => {
-    expect(resolveInAppSetupDraftPath(probe)).toBe('D:/Codex Studio');
+    expect(resolveInAppSetupDraftPath(probe)).toBe('D:/Cozy Studio');
     expect(resolveInAppSetupDraftPath(null)).toBe('');
   });
 
@@ -31,39 +31,39 @@ describe('in-app Setup form', () => {
     expect(
       inAppSetupCanSubmit({
         consent: false,
-        libraryPath: 'D:/Codex Studio',
+        libraryPath: 'D:/Cozy Studio',
         confirmCloudSync: false,
       }),
     ).toBe(false);
     expect(
       inAppSetupCanSubmit({
         consent: true,
-        libraryPath: 'Codex Studio',
+        libraryPath: 'Cozy Studio',
         confirmCloudSync: false,
       }),
     ).toBe(false);
     expect(
       inAppSetupCanSubmit({
         consent: true,
-        libraryPath: 'D:/Codex Studio',
+        libraryPath: 'D:/Cozy Studio',
         confirmCloudSync: false,
       }),
     ).toBe(true);
   });
 
   it('requires a cloud-sync confirm for OneDrive-like paths', () => {
-    expect(inAppSetupCloudProvider('C:/Users/a/OneDrive/Codex Studio')).toBe('OneDrive');
+    expect(inAppSetupCloudProvider('C:/Users/a/OneDrive/Cozy Studio')).toBe('OneDrive');
     expect(
       inAppSetupCanSubmit({
         consent: true,
-        libraryPath: 'C:/Users/a/OneDrive/Codex Studio',
+        libraryPath: 'C:/Users/a/OneDrive/Cozy Studio',
         confirmCloudSync: false,
       }),
     ).toBe(false);
     expect(
       inAppSetupCanSubmit({
         consent: true,
-        libraryPath: 'C:/Users/a/OneDrive/Codex Studio',
+        libraryPath: 'C:/Users/a/OneDrive/Cozy Studio',
         confirmCloudSync: true,
       }),
     ).toBe(true);
@@ -73,12 +73,12 @@ describe('in-app Setup form', () => {
     expect(
       buildInAppSetupRequest({
         consent: true,
-        libraryPath: 'D:/Codex Studio',
+        libraryPath: 'D:/Cozy Studio',
         confirmCloudSync: false,
       }),
     ).toEqual({
       consent: true,
-      libraryPath: 'D:/Codex Studio',
+      libraryPath: 'D:/Cozy Studio',
       confirmCloudSync: false,
       initLibrary: true,
       installDeps: true,

@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "title": "Codex Studio · Atlas medieval y fantasías adyacentes",
+    "title": "Cozy Studio · Atlas medieval y fantasías adyacentes",
     "version": "0.1.0-research",
     "date": "2026-09-23",
     "language": "es",
@@ -22,7 +22,7 @@
       "Los nombres son etiquetas de investigación; no se introducen en el texto generativo.",
       "No se declara ausencia comprobada en cada uno de los 1.677 presets originales.",
       "Las mecánicas visuales son propuestas curatoriales, no citas literales ni certificaciones del estilo integral de una obra.",
-      "El JSON usa un esquema de investigación propio, no el contrato de importación actual de Codex Studio.",
+      "El JSON usa un esquema de investigación propio, no el contrato de importación actual de Cozy Studio.",
       "El atlas no incorpora ni redistribuye imágenes, tipografías o arte de terceros. Las fuentes se abren por enlace."
     ]
   },
@@ -415,7 +415,7 @@
       "title": "The Banner Saga — Stoic",
       "url": "https://stoicstudio.com/banner-saga",
       "source_type": "Estudio / editorial",
-      "evidence_summary": "RPG táctico con arte pintado a mano. Ya aparece como referencia de captura en la revisión de pack_12 de Codex Studio.",
+      "evidence_summary": "RPG táctico con arte pintado a mano. Ya aparece como referencia de captura en la revisión de pack_12 de Cozy Studio.",
       "consulted_on": "2026-09-23"
     },
     {
@@ -524,16 +524,16 @@
     },
     {
       "id": "S55",
-      "title": "Codex Studio — PR 49",
-      "url": "https://github.com/gvastethecreator/codex-studio/pull/49",
+      "title": "Cozy Studio — PR 49",
+      "url": "https://github.com/gvastethecreator/cozy-studio/pull/49",
       "source_type": "Repositorio",
       "evidence_summary": "Consultado como borrador abierto: 1.677 originales y 12 estudios nuevos. No confundir la rama con main.",
       "consulted_on": "2026-09-23"
     },
     {
       "id": "S56",
-      "title": "Codex Studio — Category Review",
-      "url": "https://github.com/gvastethecreator/codex-studio/blob/styles/curation-v2/docs/styles/curation-v2/CATEGORY-REVIEW.md",
+      "title": "Cozy Studio — Category Review",
+      "url": "https://github.com/gvastethecreator/cozy-studio/blob/styles/curation-v2/docs/styles/curation-v2/CATEGORY-REVIEW.md",
       "source_type": "Repositorio",
       "evidence_summary": "Revisión textual de 118 categorías; los solapamientos del atlas son candidatos, no un diff semántico de cada preset.",
       "consulted_on": "2026-09-23"

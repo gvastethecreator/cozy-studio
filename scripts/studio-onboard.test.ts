@@ -15,7 +15,7 @@ const sampleProbe = buildOnboardingProbe({
   codexCliAvailable: true,
   chatgptLoggedIn: true,
   studioLibraryReady: true,
-  studioLibraryPath: 'D:/Codex Studio',
+  studioLibraryPath: 'D:/Cozy Studio',
   bootstrapConfigReady: true,
   appServerReady: true,
   grokCliAvailable: false,
@@ -33,10 +33,10 @@ describe('studio:onboard CLI', () => {
 
   it('parses Setup flags including documented --yes', () => {
     expect(
-      parseStudioOnboardSetupFlags(['--setup', '--yes', '--library-path', 'D:/Codex Studio']),
+      parseStudioOnboardSetupFlags(['--setup', '--yes', '--library-path', 'D:/Cozy Studio']),
     ).toEqual({
       yes: true,
-      libraryPath: 'D:/Codex Studio',
+      libraryPath: 'D:/Cozy Studio',
       confirmCloudSync: false,
       installDeps: true,
     });
@@ -62,7 +62,7 @@ describe('studio:onboard CLI', () => {
       runStudioOnboardSetup({
         flags: {
           yes: false,
-          libraryPath: 'D:/Codex Studio',
+          libraryPath: 'D:/Cozy Studio',
           confirmCloudSync: false,
           installDeps: false,
         },
@@ -80,7 +80,7 @@ describe('studio:onboard CLI', () => {
   it('applies Setup after --yes', async () => {
     const applySetup = vi.fn(() => ({
       ok: true as const,
-      libraryPath: 'D:/Codex Studio',
+      libraryPath: 'D:/Cozy Studio',
       wroteEnv: true,
       initializedLibrary: true,
       installedDeps: false,
@@ -91,7 +91,7 @@ describe('studio:onboard CLI', () => {
       runStudioOnboardSetup({
         flags: {
           yes: true,
-          libraryPath: 'D:/Codex Studio',
+          libraryPath: 'D:/Cozy Studio',
           confirmCloudSync: false,
           installDeps: true,
         },
@@ -100,11 +100,11 @@ describe('studio:onboard CLI', () => {
       }),
     ).resolves.toMatchObject({
       ok: true,
-      result: { libraryPath: 'D:/Codex Studio', wroteEnv: true },
+      result: { libraryPath: 'D:/Cozy Studio', wroteEnv: true },
     });
     expect(applySetup).toHaveBeenCalledWith({
       consent: true,
-      libraryPath: 'D:/Codex Studio',
+      libraryPath: 'D:/Cozy Studio',
       confirmCloudSync: false,
       initLibrary: true,
       installDeps: true,
@@ -123,7 +123,7 @@ describe('studio:onboard CLI', () => {
         fetchImpl: fetchImpl as unknown as typeof fetch,
         fallback,
       }),
-    ).resolves.toMatchObject({ primaryCta: 'ready', studioLibraryPath: 'D:/Codex Studio' });
+    ).resolves.toMatchObject({ primaryCta: 'ready', studioLibraryPath: 'D:/Cozy Studio' });
     expect(fallback).not.toHaveBeenCalled();
   });
 

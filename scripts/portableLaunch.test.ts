@@ -31,13 +31,13 @@ describe('portable launchers', () => {
   it('rejects an unsupported build target before downloading or creating an artifact', async () => {
     await expect(buildPortable('../foreign-target')).rejects.toThrow('Unknown portable target');
   });
-  it('uses Codex Studio Library beside the unpack root when portable and env is unset', () => {
+  it('uses Cozy Studio Library beside the unpack root when portable and env is unset', () => {
     expect(
       resolvePortableLibraryDir({
         studioLibraryDir: undefined,
         portable: true,
         unpackRoot: 'D:/unzipped/cozy-studio',
-        homeDefault: 'C:/Users/a/Codex Studio',
+        homeDefault: 'C:/Users/a/Cozy Studio',
       }),
     ).toBe(path.join('D:/unzipped/cozy-studio', PORTABLE_STUDIO_LIBRARY_FOLDER_NAME));
     expect(
@@ -45,7 +45,7 @@ describe('portable launchers', () => {
         studioLibraryDir: 'E:/custom-library',
         portable: true,
         unpackRoot: 'D:/unzipped/cozy-studio',
-        homeDefault: 'C:/Users/a/Codex Studio',
+        homeDefault: 'C:/Users/a/Cozy Studio',
       }),
     ).toBe('E:/custom-library');
     expect(
@@ -53,9 +53,9 @@ describe('portable launchers', () => {
         studioLibraryDir: undefined,
         portable: false,
         unpackRoot: 'D:/unzipped/cozy-studio',
-        homeDefault: 'C:/Users/a/Codex Studio',
+        homeDefault: 'C:/Users/a/Cozy Studio',
       }),
-    ).toBe('C:/Users/a/Codex Studio');
+    ).toBe('C:/Users/a/Cozy Studio');
   });
 
   it('starts local-server in production mode and opens the browser', async () => {
@@ -78,7 +78,7 @@ describe('portable launchers', () => {
         return {
           stdout: {
             on(_event: string, callback: (chunk: string) => void) {
-              callback('Codex Studio local-server listening on http://127.0.0.1:17229\n');
+              callback('Cozy Studio local-server listening on http://127.0.0.1:17229\n');
             },
           },
           stderr: { on() {} },

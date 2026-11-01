@@ -53,19 +53,25 @@ To build a portable ZIP, run `bun run build` and `bun run portable:build`. The d
 **From a checkout.** Development also requires Node.js 22 (22.18 or newer), 24 (24.11 or newer), or 26+, as required by Vite+.
 
 ```bash
+git clone -c core.longpaths=true https://github.com/gvastethecreator/cozy-studio.git
+cd cozy-studio
 bun install
 bun run studio:onboard --setup
 bun run studio:init
 bun run dev
 ```
 
-Then open the UI at <http://localhost:17222>. The local API health check is at <http://localhost:17223/api/health>.
+On Windows, keep `-c core.longpaths=true`: some workflow asset paths are about 160 characters long, and a clone into a deep folder fails without it.
 
-**Ask an agent.** Ask Codex in this repo to run first setup, or use Copy prompt or Ask Codex on the onboarding screen. The prompt points at `skills/cozy-studio-setup/SKILL.md`.
+Then open the UI at <http://localhost:17222>. The local API health check is at <http://localhost:17223/api/health>. To update a checkout later, use **Settings → Help & updates**; it fast-forwards `main`, installs dependencies and restarts Studio.
+
+**Ask an agent.** Open this folder in Claude Code, Codex or Cursor and ask for first setup, or use Copy prompt on the onboarding screen. The prompt points at `skills/cozy-studio-setup/SKILL.md`.
 
 ```text
 Set up Cozy Studio for first run.
 ```
+
+After setup, the agent can drive Studio through the `cozy-studio-mcp` server: check readiness, install or update style packs, change settings, generate images and apply app updates. [Agent tools (MCP)](docs/agents/mcp.md) lists the tools and how to register the server.
 
 ## First image
 

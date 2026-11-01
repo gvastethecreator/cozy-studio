@@ -139,9 +139,6 @@ function UpdateStatusSummary({
   const displayedError = error || status?.error || connectionError;
   return (
     <>
-      <p className="studio-muted text-sm" role="status">
-        {updateStatusText(status, busy)}
-      </p>
       {status?.currentCommit && (
         <p className="studio-muted text-xs">
           Installed: {status.currentCommit.slice(0, 8)}
@@ -177,16 +174,10 @@ export function SettingsUpdatesPanel({ hasUnsavedChanges }: { hasUnsavedChanges:
   return (
     <section className="settings-form-stack" aria-label="Studio updates">
       <h3 className="studio-dialog-title">Studio updates</h3>
-      <UpdateStatusSummary
-        status={status}
-        busy={busy}
-        error={error}
-        connectionError={connectionError}
-        updating={updating}
-      />
-      {hasUnsavedChanges && (
-        <p className="studio-muted text-sm">Save your settings before updating or restarting.</p>
-      )}
+      <p className="studio-muted text-sm" role="status">
+        {updateStatusText(status, busy)}
+      </p>
+      {/* Details sit below the buttons, so lines that appear after a check never move them. */}
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -214,6 +205,16 @@ export function SettingsUpdatesPanel({ hasUnsavedChanges }: { hasUnsavedChanges:
           Restart Studio
         </button>
       </div>
+      {hasUnsavedChanges && (
+        <p className="studio-muted text-sm">Save your settings before updating or restarting.</p>
+      )}
+      <UpdateStatusSummary
+        status={status}
+        busy={busy}
+        error={error}
+        connectionError={connectionError}
+        updating={updating}
+      />
       <UpdateConfirmation
         confirmation={confirmation}
         setConfirmation={setConfirmation}

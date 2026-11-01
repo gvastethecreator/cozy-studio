@@ -24,6 +24,7 @@ import {
 } from '../../lib/styleThumbnailCatalog';
 import { styleCategoryImageKey } from '../../lib/recipeAssetKeys';
 import { hasStylePresetIdentity } from '../../lib/recipeIdentity';
+import { getStyleLandingFolder } from '../../lib/installedStylePacks';
 import type { Attachment, GeneratedImageWithConfig, ImageGenerationConfig } from '../../types';
 import type { EditableStudioSettings, GenerationProviderId } from '../../packages/shared/src';
 import { resolveGrokImagineGenerateBlock } from '../../lib/grokImagineUiPolicy';
@@ -1479,12 +1480,13 @@ function useStylesBrowserController({
 
     const collectionSections =
       styleCollectionsModule?.STYLE_COLLECTION_FAMILIES.map((family) => {
+        // Only collections that installed packs contribute styles to.
         const collections = styleCollectionsModule.STYLE_COLLECTIONS.filter(
           (collection) =>
             collection.familyId === family.id &&
-            collection.entries.length > 0 &&
             collection.id !== 'my_styles' &&
-            collection.id !== 'favorites',
+            collection.id !== 'favorites' &&
+            (getStyleLandingFolder(collection.id)?.presetCount ?? 0) > 0,
         );
         return {
           id: family.id,
@@ -1493,7 +1495,7 @@ function useStylesBrowserController({
             id: `collection:${collection.id}`,
             label: collection.title,
             caption: family.title,
-            countLabel: `${collection.sourcePackIds.length}`,
+            countLabel: `${getStyleLandingFolder(collection.id)?.presetCount ?? 0}`,
             tabId: getStyleCollectionTabId(collection.id),
             theme: getStyleCollectionTheme(collection),
             icon: getStyleCollectionIcon(collection.icon, 14),

@@ -221,7 +221,7 @@ export function buildComposerProviderProjection({
         code: 'codex_transport_unavailable',
         message:
           codexTransport === 'subscription_http'
-            ? 'ChatGPT Sign in is not ready. Sign in again in Studio Settings before generating.'
+            ? 'Sign in to ChatGPT in Settings → Accounts & models to generate.'
             : 'Codex app-server is not ready. Start the local Codex runtime before generating.',
       };
       transportSummary =

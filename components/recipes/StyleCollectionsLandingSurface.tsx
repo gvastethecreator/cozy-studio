@@ -221,9 +221,8 @@ function useStyleLandingThumbnailCatalog() {
       isGlobalStyleSearchActive: false,
       runtimePackIds: STYLE_RUNTIME_PACK_SUMMARIES.map((pack) => pack.id),
       favoritesPackId: FAVORITES_PACK_ID,
-      visibleCollectionSourcePackIds: VISIBLE_STYLE_COLLECTIONS.flatMap(
-        (collection) => collection.sourcePackIds,
-      ),
+      // Collection and source-pack covers both come from installed packs.
+      visibleCollectionSourcePackIds: STYLE_RUNTIME_PACK_SUMMARIES.map((pack) => pack.id),
     }).requiredThumbnailPackIds;
     let cancelled = false;
     void (async () => {
@@ -242,8 +241,9 @@ function useStyleLandingThumbnailCatalog() {
   return revision;
 }
 
-function getLandingFolderPresetCount(id: string, fallback: number) {
-  return getStyleLandingFolder(id)?.presetCount ?? fallback;
+/** Styles that installed packs contribute to a collection; 0 hides the collection. */
+function getLandingFolderPresetCount(id: string) {
+  return getStyleLandingFolder(id)?.presetCount ?? 0;
 }
 
 function StyleCollectionCard({
@@ -473,7 +473,7 @@ function StyleCollectionFamilySection({
               key={collection.id}
               {...sharedProps}
               collection={collection}
-              countLabel={`${getLandingFolderPresetCount(collection.id, collection.sourcePackIds.length)}`}
+              countLabel={`${getLandingFolderPresetCount(collection.id)}`}
               familyLabel={family.title}
               tabId={tabId}
               getStyleTabHash={getStyleTabHash}
@@ -703,7 +703,8 @@ export function StyleCollectionsLandingSurface({
       STYLE_COLLECTION_FAMILIES.map((family) => ({
         family,
         collections: STYLE_NAVIGATION_COLLECTIONS.filter(
-          (collection) => collection.familyId === family.id,
+          (collection) =>
+            collection.familyId === family.id && getLandingFolderPresetCount(collection.id) > 0,
         ),
       })).filter((section) => section.collections.length > 0),
     [],
@@ -733,7 +734,7 @@ export function StyleCollectionsLandingSurface({
           targetId: `collection:${collection.id}`,
           label: collection.title,
           caption: family.title,
-          countLabel: `${getLandingFolderPresetCount(collection.id, collection.sourcePackIds.length)}`,
+          countLabel: `${getLandingFolderPresetCount(collection.id)}`,
           tabId: getCollectionTabId(collection.id),
           icon: getStyleCollectionIcon(collection.icon, 14),
           kind: 'collection',

@@ -275,6 +275,10 @@ function AvailablePackSources({
             <p className="text-xs text-[color:var(--wb-danger)]">{source.error}</p>
           ) : source.extensions.length === 0 ? (
             <p className="text-xs studio-muted">This source has not published any packs yet.</p>
+          ) : !remotePacks.get(source.id)?.length ? (
+            <p className="text-xs studio-muted">
+              You have every pack from this source, up to date.
+            </p>
           ) : (
             <PackCoverGrid packs={remotePacks.get(source.id) ?? []} onOpen={onOpen} />
           )}
@@ -411,18 +415,21 @@ export function SettingsExtensionsPanel() {
       }),
     [installed],
   );
+  // Installed, current packs already show above; this list offers new packs and updates.
   const remotePacks = useMemo(
     () =>
       new Map<string, BrowsablePack[]>(
         (sources ?? []).map((source) => [
           source.id,
-          source.extensions.map((extension) => ({
-            key: `remote:${source.id}:${extension.id}`,
-            version: extension.version,
-            title: extension.title,
-            subtitle: `${statusLabel(extension)} · ${formatBytes(extension.bytes)}`,
-            loadPreview: () => getRemotePackPreview(source.id, extension.id),
-          })),
+          source.extensions
+            .filter((extension) => !extension.installedVersion || extension.updateAvailable)
+            .map((extension) => ({
+              key: `remote:${source.id}:${extension.id}`,
+              version: extension.version,
+              title: extension.title,
+              subtitle: `${statusLabel(extension)} · ${formatBytes(extension.bytes)}`,
+              loadPreview: () => getRemotePackPreview(source.id, extension.id),
+            })),
         ]),
       ),
     [sources],
@@ -433,11 +440,16 @@ export function SettingsExtensionsPanel() {
       .filter((extension) => !extension.installedVersion || extension.updateAvailable)
       .map((extension) => ({ source, extension })),
   );
+  // An update keeps full cards that are already installed; installing replaces the pack folder.
+  const bulkWantsCards = (extension: AvailableExtension) =>
+    bulkWithCards || extension.installedLayers.includes('cards');
   const bulkBytes = installable.reduce(
     (total, { extension }) =>
       total +
       extension.bytes +
-      (bulkWithCards ? (extension.layers?.find((layer) => layer.name === 'cards')?.bytes ?? 0) : 0),
+      (bulkWantsCards(extension)
+        ? (extension.layers?.find((layer) => layer.name === 'cards')?.bytes ?? 0)
+        : 0),
     0,
   );
 
@@ -450,7 +462,7 @@ export function SettingsExtensionsPanel() {
       setBulkProgress(`Installing ${index + 1} of ${installable.length}: ${extension.title}`);
       try {
         // react-doctor-disable-next-line react-doctor/async-await-in-loop -- ordered installs share the extension catalog and preserve one-pack progress and bounded unpacking
-        await installExtension(source.id, extension.id, bulkWithCards ? ['cards'] : []);
+        await installExtension(source.id, extension.id, bulkWantsCards(extension) ? ['cards'] : []);
       } catch (reason) {
         failures.push(`${extension.title}: ${errorText(reason)}`);
       }
@@ -558,10 +570,8 @@ export function SettingsExtensionsPanel() {
               <h3 className="text-sm font-semibold">Get more packs</h3>
               <p className="mt-1 text-xs studio-muted">
                 Install packs published on GitHub. Studio checks each download before it replaces
-                the installed version.{' '}
-                {tokenConfigured
-                  ? 'A GitHub token is set for private sources.'
-                  : 'Private sources need COZY_STYLES_GITHUB_TOKEN in .env.local.'}
+                the installed version.
+                {tokenConfigured ? ' A GitHub token is set for private sources.' : null}
               </p>
             </div>
 

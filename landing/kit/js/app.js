@@ -1040,14 +1040,14 @@
 
     bindWheel() {
       this.root.addEventListener("wheel", (event) => {
-        if (this.count < 2) return;
+        // Vertical wheel belongs to the page; the deck turns only with a sideways wheel or swipe.
+        if (this.count < 2 || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
         event.preventDefault();
         this.tween?.kill();
         this.tween = null;
         this.moveGen += 1;
         this.clearSwap();
-        const raw = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-        const delta = event.deltaMode === 1 ? raw * 24 : raw;
+        const delta = event.deltaMode === 1 ? event.deltaX * 24 : event.deltaX;
         const step = clamp(delta / ((this.activeSize?.width || this.cfg.cardWidth) * 0.9), -0.6, 0.6);
         this.pos += step;
         this.layout(this.pos);
@@ -1469,43 +1469,56 @@
         return goTo(i - 1, event);
       };
 
-      // One wheel gesture moves one panel. A fast wheel spin or trackpad inertia sends many
-      // events; after a move they are held until the wheel has been quiet for a moment.
-      const WHEEL_QUIET_MS = 200;
-      const WHEEL_STEP = 40;
-      let wheelHeld = false;
-      let wheelQuiet = 0;
-      let wheelSum = 0;
-      let wheelSumReset = 0;
-      const holdWheel = () => {
-        wheelHeld = true;
-        window.clearTimeout(wheelQuiet);
-        wheelQuiet = window.setTimeout(() => {
-          wheelHeld = false;
-        }, WHEEL_QUIET_MS);
-      };
+      // One wheel gesture moves one panel, whatever the mouse, trackpad or sensitivity setting.
+      // A gesture is a run of events in one direction with no pause longer than GESTURE_GAP_MS.
+      // It pages on its first clear signal: a line or page delta (Firefox, Windows "one screen
+      // at a time"), WHEEL_START_PX of travel, or WHEEL_START_EVENTS events in a row. So a slow
+      // notch, a fast notch and a light swipe all need one gesture. The rest of the gesture is
+      // consumed, so inertia and free-spinning wheels never page twice. A new push during inertia
+      // counts only after the move ends and when it is clearly stronger than the recent level.
+      // Same rule as gvaste-pages kit/js/app.js.
+      const GESTURE_GAP_MS = 160;
+      const WHEEL_START_PX = 24;
+      const WHEEL_START_EVENTS = 3;
+      let gesture = null;
+      const wheelPx = (event) =>
+        event.deltaMode === 1 ? event.deltaY * 16 : event.deltaMode === 2 ? event.deltaY * viewHeight() : event.deltaY;
 
       window.addEventListener(
         "wheel",
         (event) => {
           if (!theaterEnabled() || event.ctrlKey) return;
+          if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
           if (docsScrollerAbsorbs(event)) return;
           if (demoPreviewAbsorbs(event)) return;
-          if (wheelHeld) {
-            holdWheel();
+          const delta = wheelPx(event);
+          if (!delta) return;
+          const dir = delta > 0 ? 1 : -1;
+          const size = Math.abs(delta);
+          const now = event.timeStamp;
+          const g = gesture;
+          // `level` smooths recent deltas, so one noisy inertia event cannot pass for a new push.
+          const fresh =
+            !g ||
+            now - g.at > GESTURE_GAP_MS ||
+            dir !== g.dir ||
+            (g.moved && !scrollTween && now - g.movedAt > 400 && size >= 16 && size > g.level * 3);
+          if (fresh) gesture = { dir, sum: 0, count: 0, level: size, at: now, movedAt: 0, moved: false, free: false };
+          const cur = gesture;
+          cur.at = now;
+          cur.level = cur.level * 0.7 + size * 0.3;
+          if (cur.moved) {
             if (event.cancelable) event.preventDefault();
             return;
           }
-          // Small trackpad deltas add up: a slow, light swipe scrolls a little before it pages.
-          wheelSum += event.deltaY;
-          window.clearTimeout(wheelSumReset);
-          wheelSumReset = window.setTimeout(() => {
-            wheelSum = 0;
-          }, 160);
-          const moved = wheelSum > WHEEL_STEP ? goNext(event) : wheelSum < -WHEEL_STEP ? goPrev(event) : false;
-          if (moved) {
-            wheelSum = 0;
-            holdWheel();
+          // Inside a tall panel or at either end, the gesture scrolls the page freely.
+          if (cur.free) return;
+          cur.sum += delta;
+          cur.count += 1;
+          if (event.deltaMode !== 0 || Math.abs(cur.sum) >= WHEEL_START_PX || cur.count >= WHEEL_START_EVENTS) {
+            cur.moved = dir > 0 ? goNext(event) : goPrev(event);
+            cur.movedAt = now;
+            cur.free = !cur.moved;
           }
         },
         { passive: false, capture: true }

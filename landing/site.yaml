@@ -176,7 +176,7 @@ setup:
   title: Install Cozy Studio.
   lede: Free and open source. Needs Git and Bun.
   items:
-    - { command: "git clone https://github.com/gvastethecreator/cozy-studio", note: Downloads the code, output: "Cloning into 'cozy-studio'… done." }
+    - { command: "git clone -c core.longpaths=true https://github.com/gvastethecreator/cozy-studio", note: Downloads the code, output: "Cloning into 'cozy-studio'… done." }
     - { command: cd cozy-studio, note: Opens the folder }
     - { command: bun install, note: Installs dependencies, output: "✓ dependencies installed" }
     - { command: "bun run studio:onboard --setup", note: Checks what is missing, output: "✓ ready to set up" }

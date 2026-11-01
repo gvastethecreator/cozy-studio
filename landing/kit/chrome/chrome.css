@@ -508,6 +508,18 @@ html[data-panel-align="center"] main > .stack-panel:last-child > :first-child {
   margin-top: auto;
 }
 
+/* chrome.panels.surface: single — one page background; sections flow without their own box. */
+html[data-panel-surface="single"] main > .stack-panel {
+  position: relative;
+  top: auto;
+  background: none;
+  box-shadow: none;
+}
+
+html[data-panel-surface="single"] main > .stack-panel::after {
+  content: none;
+}
+
 .site-footer {
   min-height: 72px;
   display: flex;

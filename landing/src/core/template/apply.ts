@@ -29,8 +29,9 @@ export function applyResolvedTemplate(
   }
   const color = (resolved.tokens as { color?: { actionStyle?: unknown } } | undefined)?.color;
   if (color?.actionStyle === "accent") view.actionAccent = true;
-  const panels = (resolved.chrome as { panels?: { align?: unknown } } | undefined)?.panels;
+  const panels = (resolved.chrome as { panels?: { align?: unknown; surface?: unknown } } | undefined)?.panels;
   if (panels?.align === "center") view.panelAlign = "center";
+  if (panels?.surface === "single") view.panelSurface = "single";
   const column = (resolved.chrome as { column?: { variant?: unknown } } | undefined)?.column;
   if (column?.variant === "seamless") view.columnVariant = "seamless";
   return view;

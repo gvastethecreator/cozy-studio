@@ -30,5 +30,7 @@ chrome:
     variant: grain
   panels:
     align: center
+    # Sections scroll and snap one after another instead of stacking over each other.
+    surface: single
   column:
     variant: seamless

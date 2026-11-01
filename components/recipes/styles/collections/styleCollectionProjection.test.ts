@@ -119,6 +119,45 @@ describe('style collection projection', () => {
     ]);
   });
 
+  it('resolves copies as their source until the source pack is present', () => {
+    const essentials = pack('pack_00', [preset('c-1', 'Starter'), preset('c-2', 'Starter')]);
+    const copiedFrom = {
+      'c-1': { packId: 'pack_a', presetId: 'a-1', category: 'A' },
+      'c-2': { packId: 'pack_b', presetId: 'b-1', category: 'B' },
+    };
+    const collection: StyleCollection = {
+      id: 'copies',
+      title: 'Copies',
+      familyId: 'test',
+      description: '',
+      icon: 'test',
+      order: 1,
+      sourcePackIds: ['pack_a', 'pack_b'],
+      entries: [
+        { id: 'a-category', kind: 'category', packId: 'pack_a', categoryName: 'A' },
+        { id: 'b-preset', kind: 'preset', packId: 'pack_b', presetId: 'b-1' },
+      ],
+    };
+
+    const copiesOnly = resolveStyleCollection(
+      collection,
+      createStyleCollectionSourceIndex([essentials], copiedFrom),
+    );
+    expect(copiesOnly.presets.map((item) => [item.presetId, item.sourceCategory])).toEqual([
+      ['c-1', 'A'],
+      ['c-2', 'B'],
+    ]);
+
+    const withSourcePack = resolveStyleCollection(
+      collection,
+      createStyleCollectionSourceIndex(
+        [pack('pack_a', [preset('a-1', 'A')]), essentials],
+        copiedFrom,
+      ),
+    );
+    expect(withSourcePack.presets.map((item) => item.presetId)).toEqual(['a-1', 'c-2']);
+  });
+
   it('rejects collection entries whose pack is absent from its load dependencies', () => {
     const sourceIndex = createStyleCollectionSourceIndex([pack('pack_a', []), pack('pack_b', [])]);
     const collection = {

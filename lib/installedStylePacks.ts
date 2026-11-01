@@ -2,8 +2,10 @@
 // startup, before React mounts, so style surfaces can read pack summaries synchronously.
 import type {
   ExtensionManifest,
+  StylePackLanding,
   StylePackLandingFolder,
   StylePackSummary,
+  StylePresetSource,
 } from '../packages/shared/src/extensions';
 import { compareStylePackIdsForDisplay } from '../components/recipes/styles/packOrdering';
 import {
@@ -50,12 +52,47 @@ export function registerInstalledStylePacks(
     .map(({ stylePack }) => {
       const hiddenCount = hiddenPresetIdsByPack.get(stylePack.id)?.size ?? 0;
       return hiddenCount > 0
-        ? { ...stylePack, presetCount: stylePack.presetCount - hiddenCount }
+        ? {
+            ...stylePack,
+            presetCount: stylePack.presetCount - hiddenCount,
+            landing: stylePack.landing && withoutHiddenCopies(stylePack.landing),
+          }
         : stylePack;
     })
     .filter((summary) => summary.presetCount > 0)
     .sort((a, b) => compareStylePackIdsForDisplay(a.id, b.id));
   INSTALLED_STYLE_PACK_SUMMARIES.splice(0, INSTALLED_STYLE_PACK_SUMMARIES.length, ...summaries);
+}
+
+/** Drops copies whose source pack is installed from each collection share. */
+function withoutHiddenCopies(landing: StylePackLanding): StylePackLanding {
+  const collections: StylePackLanding['collections'] = {};
+  for (const [id, share] of Object.entries(landing.collections)) {
+    const hidden = Object.entries(share.copiedFromPackCounts ?? {})
+      .filter(([packId]) => extensionByPackId.has(packId))
+      .reduce((total, [, count]) => total + count, 0);
+    if (share.presetCount > hidden)
+      collections[id] = { ...share, presetCount: share.presetCount - hidden };
+  }
+  return { ...landing, collections };
+}
+
+/** Copied presets of every installed pack, by copy preset id. */
+export function stylePresetCopySources(): Record<string, StylePresetSource> {
+  return Object.assign(
+    {},
+    ...[...extensionByPackId.values()].map(({ stylePack }) => stylePack.copiedFrom ?? {}),
+  );
+}
+
+/** Installed packs that hold copies from any of `packIds`, so a collection loads them too. */
+export function stylePackIdsCopyingFrom(packIds: readonly string[]) {
+  const sources = new Set(packIds);
+  return [...extensionByPackId.values()].flatMap(({ stylePack }) =>
+    Object.values(stylePack.copiedFrom ?? {}).some((source) => sources.has(source.packId))
+      ? [stylePack.id]
+      : [],
+  );
 }
 
 /** True for a copied preset that Studio hides because its source pack is installed. */

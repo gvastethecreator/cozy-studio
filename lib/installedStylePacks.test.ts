@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ExtensionManifest } from '../packages/shared/src/extensions';
 import {
+  getStyleLandingFolder,
   INSTALLED_STYLE_PACK_SUMMARIES,
   isHiddenStylePreset,
   registerInstalledStylePacks,
@@ -33,6 +34,13 @@ const essentials = stylePack('pack_00', 2, {
   'SP00-001': { packId: 'pack_01', presetId: 'SP01-001' },
   'SP00-002': { packId: 'pack_02', presetId: 'SP02-012' },
 });
+essentials.stylePack.landing = {
+  imageKeys: [],
+  collections: {
+    photo: { presetCount: 2, imageKeys: [], copiedFromPackCounts: { pack_01: 1, pack_02: 1 } },
+    film: { presetCount: 1, imageKeys: [], copiedFromPackCounts: { pack_01: 1 } },
+  },
+};
 
 describe('installed style packs', () => {
   it('hides a copied preset only while its source pack is installed', () => {
@@ -42,6 +50,8 @@ describe('installed style packs', () => {
     expect(INSTALLED_STYLE_PACK_SUMMARIES.find((pack) => pack.id === 'pack_00')?.presetCount).toBe(
       1,
     );
+    expect(getStyleLandingFolder('photo')?.presetCount).toBe(1);
+    expect(getStyleLandingFolder('film')).toBeNull();
 
     registerInstalledStylePacks([essentials]);
     expect(isHiddenStylePreset('pack_00', 'SP00-001')).toBe(false);

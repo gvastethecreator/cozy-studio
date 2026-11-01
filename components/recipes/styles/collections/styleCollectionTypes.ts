@@ -1,3 +1,4 @@
+import type { StylePresetSource } from '../../../../packages/shared/src/extensions';
 import type { StyleRuntimePack, StyleRuntimePreset } from '../runtimeTypes';
 
 export type StyleCollectionEntryKind = 'pack' | 'category' | 'preset' | 'query' | 'manual_group';
@@ -87,8 +88,16 @@ export interface ResolvedStyleCollection {
   presets: StyleCollectionRuntimePreset[];
 }
 
+/** A copied preset, such as an Essentials entry, that collections resolve as its source. */
+export interface StyleCollectionCopy {
+  pack: StyleRuntimePack;
+  preset: StyleRuntimePreset;
+  source: StylePresetSource;
+}
+
 export interface StyleCollectionSourceIndex {
   packsById: Map<string, StyleRuntimePack>;
   presetsById: Map<string, { pack: StyleRuntimePack; preset: StyleRuntimePreset }>;
   categoryNamesByPackId: Map<string, Set<string>>;
+  copies: StyleCollectionCopy[];
 }

@@ -48,12 +48,16 @@ export interface StylePackSummary {
 export interface StylePresetSource {
   packId: string;
   presetId: string;
+  /** The source preset's category, so style collections can resolve the copy. */
+  category?: string;
 }
 
 export interface StylePackLandingFolder {
   presetCount: number;
   /** Thumbnail keys, best first. */
   imageKeys: string[];
+  /** Copied presets in this count by source pack; Studio drops them while that pack is installed. */
+  copiedFromPackCounts?: Record<string, number>;
 }
 
 export interface StylePackLanding {
@@ -287,7 +291,12 @@ function isStylePackLanding(value: unknown): value is StylePackLanding {
         typeof folder.presetCount === 'number' &&
         Number.isInteger(folder.presetCount) &&
         folder.presetCount >= 0 &&
-        isStringArray(folder.imageKeys),
+        isStringArray(folder.imageKeys) &&
+        (folder.copiedFromPackCounts === undefined ||
+          (isRecord(folder.copiedFromPackCounts) &&
+            Object.values(folder.copiedFromPackCounts).every(
+              (count) => Number.isInteger(count) && (count as number) >= 0,
+            ))),
     )
   );
 }
@@ -336,7 +345,8 @@ export function parseExtensionManifest(value: unknown): ExtensionManifestParseRe
         (source) =>
           isRecord(source) &&
           typeof source.packId === 'string' &&
-          typeof source.presetId === 'string',
+          typeof source.presetId === 'string' &&
+          (source.category === undefined || typeof source.category === 'string'),
       )
     )
   )

@@ -1,3 +1,4 @@
+import type { StylePresetSource } from '../../packages/shared/src/extensions';
 import type { StyleCollection } from './styles/collections';
 import type { StyleRuntimePack } from './stylesData';
 import { getStyleCollectionTabId } from './styleTabRouting';
@@ -15,6 +16,8 @@ export interface ActiveStylePackInput {
   activeStyleCollectionId: string | null;
   activeStyleCollection: StyleCollection | null;
   collectionProjection: CollectionProjection | null;
+  /** Copied presets by copy id, so collections resolve them as their source. */
+  copiedFrom?: Readonly<Record<string, StylePresetSource>>;
   collectionLoadError: string | null;
   allRuntimeStylePacksLoaded: boolean;
   globalStylePresetCount: number;
@@ -35,6 +38,7 @@ export function projectActiveStylePack(input: ActiveStylePackInput): StyleRuntim
     activeStyleCollectionId,
     activeStyleCollection,
     collectionProjection,
+    copiedFrom,
     collectionLoadError,
     allRuntimeStylePacksLoaded,
     globalStylePresetCount,
@@ -90,7 +94,7 @@ export function projectActiveStylePack(input: ActiveStylePackInput): StyleRuntim
 
     const resolved = collectionProjection.resolveStyleCollection(
       activeStyleCollection,
-      collectionProjection.createStyleCollectionSourceIndex(sourcePacks),
+      collectionProjection.createStyleCollectionSourceIndex(sourcePacks, copiedFrom),
     );
     return {
       id: getStyleCollectionTabId(activeStyleCollection.id),

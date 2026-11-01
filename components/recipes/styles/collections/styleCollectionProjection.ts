@@ -1,8 +1,10 @@
 import { getStyleCategoryDisplayName } from './categoryDisplayNames';
+import type { StylePresetSource } from '../../../../packages/shared/src/extensions';
 import type { StyleRuntimePack, StyleRuntimePreset } from '../runtimeTypes';
 import type {
   ResolvedStyleCollection,
   StyleCollection,
+  StyleCollectionCopy,
   StyleCollectionEntry,
   StyleCollectionRole,
   StyleCollectionRuntimePreset,
@@ -14,8 +16,20 @@ function fallbackRole(role: StyleCollectionEntry['role']): StyleCollectionRole {
   return role ?? 'primary';
 }
 
+type IncludedPreset = {
+  pack: StyleRuntimePack;
+  preset: StyleRuntimePreset;
+  entry: StyleCollectionEntry;
+  source?: StylePresetSource;
+};
+
+/**
+ * `copiedFrom` maps copied preset ids, such as Essentials entries, to their source. A copy
+ * resolves as its source preset while that source pack is not in `packs`.
+ */
 export function createStyleCollectionSourceIndex(
   packs: StyleRuntimePack[],
+  copiedFrom: Readonly<Record<string, StylePresetSource>> = {},
 ): StyleCollectionSourceIndex {
   const packsById = new Map<string, StyleRuntimePack>();
   const presetsById = new Map<string, { pack: StyleRuntimePack; preset: StyleRuntimePreset }>();
@@ -31,7 +45,24 @@ export function createStyleCollectionSourceIndex(
     categoryNamesByPackId.set(pack.id, categoryNames);
   }
 
-  return { packsById, presetsById, categoryNamesByPackId };
+  const copies: StyleCollectionCopy[] = [];
+  for (const pack of packs)
+    for (const preset of pack.presets) {
+      const source = copiedFrom[preset.id];
+      if (source && !packsById.has(source.packId)) copies.push({ pack, preset, source });
+    }
+
+  return { packsById, presetsById, categoryNamesByPackId, copies };
+}
+
+function copiesFrom(
+  index: StyleCollectionSourceIndex,
+  entry: StyleCollectionEntry,
+  matches: (source: StylePresetSource) => boolean = () => true,
+): IncludedPreset[] {
+  return index.copies
+    .filter(({ source }) => source.packId === entry.packId && matches(source))
+    .map((copy) => ({ ...copy, entry }));
 }
 
 function findPresetInPack(
@@ -48,19 +79,22 @@ function findPresetInPack(
 function resolveIncludedEntry(
   entry: StyleCollectionEntry,
   index: StyleCollectionSourceIndex,
-): Array<{ pack: StyleRuntimePack; preset: StyleRuntimePreset; entry: StyleCollectionEntry }> {
+): IncludedPreset[] {
   if (entry.kind === 'manual_group') {
     return (entry.entries ?? []).flatMap((child) => resolveIncludedEntry(child, index));
   }
 
   if (entry.kind === 'pack') {
     const pack = entry.packId ? index.packsById.get(entry.packId) : null;
-    return pack ? pack.presets.map((preset) => ({ pack, preset, entry })) : [];
+    return pack
+      ? pack.presets.map((preset) => ({ pack, preset, entry }))
+      : copiesFrom(index, entry);
   }
 
   if (entry.kind === 'category') {
     const pack = entry.packId ? index.packsById.get(entry.packId) : null;
-    if (!pack || !entry.categoryName) return [];
+    if (!entry.categoryName) return [];
+    if (!pack) return copiesFrom(index, entry, (source) => source.category === entry.categoryName);
     return pack.presets
       .filter((preset) => preset.category === entry.categoryName)
       .map((preset) => ({ pack, preset, entry }));
@@ -70,7 +104,13 @@ function resolveIncludedEntry(
     const presetIds = entry.presetIds ?? (entry.presetId ? [entry.presetId] : []);
     return presetIds.flatMap((presetId) => {
       const result = findPresetInPack(index, entry.packId, presetId);
-      return result ? [{ ...result, entry }] : [];
+      if (result) return [{ ...result, entry }];
+      return index.copies
+        .filter(
+          ({ source }) =>
+            source.presetId === presetId && (!entry.packId || source.packId === entry.packId),
+        )
+        .map((copy) => ({ ...copy, entry }));
     });
   }
 
@@ -136,14 +176,16 @@ export function resolveStyleCollection(
         continue;
       }
       seenPresetIds.add(presetId);
+      const categoryPackId = resolved.source?.packId ?? resolved.pack.id;
+      const category =
+        (resolved.source ? resolved.source.category : resolved.preset.category) ?? 'General';
       presets.push({
         preset: resolved.preset,
         presetId,
         sourcePackId: resolved.pack.id,
-        sourceCategory: resolved.preset.category ?? 'General',
+        sourceCategory: category,
         displayCategory:
-          resolved.entry.displayCategory ??
-          getStyleCategoryDisplayName(resolved.pack.id, resolved.preset.category ?? 'General'),
+          resolved.entry.displayCategory ?? getStyleCategoryDisplayName(categoryPackId, category),
         collectionId: collection.id,
         collectionEntryId: resolved.entry.id,
         collectionRole: fallbackRole(resolved.entry.role),

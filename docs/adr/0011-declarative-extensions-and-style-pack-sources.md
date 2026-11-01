@@ -22,7 +22,7 @@ Cozy Extensions are installed content packages, separate from the application bu
 - The backend lists installed extensions and serves their data. The frontend loads styles at runtime through `services/studio-api/`, not from generated modules in the bundle.
 - Studio ships no style packs. The user installs packs from the sources. For local authoring, `STUDIO_EXTENSION_SOURCES` points Studio at a folder of built extensions.
 - A new Studio with no style pack installs one default pack by itself: Essentials (`cozy.pack-00`, override with `STUDIO_DEFAULT_STYLE_PACK`), a starter set of about a hundred styles copied from the other packs. A marker in the install folder records the offer, so a removed default pack stays removed.
-- A style pack may copy presets from other packs. `stylePack.copiedFrom` maps each copy to its source pack and preset, and Studio hides a copy while its source pack is installed, so a style never shows twice.
+- A style pack may copy presets from other packs. `stylePack.copiedFrom` maps each copy to its source pack and preset, and Studio hides a copy while its source pack is installed, so a style never shows twice. A copy also records its source category, so style collections resolve it as its source preset; its collection share counts copies per source pack, and Studio drops those counts while that pack is installed.
 - The card generator lives with the style content. It creates cards through Studio's job API, so the Generation Providers stay in Studio.
 - Third-party extensions are out of scope for now. Before they are allowed, extensions need signing and a trust decision in the UI.
 

@@ -24,7 +24,11 @@ import {
 } from '../../lib/styleThumbnailCatalog';
 import { styleCategoryImageKey } from '../../lib/recipeAssetKeys';
 import { hasStylePresetIdentity } from '../../lib/recipeIdentity';
-import { getStyleLandingFolder } from '../../lib/installedStylePacks';
+import {
+  getStyleLandingFolder,
+  stylePackIdsCopyingFrom,
+  stylePresetCopySources,
+} from '../../lib/installedStylePacks';
 import type { Attachment, GeneratedImageWithConfig, ImageGenerationConfig } from '../../types';
 import type { EditableStudioSettings, GenerationProviderId } from '../../packages/shared/src';
 import { resolveGrokImagineGenerateBlock } from '../../lib/grokImagineUiPolicy';
@@ -810,11 +814,19 @@ function useStylesBrowserController({
   const activeStyleCollectionId = getStyleCollectionIdFromTabId(currentPackId);
   const activeStyleCollection = useMemo(() => {
     if (!activeStyleCollectionId || !styleCollectionsModule) return null;
-    return (
-      styleCollectionsModule.STYLE_COLLECTIONS.find(
-        (collection) => collection.id === activeStyleCollectionId && collection.entries.length > 0,
-      ) ?? null
+    const collection = styleCollectionsModule.STYLE_COLLECTIONS.find(
+      (item) => item.id === activeStyleCollectionId && item.entries.length > 0,
     );
+    // Packs with copies from the collection's sources, such as Essentials, feed it too.
+    return collection
+      ? {
+          ...collection,
+          sourcePackIds: [
+            ...collection.sourcePackIds,
+            ...stylePackIdsCopyingFrom(collection.sourcePackIds),
+          ],
+        }
+      : null;
   }, [activeStyleCollectionId, styleCollectionsModule]);
 
   const styleRuntimePackLoadRequest = useMemo(
@@ -871,8 +883,9 @@ function useStylesBrowserController({
           (item) => item.id === collectionId,
         );
         const installedPackIds = new Set(styleRuntimePackIds());
-        const packIds = (collection?.sourcePackIds ?? []).filter((packId) =>
-          installedPackIds.has(packId),
+        const sourcePackIds = collection?.sourcePackIds ?? [];
+        const packIds = [...sourcePackIds, ...stylePackIdsCopyingFrom(sourcePackIds)].filter(
+          (packId) => installedPackIds.has(packId),
         );
         if (packIds.length > 0) void loadStyleRuntimePacks(packIds);
         return;
@@ -921,6 +934,7 @@ function useStylesBrowserController({
         activeStyleCollectionId,
         activeStyleCollection,
         collectionProjection: styleCollectionsModule,
+        copiedFrom: stylePresetCopySources(),
         collectionLoadError: styleCollectionsLoadError,
         allRuntimeStylePacksLoaded,
         globalStylePresetCount,
@@ -967,7 +981,10 @@ function useStylesBrowserController({
     const packNameById = new Map(sourcePacks.map((pack) => [pack.id, pack.name]));
     const resolved = styleCollectionsModule.resolveStyleCollection(
       activeStyleCollection,
-      styleCollectionsModule.createStyleCollectionSourceIndex(sourcePacks),
+      styleCollectionsModule.createStyleCollectionSourceIndex(
+        sourcePacks,
+        stylePresetCopySources(),
+      ),
     );
     for (const item of resolved.presets) {
       sourceByPresetId.set(item.presetId, {

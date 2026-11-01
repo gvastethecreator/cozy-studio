@@ -17,6 +17,16 @@ if (
   throw new Error('COZY_STUDIO_API_URL must be a loopback HTTP origin.');
 }
 
+// Pack downloads and git fetches can outlast an ordinary call.
+const slowTools = new Set(['studio_install_extension', 'studio_updates', 'studio_apply_update']);
+const networkTools = new Set([
+  'studio_generate',
+  'studio_available_extensions',
+  'studio_install_extension',
+  'studio_updates',
+  'studio_apply_update',
+]);
+
 const server = new Server(
   { name: 'cozy-studio-mcp', version: '1.0.0' },
   { capabilities: { tools: {} } },
@@ -28,9 +38,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     inputSchema: z.toJSONSchema(tool.schema, { io: 'input' }) as { type: 'object' },
     annotations: {
       readOnlyHint: !isStudioMcpMutation(name),
-      destructiveHint: name === 'studio_cancel',
-      idempotentHint: true,
-      openWorldHint: name === 'studio_generate',
+      destructiveHint: name === 'studio_cancel' || name === 'studio_remove_extension',
+      idempotentHint: name !== 'studio_apply_update',
+      openWorldHint: networkTools.has(name),
     },
   })),
 }));
@@ -40,7 +50,7 @@ server.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: params.name, arguments: params.arguments ?? {} }),
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(slowTools.has(params.name) ? 120000 : 30000),
       redirect: 'error',
     });
     const content = await response.text();

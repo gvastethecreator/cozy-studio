@@ -66,12 +66,17 @@ export function createMcpRoutes({
       );
     const args = parsed.data as Record<string, unknown>;
     const get = (path: string) => request(path);
-    const post = (path: string, payload: unknown = {}) =>
+    const send = (method: string, path: string, payload: unknown = {}) =>
       request(path, {
-        method: 'POST',
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+    const post = (path: string, payload?: unknown) => send('POST', path, payload);
+    const readJson = (path: string) =>
+      get(path)
+        .then((response) => response.json())
+        .catch(() => null);
     const query = (path: string) =>
       get(
         `${path}?${new URLSearchParams(Object.fromEntries(Object.entries(args).map(([key, value]) => [key, String(value)]))).toString()}`,
@@ -188,6 +193,46 @@ export function createMcpRoutes({
           );
         }
       }
+      case 'studio_onboarding': {
+        const [probe, readiness, chatgptAuth] = await Promise.all(
+          ['/api/onboarding/probe', '/api/readiness', '/api/auth/chatgpt'].map(readJson),
+        );
+        return c.json({
+          probe,
+          readiness,
+          chatgptAuth,
+          signIn: 'ChatGPT Sign in is a user action in Studio Settings.',
+        });
+      }
+      case 'studio_settings':
+        return get('/api/settings');
+      case 'studio_update_settings':
+        return send('PATCH', '/api/settings', args);
+      case 'studio_available_extensions':
+        return get('/api/extensions/available');
+      case 'studio_install_extension': {
+        // Without explicit layers, an update keeps the layers already installed.
+        const installed = args.layers
+          ? null
+          : ((await readJson('/api/extensions')) as {
+              installedLayers?: Record<string, string[]>;
+            } | null);
+        return post('/api/extensions/install', {
+          sourceId: args.sourceId,
+          id: args.extensionId,
+          layers: args.layers ?? installed?.installedLayers?.[String(args.extensionId)] ?? [],
+        });
+      }
+      case 'studio_remove_extension': {
+        const response = await request(`/api/extensions/${String(args.extensionId)}`, {
+          method: 'DELETE',
+        });
+        return response.ok ? c.json({ removed: args.extensionId }) : response;
+      }
+      case 'studio_updates':
+        return args.check ? post('/api/updates/check') : get('/api/updates');
+      case 'studio_apply_update':
+        return post('/api/updates/apply', { commit: args.commit });
     }
   });
   return routes;

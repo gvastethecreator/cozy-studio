@@ -277,24 +277,31 @@ export async function createStudioApp(
     restart: options.restart,
     isBusy: () => activeMutations > 0 || listRecoverableJobs().length > 0,
   });
-  app.use('/api/*', async (c, next) => {
-    if (
-      ['GET', 'HEAD', 'OPTIONS'].includes(c.req.method) ||
-      c.req.path.startsWith('/api/updates')
-    ) {
-      return next();
-    }
-    if (updates.blocksMutations())
-      return c.json(
-        { error: 'Studio update is incomplete. Finish it in Settings before continuing.' },
-        503,
-      );
+  const updateBlockedMessage =
+    'Studio update is incomplete. Finish it in Settings before continuing.';
+  const trackMutation = async <T>(run: () => Promise<T>) => {
     activeMutations += 1;
     try {
-      await next();
+      return await run();
     } finally {
       activeMutations -= 1;
     }
+  };
+  const guardMutation = <T>(run: () => Promise<T>) => {
+    if (updates.blocksMutations()) throw new Error(updateBlockedMessage);
+    return trackMutation(run);
+  };
+  app.use('/api/*', async (c, next) => {
+    // MCP calls forward each mutation back through app.request, which passes this guard again.
+    if (
+      ['GET', 'HEAD', 'OPTIONS'].includes(c.req.method) ||
+      c.req.path.startsWith('/api/updates') ||
+      c.req.path === '/api/mcp/call'
+    ) {
+      return next();
+    }
+    if (updates.blocksMutations()) return c.json({ error: updateBlockedMessage }, 503);
+    await trackMutation(next);
   });
   app.route('/api/updates', createRepositoryUpdateRoutes(updates));
 
@@ -635,20 +642,22 @@ export async function createStudioApp(
     createMcpRoutes({
       request: async (path, init) => app.request(path, init),
       readSettings: () => readEditableStudioSettings(settingsStorage),
-      importReference: (input) => {
-        const library = getDefaultLibrary();
-        return importStudioReference(input, {
-          database: getDb(),
-          library: { id: library.id, path: library.path },
-        });
-      },
-      importReferenceFile: (input, allowedRoots) => {
-        const library = getDefaultLibrary();
-        return importStudioReferenceFile(input, allowedRoots, {
-          database: getDb(),
-          library: { id: library.id, path: library.path },
-        });
-      },
+      importReference: (input) =>
+        guardMutation(() => {
+          const library = getDefaultLibrary();
+          return importStudioReference(input, {
+            database: getDb(),
+            library: { id: library.id, path: library.path },
+          });
+        }),
+      importReferenceFile: (input, allowedRoots) =>
+        guardMutation(() => {
+          const library = getDefaultLibrary();
+          return importStudioReferenceFile(input, allowedRoots, {
+            database: getDb(),
+            library: { id: library.id, path: library.path },
+          });
+        }),
     }),
   );
 

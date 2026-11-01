@@ -38,7 +38,14 @@ export function createMcpRoutes({
   routes.post('/call', async (c) => {
     const body = await c.req.json().catch(() => null);
     if (!body || typeof body.name !== 'string' || !Object.hasOwn(studioMcpTools, body.name)) {
-      return c.json({ error: 'Unknown Studio MCP tool' }, 400);
+      return c.json(
+        {
+          // A bridge started after an update can list tools that the running server predates.
+          error:
+            'Unknown Studio MCP tool. If Studio was updated, restart Studio so it knows the new tools.',
+        },
+        400,
+      );
     }
     const name = body.name as StudioMcpToolName;
     const settings = readSettings();

@@ -103,7 +103,7 @@ only its needed components and hooks.
    - Use `bun run dev:server` and `bun run dev:ui` separately only when that
      makes diagnosis clearer.
    - Check `GET /api/health` and `/api/onboarding/probe`, and open the UI. Default ports are UI `17222` and API `17223`; read configured overrides without printing secrets.
-   - MCP access defaults to Read only. The checkout registers the server as `cozy-studio-mcp` in `.mcp.json` and `.cursor/mcp.json`. When connected, read the mode from `studio_status` and leave it unchanged for setup. Report the mode and Settings → Advanced & maintenance → Agent access (MCP). For generation or cancellation, follow `skills/cozy-studio-mcp/SKILL.md`; missing write access is a user action in Settings.
+   - MCP access defaults to Read only. The checkout registers the server as `cozy-studio-mcp` in `.mcp.json` and `.cursor/mcp.json`. When connected, read the mode from `studio_status` and leave it unchanged for setup. `studio_onboarding` reports readiness and sign-in state, and `studio_available_extensions` shows whether Essentials installed. Report the mode and Settings → Advanced & maintenance → Agent access (MCP). For generation or cancellation, follow `skills/cozy-studio-mcp/SKILL.md`; missing write access is a user action in Settings.
    - Check `/api/codex/session` only for an explicitly requested Codex provider.
    - Use `/api/app-server/start` or the UI button to start `codex app-server`
      only for an explicitly requested Codex provider when backend health says app-server is down. ChatGPT HTTP setup does not start app-server or shut down an existing session without authority.

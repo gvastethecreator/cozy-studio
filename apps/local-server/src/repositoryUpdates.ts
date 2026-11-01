@@ -7,6 +7,9 @@ import type { RepositoryUpdateStatus } from '../../../packages/shared/src/reposi
 const exec = promisify(execFile);
 const repoRoot = resolve(import.meta.dirname, '../../..');
 const busyMessage = 'Wait for active jobs and operations to finish before updating.';
+// Only the dev launcher restarts Studio after an update; other launches update by hand.
+const launcherMessage =
+  'In-app updates need Studio started with bun run dev. Otherwise run git pull and bun install, then restart Studio.';
 
 interface RepositoryUpdateOptions {
   root?: string;
@@ -114,7 +117,7 @@ export function createRepositoryUpdates({
           : ahead > 0
             ? 'Local commits differ from origin/main. Reconcile them manually before updating.'
             : !restart
-              ? 'Start Studio with bun run dev to enable updates and restart.'
+              ? launcherMessage
               : null;
     state.canUpdate = !state.blocker && (behind > 0 || needsInstall);
   }
@@ -160,7 +163,7 @@ export function createRepositoryUpdates({
   function apply(expectedCommit: string) {
     if (pending || state.phase === 'restarting')
       throw new Error('An update operation is already running.');
-    if (!restart) throw new Error('Start Studio with bun run dev to enable updates and restart.');
+    if (!restart) throw new Error(launcherMessage);
     if (isBusy()) throw new Error(busyMessage);
     if (!state.latestCommit || expectedCommit !== state.latestCommit)
       throw new Error('Check for updates again before updating.');

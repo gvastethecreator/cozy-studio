@@ -508,7 +508,7 @@ describe('Studio MCP boundary', () => {
     expect(await (await call('studio_onboarding')).json()).toMatchObject({
       probe: { path: '/api/onboarding/probe' },
       readiness: { path: '/api/readiness' },
-      chatgptAuth: { path: '/api/auth/chatgpt' },
+      chatgptAuth: { path: '/api/auth/codex' },
     });
     for (const name of ['studio_settings', 'studio_available_extensions', 'studio_updates'])
       expect((await call(name)).status).toBe(200);

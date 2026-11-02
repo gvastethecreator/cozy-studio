@@ -29,6 +29,7 @@ import {
 } from '../../../packages/shared/src/catalogCollections';
 import { applyCatalogTagChanges, type CatalogTag } from '../../../packages/shared/src/catalogTags';
 import type { EditableStudioSettings } from '../../../packages/shared/src/studioSettings';
+import { subscriptionProviderIdForGeneration } from '../../../packages/shared/src/subscriptionAuth';
 import type {
   JobBatchDetail,
   RetryJobBatchResponse,
@@ -673,7 +674,11 @@ export function createMcpRoutes({
       }
       case 'studio_onboarding': {
         const [probe, readiness, chatgptAuth] = await Promise.all(
-          ['/api/onboarding/probe', '/api/readiness', '/api/auth/chatgpt'].map(readJson),
+          [
+            '/api/onboarding/probe',
+            '/api/readiness',
+            `/api/auth/${subscriptionProviderIdForGeneration('chatgpt')}`,
+          ].map(readJson),
         );
         return c.json({
           probe,

@@ -7,7 +7,6 @@ import type {
 
 type CatalogUpdatePatch = {
   isFavorite?: boolean;
-  tags?: string[];
   workspaceId?: string | null;
 };
 

@@ -4,6 +4,8 @@ import type {
   CatalogCollectionSelection,
   CatalogCommandFilter,
   CatalogImage,
+  CatalogOrganizeInput,
+  CatalogOrganizeResult,
   CatalogPage,
   CatalogSortOption,
   CatalogWorkspaceSummary,
@@ -50,7 +52,6 @@ export interface QueryCatalogFilters {
 
 export type CatalogUpdatePatch = {
   isFavorite?: boolean;
-  tags?: string[];
   workspaceId?: string | null;
 };
 
@@ -77,6 +78,8 @@ export interface StudioCatalogStore {
   }): CatalogCollection;
   updateCollection(id: string, patch: CatalogCollectionPatch): CatalogCollection | null;
   deleteCollection(id: string): boolean;
+  /** One transaction: every image and change is checked first, so a rejection changes nothing. */
+  organizeImages(input: CatalogOrganizeInput): CatalogOrganizeResult;
   listTags(workspaceId: string): CatalogTag[];
   createTag(workspaceId: string, name: string, color: string | null): CatalogTag;
   updateTag(workspaceId: string, name: string, patch: CatalogTagPatch): CatalogTag | null;
@@ -104,6 +107,7 @@ export async function createDefaultCatalogStore(): Promise<StudioCatalogStore> {
     deleteCatalogCollection,
     listCatalogCollections,
     listCatalogCollectionSelection,
+    organizeCatalogImages,
     updateCatalogCollection,
   } = collections;
   const { listCatalogTags, createCatalogTag, updateCatalogTag } = tags;
@@ -123,6 +127,7 @@ export async function createDefaultCatalogStore(): Promise<StudioCatalogStore> {
     createCollection: createCatalogCollection,
     updateCollection: updateCatalogCollection,
     deleteCollection: deleteCatalogCollection,
+    organizeImages: organizeCatalogImages,
     listTags: listCatalogTags,
     createTag: createCatalogTag,
     updateTag: updateCatalogTag,

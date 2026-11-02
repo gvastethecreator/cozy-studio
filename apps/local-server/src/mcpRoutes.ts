@@ -23,11 +23,10 @@ import {
 } from '../../../packages/shared/src/studioMcp';
 import {
   parseLibraryOrganization,
-  validateCatalogCollectionName,
   type CatalogCollection,
   type LibraryOrganization,
 } from '../../../packages/shared/src/catalogCollections';
-import { applyCatalogTagChanges, type CatalogTag } from '../../../packages/shared/src/catalogTags';
+import type { CatalogTag } from '../../../packages/shared/src/catalogTags';
 import type { EditableStudioSettings } from '../../../packages/shared/src/studioSettings';
 import { subscriptionProviderIdForGeneration } from '../../../packages/shared/src/subscriptionAuth';
 import type {
@@ -472,140 +471,12 @@ export function createMcpRoutes({
         return get(`/api/jobs/batches/${String(args.batchId)}`);
       case 'studio_catalog':
         return query('/api/catalog');
-      case 'studio_organize_images': {
-        const input = studioMcpTools.studio_organize_images.schema.parse(args);
-        const { workspaceId, addTags, removeTags } = input;
-        const imageIds = [...new Set(input.imageIds)];
-        // Check every image and change first, so a rejected call writes nothing.
-        const images = await Promise.all(imageIds.map((imageId) => getCatalogImage(get, imageId)));
-        const outside = imageIds.filter((_, index) => {
-          const image = images[index];
-          return !image || image.isDeleted || (image.workspaceId ?? 'default') !== workspaceId;
-        });
-        if (outside.length)
-          return c.json(
-            {
-              error: 'Every image must be live and in workspaceId. Nothing changed.',
-              imageIds: outside,
-            },
-            400,
-          );
-        const tagChanges = addTags || removeTags ? { addTags, removeTags } : null;
-        const knownTags = tagChanges
-          ? (await list<CatalogTag>(`/api/catalog/tags?workspace_id=${workspaceId}`)).map(
-              ({ name }) => name,
-            )
-          : [];
-        // PATCH checks each image's own tags (at most 32), so check them all here first.
-        const retagged: string[] = [];
-        // Per tag, the images that gain or lose it, so an undo touches only those images.
-        const added: Record<string, string[]> = {};
-        const removed: Record<string, string[]> = {};
-        const record = (
-          byTag: Record<string, string[]>,
-          from: string[],
-          to: string[],
-          id: string,
-        ) => from.filter((tag) => !to.includes(tag)).forEach((tag) => (byTag[tag] ??= []).push(id));
-        const rejected: string[] = [];
-        let tagError = '';
-        for (const image of tagChanges ? (images as CatalogImage[]) : []) {
-          try {
-            const tags = applyCatalogTagChanges(image.tags, tagChanges!, knownTags);
-            if (tags.join('\n') === image.tags.join('\n')) continue;
-            retagged.push(image.id);
-            record(added, tags, image.tags, image.id);
-            record(removed, image.tags, tags, image.id);
-          } catch (error) {
-            rejected.push(image.id);
-            tagError = error instanceof Error ? error.message : 'Invalid tags.';
-          }
-        }
-        if (rejected.length)
-          return c.json({ error: `${tagError} Nothing changed.`, imageIds: rejected }, 400);
-        let addName: string | undefined;
-        let removeName: string | undefined;
-        try {
-          addName = input.addToCollection && validateCatalogCollectionName(input.addToCollection);
-          removeName =
-            input.removeFromCollection && validateCatalogCollectionName(input.removeFromCollection);
-        } catch (error) {
-          return c.json({ error: error instanceof Error ? error.message : 'Invalid name' }, 400);
-        }
-        const collections = await list<CatalogCollection>(
-          `/api/catalog/collections?workspace_id=${workspaceId}`,
+      case 'studio_organize_images':
+        // One transaction on the server: a rejected call changes nothing.
+        return post(
+          '/api/catalog/commands/organize',
+          studioMcpTools.studio_organize_images.schema.parse(args),
         );
-        const byName = (name: string) =>
-          collections.find((collection) => collection.name.toLowerCase() === name.toLowerCase());
-        const target = addName ? byName(addName) : undefined;
-        const removeFrom = removeName ? byName(removeName) : undefined;
-        if (removeName && !removeFrom)
-          return c.json(
-            {
-              error: 'removeFromCollection is not a collection in this workspace. Nothing changed.',
-            },
-            400,
-          );
-        // Members before the writes, so the result lists only the images this call changed.
-        const membersOf = async (collectionId: string) => {
-          const members = new Set<string>();
-          await Promise.all(
-            imageIds.map(async (imageId) => {
-              const path = `/api/catalog?id=${imageId}&collection_id=${collectionId}&limit=1`;
-              const total = ((await readJson(path)) as { total?: unknown } | null)?.total;
-              if (typeof total !== 'number') throw readFailed(path);
-              if (total) members.add(imageId);
-            }),
-          );
-          return members;
-        };
-        const alreadyIn = target ? await membersOf(target.id) : new Set<string>();
-        const wasIn = removeFrom ? await membersOf(removeFrom.id) : new Set<string>();
-
-        // ponytail: up to 100 per-image reads and PATCHes, not one transaction; every step is
-        // idempotent, so a repeated call converges. Add POST /api/catalog/commands/organize if
-        // partial failures show up.
-        for (const imageId of retagged) {
-          const response = await send('PATCH', `/api/catalog/${imageId}`, tagChanges);
-          if (!response.ok) return response;
-        }
-        let collection = null;
-        if (addName) {
-          const response = target
-            ? await send('PATCH', `/api/catalog/collections/${target.id}`, {
-                addImageIds: imageIds,
-              })
-            : await post('/api/catalog/collections', { workspaceId, name: addName, imageIds });
-          if (!response.ok) return response;
-          const saved = (await response.json()) as CatalogCollection;
-          collection = {
-            id: saved.id,
-            name: saved.name,
-            created: !target,
-            imageCount: saved.imageCount,
-            addedImageIds: imageIds.filter((imageId) => !alreadyIn.has(imageId)),
-          };
-        }
-        if (removeFrom) {
-          const response = await send('PATCH', `/api/catalog/collections/${removeFrom.id}`, {
-            removeImageIds: imageIds,
-          });
-          if (!response.ok) return response;
-        }
-        return c.json({
-          workspaceId,
-          imageCount: imageIds.length,
-          tags: { added, removed },
-          collection,
-          removedFrom: removeFrom
-            ? {
-                id: removeFrom.id,
-                name: removeFrom.name,
-                removedImageIds: imageIds.filter((imageId) => wasIn.has(imageId)),
-              }
-            : null,
-        });
-      }
       case 'studio_cancel':
         return post(`/api/jobs/${String(args.jobId)}/cancel`);
       case 'studio_plan_generation': {

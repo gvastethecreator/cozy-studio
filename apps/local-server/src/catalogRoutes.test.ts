@@ -255,13 +255,17 @@ describe('catalog routes', () => {
   });
 
   it('updates and restores Catalog Entries', async () => {
-    const image = catalogImage({ id: 'image-99', isFavorite: false });
+    const image = catalogImage({
+      id: 'image-99',
+      isFavorite: false,
+      tags: ['imported reference', 'kept'],
+    });
     const store = await createStore([image]);
     const routes = createRoutes(store);
 
     const patched = await routes.request('/image-99', {
       method: 'PATCH',
-      body: JSON.stringify({ isFavorite: true, tags: ['imported reference', 'kept', 'kept'] }),
+      body: JSON.stringify({ isFavorite: true }),
       headers: { 'Content-Type': 'application/json' },
     });
     const deleted = await routes.request('/image-99', { method: 'DELETE' });
@@ -317,59 +321,159 @@ describe('catalog routes', () => {
     expect(members()).toEqual([]);
   });
 
-  it('rejects malformed or excessive tags before changing image metadata', async () => {
-    const store = await createStore([catalogImage({ tags: ['imported reference'] })]);
+  it('rejects an organize call before any write, so a bad image mid-batch changes nothing', async () => {
+    const image = (id: string, overrides: Partial<CatalogImage> = {}) =>
+      catalogImage({ id, workspaceId: 'default', ...overrides });
+    const store = await createStore([
+      image('image-1', { tags: ['imported reference'] }),
+      image('image-2'),
+      image('full', { tags: Array.from({ length: 32 }, (_, index) => `tag-${index}`) }),
+      image('foreign', { workspaceId: 'other' }),
+      image('archived', { isDeleted: true }),
+    ]);
+    store.createCollection({ workspaceId: 'default', name: 'Bosses', imageIds: ['image-1'] });
     const routes = createRoutes(store);
-    for (const tags of [
-      'jefe',
-      null,
-      [42],
-      [''],
-      ['x'.repeat(65)],
-      Array.from({ length: 33 }, (_, i) => `tag-${i}`),
-    ]) {
-      const response = await routes.request('/image-1', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isFavorite: true, tags }),
-      });
-      expect(response.status).toBe(400);
-      expect(store.getCatalogImage('image-1')).toMatchObject({
-        isFavorite: false,
-        tags: ['imported reference'],
-      });
-    }
-  });
-
-  it('merges tag changes with current metadata instead of replacing a stale client list', async () => {
-    const store = await createStore([catalogImage({ tags: ['imported reference'] })]);
-    const routes = createRoutes(store);
-    const patch = (body: unknown) =>
-      routes.request('/image-1', {
-        method: 'PATCH',
+    const rows = (sql: string) => testDb.current!.query(sql).all();
+    const snapshot = () => [
+      rows('SELECT id, tags, is_favorite FROM catalog_images ORDER BY id'),
+      rows('SELECT * FROM catalog_collection_images ORDER BY image_id'),
+      rows('SELECT * FROM catalog_collections ORDER BY id'),
+      rows('SELECT * FROM catalog_tags ORDER BY workspace_id, name'),
+    ];
+    const before = snapshot();
+    const send = (method: string, path: string, body: unknown) =>
+      routes.request(path, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-    const results = await Promise.all([
-      patch({ addTags: ['#ACCIÓN', 'accio\u0301n'] }),
-      patch({ addTags: ['jefe'] }),
+    const both = { workspaceId: 'default', imageIds: ['image-1', 'image-2'] };
+    for (const [body, imageIds] of [
+      [null],
+      [{ workspaceId: 'default', imageIds: ['image-1'] }],
+      [{ ...both, addTags: ['#Jefe'], removeTags: ['jefe'] }],
+      [{ ...both, addToCollection: 'Best  Picks', removeFromCollection: 'best picks' }],
+      [{ ...both, addTags: ['jefe'], source: 'ui' }],
+      [{ ...both, imageIds: Array.from({ length: 2001 }, (_, i) => `id-${i}`), addTags: ['x'] }],
+      [{ ...both, addTags: Array.from({ length: 33 }, (_, i) => `tag-${i}`) }],
+      [{ ...both, addTags: ['jefe'], removeFromCollection: 'Missing' }],
+      // Each image is checked before the first write, wherever it sits in the batch.
+      [
+        {
+          ...both,
+          imageIds: ['image-1', 'foreign', 'image-2'],
+          addTags: ['jefe'],
+          addToCollection: 'New',
+        },
+        ['foreign'],
+      ],
+      // `workspaces` is a route name, not an image.
+      [
+        { ...both, imageIds: ['image-1', 'archived', 'workspaces'], addTags: ['jefe'] },
+        ['archived', 'workspaces'],
+      ],
+      [
+        {
+          ...both,
+          imageIds: ['image-1', 'full', 'image-2'],
+          addTags: ['jefe'],
+          addToCollection: 'Bosses',
+        },
+        ['full'],
+      ],
+      [{ ...both, addTags: ['bad tag!'] }, ['image-1', 'image-2']],
+    ] as const) {
+      const response = await send('POST', '/commands/organize', body);
+      expect(response.status).toBe(400);
+      const payload = await response.json();
+      expect(payload.error).toEqual(expect.any(String));
+      expect(payload.imageIds).toEqual(imageIds);
+    }
+    // PATCH no longer changes tags, so every tag write goes through the command.
+    for (const body of [
+      { addTags: ['jefe'] },
+      { tags: [] },
+      { removeTags: ['imported reference'], isFavorite: true },
+    ])
+      expect((await send('PATCH', '/image-1', body)).status).toBe(400);
+    expect(snapshot()).toEqual(before);
+  });
+
+  it('organizes images in one call and lists only the images it changed', async () => {
+    const store = await createStore([
+      catalogImage({ id: 'image-1', workspaceId: 'default', tags: ['imported reference'] }),
+      catalogImage({ id: 'image-2', workspaceId: 'default', tags: ['jefe'] }),
     ]);
-    expect(results.map((result) => result.status)).toEqual([200, 200]);
-    expect(store.getCatalogImage('image-1')?.tags).toEqual([
-      'imported reference',
-      'acción',
-      'jefe',
+    const bosses = store.createCollection({
+      workspaceId: 'default',
+      name: 'Bosses',
+      imageIds: ['image-1'],
+    });
+    const routes = createRoutes(store);
+    const organize = async (body: object) => {
+      const response = await routes.request('/commands/organize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspaceId: 'default', ...body }),
+      });
+      expect(response.status).toBe(200);
+      return response.json();
+    };
+    const tagsOf = (id: string) => store.getCatalogImage(id)?.tags;
+    const [accent, jefe] = await Promise.all([
+      organize({ imageIds: ['image-1'], addTags: ['#ACCIÓN', 'acción'] }),
+      organize({ imageIds: ['image-1', 'image-2'], addTags: ['jefe'], addToCollection: 'bosses' }),
     ]);
-    const invalid = await patch({ addTags: ['new tag'], isFavorite: true });
-    expect(invalid.status).toBe(400);
-    expect(store.getCatalogImage('image-1')?.isFavorite).toBe(false);
-    expect((await patch({ tags: [], addTags: ['other'] })).status).toBe(400);
-    await patch({ removeTags: ['acción'] });
-    const reopened = await routes.request('/image-1');
-    await expect(reopened.json()).resolves.toMatchObject({ tags: ['imported reference', 'jefe'] });
-    await patch({ removeTags: ['imported reference'] });
-    expect((await patch({ addTags: ['imported reference'] })).status).toBe(200);
-    expect(store.getCatalogImage('image-1')?.tags).toEqual(['jefe', 'imported reference']);
+    expect(accent.tags).toEqual({ added: { acción: ['image-1'] }, removed: {} });
+    // image-2 had jefe and image-1 was a member, so an undo must leave both of those alone.
+    expect(jefe).toEqual({
+      workspaceId: 'default',
+      imageCount: 2,
+      tags: { added: { jefe: ['image-1'] }, removed: {} },
+      collection: {
+        id: bosses.id,
+        name: 'Bosses',
+        created: false,
+        imageCount: 2,
+        addedImageIds: ['image-2'],
+      },
+      removedFrom: null,
+    });
+    expect(tagsOf('image-1')).toEqual(['imported reference', 'acción', 'jefe']);
+    expect(store.listTags('default').map(({ name }) => name)).toEqual(
+      expect.arrayContaining(['acción', 'jefe']),
+    );
+
+    const moved = await organize({
+      imageIds: ['image-1', 'image-2'],
+      removeTags: ['acción'],
+      removeFromCollection: 'BOSSES',
+      addToCollection: 'Covers',
+    });
+    expect(moved).toMatchObject({
+      tags: { added: {}, removed: { acción: ['image-1'] } },
+      collection: {
+        name: 'Covers',
+        created: true,
+        imageCount: 2,
+        addedImageIds: ['image-1', 'image-2'],
+      },
+      removedFrom: { id: bosses.id, name: 'Bosses', removedImageIds: ['image-1', 'image-2'] },
+    });
+    expect(
+      Object.fromEntries(
+        store.listCollections('default').map(({ name, imageCount }) => [name, imageCount]),
+      ),
+    ).toEqual({ Covers: 2, Bosses: 0 });
+    // Nothing to change: the result lists no ids.
+    expect((await organize({ imageIds: ['image-1'], removeTags: ['acción'] })).tags).toEqual({
+      added: {},
+      removed: {},
+    });
+    // A known tag with a space can be added back after it was removed.
+    await organize({ imageIds: ['image-1'], removeTags: ['imported reference'] });
+    await organize({ imageIds: ['image-1'], addTags: ['imported reference'] });
+    expect(tagsOf('image-1')).toEqual(['jefe', 'imported reference']);
   });
 
   it('returns exact workspace summaries independent of catalog page budgets', async () => {

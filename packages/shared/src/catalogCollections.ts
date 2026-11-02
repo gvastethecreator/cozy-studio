@@ -94,3 +94,88 @@ export function validateCatalogCollectionImageIds(value: unknown): string[] {
   }
   return [...new Set(value.map((id) => id.trim()))];
 }
+
+/** One organize call: the same tag and collection changes for every image, all or nothing. */
+export interface CatalogOrganizeInput {
+  workspaceId: string;
+  imageIds: string[];
+  addTags?: string[];
+  removeTags?: string[];
+  /** Created when the workspace has no collection of that name. */
+  addToCollection?: string;
+  removeFromCollection?: string;
+}
+
+/** The ids each change touched; images that already had a tag or membership are not listed. */
+export interface CatalogOrganizeResult {
+  workspaceId: string;
+  imageCount: number;
+  tags: { added: Record<string, string[]>; removed: Record<string, string[]> };
+  collection: {
+    id: string;
+    name: string;
+    created: boolean;
+    imageCount: number;
+    addedImageIds: string[];
+  } | null;
+  removedFrom: { id: string; name: string; removedImageIds: string[] } | null;
+}
+
+/** A rejected organize call. It changed nothing; `imageIds` names the images at fault. */
+export class CatalogOrganizeError extends Error {
+  constructor(
+    message: string,
+    readonly imageIds?: string[],
+  ) {
+    super(message);
+  }
+}
+
+const ORGANIZE_KEYS = [
+  'workspaceId',
+  'imageIds',
+  'addTags',
+  'removeTags',
+  'addToCollection',
+  'removeFromCollection',
+];
+
+/** A tag name as Studio stores it, so #Pick and pick are one name. */
+function storedTagName(name: string) {
+  try {
+    return normalizeImageHashtag(name).toLowerCase();
+  } catch {
+    return name.toLowerCase();
+  }
+}
+
+/** Throws on invalid input, on a call with no change and on one that adds and removes one name. */
+export function parseCatalogOrganizeInput(value: unknown): CatalogOrganizeInput {
+  if (!isRecord(value) || Object.keys(value).some((key) => !ORGANIZE_KEYS.includes(key))) {
+    throw new Error(`Send an object with only ${ORGANIZE_KEYS.join(', ')}.`);
+  }
+  const tags = (list: unknown) => {
+    const names = list === undefined ? [] : validateCatalogTags(list);
+    return names.length ? names : undefined;
+  };
+  const collection = (name: unknown) =>
+    name === undefined ? undefined : validateCatalogCollectionName(name);
+  const input: CatalogOrganizeInput = {
+    workspaceId: validateCatalogCollectionWorkspaceId(value.workspaceId),
+    imageIds: validateCatalogCollectionImageIds(value.imageIds),
+    addTags: tags(value.addTags),
+    removeTags: tags(value.removeTags),
+    addToCollection: collection(value.addToCollection),
+    removeFromCollection: collection(value.removeFromCollection),
+  };
+  if (!input.addTags && !input.removeTags && !input.addToCollection && !input.removeFromCollection)
+    throw new Error('Set addTags, removeTags, addToCollection or removeFromCollection.');
+  const removed = new Set(input.removeTags?.map(storedTagName));
+  if (
+    input.addTags?.some((name) => removed.has(storedTagName(name))) ||
+    (input.addToCollection &&
+      input.addToCollection.toLowerCase() === input.removeFromCollection?.toLowerCase())
+  )
+    throw new Error('Do not add and remove the same tag or collection.');
+  return input;
+}

@@ -497,13 +497,13 @@ export function listCatalogImageIds(filters: CatalogCommandFilter = {}) {
 }
 
 /**
- * Updates favorite, tags or workspace. A move to another workspace keeps the image's tags
- * (a tag missing there is created with the source color) and leaves every collection
- * outside the new workspace. An unknown workspace throws.
+ * Updates favorite or workspace; tags change through organizeCatalogImages. A move to another
+ * workspace keeps the image's tags (a tag missing there is created with the source color) and
+ * leaves every collection outside the new workspace. An unknown workspace throws.
  */
 export function updateCatalogImage(
   id: string,
-  patch: { isFavorite?: boolean; tags?: string[]; workspaceId?: string | null },
+  patch: { isFavorite?: boolean; workspaceId?: string | null },
 ) {
   const database = getDb();
   const image = getCatalogImage(id, database);
@@ -518,20 +518,17 @@ export function updateCatalogImage(
   ) {
     throw new Error('Unknown workspace.');
   }
-  const tags = patch.tags ?? image.tags;
-  const previousTags = new Set(image.tags);
+  const { tags } = image;
   const write = () => {
     database
       .query(`
         UPDATE catalog_images
         SET is_favorite = COALESCE(?, is_favorite),
-            tags = COALESCE(?, tags),
             workspace_id = ?
         WHERE id = ?
       `)
       .run(
         patch.isFavorite === undefined ? null : patch.isFavorite ? 1 : 0,
-        patch.tags === undefined ? null : JSON.stringify(patch.tags),
         patch.workspaceId === undefined ? image.workspaceId : patch.workspaceId,
         id,
       );
@@ -549,12 +546,8 @@ export function updateCatalogImage(
         .query(`DELETE FROM catalog_collection_images WHERE image_id = ?
           AND collection_id IN (SELECT id FROM catalog_collections WHERE workspace_id <> ?)`)
         .run(id, to);
+      recordCatalogTagUse(to, tags, database);
     }
-    recordCatalogTagUse(
-      to,
-      tags.filter((tag) => moving || !previousTags.has(tag)),
-      database,
-    );
   };
   // A move writes three tables, so it commits as one unit.
   if (moving) database.transaction(write)();

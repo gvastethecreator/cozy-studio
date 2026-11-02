@@ -1,12 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { GeneratedImage } from '../types';
 import type { CatalogCollectionSelection } from '../packages/shared/src';
-import { useCatalogOrganization } from '../hooks/useCatalogOrganization';
+import { applyOrganizeResult, useCatalogOrganization } from '../hooks/useCatalogOrganization';
 import {
   getCatalogCollectionSelection,
   notifyCatalogOrganizationChanged,
-  updateCatalogCollection,
-  updateCatalogImage,
+  organizeCatalogImages,
 } from '../services/studio-api/catalog';
 import { OrganizationCreatePopover } from './OrganizationCreatePopover';
 
@@ -76,25 +75,27 @@ export function ImageOrganizationPicker({
       setBusy(false);
     }
   };
+  const imageIds = images.map((image) => image.id);
+  // All or nothing: a rejected call changes no image.
   const applyTag = async (name: string, remove: boolean) => {
-    const results = await Promise.allSettled(
-      images.map((image) =>
-        updateCatalogImage(image.id, remove ? { removeTags: [name] } : { addTags: [name] }),
-      ),
-    );
-    setImageTags((current) => {
-      const next = new Map(current);
-      for (const result of results)
-        if (result.status === 'fulfilled') next.set(result.value.id, result.value.tags);
-      return next;
+    const result = await organizeCatalogImages({
+      workspaceId,
+      imageIds,
+      ...(remove ? { removeTags: [name] } : { addTags: [name] }),
     });
-    onSaved?.();
-    const failures = results.filter((result) => result.status === 'rejected');
-    if (failures.length)
-      throw new Error(
-        `${failures.length} of ${images.length} images could not be updated. Try again.`,
-      );
+    setImageTags(
+      (current) =>
+        new Map(
+          [...current].map(([id, tags]) => [id, applyOrganizeResult(id, tags, result)] as const),
+        ),
+    );
   };
+  const toggleCollection = (name: string, remove: boolean) =>
+    organizeCatalogImages({
+      workspaceId,
+      imageIds,
+      ...(remove ? { removeFromCollection: name } : { addToCollection: name }),
+    });
   const tagCounts = new Map<string, number>();
   for (const image of images) {
     for (const tag of new Set(imageTags.get(image.id))) {
@@ -150,12 +151,7 @@ export function ImageOrganizationPicker({
               void save(() =>
                 kind === 'tag'
                   ? applyTag(item.id, item.count === images.length)
-                  : updateCatalogCollection(
-                      item.id,
-                      item.count === images.length
-                        ? { removeImageIds: images.map((image) => image.id) }
-                        : { addImageIds: images.map((image) => image.id) },
-                    ),
+                  : toggleCollection(item.name, item.count === images.length),
               )
             }
           >

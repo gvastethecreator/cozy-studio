@@ -35,25 +35,29 @@ describe('Studio MCP boundary', () => {
     const settings = createDefaultEditableStudioSettings();
     const requests: { path: string; body: unknown }[] = [];
     const workspaces = [{ id: 'default', name: 'Default' }];
-    const image = (id: string, workspaceId: string | null, tags: string[] = []) => ({
-      id,
-      workspaceId,
-      tags,
-      isDeleted: false,
-    });
     const images: Record<string, object> = {
-      'reference-1': { ...image('reference-1', null), filePath: '/managed/reference.png' },
-      'image-1': image('image-1', null),
-      'image-2': image('image-2', 'default', ['pick']),
-      foreign: image('foreign', 'other'),
-      full: image(
-        'full',
-        'default',
-        Array.from({ length: 32 }, (_, index) => `tag-${index}`),
-      ),
+      'reference-1': {
+        id: 'reference-1',
+        workspaceId: null,
+        tags: [],
+        isDeleted: false,
+        filePath: '/managed/reference.png',
+      },
     };
     const collections: object[] = [];
-    const members = new Set<string>();
+    const organized = {
+      workspaceId: 'default',
+      imageCount: 2,
+      tags: { added: { pick: ['image-1'] }, removed: {} },
+      collection: {
+        id: 'collection-1',
+        name: 'Picks',
+        created: true,
+        imageCount: 2,
+        addedImageIds: ['image-1', 'image-2'],
+      },
+      removedFrom: null,
+    };
     let workspacesDown = false;
     let runtimeBody = JSON.stringify(runtimePack);
     const app = new Hono().route(
@@ -68,24 +72,21 @@ describe('Studio MCP boundary', () => {
             return Response.json(catalogImage);
           if (path === '/api/catalog/collections?workspace_id=default')
             return Response.json(collections);
-          if (path === '/api/catalog/collections') {
-            body.imageIds?.forEach((imageId: string) => members.add(imageId));
-            collections.push({
+          if (path === '/api/catalog/commands/organize') {
+            if (body.imageIds.includes('foreign'))
+              return Response.json(
+                { error: 'Every image must be live and in workspaceId.', imageIds: ['foreign'] },
+                { status: 400 },
+              );
+            collections.splice(0, 1, {
               id: 'collection-1',
               workspaceId: 'default',
-              name: body.name,
+              name: body.addToCollection,
               emoji: null,
               imageCount: 2,
             });
-            return Response.json(collections[0], { status: 201 });
+            return Response.json(organized);
           }
-          if (path.startsWith('/api/catalog/collections/')) {
-            body?.addImageIds?.forEach((imageId: string) => members.add(imageId));
-            body?.removeImageIds?.forEach((imageId: string) => members.delete(imageId));
-            return Response.json(collections[0]);
-          }
-          const member = /^\/api\/catalog\?id=([^&]+)&collection_id=/.exec(path);
-          if (member) return Response.json({ images: [], total: Number(members.has(member[1])) });
           if (path.startsWith('/api/catalog?')) return Response.json({ images: [], total: 3 });
           if (path === '/api/workspaces')
             return init?.method === 'POST'
@@ -360,86 +361,25 @@ describe('Studio MCP boundary', () => {
     );
     // A catalog read names its workspace, so a #tag search never spans workspaces.
     expect((await call('studio_catalog', { q: '#pick' })).status).toBe(400);
-    // Every image and tag change is checked before the first write.
-    const writes = () => requests.filter(({ body }) => body);
-    const writesBefore = writes().length;
-    // `workspaces` answers from another catalog route, so it is not an image.
-    for (const [imageIds, rejected] of [
-      [['image-1', 'foreign'], 'foreign'],
-      [['image-1', 'workspaces'], 'workspaces'],
-      [['image-1', 'full'], 'full'],
-    ] as const) {
-      const response = await call('studio_organize_images', { ...organize, imageIds });
-      expect(response.status).toBe(400);
-      expect(await response.json()).toMatchObject({ imageIds: [rejected] });
-    }
-    const unknownCollection = { ...organize, removeFromCollection: 'Missing' };
-    expect((await call('studio_organize_images', unknownCollection)).status).toBe(400);
-    // #Pick is pick and "Best  Picks" is "best picks", so each pair adds and removes one name.
-    for (const conflict of [
+    // The tool checks its arguments; the server command checks images and writes in one transaction.
+    const requestsBefore = requests.length;
+    for (const invalid of [
       { removeTags: ['pick'] },
       { addToCollection: 'Best  Picks', removeFromCollection: 'best picks' },
+      { imageIds: Array.from({ length: 101 }, (_, index) => `image-${index}`) },
     ]) {
-      const response = await call('studio_organize_images', { ...organize, ...conflict });
+      const response = await call('studio_organize_images', { ...organize, ...invalid });
       expect(await response.json()).toMatchObject({ error: 'Invalid tool arguments' });
     }
-    // The fake cannot list tags or collections of `other`; that read failure stops the call.
-    const unreadableTags = { ...organize, workspaceId: 'other', imageIds: ['foreign'] };
-    expect((await call('studio_organize_images', unreadableTags)).status).toBe(500);
-    expect(writes()).toHaveLength(writesBefore);
-    expect(await (await call('studio_organize_images', organize)).json()).toEqual({
-      workspaceId: 'default',
-      imageCount: 2,
-      tags: { added: { pick: ['image-1'] }, removed: {} },
-      collection: {
-        id: 'collection-1',
-        name: 'Picks',
-        created: true,
-        imageCount: 2,
-        addedImageIds: ['image-1', 'image-2'],
-      },
-      removedFrom: null,
+    expect(requests).toHaveLength(requestsBefore);
+    const rejected = await call('studio_organize_images', {
+      ...organize,
+      imageIds: ['image-1', 'foreign'],
     });
-    // image-2 already has the tag, so only image-1 is patched.
-    expect(writes().slice(writesBefore)).toEqual([
-      { path: '/api/catalog/image-1', body: { addTags: ['#Pick'] } },
-      {
-        path: '/api/catalog/collections',
-        body: { workspaceId: 'default', name: 'Picks', imageIds: ['image-1', 'image-2'] },
-      },
-    ]);
-    const repeated = await (
-      await call('studio_organize_images', {
-        ...organize,
-        addTags: ['#Pick', 'v2'],
-        addToCollection: 'picks',
-      })
-    ).json();
-    // image-2 changes for v2 only, so an undo of pick must keep its earlier pick tag.
-    expect(repeated.tags).toEqual({
-      added: { pick: ['image-1'], v2: ['image-1', 'image-2'] },
-      removed: {},
-    });
-    // Both images are members already, so an undo must not remove either of them.
-    expect(repeated).toMatchObject({ collection: { created: false, addedImageIds: [] } });
-    expect(requests.at(-1)).toEqual({
-      path: '/api/catalog/collections/collection-1',
-      body: { addImageIds: ['image-1', 'image-2'] },
-    });
-    // reference-1 never had the tag or the membership, so only image-2 is listed as removed.
-    const removed = await call('studio_organize_images', {
-      workspaceId: 'default',
-      imageIds: ['image-2', 'reference-1'],
-      removeTags: ['pick'],
-      removeFromCollection: 'Picks',
-    });
-    expect(await removed.json()).toEqual({
-      workspaceId: 'default',
-      imageCount: 2,
-      tags: { added: {}, removed: { pick: ['image-2'] } },
-      collection: null,
-      removedFrom: { id: 'collection-1', name: 'Picks', removedImageIds: ['image-2'] },
-    });
+    expect(rejected.status).toBe(400);
+    expect(await rejected.json()).toMatchObject({ imageIds: ['foreign'] });
+    expect(await (await call('studio_organize_images', organize)).json()).toEqual(organized);
+    expect(requests.at(-1)).toEqual({ path: '/api/catalog/commands/organize', body: organize });
     expect(await (await call('studio_workspaces', { workspaceId: 'default' })).json()).toEqual({
       workspace: { id: 'default', name: 'Default' },
       tags: [{ name: 'cover', color: null, imageCount: 2 }],

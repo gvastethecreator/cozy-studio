@@ -1,20 +1,54 @@
 import { mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import type { Database } from 'bun:sqlite';
 import sharp from 'sharp';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CATALOG_PURGE_CONFIRMATION, type CatalogImage } from '../../../packages/shared/src';
-import { createCatalogRoutes, createMemoryCatalogStore } from './catalogRoutes';
+import { updateCatalogImageFileSize } from './catalog';
+import { createCatalogRoutes } from './catalogRoutes';
 import { createCatalogCommands } from './catalogCommands';
-import type { QueryCatalogFilters, StudioCatalogStore } from './catalogStore';
+import {
+  createDefaultCatalogStore,
+  type QueryCatalogFilters,
+  type StudioCatalogStore,
+} from './catalogStore';
+import { recordCatalogTagUse } from './catalogTags';
+import { openTestDatabase } from './db/testDatabase';
 import { embedMetadata, extractMetadata } from './metadataEmbedder';
+
+const testDb = vi.hoisted(() => ({ current: undefined as Database | undefined }));
+vi.mock('./db/connection', () => ({ getDb: (db?: Database) => db ?? testDb.current }));
+
+let libraryDir: string;
+beforeEach(() => {
+  libraryDir = mkdtempSync(path.join(os.tmpdir(), 'studio-catalog-routes-'));
+  testDb.current = openTestDatabase();
+  const createdAt = '2026-05-26T00:00:00.000Z';
+  testDb.current
+    .query(
+      'INSERT INTO libraries (id, name, path, is_default, created_at, kind) VALUES (?, ?, ?, 1, ?, ?)',
+    )
+    .run('library-1', 'Test library', libraryDir, createdAt, 'library');
+  testDb.current
+    .query(
+      `INSERT INTO jobs (id, kind, status, original_prompt, final_prompt_used, created_at, updated_at)
+       VALUES ('job-1', 'image_generate', 'completed', '', '', ?, ?)`,
+    )
+    .run(createdAt, createdAt);
+});
+afterEach(() => {
+  testDb.current = undefined;
+  rmSync(libraryDir, { recursive: true, force: true });
+});
 
 function catalogImage(overrides: Partial<CatalogImage> = {}): CatalogImage {
   return {
     id: overrides.id ?? 'image-1',
     libraryId: overrides.libraryId ?? 'library-1',
-    filePath: overrides.filePath ?? 'D:/library/outputs/image-1.png',
+    // Inside the temp library: trash, restore and purge move or delete real files.
+    filePath: overrides.filePath ?? path.join(libraryDir, 'outputs', 'image-1.png'),
     thumbnailPath: overrides.thumbnailPath ?? null,
     publicUrl: overrides.publicUrl ?? '/library/outputs/image-1.png',
     thumbnailUrl: overrides.thumbnailUrl ?? null,
@@ -39,6 +73,56 @@ function catalogImage(overrides: Partial<CatalogImage> = {}): CatalogImage {
   };
 }
 
+/** Seeds rows as registerCatalogImage writes them, but keeps each fixture's id. */
+async function createStore(
+  images: CatalogImage[],
+  onQuery?: (filters: QueryCatalogFilters | undefined) => void,
+): Promise<StudioCatalogStore> {
+  const insert = testDb.current!.query(`INSERT INTO catalog_images (
+    id, library_id, file_path, thumbnail_path, public_url, thumbnail_url, prompt, negative_prompt,
+    aspect_ratio, image_size, width, height, mime_type, file_size_bytes, job_id, workspace_id,
+    batch_id, recipe_id, is_favorite, is_deleted, deleted_at, tags, generation_config, created_at
+  ) VALUES (${Array(24).fill('?').join(', ')})`);
+  for (const image of images) {
+    insert.run(
+      image.id,
+      image.libraryId,
+      image.filePath,
+      image.thumbnailPath,
+      image.publicUrl,
+      image.thumbnailUrl,
+      image.prompt,
+      image.negativePrompt,
+      image.aspectRatio,
+      image.imageSize,
+      image.width,
+      image.height,
+      image.mimeType,
+      image.fileSizeBytes,
+      image.jobId,
+      image.workspaceId,
+      image.batchId,
+      image.recipeId,
+      image.isFavorite ? 1 : 0,
+      image.isDeleted ? 1 : 0,
+      image.deletedAt,
+      JSON.stringify(image.tags),
+      image.generationConfig === null ? null : JSON.stringify(image.generationConfig),
+      image.createdAt,
+    );
+    recordCatalogTagUse(image.workspaceId ?? 'default', image.tags);
+  }
+  const store = await createDefaultCatalogStore();
+  if (!onQuery) return store;
+  return {
+    ...store,
+    queryCatalog: (filters) => {
+      onQuery(filters);
+      return store.queryCatalog(filters);
+    },
+  };
+}
+
 function createRoutes(
   store: StudioCatalogStore,
   embed: typeof embedMetadata = async (filePath: string) => ({
@@ -59,11 +143,7 @@ function createRoutes(
     }),
     embedMetadata: embed,
     getJob: () => null,
-    updateCatalogImageFileSize: (id, fileSizeBytes) => {
-      const image = store.getCatalogImage(id);
-      if (image) image.fileSizeBytes = fileSizeBytes;
-      return image;
-    },
+    updateCatalogImageFileSize,
   });
 }
 
@@ -98,7 +178,7 @@ describe('catalog routes', () => {
           },
         },
       });
-      const routes = createRoutes(createMemoryCatalogStore([image]), embedMetadata);
+      const routes = createRoutes(await createStore([image]), embedMetadata);
       const response = await routes.request('/image-1/embed', { method: 'POST' });
       expect(response.status).toBe(200);
       await expect(extractMetadata(filePath)).resolves.toMatchObject({
@@ -126,24 +206,25 @@ describe('catalog routes', () => {
 
   it('queries through an injected Catalog Store', async () => {
     const calls: QueryCatalogFilters[] = [];
+    // Matches every filter below; unorganized means no tags, so q matches the prompt.
     const image = catalogImage({
       id: 'image-42',
       workspaceId: 'workspace-1',
+      recipeId: 'styles',
       jobId: 'job-1',
       batchId: 'batch-1',
       isFavorite: true,
-      tags: ['studio'],
+      prompt: 'studio still life',
     });
-    const routes = createRoutes(
-      createMemoryCatalogStore([image], (filters) => calls.push(filters ?? {})),
-    );
+    const routes = createRoutes(await createStore([image], (filters) => calls.push(filters ?? {})));
 
     const response = await routes.request(
       '/?workspace_id=workspace-1&recipe_id=styles&job_id=job-1&batch_id=batch-1&unorganized=true&favorite=true&deleted=false&q=studio&sort=asc&offset=5&limit=10',
     );
 
+    // The one match counts in the total; offset 5 pages past it.
     await expect(response.json()).resolves.toEqual({
-      images: [image],
+      images: [],
       total: 1,
       hasMore: false,
     });
@@ -172,9 +253,9 @@ describe('catalog routes', () => {
     await expect(invalidSort.json()).resolves.toEqual({ error: 'Invalid catalog sort' });
   });
 
-  it('updates and restores Catalog Entries without DB globals', async () => {
+  it('updates and restores Catalog Entries', async () => {
     const image = catalogImage({ id: 'image-99', isFavorite: false });
-    const routes = createRoutes(createMemoryCatalogStore([image]));
+    const routes = createRoutes(await createStore([image]));
 
     const patched = await routes.request('/image-99', {
       method: 'PATCH',
@@ -202,7 +283,7 @@ describe('catalog routes', () => {
   });
 
   it('rejects malformed or excessive tags before changing image metadata', async () => {
-    const store = createMemoryCatalogStore([catalogImage({ tags: ['imported reference'] })]);
+    const store = await createStore([catalogImage({ tags: ['imported reference'] })]);
     const routes = createRoutes(store);
     for (const tags of [
       'jefe',
@@ -226,7 +307,7 @@ describe('catalog routes', () => {
   });
 
   it('merges tag changes with current metadata instead of replacing a stale client list', async () => {
-    const store = createMemoryCatalogStore([catalogImage({ tags: ['imported reference'] })]);
+    const store = await createStore([catalogImage({ tags: ['imported reference'] })]);
     const routes = createRoutes(store);
     const patch = (body: unknown) =>
       routes.request('/image-1', {
@@ -258,7 +339,7 @@ describe('catalog routes', () => {
 
   it('returns exact workspace summaries independent of catalog page budgets', async () => {
     const routes = createRoutes(
-      createMemoryCatalogStore([
+      await createStore([
         catalogImage({
           id: 'default-old',
           workspaceId: null,
@@ -276,6 +357,7 @@ describe('catalog routes', () => {
         catalogImage({
           id: 'concept-a',
           workspaceId: 'concepts',
+          filePath: 'D:/library/outputs/image-1.png',
           fileSizeBytes: null,
           createdAt: '2026-05-23T00:00:00.000Z',
         }),
@@ -326,7 +408,7 @@ describe('catalog routes', () => {
 
   it('archives Catalog Entries by full-scope command filter', async () => {
     const routes = createRoutes(
-      createMemoryCatalogStore([
+      await createStore([
         catalogImage({ id: 'image-1', workspaceId: 'workspace-a' }),
         catalogImage({ id: 'image-2', workspaceId: 'workspace-a' }),
         catalogImage({ id: 'image-3', workspaceId: 'workspace-b' }),
@@ -352,7 +434,7 @@ describe('catalog routes', () => {
   it('rejects malformed batch filters without broadening their selection', async () => {
     const image = catalogImage({ id: 'trashed-image', isDeleted: true });
     const live = catalogImage({ id: 'live-image' });
-    const store = createMemoryCatalogStore([image, live]);
+    const store = await createStore([image, live]);
     const routes = createRoutes(store);
     for (const action of ['archive', 'restore', 'purge']) {
       for (const body of [
@@ -400,7 +482,7 @@ describe('catalog routes', () => {
 
   it('creates a collection from workspace images and forwards it as a catalog filter', async () => {
     const calls: QueryCatalogFilters[] = [];
-    const store = createMemoryCatalogStore(
+    const store = await createStore(
       [
         catalogImage({ id: 'image-1', workspaceId: 'default' }),
         catalogImage({ id: 'image-2', workspaceId: 'other' }),
@@ -452,7 +534,7 @@ describe('catalog routes', () => {
   });
 
   it('validates organization appearance and renames tags within one workspace', async () => {
-    const store = createMemoryCatalogStore([
+    const store = await createStore([
       catalogImage({ tags: ['boss'] }),
       catalogImage({ id: 'other', workspaceId: 'other', tags: ['boss'] }),
     ]);

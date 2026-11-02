@@ -1,14 +1,18 @@
 import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import type { Database } from 'bun:sqlite';
 import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_IMAGE_CONVERSION_OPTIONS } from '../../../packages/shared/src/imageConversion';
 import type { ImageConversionResult } from '../../../packages/shared/src/imageConversion';
-import { createMemoryCatalogStore } from './catalogRoutes';
+import { createDefaultCatalogStore } from './catalogStore';
+import { openTestDatabase } from './db/testDatabase';
 import { createImageConversionRoutes } from './imageConversionRoutes';
 import { embedMetadata, extractMetadata } from './metadataEmbedder';
 
+const testDb = vi.hoisted(() => ({ current: undefined as Database | undefined }));
+vi.mock('./db/connection', () => ({ getDb: (db?: Database) => db ?? testDb.current }));
 vi.mock('./db/outputGenerations', () => ({ getOutputGeneration: () => 1 }));
 
 describe('Catalog image conversion', () => {
@@ -16,8 +20,23 @@ describe('Catalog image conversion', () => {
   beforeEach(async () => {
     root = await mkdtemp(path.join(os.tmpdir(), 'studio-conversion-'));
     await mkdir(path.join(root, 'outputs'));
+    testDb.current = openTestDatabase();
+    const createdAt = '2026-10-03T00:00:00Z';
+    // An output folder: restoring from trash puts the file back at the root, where it started.
+    testDb.current
+      .query(
+        'INSERT INTO libraries (id, name, path, is_default, created_at, kind) VALUES (?, ?, ?, 1, ?, ?)',
+      )
+      .run('library-1', 'Test Library', root, createdAt, 'output');
+    testDb.current
+      .query(
+        `INSERT INTO jobs (id, kind, status, original_prompt, final_prompt_used, created_at, updated_at)
+         VALUES ('job-1', 'image_generate', 'completed', '', '', ?, ?)`,
+      )
+      .run(createdAt, createdAt);
   });
   afterEach(async () => {
+    testDb.current = undefined;
     await rm(root, { recursive: true, force: true });
   });
 
@@ -37,7 +56,7 @@ describe('Catalog image conversion', () => {
           .png()
           .toBuffer()),
     );
-    const store = createMemoryCatalogStore([]);
+    const store = await createDefaultCatalogStore();
     const source = store.registerCatalogImage({
       libraryId: 'library-1',
       filePath,

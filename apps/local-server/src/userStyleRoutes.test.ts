@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { createUserStyleRoutes } from './userStyleRoutes';
-import { createMemoryUserStyleStore } from './userStyles';
+import { openTestDatabase } from './db/testDatabase';
+import { createSqliteUserStyleStore } from './sqliteUserStyles';
 import type { CreateUserStylePresetInput } from '../../../packages/shared/src';
 
 const VISUAL_DNA: CreateUserStylePresetInput['visualDna'] = {
@@ -16,7 +17,7 @@ const VISUAL_DNA: CreateUserStylePresetInput['visualDna'] = {
 };
 
 function createRoutes() {
-  const store = createMemoryUserStyleStore();
+  const store = createSqliteUserStyleStore(openTestDatabase());
   const publishEvent = vi.fn();
   const routes = createUserStyleRoutes({
     store,

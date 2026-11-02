@@ -40,33 +40,8 @@ export type StudioCatalogEventPayload =
 
 const TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled', 'needs_review']);
 
-export interface StudioEventReconnectPolicy {
-  initialDelayMs: number;
-  maxDelayMs: number;
-}
-
-export const DEFAULT_STUDIO_EVENT_RECONNECT_POLICY: StudioEventReconnectPolicy = {
-  initialDelayMs: 1000,
-  maxDelayMs: 30_000,
-};
-
-export function normalizeStudioEventReconnectPolicy(
-  policy: Partial<StudioEventReconnectPolicy>,
-): StudioEventReconnectPolicy {
-  const initialDelayMs = Math.max(
-    100,
-    Math.floor(policy.initialDelayMs ?? DEFAULT_STUDIO_EVENT_RECONNECT_POLICY.initialDelayMs),
-  );
-  const maxDelayMs = Math.max(
-    initialDelayMs,
-    Math.floor(policy.maxDelayMs ?? DEFAULT_STUDIO_EVENT_RECONNECT_POLICY.maxDelayMs),
-  );
-
-  return {
-    initialDelayMs,
-    maxDelayMs,
-  };
-}
+const RECONNECT_INITIAL_DELAY_MS = 1000;
+const RECONNECT_MAX_DELAY_MS = 30_000;
 
 export function isTerminalStudioJobStatus(status: Job['status']) {
   return TERMINAL_STATUSES.has(status);
@@ -135,7 +110,7 @@ class BrowserStudioEventStream implements StudioEventStream {
   private source: EventSource | null = null;
   private closed = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private reconnectDelay = DEFAULT_STUDIO_EVENT_RECONNECT_POLICY.initialDelayMs;
+  private reconnectDelay = RECONNECT_INITIAL_DELAY_MS;
   private jobListeners = new Map<string, Set<Listener<Job>>>();
   private assetListeners = new Set<Listener<Asset>>();
   private catalogListeners = new Set<Listener<StudioCatalogEventPayload>>();
@@ -148,10 +123,7 @@ class BrowserStudioEventStream implements StudioEventStream {
   private revisionGapListeners = new Set<Listener<void>>();
   private lastRevision = 0;
 
-  constructor(
-    private readonly apiBase = getStudioApiBase(),
-    private readonly reconnectPolicy: StudioEventReconnectPolicy = DEFAULT_STUDIO_EVENT_RECONNECT_POLICY,
-  ) {
+  constructor(private readonly apiBase = getStudioApiBase()) {
     this.connect();
   }
 
@@ -223,7 +195,7 @@ class BrowserStudioEventStream implements StudioEventStream {
     const source = new EventSource(`${this.apiBase}/api/events${suffix}`);
     this.source = source;
     source.onopen = () => {
-      this.reconnectDelay = this.reconnectPolicy.initialDelayMs;
+      this.reconnectDelay = RECONNECT_INITIAL_DELAY_MS;
       this.emitConnection(true);
     };
     source.onerror = () => {
@@ -246,7 +218,7 @@ class BrowserStudioEventStream implements StudioEventStream {
       this.reconnectTimer = null;
       this.connect();
     }, this.reconnectDelay);
-    this.reconnectDelay = Math.min(this.reconnectDelay * 2, this.reconnectPolicy.maxDelayMs);
+    this.reconnectDelay = Math.min(this.reconnectDelay * 2, RECONNECT_MAX_DELAY_MS);
   }
 
   private emitConnection(connected: boolean) {
@@ -382,10 +354,7 @@ export function createStudioEventStream(apiBase?: string): StudioEventStream {
   let entry = sharedStreams.get(resolvedApiBase);
   if (!entry) {
     entry = {
-      stream: new BrowserStudioEventStream(
-        resolvedApiBase,
-        normalizeStudioEventReconnectPolicy(DEFAULT_STUDIO_EVENT_RECONNECT_POLICY),
-      ),
+      stream: new BrowserStudioEventStream(resolvedApiBase),
       refCount: 0,
     };
     sharedStreams.set(resolvedApiBase, entry);

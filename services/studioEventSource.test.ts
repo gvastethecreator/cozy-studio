@@ -9,7 +9,6 @@ import {
   createJobTerminalStatusError,
   createStudioEventStream,
   isTerminalStudioJobStatus,
-  normalizeStudioEventReconnectPolicy,
   watchJob,
 } from './studioEventSource';
 
@@ -229,13 +228,6 @@ describe('studioEventSource', () => {
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  it('normalizes reconnect policy bounds', () => {
-    expect(normalizeStudioEventReconnectPolicy({ initialDelayMs: 0, maxDelayMs: 50 })).toEqual({
-      initialDelayMs: 100,
-      maxDelayMs: 100,
-    });
   });
 
   it('shares one browser EventSource until all leases close', () => {

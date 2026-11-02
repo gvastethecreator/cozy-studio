@@ -63,3 +63,17 @@ If `bun install` stalls on Windows, see [Troubleshooting](TROUBLESHOOTING.md).
 ## CI
 
 CI must call these named scripts. Do not fork gate step lists inside workflow YAML.
+
+## Releases
+
+Releases use SemVer. The `version` field in `package.json` is the version, and the tag is `v` plus that version, for example `v0.1.0`. A tag with a `-` suffix, for example `v0.2.0-rc.1`, makes a prerelease. Before 1.0, increase the patch number for fixes and the minor number for features or database migrations. Each portable ZIP records the version in its `portable.json`.
+
+To make a release:
+
+1. On `main`, commit the new `version` in `package.json`.
+2. Wait until CI is green for that commit.
+3. Tag that commit and push only the tag: `git tag v0.1.0 <commit>`, then `git push origin v0.1.0`.
+4. The `Release` workflow (`.github/workflows/release.yml`) starts. It stops if the tag does not match `package.json`. Then it runs `bun run validate:release`, builds the ZIPs for all six targets with `bun run portable:build`, and creates a draft GitHub Release with the ZIPs and a `SHA256SUMS` file.
+5. Read the draft and edit its notes. Then publish it by hand. The workflow never publishes a release.
+
+The workflow runs only for pushed `v*.*.*` tags, not for branch pushes. Only its single job can write repository contents. If a run fails because of a network error, run the job again. If the tagged commit is wrong, do not move the tag: delete any draft that the run left, fix `main`, and release the next patch version.

@@ -117,10 +117,9 @@ export function WorkspaceStrip({
     editingWorkspaceId,
     contextMenuWorkspaceId,
     editingName,
-    contextMenuPosition,
-    workspacesContainerRef,
+    contextMenuPoint,
+    contextMenuTriggerRef,
     setWorkspaceUi,
-    setContextMenuPosition,
     setEditingName,
     openContextMenu,
     handleRenameSubmit,
@@ -131,7 +130,6 @@ export function WorkspaceStrip({
 
   return (
     <div
-      ref={workspacesContainerRef}
       className={`vt-workspace-list gap-1 px-1 ${isCompact ? 'grid max-h-[min(70vh,26rem)] w-[min(82vw,22rem)] overflow-x-hidden overflow-y-auto py-1 custom-scrollbar' : 'hidden max-w-[44vw] items-center overflow-x-auto py-0.5 no-scrollbar md:flex xl:max-w-[52vw]'}`}
     >
       {workspaces.map((workspace, index) => {
@@ -188,22 +186,20 @@ export function WorkspaceStrip({
                       editingWorkspaceId: workspace.id,
                       contextMenuWorkspaceId: null,
                     });
-                    setContextMenuPosition(null);
                     setEditingName(workspaceName);
                   } else {
                     setWorkspaceUi({
                       editingWorkspaceId: null,
                       contextMenuWorkspaceId: null,
                     });
-                    setContextMenuPosition(null);
                     onSwitchWorkspace(workspace.id);
                   }
                 }}
                 onContextMenu={(event) => {
                   event.preventDefault();
-                  openContextMenu(workspace.id, {
-                    clientX: event.clientX,
-                    clientY: event.clientY,
+                  openContextMenu(workspace.id, event.currentTarget, {
+                    x: event.clientX,
+                    y: event.clientY,
                   });
                 }}
                 onKeyDown={(event) => {
@@ -265,16 +261,15 @@ export function WorkspaceStrip({
                   event.stopPropagation();
                   if (contextMenuWorkspaceId === workspace.id) {
                     setWorkspaceUi({ editingWorkspaceId: null, contextMenuWorkspaceId: null });
-                    setContextMenuPosition(null);
                     return;
                   }
                   openContextMenu(workspace.id, event.currentTarget);
                 }}
                 onContextMenu={(event) => {
                   event.preventDefault();
-                  openContextMenu(workspace.id, {
-                    clientX: event.clientX,
-                    clientY: event.clientY,
+                  openContextMenu(workspace.id, event.currentTarget, {
+                    x: event.clientX,
+                    y: event.clientY,
                   });
                 }}
                 className={`studio-command-surface studio-hit-target flex size-10 cursor-pointer items-center justify-center rounded-[var(--wb-radius)] border transition-[color,background-color,border-color,opacity] ${
@@ -299,18 +294,15 @@ export function WorkspaceStrip({
               <DemandMountedGsapDropdown
                 open={contextMenuWorkspaceId === workspace.id}
                 onOpenChange={(open) => {
-                  if (!open) {
-                    setWorkspaceUi((prev) => ({ ...prev, contextMenuWorkspaceId: null }));
-                    setContextMenuPosition(null);
-                  }
+                  if (!open) setWorkspaceUi((prev) => ({ ...prev, contextMenuWorkspaceId: null }));
                 }}
+                triggerRef={contextMenuTriggerRef}
+                anchorPoint={contextMenuPoint}
+                portal
+                portalOffset={6}
                 role="menu"
                 aria-label={`Workspace actions for ${workspaceName}`}
-                className="fixed z-50 max-h-[min(80vh,420px)] w-80 max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[var(--wb-radius)] p-2"
-                style={{
-                  left: contextMenuPosition?.left ?? 8,
-                  top: contextMenuPosition?.top ?? 44,
-                }}
+                className="max-h-[min(80vh,420px)] w-80 overflow-y-auto rounded-[var(--wb-radius)] p-2"
               >
                 <WorkspaceInformation
                   workspace={workspace}
@@ -330,7 +322,6 @@ export function WorkspaceStrip({
                     event.stopPropagation();
                     if (!canDeleteWorkspace) return;
                     setWorkspaceUi((prev) => ({ ...prev, contextMenuWorkspaceId: null }));
-                    setContextMenuPosition(null);
                     onDeleteWorkspace(workspace.id);
                   }}
                   className="flex w-full items-center gap-2 rounded-[var(--wb-radius)] px-2 py-1.5 text-left text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-danger)] transition-colors hover:bg-red-500/10 hover:text-[color:var(--wb-danger)] disabled:cursor-not-allowed disabled:text-[color:var(--wb-danger)] disabled:hover:bg-transparent"
@@ -348,7 +339,6 @@ export function WorkspaceStrip({
           type="button"
           onClick={() => {
             setWorkspaceUi((prev) => ({ ...prev, contextMenuWorkspaceId: null }));
-            setContextMenuPosition(null);
             onAddWorkspace();
           }}
           aria-label="Create workspace"
@@ -502,56 +492,16 @@ function useWorkspaceMenus(onRenameWorkspace: WorkspaceStripProps['onRenameWorks
   });
   const { editingWorkspaceId, contextMenuWorkspaceId } = workspaceUi;
   const [editingName, setEditingName] = React.useState('');
-  const [contextMenuPosition, setContextMenuPosition] = React.useState<{
-    left: number;
-    top: number;
-  } | null>(null);
-  const workspacesContainerRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (
-        (editingWorkspaceId || contextMenuWorkspaceId) &&
-        workspacesContainerRef.current &&
-        !workspacesContainerRef.current.contains(event.target as Node)
-      ) {
-        setWorkspaceUi({ editingWorkspaceId: null, contextMenuWorkspaceId: null });
-        setContextMenuPosition(null);
-      }
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setWorkspaceUi({ editingWorkspaceId: null, contextMenuWorkspaceId: null });
-        setContextMenuPosition(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [contextMenuWorkspaceId, editingWorkspaceId]);
+  const [contextMenuPoint, setContextMenuPoint] = React.useState<{ x: number; y: number } | null>(
+    null,
+  );
+  const contextMenuTriggerRef = React.useRef<HTMLElement | null>(null);
 
   const openContextMenu = React.useCallback(
-    (workspaceId: string, anchor: HTMLElement | { clientX: number; clientY: number }) => {
-      const menuWidth = 320;
-      const margin = 8;
-      const viewportWidth = typeof window === 'undefined' ? 1280 : window.innerWidth;
-      const rawPosition =
-        'getBoundingClientRect' in anchor
-          ? (() => {
-              const rect = anchor.getBoundingClientRect();
-              return { left: rect.left, top: rect.bottom + 6 };
-            })()
-          : { left: anchor.clientX, top: anchor.clientY };
-
+    (workspaceId: string, trigger: HTMLElement, point: { x: number; y: number } | null = null) => {
+      contextMenuTriggerRef.current = trigger;
+      setContextMenuPoint(point);
       setWorkspaceUi({ editingWorkspaceId: null, contextMenuWorkspaceId: workspaceId });
-      setContextMenuPosition({
-        left: Math.max(margin, Math.min(rawPosition.left, viewportWidth - menuWidth - margin)),
-        top: Math.max(margin, rawPosition.top),
-      });
     },
     [],
   );
@@ -567,10 +517,9 @@ function useWorkspaceMenus(onRenameWorkspace: WorkspaceStripProps['onRenameWorks
     editingWorkspaceId,
     contextMenuWorkspaceId,
     editingName,
-    contextMenuPosition,
-    workspacesContainerRef,
+    contextMenuPoint,
+    contextMenuTriggerRef,
     setWorkspaceUi,
-    setContextMenuPosition,
     setEditingName,
     openContextMenu,
     handleRenameSubmit,

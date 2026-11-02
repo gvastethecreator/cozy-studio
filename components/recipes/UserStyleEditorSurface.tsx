@@ -498,7 +498,7 @@ function UserStyleEditorSessionView({ model }: { model: UserStyleEditorSessionVi
       aria-modal="true"
       aria-label="Style editor"
       tabIndex={-1}
-      className="studio-modal studio-style-editor absolute inset-0 z-50 flex flex-col bg-[color:var(--wb-panel)] text-[color:var(--wb-ink)]"
+      className="studio-modal studio-style-editor flex flex-col"
     >
       <header className="user-style-header">
         <div>

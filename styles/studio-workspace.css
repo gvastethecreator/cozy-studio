@@ -3762,6 +3762,11 @@ html[data-theme='paper'] .cozy-mark {
   }
 }
 
+/* Unlayered so it beats the transparent dialog.studio-modal reset; Tailwind utilities do not. */
+.studio-style-editor {
+  background: var(--wb-panel);
+  color: var(--wb-ink);
+}
 .user-style-header,
 .user-style-footer {
   display: flex;

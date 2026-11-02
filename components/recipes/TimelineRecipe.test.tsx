@@ -162,8 +162,11 @@ it('hydrates timeline indices, retries failures, and keeps later history pages n
   fireEvent.click(screen.getByRole('button', { name: 'Load more frames' }));
   await screen.findByRole('button', { name: 'SEQ.2' });
   // Frame 2 already exists, so the next frame after frame 1 goes to the end of the sequence.
-  expect(onRecipeParams).toHaveBeenLastCalledWith(
-    expect.objectContaining({ nextIndex: 3, sequenceId: 'origin', sourceFrameId: 'frame-1' }),
+  // The params effect runs after the strip renders, so wait for it to settle.
+  await waitFor(() =>
+    expect(onRecipeParams).toHaveBeenLastCalledWith(
+      expect.objectContaining({ nextIndex: 3, sequenceId: 'origin', sourceFrameId: 'frame-1' }),
+    ),
   );
   fireEvent.click(await screen.findByRole('button', { name: 'SEQ.2' }));
   expect(screen.getByText('Frame: 2')).toBeTruthy();

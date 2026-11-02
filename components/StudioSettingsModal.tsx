@@ -627,7 +627,7 @@ function SettingsDialogActions({
 /** `target` is a control's aria-label, or the message key of a translated one. */
 function focusSettingsControl(dialog: HTMLDialogElement | null, target: string) {
   const panel = dialog?.querySelector<HTMLElement>('.studio-settings-content');
-  const label = target in en ? t(target as MessageKey) : target;
+  const label = Object.hasOwn(en, target) ? t(target as MessageKey) : target;
   const control = target
     ? panel?.querySelector<HTMLElement>(`[aria-label="${label}"]`)
     : panel?.querySelector<HTMLElement>('button, input, select');

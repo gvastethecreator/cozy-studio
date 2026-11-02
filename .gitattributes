@@ -60,3 +60,6 @@
 
 # Generated review patches contain the standard unified-diff prefix on blank context lines.
 docs/codemap/.review/*.diff -whitespace
+
+# The HTML embeds the map data on one line; its text diff is not reviewable.
+docs/codemap/codemap.html -diff

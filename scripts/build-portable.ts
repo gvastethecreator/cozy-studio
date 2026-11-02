@@ -104,7 +104,8 @@ export async function buildPortable(targetName: string) {
   const outputRoot = path.join(repoRoot, '.scratch', 'portable');
   mkdirSync(outputRoot, { recursive: true });
   const buildRoot = mkdtempSync(path.join(outputRoot, `${targetName}-`));
-  const appRoot = path.join(buildRoot, 'Cozy Studio');
+  const portableRoot = path.join(buildRoot, 'Cozy Studio');
+  const appRoot = path.join(portableRoot, 'app');
   const runtimeRoot = path.join(appRoot, 'runtime');
   mkdirSync(runtimeRoot, { recursive: true });
 
@@ -173,6 +174,8 @@ export async function buildPortable(targetName: string) {
   for (const file of files) {
     if (
       /^(?:landing\/|\.github\/|docs\/codemap\/)/.test(file) ||
+      /^scripts\/portable-root\./.test(file) ||
+      file === 'PORTABLE.txt' ||
       (/^\.env(?:\.|$)/.test(file) && file !== '.env.example') ||
       /\.test\.[cm]?[jt]sx?$/.test(file) ||
       (launchers.includes(file) && file !== `scripts/${target.launcher}`) ||
@@ -187,6 +190,18 @@ export async function buildPortable(targetName: string) {
       writeFileSync(destination, file.endsWith('.bat') ? text.replaceAll('\n', '\r\n') : text);
     }
   }
+  const rootLauncher = readFileSync(
+    path.join(
+      repoRoot,
+      'scripts',
+      target.platform === 'win32' ? 'portable-root.bat' : 'portable-root.sh',
+    ),
+    'utf8',
+  ).replaceAll('\r\n', '\n');
+  writeFileSync(
+    path.join(portableRoot, target.launcher),
+    target.platform === 'win32' ? rootLauncher.replaceAll('\n', '\r\n') : rootLauncher,
+  );
   cpSync(path.join(repoRoot, 'dist'), path.join(appRoot, 'dist'), { recursive: true });
   console.log(`[portable] Installing ${targetName} production dependencies with Bun ${version}.`);
   run(
@@ -234,18 +249,19 @@ export async function buildPortable(targetName: string) {
     ) + '\n',
   );
   writeFileSync(
-    path.join(appRoot, 'PORTABLE.txt'),
+    path.join(portableRoot, 'PORTABLE.txt'),
     [
       `Cozy Studio portable: ${targetName}`,
       target.requirements,
-      `Start: scripts/${target.launcher}`,
+      `Start: ${target.launcher}`,
       target.platform === 'win32'
         ? 'Open the launcher after extracting the complete ZIP.'
-        : `If executable permissions were not preserved: chmod +x "scripts/${target.launcher}" scripts/portable-launch.sh runtime/bun`,
+        : `If executable permissions were not preserved: chmod +x "${target.launcher}" app/scripts/portable-launch.sh app/runtime/bun`,
       `Includes Bun ${version}, production dependencies and the built UI. No global Bun or Codex install is needed to open Studio.`,
       'ChatGPT login and other provider accounts remain user-owned. Sign in from Studio.',
-      'The default portable Library stays inside this folder. An explicit STUDIO_LIBRARY_DIR is preserved.',
-      'See runtime/BUN-LICENSE.md, runtime/BUN-SOURCE.txt and LICENSE for notices.',
+      'The default Studio Data Folder is Cozy Studio Library beside app/. An explicit STUDIO_LIBRARY_DIR is preserved.',
+      'Only app/ is replaced during updates. Start from this root launcher to allow update and restart.',
+      'See app/runtime/BUN-LICENSE.md, app/runtime/BUN-SOURCE.txt and app/LICENSE for notices.',
       '',
     ].join('\n'),
   );
@@ -253,10 +269,10 @@ export async function buildPortable(targetName: string) {
   const archive = new JSZip();
   function addDirectory(directory: string, prefix: string) {
     for (const name of readdirSync(directory)) {
-      if (prefix === 'Cozy Studio/node_modules' && name === '.bin') continue;
+      if (prefix === 'Cozy Studio/app/node_modules' && name === '.bin') continue;
       if (
         target.platform === 'linux' &&
-        prefix === 'Cozy Studio/node_modules/@img' &&
+        prefix === 'Cozy Studio/app/node_modules/@img' &&
         name.includes('linuxmusl')
       )
         continue;
@@ -266,13 +282,13 @@ export async function buildPortable(targetName: string) {
       else
         archive.file(entry, Readable.from(fileChunks(file)), {
           unixPermissions:
-            entry === `Cozy Studio/runtime/${runtimeName}` || /\.(?:sh|command)$/.test(entry)
+            entry === `Cozy Studio/app/runtime/${runtimeName}` || /\.(?:sh|command)$/.test(entry)
               ? 0o100755
               : 0o100644,
         });
     }
   }
-  addDirectory(appRoot, 'Cozy Studio');
+  addDirectory(portableRoot, 'Cozy Studio');
   const zipPath = path.join(buildRoot, `Cozy-Studio-${targetName}.zip`);
   console.log('[portable] Writing ZIP with the UI, source, dependencies, Bun and license notices.');
   await pipeline(

@@ -1,5 +1,13 @@
-import { spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -106,6 +114,58 @@ describe('portable launchers', () => {
         },
       }),
     ).rejects.toThrow(/bun run build/);
+  });
+
+  it('keeps portable data beside app and only confirms the update after listening, without another browser', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'cozy-portable-restart-'));
+    const app = path.join(root, 'app');
+    mkdirSync(app);
+    writeFileSync(path.join(app, 'portable.json'), '{}');
+    const pending = path.join(app, '.update-pending');
+    writeFileSync(pending, '');
+    const openBrowser = vi.fn();
+    try {
+      const dependencies = {
+        cwd: app,
+        env: { STUDIO_PORTABLE: '1', STUDIO_PORTABLE_RESTART: '1' },
+        distReady: () => true,
+        forwardOutput: () => undefined,
+        openBrowser,
+      };
+      await expect(
+        runPortableStart({
+          ...dependencies,
+          spawnServer: () =>
+            ({
+              once() {},
+              stdout: { on() {} },
+              stderr: { on() {} },
+              exitCode: 1,
+            }) as never,
+        }),
+      ).rejects.toThrow('exited before it started listening');
+      expect(existsSync(pending)).toBe(true);
+      const started = await runPortableStart({
+        ...dependencies,
+        spawnServer: () =>
+          ({
+            once() {},
+            stdout: {
+              on(_event: string, receive: (chunk: string) => void) {
+                expect(existsSync(pending)).toBe(true);
+                receive('Cozy Studio local-server listening on http://127.0.0.1:17229\n');
+              },
+            },
+            stderr: { on() {} },
+            exitCode: null,
+          }) as never,
+      });
+      expect(started.libraryDir).toBe(path.join(root, PORTABLE_STUDIO_LIBRARY_FOLDER_NAME));
+      expect(existsSync(pending)).toBe(false);
+      expect(openBrowser).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it('keeps missing-runtime copy and the ChatGPT login disclaimer in both launchers', () => {
@@ -232,6 +292,171 @@ describe('portable launchers', () => {
     ).rejects.toThrow(error);
     expect(waitMs).not.toHaveBeenCalled();
   });
+});
+
+describe('portable root update loop', () => {
+  const platforms = process.platform === 'win32' ? ['unix', 'windows'] : ['unix'];
+  it.each(
+    platforms
+      .flatMap((platform) => [
+        { platform, fail: false, missingLauncher: false },
+        { platform, fail: true, missingLauncher: false },
+      ])
+      .concat(
+        process.platform === 'win32'
+          ? [{ platform: 'windows', fail: true, missingLauncher: true }]
+          : [],
+      ),
+  )(
+    '$platform restarts on 75 and preserves settings and data (rollback: $fail, missing launcher: $missingLauncher)',
+    async ({ platform, fail, missingLauncher }) => {
+      const root = mkdtempSync(path.join(tmpdir(), 'cozy portable updates '));
+      const bash =
+        process.platform === 'win32'
+          ? path.join(process.env.ProgramFiles ?? 'C:/Program Files', 'Git/bin/bash.exe')
+          : '/bin/bash';
+      const runtime =
+        platform === 'windows'
+          ? spawnSync('bun', ['--print', 'process.execPath'], { encoding: 'utf8' }).stdout.trim()
+          : '';
+      try {
+        const portableRoot = path.join(root, `${platform}-${fail ? 'rollback' : 'success'}`);
+        mkdirSync(portableRoot);
+        const data = path.join(portableRoot, PORTABLE_STUDIO_LIBRARY_FOLDER_NAME);
+        mkdirSync(data);
+        writeFileSync(path.join(data, 'user-data'), 'untouched');
+        for (const [folder, version] of [
+          ['app', 'old'],
+          ['app.staged', 'new'],
+        ]) {
+          const app = path.join(portableRoot, folder!);
+          mkdirSync(path.join(app, 'scripts'), { recursive: true });
+          mkdirSync(path.join(app, 'runtime'));
+          writeFileSync(path.join(app, 'portable.json'), JSON.stringify({ version }));
+          writeFileSync(
+            path.join(app, '.env.local'),
+            version === 'old' ? 'keep-bootstrap' : 'replace-me',
+          );
+          if (platform === 'windows') {
+            if (version === 'old' || !missingLauncher) {
+              copyFileSync(windowsLauncher, path.join(app, 'scripts', 'Cozy Studio.bat'));
+            }
+            writeFileSync(
+              path.join(app, 'scripts', 'portable-start.ts'),
+              [
+                "import { appendFileSync, existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';",
+                `const version = ${JSON.stringify(version)};`,
+                "appendFileSync('../events', [version, process.env.STUDIO_MANAGED_RESTART, process.env.STUDIO_PORTABLE_RESTART ?? '', readFileSync('.env.local', 'utf8')].join('|') + '\\n');",
+                "if (version === 'old' && !existsSync('../restarted')) { writeFileSync('../restarted', ''); renameSync('../app.staged', '../app.next'); process.exit(75); }",
+                `if (version === 'new' && ${fail}) process.exit(1);`,
+                "if (existsSync('.update-pending')) unlinkSync('.update-pending');",
+              ].join('\n'),
+            );
+          } else {
+            copyFileSync(unixLauncher, path.join(app, 'scripts', 'portable-launch.sh'));
+            writeFileSync(
+              path.join(app, 'runtime', 'bun'),
+              [
+                '#!/bin/bash',
+                `version=${version}`,
+                'printf "%s|%s|%s|%s\\n" "$version" "$STUDIO_MANAGED_RESTART" "${STUDIO_PORTABLE_RESTART:-}" "$(cat .env.local)" >> ../events',
+                'if [ "$version" = old ] && [ ! -f ../restarted ]; then touch ../restarted; mv ../app.staged ../app.next; exit 75; fi',
+                `if [ "$version" = new ] && [ "${fail}" = true ]; then exit 1; fi`,
+                'if [ -f .update-pending ]; then rm .update-pending; fi',
+              ].join('\n'),
+            );
+          }
+        }
+        const launcher = path.join(
+          portableRoot,
+          platform === 'windows' ? 'Cozy Studio.bat' : 'Cozy Studio.sh',
+        );
+        writeFileSync(
+          launcher,
+          readFileSync(
+            path.join(
+              repoRoot,
+              'scripts',
+              platform === 'windows' ? 'portable-root.bat' : 'portable-root.sh',
+            ),
+            'utf8',
+          ).replaceAll('\r\n', '\n'),
+        );
+        const child = spawn(
+          platform === 'windows' ? 'cmd.exe' : bash,
+          platform === 'windows'
+            ? ['/d', '/c', `"${launcher}"`]
+            : [
+                '--noprofile',
+                '--norc',
+                '-c',
+                'chmod +x "$1"/app/runtime/bun "$1"/app.staged/runtime/bun; exec /bin/bash "$2"',
+                'portable-test',
+                portableRoot,
+                launcher,
+              ],
+          {
+            cwd: tmpdir(),
+            windowsVerbatimArguments: platform === 'windows',
+            env: {
+              ...process.env,
+              PATH:
+                platform === 'windows'
+                  ? `${path.dirname(runtime)};C:\\Windows\\System32`
+                  : '/usr/bin:/bin',
+              STUDIO_PORTABLE_NONINTERACTIVE: '',
+              STUDIO_PORTABLE_RESTART: '',
+            },
+          },
+        );
+        let output = '';
+        child.stdout.on('data', (chunk) => {
+          output += String(chunk);
+        });
+        child.stderr.on('data', (chunk) => {
+          output += String(chunk);
+        });
+        // Keep stdin open: an accidental inner pause would prevent automatic recovery.
+        const deadline = setTimeout(() => {
+          child.stdin.end();
+          child.kill();
+        }, 20_000);
+        let status: number | null;
+        try {
+          status = await new Promise<number | null>((resolve, reject) => {
+            child.once('close', resolve);
+            child.once('error', reject);
+          });
+        } finally {
+          clearTimeout(deadline);
+          child.stdin.destroy();
+        }
+        expect(status, `${platform}: ${output}`).toBe(0);
+        expect(readFileSync(path.join(portableRoot, 'events'), 'utf8').trim().split('\n')).toEqual([
+          'old|1||keep-bootstrap',
+          ...(missingLauncher ? [] : ['new|1|1|keep-bootstrap']),
+          ...(fail ? ['old|1|1|keep-bootstrap'] : []),
+        ]);
+        expect(existsSync(path.join(portableRoot, 'app.next'))).toBe(false);
+        expect(existsSync(path.join(portableRoot, 'app', '.update-pending'))).toBe(false);
+        expect(existsSync(path.join(portableRoot, fail ? 'app.failed' : 'app.previous'))).toBe(
+          true,
+        );
+        expect(
+          readFileSync(
+            path.join(portableRoot, fail ? 'app.failed' : 'app.previous', '.env.local'),
+            'utf8',
+          ),
+        ).toBe('keep-bootstrap');
+        expect(readFileSync(path.join(data, 'user-data'), 'utf8')).toBe('untouched');
+        expect(
+          JSON.parse(readFileSync(path.join(portableRoot, 'app', 'portable.json'), 'utf8')).version,
+        ).toBe(fail ? 'old' : 'new');
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
 });
 
 describe('Unix portable launchers', () => {

@@ -16,7 +16,7 @@ where bun >nul 2>nul
 if errorlevel 1 (
   echo Cozy Studio needs Bun. Install it from https://bun.sh/docs/installation then run this launcher again.
   echo This launcher does not bundle ChatGPT login.
-  if not defined STUDIO_PORTABLE_NONINTERACTIVE pause
+  if not "%STUDIO_MANAGED_RESTART%"=="1" if not defined STUDIO_PORTABLE_NONINTERACTIVE pause
   exit /b 1
 )
 
@@ -24,8 +24,11 @@ if errorlevel 1 (
 set "STUDIO_PORTABLE=1"
 
 "%STUDIO_BUN%" run scripts/portable-start.ts
-if errorlevel 1 (
+set "STUDIO_EXIT_CODE=%ERRORLEVEL%"
+if "%STUDIO_EXIT_CODE%"=="75" exit /b 75
+if not "%STUDIO_EXIT_CODE%"=="0" (
   echo Cozy Studio failed to start.
-  if not defined STUDIO_PORTABLE_NONINTERACTIVE pause
-  exit /b 1
+  if not "%STUDIO_MANAGED_RESTART%"=="1" if not defined STUDIO_PORTABLE_NONINTERACTIVE pause
+  exit /b %STUDIO_EXIT_CODE%
 )
+exit /b 0

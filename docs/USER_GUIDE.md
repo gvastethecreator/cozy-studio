@@ -66,6 +66,8 @@ Right-click a carousel thumbnail to act on that image without changing the selec
 - An image can belong to more than one collection. Collections belong to the current workspace.
 - Removing images from a collection, or deleting the collection, never deletes the images.
 
+**Undo.** Click **Undo** on the success notice, or open **Recent changes** in the **Tags** or **Collections** menu. The menu shows the last five changes, including changes made by an agent. Undo the newest active change first. It restores only the tags and memberships that change affected, so earlier ones stay. A newly created collection stays, empty. Studio keeps 20 changes per workspace; Undo does not move, archive or delete images.
+
 **Filter and search.** The **Tags** and **Collections** buttons filter Library. Search, Favorites and sorting still apply inside an open collection. **Unorganized**, next to **Favorites**, shows only the images with no tags and no collection in this workspace. Images leave that view as you organize them.
 
 Search Library with `#boss` to match that exact tag in the current workspace, or with `#boss #forest` to require both. You can combine tags with prompt text, Favorites and sorting. For metadata tags with spaces, use quotes, such as `#"imported reference"`.
@@ -83,6 +85,12 @@ Closing the image editor keeps its instruction and mask for that image and workf
 If a creation draft or reference cannot be saved, a notice offers a retry and a local copy. Keep that copy before you close the tab if saving still fails.
 
 While images are generating, the Generate button shows the animated Cozy cup. Hover or focus the button to see **Add to queue** with the current image count. Click it to add that batch to the queue.
+
+### Export and import a Library archive
+
+Open Settings → **Data folder & imports** → **Library archive**. **Export this workspace** downloads one ZIP with the original images, prompts, favorites, dates, tags, tag colors and collections. Missing files are listed in the archive.
+
+**Import a Library archive** accepts a Studio Library ZIP up to 1 GiB and opens a new workspace. The source workspace stays as it was. Invalid images and images above 64 MiB are skipped with a reason. Imported files get new IDs; references to local files, jobs and provider credentials are not restored. The metadata-only legacy workspace export remains export-only.
 
 ## Where your files go
 

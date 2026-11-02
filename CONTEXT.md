@@ -210,6 +210,14 @@ _Avoid_: multi-provider orchestrator, vendor switch, direct provider call
 Export-only JSON view derived from current Catalog Entries for users who need the former workspace snapshot shape.
 _Avoid_: browser cache, import format, recovery source, durable catalog record
 
+**Library Archive**:
+Versioned ZIP of one Workspace's original images and catalog metadata, including tags, colors and collections. Import creates a new Workspace with new image and batch IDs. Local paths, jobs and credentials are not portable.
+_Avoid_: Legacy Workspace Snapshot, database backup, image-only download
+
+**Organize Change**:
+Workspace-scoped record of the image/tag and image/collection pairs changed by one organize command, with its UI or agent source. Studio keeps 20 records per Workspace and undoes the newest active change first.
+_Avoid_: full catalog snapshot, inverse command built from current membership
+
 **Local Studio Sync**:
 Frontend seam that mirrors backend Job Summaries, logs, and live events while requesting scoped Image Catalog reconciliation.
 _Avoid_: polling loop, ad-hoc refresh code

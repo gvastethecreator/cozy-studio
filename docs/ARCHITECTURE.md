@@ -128,7 +128,8 @@ All paths are under `apps/local-server/src/`. `appFactory.ts` composes the route
 - Style packs are Cozy Extensions ([ADR 0011](adr/0011-declarative-extensions-and-style-pack-sources.md)). `extensionRoutes.ts` installs and updates them from local build folders or GitHub release indexes. Extension content stays data only.
 - The Intentional style plan compiler lives in `packages/shared/src/styles/`. The UI and the MCP `studio_generate` path compile styles with the same functions and Settings.
 - The authoring admin lives in `cozy-styles-dev`. It uses `/api/style-authoring` for text proposals and `/api/extensions/install-local` for local installs. Provider credentials stay in Studio.
-- Every install validates ZIP paths, hashes, data-only contents and host compatibility. One process-wide queue protects staging, replacement and rollback. The previous version stays until a catalog refresh and a runtime hash readback succeed.
+- Every install verifies the archive size and SHA-256 and the manifest id and version, keeps ZIP entries inside the extension folder and swaps the folder in one step through one process-wide queue. A failed install leaves the previous version in place.
+- A local install (`/api/extensions/install-local`) also checks data-only contents, host compatibility and references. It keeps the previous version until a catalog refresh and a runtime hash readback succeed.
 
 ### Image conversion and metadata
 

@@ -239,6 +239,8 @@ function createFakeCatalogStore(overrides?: Partial<StudioCatalogStore>): Studio
     organizeImages: vi.fn(() => {
       throw new Error('Not used.');
     }),
+    undoOrganize: vi.fn(() => null),
+    listOrganizeHistory: vi.fn(() => []),
   };
 
   return { ...store, ...overrides };

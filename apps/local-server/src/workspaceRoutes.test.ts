@@ -81,6 +81,11 @@ describe('deleteWorkspaceFromDb', () => {
       database
         .query("INSERT INTO catalog_tags (workspace_id, name, color) VALUES (?, 'boss', '#fb7185')")
         .run(workspaceId);
+      database
+        .query(
+          `INSERT INTO catalog_organize_history (id, workspace_id, source, changes_json, created_at) VALUES (?, ?, 'ui', '{}', ?)`,
+        )
+        .run(`organize-${workspaceId}`, workspaceId, at);
     }
     database
       .query(
@@ -98,6 +103,7 @@ describe('deleteWorkspaceFromDb', () => {
       tags: rows('SELECT workspace_id FROM catalog_tags ORDER BY workspace_id'),
       collections: rows('SELECT id FROM catalog_collections'),
       members: rows('SELECT image_id FROM catalog_collection_images'),
+      history: rows('SELECT workspace_id FROM catalog_organize_history ORDER BY workspace_id'),
     });
     const kept = state();
     const trash = vi.fn(() => ({ failed: [] }));
@@ -129,6 +135,7 @@ describe('deleteWorkspaceFromDb', () => {
       tags: [{ workspace_id: 'ws-b' }],
       collections: [],
       members: [],
+      history: [{ workspace_id: 'ws-b' }],
     });
     expect(rows('SELECT id, is_deleted FROM catalog_images')).toEqual([
       { id: 'image-a', is_deleted: 1 },

@@ -97,6 +97,7 @@ export function validateCatalogCollectionImageIds(value: unknown): string[] {
 
 /** One organize call: the same tag and collection changes for every image, all or nothing. */
 export interface CatalogOrganizeInput {
+  source: 'ui' | 'agent';
   workspaceId: string;
   imageIds: string[];
   addTags?: string[];
@@ -108,6 +109,7 @@ export interface CatalogOrganizeInput {
 
 /** The ids each change touched; images that already had a tag or membership are not listed. */
 export interface CatalogOrganizeResult {
+  operationId: string | null;
   workspaceId: string;
   imageCount: number;
   tags: { added: Record<string, string[]>; removed: Record<string, string[]> };
@@ -121,6 +123,33 @@ export interface CatalogOrganizeResult {
   removedFrom: { id: string; name: string; removedImageIds: string[] } | null;
 }
 
+export interface CatalogOrganizeUndoResult extends CatalogOrganizeResult {
+  operationId: string;
+  alreadyUndone: boolean;
+  skippedImageIds: string[];
+}
+
+export interface CatalogOrganizeHistoryEntry {
+  operationId: string;
+  source: CatalogOrganizeInput['source'];
+  createdAt: string;
+  undoneAt: string | null;
+  counts: {
+    tagsAdded: Record<string, number>;
+    tagsRemoved: Record<string, number>;
+    collection: { name: string; added: number } | null;
+    removedFrom: { name: string; removed: number } | null;
+  };
+}
+
+export class CatalogOrganizeConflict extends Error {
+  constructor(readonly operationId: string) {
+    super(
+      `Undo the newer change ${operationId} first. Open Recent changes in Tags or Collections.`,
+    );
+  }
+}
+
 /** A rejected organize call. It changed nothing; `imageIds` names the images at fault. */
 export class CatalogOrganizeError extends Error {
   constructor(
@@ -132,6 +161,7 @@ export class CatalogOrganizeError extends Error {
 }
 
 const ORGANIZE_KEYS = [
+  'source',
   'workspaceId',
   'imageIds',
   'addTags',
@@ -161,6 +191,7 @@ export function parseCatalogOrganizeInput(value: unknown): CatalogOrganizeInput 
   const collection = (name: unknown) =>
     name === undefined ? undefined : validateCatalogCollectionName(name);
   const input: CatalogOrganizeInput = {
+    source: value.source as CatalogOrganizeInput['source'],
     workspaceId: validateCatalogCollectionWorkspaceId(value.workspaceId),
     imageIds: validateCatalogCollectionImageIds(value.imageIds),
     addTags: tags(value.addTags),
@@ -168,6 +199,8 @@ export function parseCatalogOrganizeInput(value: unknown): CatalogOrganizeInput 
     addToCollection: collection(value.addToCollection),
     removeFromCollection: collection(value.removeFromCollection),
   };
+  if (input.source !== 'ui' && input.source !== 'agent')
+    throw new Error('Source must be ui or agent.');
   if (!input.addTags && !input.removeTags && !input.addToCollection && !input.removeFromCollection)
     throw new Error('Set addTags, removeTags, addToCollection or removeFromCollection.');
   const removed = new Set(input.removeTags?.map(storedTagName));

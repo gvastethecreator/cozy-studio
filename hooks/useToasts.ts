@@ -3,4 +3,5 @@ export interface ToastMessage {
   message: string;
   type: 'error' | 'success' | 'info' | 'warning';
   duration?: number;
+  action?: { label: string; run: () => void | Promise<void> };
 }

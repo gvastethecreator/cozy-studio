@@ -1,8 +1,26 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { useLatestRef } from './useLatestRef';
 
 let scrollLocks = 0;
 let previousOverflow = '';
+const activeDialogs: HTMLDialogElement[] = [];
+const dialogListeners = new Set<() => void>();
+
+function subscribeDialogLayer(listener: () => void) {
+  dialogListeners.add(listener);
+  return () => {
+    dialogListeners.delete(listener);
+  };
+}
+
+/** Interactive overlays must belong to the active modal's native focus and paint layer. */
+export function useDialogPortalHost() {
+  return useSyncExternalStore(
+    subscribeDialogLayer,
+    () => activeDialogs.at(-1) ?? null,
+    () => null,
+  );
+}
 
 export function useDialogFocus<T extends HTMLDialogElement = HTMLDialogElement>(
   isOpen: boolean,
@@ -22,6 +40,8 @@ export function useDialogFocus<T extends HTMLDialogElement = HTMLDialogElement>(
     const previousLabel = previous?.getAttribute('aria-label');
     const root = ref.current;
     if (!root.open) root.showModal();
+    activeDialogs.push(root);
+    for (const listener of dialogListeners) listener();
     const cancel = (event: Event) => {
       event.preventDefault();
       close.current();
@@ -44,6 +64,8 @@ export function useDialogFocus<T extends HTMLDialogElement = HTMLDialogElement>(
     return () => {
       root.removeEventListener('cancel', cancel);
       if (root.open) root.close();
+      activeDialogs.splice(activeDialogs.lastIndexOf(root), 1);
+      for (const listener of dialogListeners) listener();
       if (--scrollLocks === 0) document.body.style.overflow = previousOverflow;
       restoreFrameRef.current = requestAnimationFrame(() => {
         restoreFrameRef.current = null;

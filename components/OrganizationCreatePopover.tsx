@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { organizeWithUndo } from '../hooks/useCatalogOrganization';
 import {
   createCatalogCollection,
   createCatalogTag,
@@ -64,8 +65,10 @@ export function OrganizationCreatePopover({
                           workspaceId,
                           name,
                           emoji: appearance,
-                          imageIds,
+                          imageIds: [],
                         });
+                  if (kind === 'collection' && imageIds.length)
+                    await organizeWithUndo({ workspaceId, imageIds, addToCollection: value.name });
                   setOpen(false);
                   setName('');
                   setAppearance(null);

@@ -407,10 +407,13 @@ export function createMcpRoutes({
         if (!workspaceId) return get('/api/workspaces');
         const workspace = await get(`/api/workspaces/${workspaceId}`);
         if (workspace.status === 404) return c.json({ error: 'Unknown workspaceId.' }, 400);
-        const [tags, collections, unorganized] = await Promise.all([
+        const [tags, collections, unorganized, recentChanges] = await Promise.all([
           list<CatalogTag>(`/api/catalog/tags?workspace_id=${workspaceId}`),
           list<CatalogCollection>(`/api/catalog/collections?workspace_id=${workspaceId}`),
           unorganizedCount(workspaceId),
+          list(
+            `/api/catalog/commands/organize/history?workspace_id=${encodeURIComponent(workspaceId)}`,
+          ),
         ]);
         return c.json({
           workspace: await workspace.json(),
@@ -422,6 +425,7 @@ export function createMcpRoutes({
             imageCount,
           })),
           unorganized,
+          recentChanges: recentChanges.slice(0, 5),
         });
       }
       case 'studio_extensions':
@@ -473,10 +477,14 @@ export function createMcpRoutes({
         return query('/api/catalog');
       case 'studio_organize_images':
         // One transaction on the server: a rejected call changes nothing.
-        return post(
-          '/api/catalog/commands/organize',
-          studioMcpTools.studio_organize_images.schema.parse(args),
-        );
+        return post('/api/catalog/commands/organize', {
+          ...studioMcpTools.studio_organize_images.schema.parse(args),
+          source: 'agent',
+        });
+      case 'studio_undo_organize': {
+        const { operationId } = studioMcpTools.studio_undo_organize.schema.parse(args);
+        return post(`/api/catalog/commands/organize/${operationId}/undo`);
+      }
       case 'studio_cancel':
         return post(`/api/jobs/${String(args.jobId)}/cancel`);
       case 'studio_plan_generation': {

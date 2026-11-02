@@ -6,6 +6,8 @@ import {
   type CatalogCollectionSelection,
   type CatalogOrganizeInput,
   type CatalogOrganizeResult,
+  type CatalogOrganizeUndoResult,
+  type CatalogOrganizeHistoryEntry,
   type CatalogTag,
   type CatalogTagPatch,
   type CatalogCommandFilter,
@@ -99,6 +101,19 @@ export async function deleteCatalogImage(imageId: string) {
   return request<CatalogImage>(`/api/catalog/${encodeURIComponent(imageId)}`, { method: 'DELETE' });
 }
 
+export async function undoCatalogOrganize(operationId: string) {
+  return request<CatalogOrganizeUndoResult>(
+    `/api/catalog/commands/organize/${encodeURIComponent(operationId)}/undo`,
+    { method: 'POST' },
+  );
+}
+
+export async function listCatalogOrganizeHistory(workspaceId: string) {
+  return request<CatalogOrganizeHistoryEntry[]>(
+    `/api/catalog/commands/organize/history?workspace_id=${encodeURIComponent(workspaceId)}`,
+  );
+}
+
 export async function restoreCatalogImage(imageId: string) {
   return request<CatalogImage>(`/api/catalog/${encodeURIComponent(imageId)}/restore`, {
     method: 'POST',
@@ -138,8 +153,8 @@ export async function createCatalogCollection(input: {
 
 export const CATALOG_ORGANIZATION_CHANGED = 'studio:catalog-organization-changed';
 
-export function notifyCatalogOrganizationChanged() {
-  window.dispatchEvent(new Event(CATALOG_ORGANIZATION_CHANGED));
+export function notifyCatalogOrganizationChanged(result?: CatalogOrganizeResult) {
+  window.dispatchEvent(new CustomEvent(CATALOG_ORGANIZATION_CHANGED, { detail: result }));
 }
 
 /** A `CustomEvent<string>` with the workspace id of a new Catalog Entry. */

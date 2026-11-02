@@ -1,11 +1,11 @@
+import { organizeWithUndo } from '../hooks/useCatalogOrganization';
 import React, { useEffect, useRef, useState } from 'react';
 import type { GeneratedImage } from '../types';
-import type { CatalogCollectionSelection } from '../packages/shared/src';
+import type { CatalogCollectionSelection, CatalogOrganizeResult } from '../packages/shared/src';
 import { applyOrganizeResult, useCatalogOrganization } from '../hooks/useCatalogOrganization';
 import {
   getCatalogCollectionSelection,
-  notifyCatalogOrganizationChanged,
-  organizeCatalogImages,
+  CATALOG_ORGANIZATION_CHANGED,
 } from '../services/studio-api/catalog';
 import { OrganizationCreatePopover } from './OrganizationCreatePopover';
 
@@ -40,6 +40,18 @@ export function ImageOrganizationPicker({
   const imageTagsKey = JSON.stringify(images.map((image) => [image.id, image.tags ?? []]));
   const [revision, setRevision] = useState(0);
   useEffect(() => {
+    const onOrganized = (event: Event) => {
+      const result = (event as CustomEvent<CatalogOrganizeResult | undefined>).detail;
+      if (!result || result.workspaceId !== workspaceId) return;
+      setImageTags(
+        (current) =>
+          new Map([...current].map(([id, tags]) => [id, applyOrganizeResult(id, tags, result)])),
+      );
+    };
+    window.addEventListener(CATALOG_ORGANIZATION_CHANGED, onOrganized);
+    return () => window.removeEventListener(CATALOG_ORGANIZATION_CHANGED, onOrganized);
+  }, [workspaceId]);
+  useEffect(() => {
     setImageTags(new Map(JSON.parse(imageTagsKey) as [string, string[]][]));
   }, [imageTagsKey]);
   useEffect(() => {
@@ -66,7 +78,6 @@ export function ImageOrganizationPicker({
     try {
       await work();
       onSaved?.();
-      notifyCatalogOrganizationChanged();
       setRevision((value) => value + 1);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not save.');
@@ -78,7 +89,7 @@ export function ImageOrganizationPicker({
   const imageIds = images.map((image) => image.id);
   // All or nothing: a rejected call changes no image.
   const applyTag = async (name: string, remove: boolean) => {
-    const result = await organizeCatalogImages({
+    const result = await organizeWithUndo({
       workspaceId,
       imageIds,
       ...(remove ? { removeTags: [name] } : { addTags: [name] }),
@@ -91,7 +102,7 @@ export function ImageOrganizationPicker({
     );
   };
   const toggleCollection = (name: string, remove: boolean) =>
-    organizeCatalogImages({
+    organizeWithUndo({
       workspaceId,
       imageIds,
       ...(remove ? { removeFromCollection: name } : { addToCollection: name }),

@@ -6,6 +6,8 @@ import type {
   CatalogImage,
   CatalogOrganizeInput,
   CatalogOrganizeResult,
+  CatalogOrganizeUndoResult,
+  CatalogOrganizeHistoryEntry,
   CatalogPage,
   CatalogSortOption,
   CatalogWorkspaceSummary,
@@ -80,6 +82,8 @@ export interface StudioCatalogStore {
   deleteCollection(id: string): boolean;
   /** One transaction: every image and change is checked first, so a rejection changes nothing. */
   organizeImages(input: CatalogOrganizeInput): CatalogOrganizeResult;
+  undoOrganize(operationId: string): CatalogOrganizeUndoResult | null;
+  listOrganizeHistory(workspaceId: string, limit?: number): CatalogOrganizeHistoryEntry[];
   listTags(workspaceId: string): CatalogTag[];
   createTag(workspaceId: string, name: string, color: string | null): CatalogTag;
   updateTag(workspaceId: string, name: string, patch: CatalogTagPatch): CatalogTag | null;
@@ -108,6 +112,8 @@ export async function createDefaultCatalogStore(): Promise<StudioCatalogStore> {
     listCatalogCollections,
     listCatalogCollectionSelection,
     organizeCatalogImages,
+    undoCatalogOrganize,
+    listCatalogOrganizeHistory,
     updateCatalogCollection,
   } = collections;
   const { listCatalogTags, createCatalogTag, updateCatalogTag } = tags;
@@ -128,6 +134,8 @@ export async function createDefaultCatalogStore(): Promise<StudioCatalogStore> {
     updateCollection: updateCatalogCollection,
     deleteCollection: deleteCatalogCollection,
     organizeImages: organizeCatalogImages,
+    undoOrganize: undoCatalogOrganize,
+    listOrganizeHistory: listCatalogOrganizeHistory,
     listTags: listCatalogTags,
     createTag: createCatalogTag,
     updateTag: updateCatalogTag,

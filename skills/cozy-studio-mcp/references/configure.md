@@ -6,7 +6,7 @@ The user sets Agent access (MCP) in Settings > Advanced & maintenance. Studio re
 
 - Off (`off`): no Studio tool. Every call returns 403. `studio_guide` still works.
 - Read only (`read`), the default: every read tool, including `studio_plan_generation` and `studio_find_styles`.
-- Organize (`organize`): adds `studio_organize_images`, which changes tags and collection membership of existing images. It never deletes, archives or moves images and never uses provider usage.
+- Organize (`organize`): adds `studio_organize_images` and `studio_undo_organize`, which change tags and collection membership of existing images. It never deletes, archives or moves images and never uses provider usage.
 - Full control (`write`): adds `studio_generate`, `studio_retry_batch`, `studio_cancel`, `studio_import_reference`, `studio_import_reference_file`, `studio_update_settings`, `studio_install_extension`, `studio_remove_extension` and `studio_apply_update`.
 
 Rules:

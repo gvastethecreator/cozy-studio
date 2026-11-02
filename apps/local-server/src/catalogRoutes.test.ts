@@ -339,6 +339,7 @@ describe('catalog routes', () => {
       rows('SELECT * FROM catalog_collection_images ORDER BY image_id'),
       rows('SELECT * FROM catalog_collections ORDER BY id'),
       rows('SELECT * FROM catalog_tags ORDER BY workspace_id, name'),
+      rows('SELECT * FROM catalog_organize_history ORDER BY rowid'),
     ];
     const before = snapshot();
     const send = (method: string, path: string, body: unknown) =>
@@ -347,13 +348,13 @@ describe('catalog routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-    const both = { workspaceId: 'default', imageIds: ['image-1', 'image-2'] };
+    const both = { source: 'ui', workspaceId: 'default', imageIds: ['image-1', 'image-2'] };
     for (const [body, imageIds] of [
       [null],
       [{ workspaceId: 'default', imageIds: ['image-1'] }],
       [{ ...both, addTags: ['#Jefe'], removeTags: ['jefe'] }],
       [{ ...both, addToCollection: 'Best  Picks', removeFromCollection: 'best picks' }],
-      [{ ...both, addTags: ['jefe'], source: 'ui' }],
+      [{ ...both, addTags: ['jefe'], source: 'other' }],
       [{ ...both, imageIds: Array.from({ length: 2001 }, (_, i) => `id-${i}`), addTags: ['x'] }],
       [{ ...both, addTags: Array.from({ length: 33 }, (_, i) => `tag-${i}`) }],
       [{ ...both, addTags: ['jefe'], removeFromCollection: 'Missing' }],
@@ -414,7 +415,7 @@ describe('catalog routes', () => {
       const response = await routes.request('/commands/organize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workspaceId: 'default', ...body }),
+        body: JSON.stringify({ source: 'ui', workspaceId: 'default', ...body }),
       });
       expect(response.status).toBe(200);
       return response.json();
@@ -427,6 +428,7 @@ describe('catalog routes', () => {
     expect(accent.tags).toEqual({ added: { acción: ['image-1'] }, removed: {} });
     // image-2 had jefe and image-1 was a member, so an undo must leave both of those alone.
     expect(jefe).toEqual({
+      operationId: expect.stringMatching(/^organize-/),
       workspaceId: 'default',
       imageCount: 2,
       tags: { added: { jefe: ['image-1'] }, removed: {} },
@@ -465,15 +467,96 @@ describe('catalog routes', () => {
         store.listCollections('default').map(({ name, imageCount }) => [name, imageCount]),
       ),
     ).toEqual({ Covers: 2, Bosses: 0 });
-    // Nothing to change: the result lists no ids.
-    expect((await organize({ imageIds: ['image-1'], removeTags: ['acción'] })).tags).toEqual({
-      added: {},
-      removed: {},
+    const history = async () =>
+      (await routes.request('/commands/organize/history?workspace_id=default')).json();
+    const undo = (operationId: string) =>
+      routes.request(`/commands/organize/${operationId}/undo`, { method: 'POST' });
+    const beforeNoop = await history();
+    expect(await organize({ imageIds: ['image-1'], removeTags: ['acción'] })).toMatchObject({
+      operationId: null,
+      tags: { added: {}, removed: {} },
     });
+    expect(await history()).toEqual(beforeNoop);
+    expect(beforeNoop[0]).toMatchObject({
+      operationId: moved.operationId,
+      source: 'ui',
+      undoneAt: null,
+      counts: { collection: { name: 'Covers', added: 2 } },
+    });
+    const conflict = await undo(jefe.operationId);
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toMatchObject({
+      code: 'newer_change',
+      operationId: moved.operationId,
+    });
+    expect(await (await undo(moved.operationId)).json()).toMatchObject({
+      alreadyUndone: false,
+      skippedImageIds: [],
+      imageCount: 2,
+    });
+    expect(
+      Object.fromEntries(
+        store.listCollections('default').map(({ name, imageCount }) => [name, imageCount]),
+      ),
+    ).toEqual({ Covers: 0, Bosses: 2 });
+    expect(tagsOf('image-1')).toEqual(['imported reference', 'jefe', 'acción']);
+    expect(await (await undo(moved.operationId)).json()).toMatchObject({
+      alreadyUndone: true,
+      imageCount: 0,
+    });
+    expect((await undo(jefe.operationId)).status).toBe(200);
+    expect(tagsOf('image-1')).toEqual(['imported reference', 'acción']);
+    expect(tagsOf('image-2')).toEqual(['jefe']);
+    expect(
+      testDb
+        .current!.query('SELECT image_id FROM catalog_collection_images WHERE collection_id = ?')
+        .all(bosses.id),
+    ).toEqual([{ image_id: 'image-1' }]);
+    expect((await history())[0].undoneAt).toEqual(expect.any(String));
+    expect((await undo('missing')).status).toBe(404);
+    expect((await undo(accent.operationId)).status).toBe(200);
     // A known tag with a space can be added back after it was removed.
     await organize({ imageIds: ['image-1'], removeTags: ['imported reference'] });
     await organize({ imageIds: ['image-1'], addTags: ['imported reference'] });
-    expect(tagsOf('image-1')).toEqual(['jefe', 'imported reference']);
+    expect(tagsOf('image-1')).toEqual(['imported reference']);
+
+    const removed = await organize({ imageIds: ['image-1'], removeTags: ['imported reference'] });
+    testDb
+      .current!.query('UPDATE catalog_images SET tags = ? WHERE id = ?')
+      .run(JSON.stringify(Array.from({ length: 32 }, (_, index) => `full-${index}`)), 'image-1');
+    expect(await (await undo(removed.operationId)).json()).toMatchObject({
+      skippedImageIds: ['image-1'],
+      imageCount: 0,
+    });
+    expect(tagsOf('image-1')).toHaveLength(32);
+    testDb.current!.query("UPDATE catalog_images SET tags = '[]' WHERE id = 'image-1'").run();
+    const archivedAndMoved = await organize({
+      imageIds: ['image-1', 'image-2'],
+      addTags: ['temporary'],
+    });
+    testDb.current!.query("UPDATE catalog_images SET is_deleted = 1 WHERE id = 'image-1'").run();
+    testDb
+      .current!.query("UPDATE catalog_images SET workspace_id = 'elsewhere' WHERE id = 'image-2'")
+      .run();
+    expect(await (await undo(archivedAndMoved.operationId)).json()).toMatchObject({
+      skippedImageIds: ['image-2'],
+      tags: { removed: { temporary: ['image-1'] } },
+    });
+    expect(tagsOf('image-1')).toEqual([]);
+    expect(tagsOf('image-2')).toEqual(['jefe', 'temporary']);
+    testDb.current!.query("UPDATE catalog_images SET is_deleted = 0 WHERE id = 'image-1'").run();
+    const renamed = await organize({ imageIds: ['image-1'], addTags: ['before'] });
+    store.updateTag('default', 'before', { name: 'after' });
+    expect(await (await undo(renamed.operationId)).json()).toMatchObject({ imageCount: 0 });
+    expect(tagsOf('image-1')).toEqual(['after']);
+    for (let index = 0; index < 22; index++) {
+      await organize({
+        imageIds: ['image-1'],
+        ...(index % 2 ? { removeTags: ['cycle'] } : { addTags: ['cycle'] }),
+      });
+    }
+    expect(await history()).toHaveLength(20);
+    expect((await undo(renamed.operationId)).status).toBe(404);
   });
 
   it('returns exact workspace summaries independent of catalog page budgets', async () => {

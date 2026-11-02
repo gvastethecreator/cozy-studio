@@ -1,6 +1,8 @@
 import { AnimatePresence } from '../lib/gsapMotion';
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { useToastList, useToastUi } from '../contexts/ToastUiContext';
+import { useDialogPortalHost } from '../hooks/useDialogFocus';
 import Toast from './Toast';
 
 /**
@@ -10,15 +12,17 @@ import Toast from './Toast';
 const ToastContainer: React.FC = () => {
   const { toasts } = useToastList();
   const { removeToast } = useToastUi();
+  const dialog = useDialogPortalHost();
 
-  return (
+  return createPortal(
     <div className="fixed top-4 right-4 z-50 flex w-full max-w-sm flex-col gap-3">
       <AnimatePresence>
         {toasts.map((toast) => (
           <Toast key={toast.id} toast={toast} onDismiss={removeToast} />
         ))}
       </AnimatePresence>
-    </div>
+    </div>,
+    dialog ?? document.body,
   );
 };
 

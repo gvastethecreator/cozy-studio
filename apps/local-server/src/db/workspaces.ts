@@ -184,6 +184,7 @@ export function deleteWorkspaceFromDb(
       return { ok: false, status: 409, error: 'New images arrived in this workspace. Try again.' };
     }
     database.query('DELETE FROM catalog_tags WHERE workspace_id = ?').run(id);
+    database.query('DELETE FROM catalog_organize_history WHERE workspace_id = ?').run(id);
     // Collection members cascade (FK ON DELETE CASCADE).
     database.query('DELETE FROM catalog_collections WHERE workspace_id = ?').run(id);
     database.query('DELETE FROM workspaces WHERE id = ?').run(id);

@@ -1,11 +1,10 @@
+import { organizeWithUndo } from '../hooks/useCatalogOrganization';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { parseImageHashtags, type CatalogTagChanges } from '../packages/shared/src/catalogTags';
-import {
-  organizeCatalogImages,
-  notifyCatalogOrganizationChanged,
-} from '../services/studio-api/catalog';
 import type { GeneratedImage } from '../types';
 import { applyOrganizeResult, useCatalogOrganization } from '../hooks/useCatalogOrganization';
+import { CATALOG_ORGANIZATION_CHANGED } from '../services/studio-api/catalog';
+import type { CatalogOrganizeResult } from '../packages/shared/src';
 
 export function ImageTagsEditor({
   images,
@@ -27,6 +26,21 @@ export function ImageTagsEditor({
   const [saved, setSaved] = useState(false);
   const savingRef = useRef(false);
   const confirmedRef = useRef(false);
+  useEffect(() => {
+    const onOrganized = (event: Event) => {
+      const result = (event as CustomEvent<CatalogOrganizeResult | undefined>).detail;
+      if (!result || result.workspaceId !== workspaceId) return;
+      confirmedRef.current = true;
+      setImageTags((current) =>
+        current.map((image) => ({
+          ...image,
+          tags: applyOrganizeResult(image.id, image.tags, result),
+        })),
+      );
+    };
+    window.addEventListener(CATALOG_ORGANIZATION_CHANGED, onOrganized);
+    return () => window.removeEventListener(CATALOG_ORGANIZATION_CHANGED, onOrganized);
+  }, [workspaceId]);
   const tagsKey = JSON.stringify(images.map((image) => ({ id: image.id, tags: image.tags ?? [] })));
   useEffect(() => {
     // A delayed catalog refresh must not replace this editor's confirmed save.
@@ -46,7 +60,7 @@ export function ImageTagsEditor({
     try {
       setSaving(true);
       // All or nothing: a rejected call changes no image.
-      const result = await organizeCatalogImages({
+      const result = await organizeWithUndo({
         workspaceId,
         imageIds: imageTags.map((image) => image.id),
         ...changes,
@@ -59,7 +73,6 @@ export function ImageTagsEditor({
         })),
       );
       onSaved?.();
-      notifyCatalogOrganizationChanged();
       if (clearInput) setInput('');
       setSaved(true);
     } catch (cause) {

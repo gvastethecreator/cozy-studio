@@ -1,9 +1,9 @@
+import { organizeWithUndo } from '../hooks/useCatalogOrganization';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import type { CatalogCollectionSelection, CatalogOrganizeInput } from '../packages/shared/src';
 import {
   getCatalogCollectionSelection,
-  notifyCatalogOrganizationChanged,
-  organizeCatalogImages,
+  CATALOG_ORGANIZATION_CHANGED,
 } from '../services/studio-api/catalog';
 
 export function ImageCollectionsEditor({
@@ -22,6 +22,11 @@ export function ImageCollectionsEditor({
   const [busy, setBusy] = useState(false);
   const saving = useRef(false);
   const [revision, setRevision] = useState(0);
+  useEffect(() => {
+    const refresh = () => setRevision((value) => value + 1);
+    window.addEventListener(CATALOG_ORGANIZATION_CHANGED, refresh);
+    return () => window.removeEventListener(CATALOG_ORGANIZATION_CHANGED, refresh);
+  }, []);
   const selectionKey = JSON.stringify(imageIds);
 
   useEffect(() => {
@@ -45,7 +50,7 @@ export function ImageCollectionsEditor({
   // All or nothing: a rejected call changes no image.
   const organize = (
     change: Pick<CatalogOrganizeInput, 'addToCollection' | 'removeFromCollection'>,
-  ) => organizeCatalogImages({ workspaceId, imageIds, ...change });
+  ) => organizeWithUndo({ workspaceId, imageIds, ...change });
 
   const save = async (work: () => Promise<unknown>, clearName = false) => {
     if (saving.current) return;
@@ -56,7 +61,6 @@ export function ImageCollectionsEditor({
       await work();
       if (clearName) setName('');
       onSaved?.();
-      notifyCatalogOrganizationChanged();
       setCollections(await getCatalogCollectionSelection(workspaceId, imageIds));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not update collections. Try again.');

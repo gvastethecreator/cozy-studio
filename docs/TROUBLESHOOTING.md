@@ -173,6 +173,12 @@ Symptoms: `dev:ui` opens, but jobs and assets do not sync.
 
 Use `bun run dev`, or run `dev:server` and `dev:ui` in parallel.
 
+### Studio does not start after an update
+
+Symptoms: startup stops with "Studio did not update the database".
+
+Before Studio changes the database for a new version, it keeps a copy of the old database in `.studio/state/pre-migration/` inside your Studio data folder (the newest 3 copies). If that copy cannot be written, Studio does not update the database and does not start. Free disk space or fix access to that folder, then start Studio again. If Studio still does not start, stop it and ask for help before you replace any file.
+
 ### Ports are busy
 
 Symptoms: Vite or Bun reports `listen` errors.

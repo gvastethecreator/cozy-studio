@@ -44,7 +44,7 @@ async function writeSquareProviderImage(filePath: string, size: number, bandHeig
 }
 
 describe('spriteAtlasRoutes', () => {
-  it('creates handoff artifacts and composes imported rows into a production atlas', async () => {
+  it('creates run artifacts and composes imported rows into a production atlas', async () => {
     const root = mkdtempSync(path.join(os.tmpdir(), 'sprite-atlas-routes-'));
     try {
       const routes = createSpriteAtlasRoutes({ readLibraryDir: () => root });
@@ -87,25 +87,6 @@ describe('spriteAtlasRoutes', () => {
       expect(prompt.prompt).toContain('Base prompt: tiny courier');
       expect(prompt.prompt).not.toContain('#00FF00');
       expect(prompt.prompt).toContain('native transparency');
-
-      const jobResponse = await routes.request(`/runs/${run.id}/row-jobs`, {
-        method: 'POST',
-        body: JSON.stringify({ rowId: 'idle' }),
-        headers: { 'Content-Type': 'application/json' },
-      });
-      expect(jobResponse.status).toBe(201);
-      const job = (await jobResponse.json()) as { jobId: string; promptPath: string };
-      expect(existsSync(job.promptPath)).toBe(true);
-
-      const batchResponse = await routes.request(`/runs/${run.id}/row-jobs/batch`, {
-        method: 'POST',
-        body: JSON.stringify({ rowIds: ['run', 'jump'] }),
-        headers: { 'Content-Type': 'application/json' },
-      });
-      expect(batchResponse.status).toBe(409);
-      await expect(batchResponse.json()).resolves.toMatchObject({
-        code: 'anchor_required',
-      });
 
       const blockedResponse = await routes.request(`/runs/${run.id}/import-row`, {
         method: 'POST',

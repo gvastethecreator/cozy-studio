@@ -1,9 +1,7 @@
 import type {
-  CreateSpriteAtlasRowJobsResponse,
   CreateSpriteAtlasRunRequest,
   ImportSpriteAtlasRowRequest,
   SpriteAtlasPresetSummary,
-  SpriteAtlasRowHandoffJob,
   SpriteAtlasRowPromptResponse,
   SpriteAtlasRun,
 } from '../../packages/shared/src';
@@ -27,20 +25,6 @@ export async function createSpriteAtlasRun(input: CreateSpriteAtlasRunRequest) {
     method: 'POST',
     body: JSON.stringify(input),
   });
-}
-
-export async function createSpriteAtlasRowJob(runId: string, rowId: string) {
-  return request<SpriteAtlasRowHandoffJob>(
-    `/api/sprite-atlas/runs/${encodeURIComponent(runId)}/row-jobs`,
-    { method: 'POST', body: JSON.stringify({ rowId }) },
-  );
-}
-
-export async function createSpriteAtlasRowJobs(runId: string, rowIds?: string[]) {
-  return request<CreateSpriteAtlasRowJobsResponse>(
-    `/api/sprite-atlas/runs/${encodeURIComponent(runId)}/row-jobs/batch`,
-    { method: 'POST', body: JSON.stringify({ rowIds }) },
-  );
 }
 
 export async function getSpriteAtlasRowPrompt(runId: string, rowId: string) {

@@ -9,13 +9,11 @@ import {
   createSpriteAtlasPresetSummaries,
   isSpriteAtlasBlockedReasonKind,
   isSpriteAtlasIdleRow,
-  type CreateSpriteAtlasRowJobsResponse,
   type CreateSpriteAtlasRunRequest,
   type ImportSpriteAtlasRowRequest,
   type SpriteAtlasBlockedReason,
   type SpriteAtlasBlockedReasonKind,
   type SpriteAtlasQaReport,
-  type SpriteAtlasRowHandoffJob,
   type SpriteAtlasRowNormalization,
   type SpriteAtlasRowPromptResponse,
   type SpriteAtlasRowState,
@@ -41,8 +39,6 @@ export interface SpriteAtlasService {
   listRuns(): Promise<SpriteAtlasRun[]>;
   getRun(runId: string): Promise<SpriteAtlasRun | null>;
   createRun(input: CreateSpriteAtlasRunRequest): Promise<SpriteAtlasRun>;
-  createRowJob(runId: string, rowId: string): Promise<SpriteAtlasRowHandoffJob | null>;
-  createRowJobs(runId: string, rowIds?: string[]): Promise<CreateSpriteAtlasRowJobsResponse | null>;
   readRowPrompt(runId: string, rowId: string): Promise<SpriteAtlasRowPromptResponse | null>;
   importRow(runId: string, input: ImportSpriteAtlasRowRequest): Promise<SpriteAtlasRun | null>;
   compose(runId: string): Promise<SpriteAtlasRun | null>;
@@ -191,7 +187,6 @@ function safeSegment(value: string) {
 
 function createRunPaths(libraryDir: string, runId: string): SpriteAtlasRunPaths {
   const runDir = resolveLibraryPathFromRoot(libraryDir, 'state', 'sprite-atlas', runId);
-  const handoffDir = path.join(runDir, 'codex-handoff');
   return {
     runDir,
     requestPath: path.join(runDir, 'sprite-request.json'),
@@ -200,10 +195,6 @@ function createRunPaths(libraryDir: string, runId: string): SpriteAtlasRunPaths 
     layoutGuidesDir: path.join(runDir, 'references', 'layout-guides'),
     rawDir: path.join(runDir, 'raw'),
     framesDir: path.join(runDir, 'frames'),
-    handoffInboxDir: path.join(handoffDir, 'inbox'),
-    handoffOutboxDir: path.join(handoffDir, 'outbox'),
-    handoffStatusDir: path.join(handoffDir, 'status'),
-    handoffLogsDir: path.join(handoffDir, 'logs'),
     atlasPath: path.join(runDir, 'atlas.png'),
     manifestPath: path.join(runDir, 'manifest.json'),
     qaReportPath: path.join(runDir, 'qa', 'report.json'),
@@ -218,10 +209,6 @@ async function ensureRunDirs(paths: SpriteAtlasRunPaths) {
     mkdir(paths.layoutGuidesDir, { recursive: true }),
     mkdir(paths.rawDir, { recursive: true }),
     mkdir(paths.framesDir, { recursive: true }),
-    mkdir(paths.handoffInboxDir, { recursive: true }),
-    mkdir(paths.handoffOutboxDir, { recursive: true }),
-    mkdir(paths.handoffStatusDir, { recursive: true }),
-    mkdir(paths.handoffLogsDir, { recursive: true }),
     mkdir(path.dirname(paths.qaReportPath), { recursive: true }),
   ]);
 }
@@ -646,68 +633,6 @@ export function createSpriteAtlasService({
     return stored ? normalizeRun(stored) : null;
   }
 
-  async function writeRowJob(run: SpriteAtlasRun, row: SpriteAtlasRowState, timestamp: string) {
-    const jobId = safeSegment(`atlas-row-${row.id}-${createId()}`);
-    const job: SpriteAtlasRowHandoffJob = {
-      jobId,
-      runId: run.id,
-      rowId: row.id,
-      status: 'ready',
-      requestPath: run.paths.requestPath,
-      promptPath: row.promptPath,
-      layoutGuidePath: row.layoutGuidePath,
-      identityAnchorPath: run.rows.find((item) => item.id === run.anchor?.rowId)?.rawPath ?? null,
-      expectedOutputPath: path.join(run.paths.rawDir, `${safeSegment(row.id)}.png`),
-      outboxPattern: `${jobId}-${safeSegment(row.id)}.png`,
-      createdAt: timestamp,
-    };
-
-    await writeJson(path.join(run.paths.handoffInboxDir, `${jobId}.json`), job);
-    row.status = 'handoff_ready';
-    row.jobId = jobId;
-    row.dispatch = null;
-    row.blocked = null;
-    row.updatedAt = timestamp;
-    return job;
-  }
-
-  async function createRowJobsForRun(
-    run: SpriteAtlasRun,
-    rowIds: string[] | undefined,
-    options: { force: boolean },
-  ): Promise<CreateSpriteAtlasRowJobsResponse> {
-    const requestedRows = rowIds?.length ? new Set(rowIds) : null;
-    const timestamp = now();
-    const jobs: SpriteAtlasRowHandoffJob[] = [];
-
-    const rowsToWrite = run.rows.filter((row) => {
-      if (requestedRows && !requestedRows.has(row.id)) return false;
-      if (options.force) return true;
-      const alreadyHandled =
-        row.status === 'handoff_ready' ||
-        row.status === 'generating' ||
-        row.status === 'raw_imported' ||
-        row.status === 'extracted';
-      return !alreadyHandled && !row.jobId && !row.rawPath;
-    });
-    if (run.contract.workflowLane === 'animation' && !run.anchor) {
-      const waiting = rowsToWrite.filter((row) => !isSpriteAtlasIdleRow(row.id));
-      if (waiting.length > 0) {
-        throw new SpriteAtlasActionError(
-          'anchor_required',
-          `Import an idle row before queueing ${waiting.map((row) => row.id).join(', ')}.`,
-        );
-      }
-    }
-    jobs.push(...(await Promise.all(rowsToWrite.map((row) => writeRowJob(run, row, timestamp)))));
-    if (rowsToWrite.length > 0) reopenRunForRows(run);
-
-    return {
-      jobs,
-      run: await saveRun(run),
-    };
-  }
-
   /** Imports an image into a row in memory and on disk. The caller saves the run. */
   async function importRowInRun(
     run: SpriteAtlasRun,
@@ -717,10 +642,7 @@ export function createSpriteAtlasService({
     const timestamp = now();
     if (isSafeBlockedReason(input.blocked)) {
       const jobId = row.jobId || safeSegment(`blocked-${row.id}-${createId()}`);
-      await writeJson(
-        path.join(run.paths.handoffOutboxDir, `${jobId}-blocked.json`),
-        input.blocked,
-      );
+      await writeJson(path.join(run.paths.rawDir, `${jobId}-blocked.json`), input.blocked);
       row.status = 'blocked';
       row.blocked = input.blocked;
       row.updatedAt = timestamp;
@@ -914,23 +836,6 @@ export function createSpriteAtlasService({
         ]),
       );
       return saveRun(run);
-    },
-    createRowJob(runId, rowId) {
-      return withRunLock(runId, async () => {
-        const run = await getRun(runId);
-        if (!run) return null;
-        const row = run.rows.find((item) => item.id === rowId);
-        if (!row) return null;
-        const result = await createRowJobsForRun(run, [rowId], { force: true });
-        return result.jobs[0] ?? null;
-      });
-    },
-    createRowJobs(runId, rowIds) {
-      return withRunLock(runId, async () => {
-        const run = await getRun(runId);
-        if (!run) return null;
-        return createRowJobsForRun(run, rowIds, { force: false });
-      });
     },
     async readRowPrompt(runId, rowId) {
       const run = await getRun(runId);

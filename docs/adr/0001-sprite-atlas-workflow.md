@@ -10,7 +10,7 @@ Add a new `sprite-atlas` Recipe Module and route-lazy workbench UI. Keep the exi
 
 The `sprite-atlas` workflow is a local-first run folder workflow:
 
-- a Sprite Atlas Run stores request, prompts, layout guides, handoff jobs, raw rows, extracted frames, curation data, atlas outputs, a manifest, and QA reports
+- a Sprite Atlas Run stores request, prompts, layout guides, raw rows, extracted frames, curation data, atlas outputs, a manifest, and QA reports
 - the recipe uses provider-independent task kind `sprite_sheet`
 - row art is produced by existing Codex or image generation jobs, one row or state at a time
 - deterministic workflow actions prepare, import, extract, compose, and QA run folder artifacts
@@ -22,7 +22,7 @@ The UI must expose the workflow as a recoverable production workbench:
 - run history is visible inside the recipe
 - row progress is visible at a glance
 - prompts and layout guides are inspectable per row
-- batch handoff creation is supported without duplicating already handled rows
+- rows are queued one at a time, and rows without a job or an import are counted as open
 - blocked rows remain explicit sidecars instead of fake art
 
 Studio’s built-in workflow uses its own backend services. The standalone sprite pipeline is an external authoring tool and is not required by the app.

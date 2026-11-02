@@ -42,7 +42,7 @@ import {
   resolveGrokCanExecute,
   resolveImageEditorRequiresMask,
 } from '../lib/grokImagineUiPolicy';
-import { buildStudioHeaderToolbarProps } from '../lib/buildStudioHeaderToolbarProps';
+import { runWorkspaceSwitchLifecycle } from '../lib/workspaceLifecycle';
 import {
   buildStudioPageController,
   buildStudioViewportController,
@@ -925,59 +925,53 @@ export function useStudioShell(): StudioShellController {
     ],
   );
 
-  const headerToolbarProps = useMemo(
-    () =>
-      buildStudioHeaderToolbarProps({
-        view: {
-          isGenerating: pipeline.isGenerating,
-          routeView: route.view,
+  const headerToolbarProps = useMemo<HeaderToolbarProps>(
+    () => ({
+      isGenerating: pipeline.isGenerating,
+      workspaces: workspacesWithThumbs,
+      activeWorkspaceId,
+      onSwitchWorkspace: (workspaceId) =>
+        runWorkspaceSwitchLifecycle({
+          workspaceId,
           currentView,
-          onViewChange: handleViewChange,
-          activeRecipe: recipe.activeRecipe,
-          activeRecipeAliasId: route.activeRecipeAliasId,
-          onCloseRecipe: handleCloseRecipe,
-          onSelectRecipe: handleRecipeSelection,
-          usage: studioRuntime.status.diagnostics.usage,
-        },
-        workspace: {
-          workspaces: workspacesWithThumbs,
-          activeWorkspaceId,
           setActiveWorkspace,
-          onAddWorkspace: handleAddWorkspace,
-          onDeleteWorkspace: handleDeleteWorkspace,
-          onRenameWorkspace: handleRenameWorkspace,
-        },
-        overlays: {
-          onOpenDashboard: viewState.overlays.dashboard.open,
-          openOnboarding: studioRuntime.onboarding.open,
-          onOpenSupport: () => setSupportOpen(true),
-          onOpenChat: viewState.overlays.chat.open,
-          onOpenTrash: viewState.overlays.trash.open,
-          trashCount: catalogTrashGroups.length,
-          onToggleDebug: activitySession.debugPanel.toggle,
-        },
-        commandCenter: {
-          settings: studioSettings.data.settingsDomain.settings,
-          provider: {
-            capabilities: studioSettings.data.providerDomain.capabilities,
-            runtimePreflight: studioSettings.data.providerDomain.runtimePreflight,
-            isSaving: studioSettings.data.settingsDomain.isSaving,
-          },
-          queue: {
-            statusItems: studioRuntime.status.diagnostics.statusItems,
-            activeJobCount: queueCounts.activeJobCount,
-            reviewJobCount: queueCounts.reviewJobCount,
-            isQueueOpen: viewState.queue.isOpen,
-            setIsQueueOpen: viewState.queue.setIsOpen,
-          },
-          actions: {
-            onOpenSettings: viewState.overlays.settings.open,
-            onSelectProvider: async (providerId) => {
-              await studioSettings.data.settingsDomain.update({ defaultProviderId: providerId });
-            },
-          },
-        },
+          onViewChange: handleViewChange,
+        }),
+      onAddWorkspace: handleAddWorkspace,
+      onDeleteWorkspace: handleDeleteWorkspace,
+      onRenameWorkspace: handleRenameWorkspace,
+      currentView,
+      routeView: route.view,
+      onViewChange: handleViewChange,
+      activeRecipe: recipe.activeRecipe,
+      activeRecipeAliasId: route.activeRecipeAliasId,
+      onCloseRecipe: handleCloseRecipe,
+      onSelectRecipe: handleRecipeSelection,
+      onOpenDashboard: viewState.overlays.dashboard.open,
+      onOpenOnboarding: () => studioRuntime.onboarding.open(),
+      onOpenSupport: () => setSupportOpen(true),
+      onOpenChat: viewState.overlays.chat.open,
+      onOpenTrash: viewState.overlays.trash.open,
+      trashCount: catalogTrashGroups.length,
+      onToggleDebug: activitySession.debugPanel.toggle,
+      usage: studioRuntime.status.diagnostics.usage,
+      commandCenter: buildStudioCommandCenterProjection({
+        settings: studioSettings.data.settingsDomain.settings,
+        providerCapabilities: studioSettings.data.providerDomain.capabilities,
+        providerRuntimePreflight: studioSettings.data.providerDomain.runtimePreflight,
+        statusItems: studioRuntime.status.diagnostics.statusItems,
+        activeJobCount: queueCounts.activeJobCount,
+        reviewJobCount: queueCounts.reviewJobCount,
+        isQueueOpen: viewState.queue.isOpen,
       }),
+      isQueueOpen: viewState.queue.isOpen,
+      onToggleQueue: () => viewState.queue.setIsOpen((previous) => !previous),
+      onOpenSettings: viewState.overlays.settings.open,
+      onSelectProvider: async (providerId) => {
+        await studioSettings.data.settingsDomain.update({ defaultProviderId: providerId });
+      },
+      isProviderSaving: studioSettings.data.settingsDomain.isSaving,
+    }),
     [
       pipeline.isGenerating,
       route.view,

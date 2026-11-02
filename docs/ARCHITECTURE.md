@@ -73,7 +73,7 @@ React's renderer lives in a separate cacheable runtime chunk. `AppContent` loads
 - `lib/catalogRenderBudget.ts`, `lib/catalogCardActionSurface.ts`, and `lib/imageGridPresentation.ts` keep hot Catalog rendering bounded.
   They preserve card animation, hover or focus commands, and initial-viewport image discovery.
 - `lib/routePreloadBudget.ts` owns idle and intent-based route preloads. Home does not import every recipe surface before user intent.
-- `lib/buildStudioHeaderToolbarProps.ts` and `lib/commandCenterProjection.ts` project Command Center state.
+- `lib/commandCenterProjection.ts` projects Command Center state.
 - `components/shell/StudioViewport.tsx` demand-loads route surfaces.
 - `hooks/useScopedGenerationDraft.ts` projects reference-dependent style instructions and the active Character Lab mode at the draft owner. Remaster adopts a new source's aspect ratio when its dimensions arrive; manual ratio changes survive workflow switches and reloads until the source changes.
 - `hooks/useDialogFocus.ts` opens native modal dialogs and owns scroll locking and focus restoration. Shared menus and tooltips portal into their owning dialog or fullscreen container. Nonmodal workflow panels declare `aria-modal="false"` so they do not block global shortcuts.

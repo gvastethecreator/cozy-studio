@@ -46,11 +46,7 @@ You need:
 - A modern browser.
 - Optional, only for the Codex provider: Codex CLI from <https://github.com/openai/codex> with `codex login`.
 
-**Portable launch.** No portable ZIPs are published yet, so build your own ZIP for your OS and CPU (next paragraph) and extract it. Open `scripts/Cozy Studio.bat` on Windows, `scripts/Cozy Studio.command` on macOS or `scripts/Cozy Studio.sh` on Linux. Read [PORTABLE.txt](PORTABLE.txt) for prerequisites. With no explicit `STUDIO_LIBRARY_DIR`, these launchers keep the Library inside the app folder. [Platform support](docs/PLATFORMS.md) lists path rules and verification limits.
-
-To build a portable ZIP, run `bun run build` and `bun run portable:build`. The default target is the host; select another with, for example, `bun run portable:build linux-x64` or `bun run portable:build macos-arm64`. Each ZIP includes its pinned Bun runtime, matching production dependencies, launcher and built UI. The builder prints its path under `.scratch/portable/` and writes a SHA-256 file beside it.
-
-**From a checkout.** Development also requires Node.js 22 (22.18 or newer), 24 (24.11 or newer), or 26+, as required by Vite+.
+**From a checkout.** Development also needs Node.js 22 (22.18 or newer), 24 (24.11 or newer) or 26+, as Vite+ requires.
 
 ```bash
 git clone -c core.longpaths=true https://github.com/gvastethecreator/cozy-studio.git
@@ -61,9 +57,11 @@ bun run studio:init
 bun run dev
 ```
 
-On Windows, keep `-c core.longpaths=true`: some workflow asset paths are about 160 characters long, and a clone into a deep folder fails without it.
+On Windows, keep `-c core.longpaths=true`. Some workflow asset paths are about 160 characters long, and a clone into a deep folder fails without it.
 
-Then open the UI at <http://localhost:17222>. The local API health check is at <http://localhost:17223/api/health>. To update a checkout later, use **Settings → Help & updates**; it fast-forwards `main`, installs dependencies and restarts Studio.
+Then open the UI at <http://localhost:17222>. To update a checkout later, use **Settings → Help & updates**. It fast-forwards `main`, installs dependencies and restarts Studio.
+
+**Portable ZIP.** No portable ZIPs are published yet. To get one, build your own ZIP from a checkout with `bun run build` and then `bun run portable:build`. [Tooling](docs/TOOLING.md) lists the targets for each OS and CPU. Extract the ZIP and follow [PORTABLE.txt](PORTABLE.txt) to launch it. [Platform support](docs/PLATFORMS.md) lists the OS requirements.
 
 **Ask an agent.** Open this folder in Claude Code, Codex or Cursor and ask for first setup, or use Copy prompt on the onboarding screen. The prompt points at `skills/cozy-studio-setup/SKILL.md`.
 
@@ -71,7 +69,7 @@ Then open the UI at <http://localhost:17222>. The local API health check is at <
 Set up Cozy Studio for first run.
 ```
 
-After setup, the agent can drive Studio through the `cozy-studio-mcp` server: check readiness, organize Library images with tags and collections, install or update style packs, change settings, generate images and apply app updates. [Agent tools (MCP)](docs/agents/mcp.md) lists the tools and how to register the server.
+After setup, an agent can drive Studio through the `cozy-studio-mcp` server: check readiness, organize Library images with tags and collections, install or update style packs, change settings, generate images and apply app updates. [Agent tools (MCP)](docs/agents/mcp.md) lists the tools and how to register the server.
 
 ## First image
 
@@ -81,40 +79,20 @@ After setup, the agent can drive Studio through the `cozy-studio-mcp` server: ch
 4. Check the provider and model in the Create footer, then select **Generate**.
 5. Find the result in **Library** and in your images folder. Open the viewer to inspect the image, reuse its prompt or download it.
 
-Onboarding shows the images destination and any setup actions still needed. Setup details stay collapsed when Studio is ready. Essentials installs when no style pack is present. Use the [setup skill](skills/cozy-studio-setup/SKILL.md) with an agent if setup is blocked.
+Onboarding shows the images destination and any setup actions that are still necessary. If setup is blocked, see [Troubleshooting](docs/TROUBLESHOOTING.md) or ask an agent to use the [setup skill](skills/cozy-studio-setup/SKILL.md).
 
-## Files, settings and providers
-
-Images go to **Pictures/Cozy Studio** by default. Change the destination in **Settings → Files & naming**; existing images stay where they are. Studio keeps its database, references, thumbnails and logs in a separate local Library. Portable launch uses its own Library location unless configured otherwise.
-
-Original PNG, JPEG and WebP outputs can contain the generation prompt and model as metadata. Sharing an original file also shares that text. Use the conversion controls with metadata disabled when you want to remove descriptive metadata.
-
-The [user guide](docs/USER_GUIDE.md) covers file locations and naming, conversion, style packs, provider setup, backgrounds, jobs and updates. [Troubleshooting](docs/TROUBLESHOOTING.md) explains blocked jobs and recovery. Contributors should start with [Contributing](CONTRIBUTING.md) and use [Tooling](docs/TOOLING.md) for commands and validation.
+Original PNG, JPEG and WebP files can contain the generation prompt and model as metadata. Sharing an original file also shares that text. To remove it, convert the image with metadata turned off.
 
 ## Documentation
 
-- [Documentation index](./docs/README.md)
-- [User guide](./docs/USER_GUIDE.md)
-- [Agent tools (MCP)](./docs/agents/mcp.md)
-- [Agent rules](./AGENTS.md)
-- [Architecture](./docs/ARCHITECTURE.md)
-- [Dependencies](./docs/DEPENDENCIES.md)
-- [Troubleshooting](./docs/TROUBLESHOOTING.md)
-- [Portable launch](./PORTABLE.txt)
-- [Electron development shell](./docs/ELECTRON.md)
-- [Contributing](./CONTRIBUTING.md)
-- [Security](./SECURITY.md)
+- [User guide](docs/USER_GUIDE.md): Settings, Library, files, style packs, providers, jobs and updates
+- [Troubleshooting](docs/TROUBLESHOOTING.md): blocked setup, provider errors and recovery
+- [Contributing](CONTRIBUTING.md) and [Tooling](docs/TOOLING.md): start the app, checks and portable builds
+- [All documentation](docs/README.md)
 
 ## Status
 
-Cozy Studio is in open-source preview.
-
-- Local development is documented and works.
-- ChatGPT HTTP is the recommended provider; Codex app-server is a separate, optional route.
-- Style packs install from GitHub releases; Essentials is the default pack.
-- Optional provider adapters are backend integrations, not the product center.
-- Native video is a later media-domain decision.
-- Desktop packaging is not the user channel. Electron is a development shell. Use the browser plus portable launchers, or `bun run dev` in a checkout.
+Cozy Studio is in open-source preview. ChatGPT HTTP is the recommended provider, and the user path is the browser with `bun run dev` or a portable launcher. The [roadmap](ROADMAP.md) lists the current priorities.
 
 For feature requests, open an issue or a pull request. If this project is useful, star it or become a sponsor.
 

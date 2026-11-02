@@ -1,6 +1,11 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { StudioSettingsFormState } from '../../lib/studioSettingsForm';
 import { ACCENT_PALETTES, useTheme } from '../../hooks/useTheme';
+import {
+  IMAGE_WHEEL_ZOOM_MAX_SENSITIVITY,
+  IMAGE_WHEEL_ZOOM_MIN_SENSITIVITY,
+} from '../../lib/imagePanZoom';
+import { useT } from '../../lib/i18n';
 
 export function SettingsAppearancePanel({
   value,
@@ -10,6 +15,8 @@ export function SettingsAppearancePanel({
   onChange: Dispatch<SetStateAction<StudioSettingsFormState>>;
 }) {
   const { preferences, previewPreferences } = useTheme();
+  const { t } = useT();
+  const zoomPercent = `${Math.round(preferences.zoomSensitivity * 100)}%`;
   return (
     <div className="settings-form-stack">
       <div className="settings-group">
@@ -73,6 +80,31 @@ export function SettingsAppearancePanel({
             <option value="system">System</option>
             <option value="reduced">Reduced</option>
           </select>
+        </label>
+        <label className="settings-row">
+          <span>
+            <strong>{t('settings.appearance.zoomSensitivity')}</strong>
+            <small>{t('settings.appearance.zoomSensitivityHint')}</small>
+          </span>
+          <span className="flex items-center gap-2">
+            <input
+              type="range"
+              className="studio-range"
+              aria-label={t('settings.appearance.zoomSensitivity')}
+              aria-valuetext={zoomPercent}
+              min={IMAGE_WHEEL_ZOOM_MIN_SENSITIVITY}
+              max={IMAGE_WHEEL_ZOOM_MAX_SENSITIVITY}
+              step={0.05}
+              value={preferences.zoomSensitivity}
+              onChange={(event) =>
+                previewPreferences({
+                  ...preferences,
+                  zoomSensitivity: Number(event.target.value),
+                })
+              }
+            />
+            <span>{zoomPercent}</span>
+          </span>
         </label>
       </div>
       <div className="settings-group">

@@ -14,13 +14,48 @@ export function clampImagePanZoomScale(scale: number, minScale = IMAGE_PAN_ZOOM_
   return Math.min(Math.max(scale, minScale), IMAGE_PAN_ZOOM_MAX_SCALE);
 }
 
+// Pixels per DOM_DELTA_PIXEL, DOM_DELTA_LINE and DOM_DELTA_PAGE unit.
+const WHEEL_MODE_PX = [1, 40, 800];
+// Trackpad pinch arrives as ctrlKey wheel events about ten times smaller than scrolling.
+const WHEEL_PINCH_BOOST = 10;
+// One mouse notch (100-120 px) is the largest step a single event can take.
+const WHEEL_MAX_STEP_PX = 100;
+// At sensitivity 1 a full notch zooms about 10%.
+const WHEEL_ZOOM_PER_PX = 0.001;
+export const IMAGE_WHEEL_ZOOM_MIN_SENSITIVITY = 0.25;
+export const IMAGE_WHEEL_ZOOM_MAX_SENSITIVITY = 2;
+
+let wheelZoomSensitivity = 1;
+
+/** Settings sets this; the next wheel event uses it. */
+export function setImageWheelZoomSensitivity(value: number) {
+  wheelZoomSensitivity = Number.isFinite(value)
+    ? Math.min(Math.max(value, IMAGE_WHEEL_ZOOM_MIN_SENSITIVITY), IMAGE_WHEEL_ZOOM_MAX_SENSITIVITY)
+    : 1;
+}
+
+/** Mouse notches, trackpad scrolls and pinches as comparable pixels, capped at one notch. */
+export function normalizeImageWheelDelta({
+  deltaY,
+  deltaMode,
+  ctrlKey,
+}: Pick<WheelEvent, 'deltaY' | 'deltaMode' | 'ctrlKey'>) {
+  const px = deltaY * (WHEEL_MODE_PX[deltaMode] ?? 1) * (ctrlKey ? WHEEL_PINCH_BOOST : 1);
+  return Math.min(Math.max(px, -WHEEL_MAX_STEP_PX), WHEEL_MAX_STEP_PX);
+}
+
 export function nextImageWheelScale(
   scale: number,
-  deltaY: number,
+  event: Pick<WheelEvent, 'deltaY' | 'deltaMode' | 'ctrlKey'>,
   minScale = IMAGE_PAN_ZOOM_MIN_SCALE,
+  sensitivity = wheelZoomSensitivity,
 ) {
-  if (deltaY === 0) return scale;
-  return clampImagePanZoomScale(scale + (deltaY < 0 ? 1 : -1) * 0.25 * scale, minScale);
+  const delta = normalizeImageWheelDelta(event);
+  if (delta === 0) return scale;
+  return clampImagePanZoomScale(
+    scale * Math.exp(-delta * WHEEL_ZOOM_PER_PX * sensitivity),
+    minScale,
+  );
 }
 
 export function imageFitScale(
@@ -211,7 +246,7 @@ export function useImagePanZoom(enabled: boolean, imageKey?: string) {
       setZoom(
         nextImageWheelScale(
           target.current.scale,
-          event.deltaY,
+          event,
           Math.min(IMAGE_PAN_ZOOM_MIN_SCALE, fitScale.current * 0.2),
         ),
         {

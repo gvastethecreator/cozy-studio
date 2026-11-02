@@ -22,6 +22,9 @@ export const es: Dictionary = {
   'settings.language.heading': 'Idioma',
   'settings.language.label': 'Idioma de la interfaz',
   'settings.language.hint': 'Los prompts, los paquetes de estilos y tu contenido no se traducen.',
+  'settings.appearance.zoomSensitivity': 'Sensibilidad del zoom',
+  'settings.appearance.zoomSensitivityHint':
+    'Qué tan rápido hacen zoom la rueda o el pellizco en las vistas previas de imágenes.',
 
   'tcg.title': 'TCG Component Studio',
   'tcg.intro':

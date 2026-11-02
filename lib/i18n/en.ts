@@ -21,6 +21,8 @@ export const en = {
   'settings.language.heading': 'Language',
   'settings.language.label': 'Interface language',
   'settings.language.hint': 'Prompts, style packs and your own content are never translated.',
+  'settings.appearance.zoomSensitivity': 'Zoom sensitivity',
+  'settings.appearance.zoomSensitivityHint': 'How fast scrolling or pinching zooms image previews.',
 
   'tcg.title': 'TCG Component Studio',
   'tcg.intro':

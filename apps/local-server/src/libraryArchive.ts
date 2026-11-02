@@ -4,7 +4,7 @@ import { Readable } from 'node:stream';
 import { inflateRawSync } from 'node:zlib';
 import type { Database } from 'bun:sqlite';
 import JSZip from 'jszip';
-import sharp from 'sharp';
+import { authoringSharp as sharp } from './sharpAuthoringAdapter';
 import studioPackage from '../../../package.json';
 import {
   LIBRARY_ARCHIVE_FORMAT,

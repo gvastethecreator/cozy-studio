@@ -1,15 +1,15 @@
 # Code map: cozy-studio
 
-Generated: 2026-11-02T18:57:33Z | Commit: `369dc3129b0e` | Schema: 2
-Generation: `2bcb83eceb212f01eaa7100b21dfea7f4e20ac19a79246954f7d3b0037e9f497`
+Generated: 2026-11-02T20:53:19Z | Commit: `0b7e530c0acd` | Schema: 2
+Generation: `1b892ad497732edd637090a821119e4c1f9608440c384324a4642bca6cde338a`
 Scope: . | Inventory: working-tree
-Nodes: 1034 | Edges: 7023 | Flows: 0
+Nodes: 1035 | Edges: 7035 | Flows: 0
 
 ## Coverage
 
-- Analysis: **partial**; 976 analyzed of 993 included files.
+- Analysis: **partial**; 977 analyzed of 994 included files.
 - Configuration files: 7; omitted untracked files: 0.
-- Unresolved references and analysis limits: 5038.
+- Unresolved references and analysis limits: 5063.
 - Static references and call paths do not prove runtime execution or test coverage.
 
 ## Modules
@@ -34,7 +34,7 @@ Nodes: 1034 | Edges: 7023 | Flows: 0
 - `apps/local-server/src/auth/authRoutes.ts` | module | Repository | callers: apps/local-server/src/appFactory.ts, apps/local-server/src/appFactory.ts, apps/local-server/src/auth/authRoutes.test.ts, apps/local-server/src/auth/authRoutes.test.ts | callees: apps/local-server/src/auth/controller.ts, apps/local-server/src/auth/oauthHttp.ts, apps/local-server/src/auth/oauthHttp.ts, external:javascript:hono | tests: 1 | entry: none
 - `apps/local-server/src/auth/constants.ts` | module | Repository | callers: apps/local-server/src/auth/authRoutes.test.ts, apps/local-server/src/auth/deviceCode.test.ts, apps/local-server/src/auth/deviceCode.ts, apps/local-server/src/auth/deviceCode.ts | callees: none | tests: 3 | entry: none
 - `apps/local-server/src/auth/controller.ts` | module | Repository | callers: apps/local-server/src/auth/authRoutes.test.ts, apps/local-server/src/auth/authRoutes.test.ts, apps/local-server/src/auth/authRoutes.ts, apps/local-server/src/reset.ts | callees: apps/local-server/src/auth/deviceCode.ts, apps/local-server/src/auth/googleAuthorizationCode.ts, apps/local-server/src/auth/oauthHttp.ts, apps/local-server/src/auth/oauthHttp.ts | tests: 1 | entry: none
-- Showing 20 of 1034 nodes. Query `impact --module <path>` or open the HTML hierarchy for the rest.
+- Showing 20 of 1035 nodes. Query `impact --module <path>` or open the HTML hierarchy for the rest.
 
 ## Edges
 
@@ -88,7 +88,7 @@ Nodes: 1034 | Edges: 7023 | Flows: 0
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/animationGifEncoder.ts` | calls
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/animationGifEncoder.ts` | imports
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/db/jobs.ts` | imports
-- Showing 50 of 7023 edges; JSON contains every edge and its evidence.
+- Showing 50 of 7035 edges; JSON contains every edge and its evidence.
 
 ## Unknown
 
@@ -111,7 +111,7 @@ Nodes: 1034 | Edges: 7023 | Flows: 0
 
 ## Architecture changes
 
-- Nodes: +0 / -7; edges: +26 / -24.
+- Nodes: +1 / -0; edges: +15 / -3.
 - Boundary changes: 0; new cycles: 0.
 
 ## Read next

@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
-  "source_commit": "369dc3129b0ecad313fb9b4da3fd6694b399d46f",
+  "source_commit": "0b7e530c0acdecc43154db88d2360d5d04fe1588",
   "working_tree_dirty": false,
-  "generated_at": "2026-11-02T18:57:33Z",
-  "generation_id": "2bcb83eceb212f01eaa7100b21dfea7f4e20ac19a79246954f7d3b0037e9f497",
+  "generated_at": "2026-11-02T20:53:19Z",
+  "generation_id": "1b892ad497732edd637090a821119e4c1f9608440c384324a4642bca6cde338a",
   "analysis": {
     "version": "syntax-1",
     "digest": "ae6d608d107619ec3efae990b53b43e523c90e8f5d2c3e86ab86c9e8ec95d260"
@@ -131,8 +131,8 @@
         "path": "apps/local-server/src/appFactory.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "242e38c3ae5e02d966d049b2d166caa308fd4a765fc45104c44860e1dea9e47a",
-        "size": 31098
+        "digest": "4533615ba1ee3ec162814d55eb92088083d4f30c5df437149b197f8d0e1d100b",
+        "size": 31176
       },
       {
         "path": "apps/local-server/src/appFactory.ts",
@@ -292,15 +292,15 @@
         "path": "apps/local-server/src/catalog.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "696aaf88afdb794d711b5e8df4d971bb07637468c28b1cdea1c6a29b55472378",
-        "size": 8099
+        "digest": "79a0f76a718d58dad93ce0e39aa634668327984144de7a64f3a8c32b757fde35",
+        "size": 8123
       },
       {
         "path": "apps/local-server/src/catalog.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "9dcca356916ba601b6c65d9075a6dc57cc1c99559e03346b43b13d9e542032b0",
-        "size": 21738
+        "digest": "a35488e8043ccfe8525740045ef40bd12dcb75867eccb022788640df60e9b109",
+        "size": 21518
       },
       {
         "path": "apps/local-server/src/catalogCollections.test.ts",
@@ -313,8 +313,8 @@
         "path": "apps/local-server/src/catalogCollections.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "13c52b24a18dbe63a9a72e245ac07841d0b73e66b3af88d3d798bdd8187c62f3",
-        "size": 8646
+        "digest": "77514013b96a1216279a25855b29ad8071c291d1d3786cb409dd005cff228a6c",
+        "size": 15273
       },
       {
         "path": "apps/local-server/src/catalogCommands.test.ts",
@@ -327,29 +327,29 @@
         "path": "apps/local-server/src/catalogCommands.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "986f2eb3ef0342f34240c7976490e78fb3f673786754ed45c54b7fa116724c39",
-        "size": 4337
+        "digest": "76c01027474f5d4ef3ef6ae5d866c2af788b788d040e4c6d543ba7ffa0be3939",
+        "size": 4318
       },
       {
         "path": "apps/local-server/src/catalogRoutes.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "3b7a0665aa2b7d32d567484e96b4d606a737c0c9216a9e631308b99d9010d6c6",
-        "size": 23354
+        "digest": "afd7ef1b730a32d0d3e94040acf449926b57dd4a65426f2f9544c30d5c1a1f2f",
+        "size": 27519
       },
       {
         "path": "apps/local-server/src/catalogRoutes.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "397a3d007fae1b43414219112b55883d2b8068616dbaccefb7378c524f962800",
-        "size": 14164
+        "digest": "dba42061723a16b983a528a328152767e806f28604086211161dba5646e10d76",
+        "size": 14734
       },
       {
         "path": "apps/local-server/src/catalogStore.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "0d013127e7e2d12aaefc297f1289508776276d10e23ca2cc1b7b01af4d3cf108",
-        "size": 3979
+        "digest": "28f30980c62f36e4d2365e3d5ed6ec461d3ab4ff58373b2aebad50d70b8aa9c3",
+        "size": 4248
       },
       {
         "path": "apps/local-server/src/catalogTags.ts",
@@ -649,15 +649,15 @@
         "path": "apps/local-server/src/db/migrations.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "ef7f8b2de5deb4222c748aaf6a7393ff362ae048e989b5b1f6814e8dcce083bd",
-        "size": 4033
+        "digest": "e197f669d2ca21e65df3c8c9d21d724fed6c88f912e6eb5ecb347b55b1f73f3f",
+        "size": 6721
       },
       {
         "path": "apps/local-server/src/db/migrations.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "59df001cd182fc1c8c972a6075380acbc6da235857e3f1eea23d3f0d5f9b4df2",
-        "size": 25511
+        "digest": "66dda25d4166670438b12fbc9e4b71a806dbeb172c9b5c698f0df90bba65d5b9",
+        "size": 29831
       },
       {
         "path": "apps/local-server/src/db/outputGenerations.ts",
@@ -691,15 +691,15 @@
         "path": "apps/local-server/src/dbMigration.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "93b58c0e06c2b2422400de7b2bab8b673a794560b1ff7e20d48d24e7197d7fd8",
-        "size": 1453
+        "digest": "4bfd4bb3641e5f403a1ec9685e20d20141b1f09b4c51c4161b90683276d22a96",
+        "size": 1485
       },
       {
         "path": "apps/local-server/src/dbMigrationFixture.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "6f8fecfb21d45fc7b4f07d8f951c4d160b72c7be60d2616df8d80f948c7e762d",
-        "size": 26532
+        "digest": "c45c28eef57a06bbee3241d8c8add6804bcd8c4b6e6f1c49ae8ac106cab634fd",
+        "size": 29743
       },
       {
         "path": "apps/local-server/src/eventStreamRoutes.test.ts",
@@ -1034,22 +1034,22 @@
         "path": "apps/local-server/src/mcpRoutes.bun.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "e38fc5437b40f818ad47020f69595142c2215c2ea5be5a74a7a873d6f8475f33",
-        "size": 25409
+        "digest": "3a9da5bf44cce2762904f0230f90f83023e01cc8c5fdeabe22256b5a78be74b9",
+        "size": 25501
       },
       {
         "path": "apps/local-server/src/mcpRoutes.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "86e4ef65dced500f3497d8fdad45121f22485f68749335d5370ec66a80457293",
-        "size": 28223
+        "digest": "268d587eb6c7f00ee7748a80ba11fbaca0e849ad3e65240fb9810cfc94bd98f2",
+        "size": 25294
       },
       {
         "path": "apps/local-server/src/mcpRoutes.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "f416a46e33b7bd254c2acf75e5816b674ddd639ea52a536b39df5790513692dc",
-        "size": 32725
+        "digest": "fa589d48637b99eb617b2c8a1f7ad91b6bb6b6bd7b9c63dee789b6c06901fb7c",
+        "size": 26844
       },
       {
         "path": "apps/local-server/src/mcpStyles.ts",
@@ -2126,8 +2126,8 @@
         "path": "apps/local-server/src/workerShutdown.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "1c545558286613be3672daa84ac3036eeb2c4851ecaa585f08e583200466621a",
-        "size": 23224
+        "digest": "0758aa4edd15b5c33b46ce739f42a4ddf14b244f8815a1818328f62320e17ffe",
+        "size": 23737
       },
       {
         "path": "apps/local-server/src/workflowRunReconciler.test.ts",
@@ -2182,8 +2182,8 @@
         "path": "components/CarouselImageDetails.test.tsx",
         "origin": "tracked",
         "state": "present",
-        "digest": "7b715b0c89c8d4517d8399c1b247213d7f05410e8350718066090faabcbf2c85",
-        "size": 15034
+        "digest": "8356f08fa0df22c705028d739facd64b642e3bfc7c92f1fcf592c62678d5cf14",
+        "size": 16108
       },
       {
         "path": "components/CarouselImageDetails.tsx",
@@ -2287,15 +2287,15 @@
         "path": "components/ImageCollectionsEditor.tsx",
         "origin": "tracked",
         "state": "present",
-        "digest": "b951cb39fe86cbb1b66a6f6c1f9144ff5f3fcff351d6b4ee5a9813988f573f63",
-        "size": 5990
+        "digest": "a11c15abae70cd576fad96cbd56958a90f1d685993eeb5ec9d90dc2c30956aa5",
+        "size": 6180
       },
       {
         "path": "components/ImageCollectionsMenu.tsx",
         "origin": "tracked",
         "state": "present",
-        "digest": "2a1599be23997969e376c431a1992ce34308c48f2b0494e157decf5d5ebe1568",
-        "size": 9545
+        "digest": "94aec0817202ca5d306a38ee5b1d3e2a5297421577959a32a93d6d8b1d8fb488",
+        "size": 9781
       },
       {
         "path": "components/ImageComparison.test.tsx",
@@ -2357,15 +2357,15 @@
         "path": "components/ImageOrganizationPicker.tsx",
         "origin": "tracked",
         "state": "present",
-        "digest": "3a39bd1e2672829347303052a41cc8fe21dbe7058f833cdad8a8a81db7f971f6",
-        "size": 6557
+        "digest": "d6e27775434773a268ac9ef32128ff4f2c4032e5001c29e0c48ee93e21c2c70e",
+        "size": 6330
       },
       {
         "path": "components/ImageTagsEditor.tsx",
         "origin": "tracked",
         "state": "present",
-        "digest": "48aa490eb521cd38355f2a2b38481842b80c816f4515a9e599b6194c7efc2c98",
-        "size": 6109
+        "digest": "c69b0a8035106d5c2afd543c106fbad701bdd832510fd3ce61495ad7bdfed35d",
+        "size": 5587
       },
       {
         "path": "components/JobInspectorDetail.tsx",
@@ -3946,8 +3946,8 @@
         "path": "hooks/useCatalogOrganization.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "1c969d0c9900ee29b4b8fe2ef0cf1295cc0fa22e9c16330c6a36dabcf23df21d",
-        "size": 2424
+        "digest": "6b0fda1ca78badba8e038053aa48e2b7017702c2455c73306a36b9ce63e10254",
+        "size": 2903
       },
       {
         "path": "hooks/useCatalogPage.test.tsx",
@@ -5668,8 +5668,8 @@
         "path": "packages/shared/src/catalogCollections.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "4f7682df945f290b31429a26ec30e40b43f43cd1e8e883b8fff45efce11d4b31",
-        "size": 3295
+        "digest": "7be6d2ddecaac5973f410f2a0300e781dabdcfb9d98e0714b3e082eaa2c86b16",
+        "size": 6292
       },
       {
         "path": "packages/shared/src/catalogTags.ts",
@@ -5983,8 +5983,8 @@
         "path": "packages/shared/src/studioMcp.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "f4004bb83add149128849e95c98088fe355b7b6322ad707a56f361bd9760215b",
-        "size": 20871
+        "digest": "2335a6e8422313c45451c243d8c097dbd550ca37fdf6fd6e2f1c6a5d4b0ad43f",
+        "size": 20900
       },
       {
         "path": "packages/shared/src/studioReadinessContracts.ts",
@@ -6578,8 +6578,8 @@
         "path": "scripts/tooling-task.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "9fde71c00104fe09dcf2b042bd7afad3ef38d391d5b37f5f21f976fc5b6ae5fb",
-        "size": 15803
+        "digest": "d1cbb3add1d288ee8f230f16dc5efa306c7abfe3e7e465c9a7b74653ed7db3b4",
+        "size": 15959
       },
       {
         "path": "scripts/validate-recipe-module-examples.ts",
@@ -6587,6 +6587,13 @@
         "state": "present",
         "digest": "1030d56b4781ccea5bbed0b8efaad8b71bd79ecfc5d4ab9c6a824de9a4d21658",
         "size": 775
+      },
+      {
+        "path": "scripts/verify-installed-deps.ts",
+        "origin": "tracked",
+        "state": "present",
+        "digest": "876058e2a88d8566314bc8eb37d3b2b8e6b4a501c7300e8aba6998edd1fb1afe",
+        "size": 1908
       },
       {
         "path": "scripts/verify-job-workflow.ts",
@@ -6690,8 +6697,8 @@
         "path": "services/studio-api/catalog.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "fb4051407a8f85da43d69ad81dfa28fff114cebf2a7d7be8ee8a7160f5a7bb7e",
-        "size": 6331
+        "digest": "21801d98d90580e2000723f2c29128becd12b4091a464acb227c2247770c408b",
+        "size": 6700
       },
       {
         "path": "services/studio-api/codex.ts",
@@ -6995,12 +7002,12 @@
         "size": 955
       }
     ],
-    "digest": "ca6cdd46b1dc91b8a50152dfc703862cad928ae8f64fd1c2c3f4fd0bb32143dc"
+    "digest": "04eae134d74b01f2425d649e5065a2fe1c8ec5ed55fb45996f0b826712d1e40c"
   },
-  "source_digest": "71e8103a045a9b361a16f5a277909d89ce281855a1ff2375d36796d144b033a1",
+  "source_digest": "842ecf8852d485d09481710a446dff933b831471759adbf90a4f7852009ed8bd",
   "artifact_hashes": {
-    "codemap.json": "8bc312830f0b0dd1cd23da7c93c7e0d8ebb78e43d2d9dbbd11bf1f0423738ba5",
-    "codemap.md": "1ebf4e7dff27e55c283e12bac9b8132e8a2e9e900eb5e91ccbaf7d98b8eaed1d",
-    "codemap.html": "e7cd6fa9209b03e19046c524040a4b4a22acbd9dfec60998bacd609a437af04b"
+    "codemap.json": "8aa5e9889ce415149d355816ea815051281d91666720d12de17f6998a87da080",
+    "codemap.md": "b728e120c2484a6c454b5cfc43e57613f07fe0eb16f1559193fe83741fca0468",
+    "codemap.html": "0b46de3b7bcd50ae3747307afa59ad7775fe000ac39023001964a30bc77e2aef"
   }
 }

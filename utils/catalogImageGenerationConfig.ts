@@ -75,6 +75,20 @@ function readSourceAttachments(record: RecordLike | null, catalogId: string): At
   });
 }
 
+/** Enabled styles saved with the job, as stored, for display. */
+export function readAppliedStyles(config: ImageGenerationConfig) {
+  const styles = config.recipeParams?.selectedStyles;
+  return Array.isArray(styles)
+    ? styles.filter(
+        (style): style is RecordLike & { presetName: string } =>
+          isRecord(style) &&
+          style.enabled !== false &&
+          typeof style.presetName === 'string' &&
+          style.presetName.trim() !== '',
+      )
+    : [];
+}
+
 /** Regenerate never borrows composer references; a missing required source stops it. */
 export function getCatalogRegenerateIssue(config: ImageGenerationConfig) {
   const requirement = getGenerationRequirement({

@@ -85,6 +85,13 @@ export function useImagePanZoom(enabled: boolean, imageKey?: string) {
   const rafId = useRef<number | null>(null);
   const [scale, setScale] = useState(IMAGE_PAN_ZOOM_ACTUAL_SCALE);
 
+  // The variable lets several wrappers inside one viewport follow the same transform.
+  const paint = useCallback(({ x, y, scale: nextScale }: typeof current.current) => {
+    const transform = `translate(-50%, -50%) translate3d(${x}px, ${y}px, 0) scale(${nextScale})`;
+    if (contentRef.current) contentRef.current.style.transform = transform;
+    viewportRef.current?.style.setProperty('--pan-zoom-transform', transform);
+  }, []);
+
   const animate = useCallback(() => {
     rafId.current = null;
     if (!enabled) return;
@@ -104,11 +111,9 @@ export function useImagePanZoom(enabled: boolean, imageKey?: string) {
       current.current = { ...target.current };
     }
 
-    if (contentRef.current) {
-      contentRef.current.style.transform = `translate(-50%, -50%) translate3d(${current.current.x}px, ${current.current.y}px, 0) scale(${current.current.scale})`;
-    }
+    paint(current.current);
     setScale(current.current.scale);
-  }, [enabled]);
+  }, [enabled, paint]);
 
   const startAnimation = useCallback(() => {
     if (rafId.current === null && enabled) rafId.current = requestAnimationFrame(animate);
@@ -159,11 +164,10 @@ export function useImagePanZoom(enabled: boolean, imageKey?: string) {
     } else fitScale.current = IMAGE_PAN_ZOOM_ACTUAL_SCALE;
     target.current = { x: 0, y: 0, scale: fitScale.current };
     current.current = { ...target.current };
-    if (contentRef.current)
-      contentRef.current.style.transform = `translate(-50%, -50%) translate3d(0px, 0px, 0) scale(${fitScale.current})`;
+    paint(current.current);
     if (viewportRef.current) viewportRef.current.style.cursor = '';
     setScale(fitScale.current);
-  }, []);
+  }, [paint]);
 
   const zoomIn = useCallback(() => setZoom(target.current.scale * 1.25), [setZoom]);
   const zoomOut = useCallback(() => setZoom(target.current.scale / 1.25), [setZoom]);
@@ -242,7 +246,9 @@ export function useImagePanZoom(enabled: boolean, imageKey?: string) {
     const handleWheel = (event: WheelEvent) => {
       if (event.deltaY === 0) return;
       event.preventDefault();
-      const rect = viewport.getBoundingClientRect();
+      // A compare grid zooms around the pointer in its own cell; one image uses the viewport.
+      const anchor = (event.target as Element).closest?.('[data-pan-zoom-cell]') ?? viewport;
+      const rect = anchor.getBoundingClientRect();
       setZoom(
         nextImageWheelScale(
           target.current.scale,

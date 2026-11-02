@@ -8,7 +8,7 @@ import { useToastUi } from '../../contexts/GlobalContext';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { FormatPreview } from '../FormatPreview';
 import { ImageGrid } from '../ImageGrid';
-import { ImageComparison } from '../ImageComparison';
+import { COMPARE_MAX_IMAGES, ImageComparison } from '../ImageComparison';
 
 export interface StudioGridSurfaceProps {
   libraryFilters: LibraryFilters;
@@ -85,9 +85,8 @@ export const StudioGridSurface: React.FC<StudioGridSurfaceProps> = ({
 }) => {
   const { addToast } = useToastUi();
   const exportLock = useRef(false);
-  const [comparison, setComparison] = useState<
-    [GeneratedImageWithConfig, GeneratedImageWithConfig] | null
-  >(null);
+  // Images in selection order at open time; the live grid entry wins so favorite marks stay current.
+  const [comparison, setComparison] = useState<GeneratedImageWithConfig[] | null>(null);
   const [exportState, setExportState] = useState<{
     message: string;
     running: boolean;
@@ -217,8 +216,8 @@ export const StudioGridSurface: React.FC<StudioGridSurfaceProps> = ({
             selectedImages={selectedImages}
             isExporting={exportState?.running}
             onCompareSelected={() => {
-              if (selectedImages.length === 2)
-                setComparison([selectedImages[0], selectedImages[1]]);
+              if (selectedImages.length >= 2 && selectedImages.length <= COMPARE_MAX_IMAGES)
+                setComparison(selectedImages);
             }}
             onImageClick={openModal}
             onSelectionChange={handleSelectionChange}
@@ -246,7 +245,16 @@ export const StudioGridSurface: React.FC<StudioGridSurfaceProps> = ({
           />
         </ErrorBoundary>
       </div>
-      {comparison && <ImageComparison images={comparison} onClose={() => setComparison(null)} />}
+      {comparison && (
+        <ImageComparison
+          images={comparison.map(
+            (image) => imagesWithConfig.find((entry) => entry.id === image.id) ?? image,
+          )}
+          workspaceId={activeWorkspaceId}
+          onToggleFavorite={handleToggleFavorite}
+          onClose={() => setComparison(null)}
+        />
+      )}
       <FormatPreview
         ratio={chrome.previewRatio || chrome.generationAspectRatio}
         isVisible={

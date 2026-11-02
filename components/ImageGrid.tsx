@@ -29,6 +29,7 @@ import {
   FolderPlus,
 } from 'iconoir-react';
 import { ImageActionsMenu } from './ImageActionsMenu';
+import { COMPARE_MAX_IMAGES } from './ImageComparison';
 import { ImageTagsMenu, ImageCollectionsMenu } from './ImageCollectionsMenu';
 import { parseCatalogSearch } from '../packages/shared/src';
 import { ImageOrganizationDialog } from './ImageOrganizationDialog';
@@ -1603,11 +1604,16 @@ function ImageGridBulkActions({ model }: { model: ImageGridModel }) {
             label={`Tags and collections (${selectedImageCount} selected)`}
             tooltipPosition="bottom"
           />
-          {selectedImages.length === 2 && onCompareSelected && (
+          {selectedImages.length >= 2 && onCompareSelected && (
             <ActionButton
               onClick={onCompareSelected}
+              disabled={selectedImages.length > COMPARE_MAX_IMAGES}
               icon={<ViewColumns2 width={16} height={16} />}
-              label="Compare 2 images"
+              label={
+                selectedImages.length > COMPARE_MAX_IMAGES
+                  ? `Compare up to ${COMPARE_MAX_IMAGES} images`
+                  : `Compare ${selectedImages.length} images`
+              }
               tooltipPosition="bottom"
             />
           )}

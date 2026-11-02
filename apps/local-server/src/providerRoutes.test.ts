@@ -74,11 +74,11 @@ describe('providerRoutes', () => {
         codexReads += 1;
         return createCodexRuntimeReport();
       },
-      readGrokRuntimeDoctor: () => {
+      loadGrokRuntimeDoctor: () => {
         grokReads += 1;
         return createGrokRuntimeReport();
       },
-      readAntigravityRuntimeDoctor: () => {
+      loadAntigravityRuntimeDoctor: () => {
         antigravityReads += 1;
         return createAntigravityRuntimeReport();
       },
@@ -92,8 +92,8 @@ describe('providerRoutes', () => {
     const routes = createProviderRoutes({
       readSettings: () => createDefaultEditableStudioSettings(),
       readCodexRuntimeDoctor: () => createCodexRuntimeReport(),
-      readGrokRuntimeDoctor: () => createGrokRuntimeReport(),
-      readAntigravityRuntimeDoctor: () => createAntigravityRuntimeReport(),
+      loadGrokRuntimeDoctor: () => createGrokRuntimeReport(),
+      loadAntigravityRuntimeDoctor: () => createAntigravityRuntimeReport(),
     });
 
     const response = await routes.request('/');
@@ -107,8 +107,8 @@ describe('providerRoutes', () => {
     const routes = createProviderRoutes({
       readSettings: () => createDefaultEditableStudioSettings(),
       readCodexRuntimeDoctor: () => createCodexRuntimeReport(),
-      readGrokRuntimeDoctor: () => createGrokRuntimeReport(),
-      readAntigravityRuntimeDoctor: () => createAntigravityRuntimeReport(),
+      loadGrokRuntimeDoctor: () => createGrokRuntimeReport(),
+      loadAntigravityRuntimeDoctor: () => createAntigravityRuntimeReport(),
     });
 
     const response = await routes.request('/preflight');
@@ -143,8 +143,8 @@ describe('providerRoutes', () => {
             },
           ],
         }),
-      readGrokRuntimeDoctor: () => createGrokRuntimeReport(),
-      readAntigravityRuntimeDoctor: () => createAntigravityRuntimeReport(),
+      loadGrokRuntimeDoctor: () => createGrokRuntimeReport(),
+      loadAntigravityRuntimeDoctor: () => createAntigravityRuntimeReport(),
     });
 
     const response = await routes.request('/preflight');
@@ -166,8 +166,8 @@ describe('providerRoutes', () => {
     const routes = createProviderRoutes({
       readSettings: () => ({ ...createDefaultEditableStudioSettings(), defaultProviderId }),
       readCodexRuntimeDoctor: () => createCodexRuntimeReport(),
-      readGrokRuntimeDoctor: () => createGrokRuntimeReport(),
-      readAntigravityRuntimeDoctor: () => createAntigravityRuntimeReport(),
+      loadGrokRuntimeDoctor: () => createGrokRuntimeReport(),
+      loadAntigravityRuntimeDoctor: () => createAntigravityRuntimeReport(),
     });
 
     const first = (await (await routes.request('/')).json()) as {

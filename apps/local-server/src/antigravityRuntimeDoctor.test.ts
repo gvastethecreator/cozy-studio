@@ -24,19 +24,20 @@ describe('Antigravity runtime doctor', () => {
     ).toEqual(['gemini-3.8-flash-low', 'claude-sonnet-4-6']);
   });
 
-  it('reports a ready authenticated headless runtime', () => {
-    const report = inspectAntigravityRuntime({
+  it('reports a ready authenticated headless runtime', async () => {
+    const report = await inspectAntigravityRuntime({
       now: () => new Date('2026-09-02T00:00:00.000Z'),
       resolveExecutable: () => 'agy',
       listCandidates: () => [{ path: 'agy', source: 'test' }],
-      spawnSync: ((_command: string, args: string[]) => {
-        if (args[0] === '--version') return { status: 0, stdout: '1.1.24\n' };
-        if (args[0] === '--help') return { status: 0, stdout: HELP };
+      run: async (_command, args) => {
+        if (args[0] === '--version') return { status: 0, stdout: '1.1.24\n', stderr: '' };
+        if (args[0] === '--help') return { status: 0, stdout: HELP, stderr: '' };
         return {
           status: 0,
           stdout: 'gemini-3.8-flash-low\tGemini 3.8 Flash (Low)\n',
+          stderr: '',
         };
-      }) as never,
+      },
     });
 
     expect(report).toMatchObject({
@@ -49,15 +50,15 @@ describe('Antigravity runtime doctor', () => {
     });
   });
 
-  it('blocks an outdated runtime before login probes', () => {
+  it('blocks an outdated runtime before login probes', async () => {
     const calls: string[][] = [];
-    const report = inspectAntigravityRuntime({
+    const report = await inspectAntigravityRuntime({
       resolveExecutable: () => 'agy',
       listCandidates: () => [{ path: 'agy', source: 'test' }],
-      spawnSync: ((_command: string, args: string[]) => {
+      run: async (_command, args) => {
         calls.push(args);
-        return { status: 0, stdout: '1.1.22\n' };
-      }) as never,
+        return { status: 0, stdout: '1.1.22\n', stderr: '' };
+      },
     });
 
     expect(report.canRunJobs).toBe(false);

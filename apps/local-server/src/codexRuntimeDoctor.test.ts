@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { inspectCodexRuntime, inspectCodexRuntimeAsync } from './codexRuntimeDoctor';
+import { inspectCodexRuntime } from './codexRuntimeDoctor';
 
 function createDeps({
   versionStatus = 0,
@@ -11,7 +11,7 @@ function createDeps({
   helpText = 'codex app-server --listen <ws-url>',
   executable = 'C:/Users/dev/AppData/Local/Programs/OpenAI/Codex/bin/codex.exe',
 } = {}) {
-  const spawnSync = vi.fn((_: string, args: string[]) => {
+  const run = vi.fn(async (_: string, args: string[]) => {
     const commandText = args.join(' ');
     if (commandText.includes('--version')) {
       return { status: versionStatus, stdout: versionText, stderr: '' };
@@ -25,7 +25,7 @@ function createDeps({
   return {
     now: () => new Date('2026-05-31T00:00:00.000Z'),
     exists: (candidate: string) => candidate === executable,
-    spawnSync,
+    run,
     resolveExecutable: () => executable,
     resolveInvocation: (args: string[]) => [executable, ...args],
     listCandidates: () => [
@@ -36,7 +36,7 @@ function createDeps({
 }
 
 describe('codexRuntimeDoctor', () => {
-  it('probes asynchronously without requiring the synchronous adapter', async () => {
+  it('probes only the resolved executable when it can run jobs', async () => {
     const executable = 'C:/Codex/codex.exe';
     const run = vi.fn(async (_command: string, args: string[]) =>
       args.includes('--version')
@@ -44,7 +44,7 @@ describe('codexRuntimeDoctor', () => {
         : { status: 0, stdout: 'codex app-server --listen <ws-url>', stderr: '' },
     );
 
-    const report = await inspectCodexRuntimeAsync({
+    const report = await inspectCodexRuntime({
       now: () => new Date('2026-07-10T00:00:00.000Z'),
       exists: (candidate) => candidate === executable,
       run,
@@ -88,7 +88,7 @@ describe('codexRuntimeDoctor', () => {
       return { status: 0, stdout: 'codex-cli 9.9.9', stderr: '' };
     });
 
-    const report = await inspectCodexRuntimeAsync({
+    const report = await inspectCodexRuntime({
       now: () => new Date('2026-07-10T00:00:00.000Z'),
       exists: (candidate) =>
         [resolvedExecutable, fallbackExecutable, unusedExecutable].includes(candidate),
@@ -114,10 +114,10 @@ describe('codexRuntimeDoctor', () => {
     ).toBe(false);
   });
 
-  it('marks a modern app-server-capable Codex CLI ready', () => {
+  it('marks a modern app-server-capable Codex CLI ready', async () => {
     const deps = createDeps();
 
-    const report = inspectCodexRuntime(deps);
+    const report = await inspectCodexRuntime(deps);
 
     expect(report).toMatchObject({
       status: 'ready',
@@ -126,13 +126,13 @@ describe('codexRuntimeDoctor', () => {
       appServerSupported: true,
       recommendedAction: 'Codex Product Runtime is ready.',
     });
-    expect(deps.spawnSync).toHaveBeenCalledTimes(2);
+    expect(deps.run).toHaveBeenCalledTimes(2);
   });
 
-  it('accepts an app-server-capable CLI regardless of its version number', () => {
+  it('accepts an app-server-capable CLI regardless of its version number', async () => {
     const deps = createDeps({ versionText: 'codex-cli 0.2.3' });
 
-    const report = inspectCodexRuntime(deps);
+    const report = await inspectCodexRuntime(deps);
 
     expect(report).toMatchObject({
       status: 'ready',
@@ -142,13 +142,13 @@ describe('codexRuntimeDoctor', () => {
     });
   });
 
-  it('blocks the legacy npm Codex CLI shim before app-server start', () => {
+  it('blocks the legacy npm Codex CLI shim before app-server start', async () => {
     const deps = createDeps({
       executable: 'C:/Users/dev/AppData/Roaming/npm/codex.cmd',
       versionText: 'codex 0.2.3',
     });
 
-    const report = inspectCodexRuntime(deps);
+    const report = await inspectCodexRuntime(deps);
 
     expect(report.status).toBe('blocked');
     expect(report.canRunJobs).toBe(false);
@@ -160,13 +160,13 @@ describe('codexRuntimeDoctor', () => {
         }),
       ]),
     );
-    expect(deps.spawnSync).toHaveBeenCalledTimes(1);
+    expect(deps.run).toHaveBeenCalledTimes(1);
   });
 
-  it('selects a later app-server-capable Codex CLI when the first candidate is legacy', () => {
+  it('selects a later app-server-capable Codex CLI when the first candidate is legacy', async () => {
     const legacyExecutable = 'C:/Users/dev/AppData/Roaming/npm/codex.cmd';
     const modernExecutable = 'C:/Users/dev/AppData/Local/Programs/OpenAI/Codex/bin/codex.exe';
-    const spawnSync = vi.fn((command: string, args: string[]) => {
+    const run = vi.fn(async (command: string, args: string[]) => {
       const commandText = [command, ...args].join(' ');
       if (commandText.includes(legacyExecutable) && commandText.includes('--version')) {
         return { status: 0, stdout: 'codex 0.2.3', stderr: '' };
@@ -180,11 +180,11 @@ describe('codexRuntimeDoctor', () => {
       return { status: 1, stdout: '', stderr: 'unexpected command' };
     });
 
-    const report = inspectCodexRuntime({
+    const report = await inspectCodexRuntime({
       now: () => new Date('2026-05-31T00:00:00.000Z'),
       exists: (candidate: string) =>
         candidate === legacyExecutable || candidate === modernExecutable,
-      spawnSync,
+      run,
       resolveExecutable: () => legacyExecutable,
       resolveInvocation: (args, executable = legacyExecutable) => [executable, ...args],
       listCandidates: () => [
@@ -203,7 +203,7 @@ describe('codexRuntimeDoctor', () => {
     );
   });
 
-  it('detects the unrelated legacy npm codex package without executing its shim', () => {
+  it('detects the unrelated legacy npm codex package without executing its shim', async () => {
     if (process.platform !== 'win32') return;
 
     const root = path.join(os.tmpdir(), `codex-runtime-${Date.now()}`);
@@ -215,12 +215,12 @@ describe('codexRuntimeDoctor', () => {
       path.join(npmRoot, 'node_modules', 'codex', 'package.json'),
       JSON.stringify({ name: 'codex', version: '0.2.3' }),
     );
-    const spawnSync = vi.fn();
+    const run = vi.fn();
 
-    const report = inspectCodexRuntime({
+    const report = await inspectCodexRuntime({
       now: () => new Date('2026-05-31T00:00:00.000Z'),
       exists: existsSync,
-      spawnSync,
+      run,
       resolveExecutable: () => executable,
       resolveInvocation: (args) => [executable, ...args],
       listCandidates: () => [{ path: executable, source: 'npm command shim' }],
@@ -233,14 +233,14 @@ describe('codexRuntimeDoctor', () => {
         message: expect.stringContaining('codex 0.2.3'),
       }),
     );
-    expect(spawnSync).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
   });
 
-  it('uses a Windows shell fallback when direct executable probing fails', () => {
+  it('uses a Windows shell fallback when direct executable probing fails', async () => {
     if (process.platform !== 'win32') return;
 
     const executable = 'C:/Users/dev/AppData/Local/Programs/OpenAI/Codex/bin/codex.exe';
-    const spawnSync = vi.fn((command: string, args: string[]) => {
+    const run = vi.fn(async (command: string, args: string[]) => {
       if (command.endsWith('codex.exe')) {
         return { status: null, stdout: '', stderr: 'ETIMEDOUT' };
       }
@@ -253,13 +253,13 @@ describe('codexRuntimeDoctor', () => {
       return { status: 1, stdout: '', stderr: 'unexpected command' };
     });
 
-    const report = inspectCodexRuntime({
+    const report = await inspectCodexRuntime({
       ...createDeps({ executable }),
-      spawnSync,
+      run,
     });
 
     expect(report.status).toBe('ready');
-    expect(spawnSync).toHaveBeenCalledWith(
+    expect(run).toHaveBeenCalledWith(
       'cmd.exe',
       expect.arrayContaining(['/d', '/s', '/c']),
       expect.objectContaining({ windowsVerbatimArguments: true }),
@@ -270,8 +270,8 @@ describe('codexRuntimeDoctor', () => {
     'unknown command app-server',
     'unrecognized command app-server',
     'invalid command app-server',
-  ])('blocks a CLI when app-server help reports %s', (helpText) => {
-    const report = inspectCodexRuntime(createDeps({ helpText }));
+  ])('blocks a CLI when app-server help reports %s', async (helpText) => {
+    const report = await inspectCodexRuntime(createDeps({ helpText }));
 
     expect(report.status).toBe('blocked');
     expect(report.issues[0]).toEqual(

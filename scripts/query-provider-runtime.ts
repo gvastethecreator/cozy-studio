@@ -3,7 +3,9 @@ import {
   getExternalProviderRuntimePreflight,
   readGenerationProviderRuntimePreflights,
 } from '../apps/local-server/src/providers/runtimeConfig';
-import { readCodexRuntimeDoctor } from '../apps/local-server/src/codexRuntimeDoctor';
+import { loadCodexRuntimeDoctor } from '../apps/local-server/src/codexRuntimeDoctor';
+import { loadGrokRuntimeDoctor } from '../apps/local-server/src/grokRuntimeDoctor';
+import { loadAntigravityRuntimeDoctor } from '../apps/local-server/src/antigravityRuntimeDoctor';
 import type { GenerationProviderRuntimePreflight } from '../packages/shared/src';
 import type { GenerationProviderId } from '../packages/shared/src';
 
@@ -19,13 +21,24 @@ function isProviderRuntimePreflight(
   return Boolean(value);
 }
 
+// Wait for the first CLI probes; the preflight readers then use these reports.
+const [codexRuntime, grokRuntime, antigravityRuntime] = await Promise.all([
+  loadCodexRuntimeDoctor(),
+  loadGrokRuntimeDoctor(),
+  loadAntigravityRuntimeDoctor(),
+]);
 const rows = providerId
   ? [
       providerId === 'codex'
-        ? createCodexRuntimePreflight(readCodexRuntimeDoctor())
-        : getExternalProviderRuntimePreflight(providerId),
+        ? createCodexRuntimePreflight(codexRuntime)
+        : getExternalProviderRuntimePreflight(providerId, process.env, grokRuntime),
     ].filter(isProviderRuntimePreflight)
-  : readGenerationProviderRuntimePreflights();
+  : readGenerationProviderRuntimePreflights(
+      process.env,
+      codexRuntime,
+      grokRuntime,
+      antigravityRuntime,
+    );
 
 if (asJson) {
   console.log(JSON.stringify({ count: rows.length, rows }, null, 2));

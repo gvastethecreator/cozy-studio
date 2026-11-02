@@ -36,8 +36,8 @@ function readySpawn(command: string, args: string[]) {
 }
 
 describe('grokRuntimeDoctor', () => {
-  it('reports a locally authenticated Imagine runtime without exposing auth data', () => {
-    const report = inspectGrokRuntime({
+  it('reports a locally authenticated Imagine runtime without exposing auth data', async () => {
+    const report = await inspectGrokRuntime({
       now: () => new Date('2026-08-08T00:00:00.000Z'),
       env: { USERPROFILE: 'C:\\Users\\studio' },
       exists: () => true,
@@ -45,7 +45,7 @@ describe('grokRuntimeDoctor', () => {
       listCandidates: () => [
         { path: 'C:\\Users\\studio\\.grok\\bin\\grok.exe', source: 'Grok Build install' },
       ],
-      spawnSync: readySpawn,
+      run: async (command, args) => readySpawn(command, args),
     });
 
     expect(report).toMatchObject({
@@ -61,13 +61,13 @@ describe('grokRuntimeDoctor', () => {
     expect(JSON.stringify(report)).not.toContain('grok.com');
   });
 
-  it('blocks execution when local login is missing', () => {
-    const report = inspectGrokRuntime({
+  it('blocks execution when local login is missing', async () => {
+    const report = await inspectGrokRuntime({
       env: { USERPROFILE: 'C:\\Users\\studio' },
       exists: () => true,
       resolveExecutable: () => 'grok.exe',
       listCandidates: () => [{ path: 'grok.exe', source: 'test' }],
-      spawnSync: (command, args) => {
+      run: async (command, args) => {
         if (args.includes('models')) {
           return { status: 1, stdout: '', stderr: 'Not logged in. Run grok login.' };
         }

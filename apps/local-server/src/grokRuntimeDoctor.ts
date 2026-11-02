@@ -1,11 +1,12 @@
 import { existsSync } from 'node:fs';
-import { spawnSync as nodeSpawnSync } from 'node:child_process';
 import {
   listGrokExecutableCandidates,
   resolveGrokExecutable,
   resolveGrokHome,
   type GrokExecutableCandidate,
 } from './grokExecutable';
+import { runCliProbe, type CliProbeResult, type CliProbeRunner } from './cliProbe';
+import { createRuntimeDoctorCache } from './runtimeDoctorCache';
 
 export type GrokRuntimeDoctorIssueCode =
   | 'grok_cli_unavailable'
@@ -37,32 +38,12 @@ export interface GrokRuntimeDoctorReport {
   candidates: Array<GrokExecutableCandidate & { exists: boolean; selected: boolean }>;
 }
 
-interface SpawnResultLike {
-  status: number | null;
-  stdout?: string | Buffer | null;
-  stderr?: string | Buffer | null;
-  error?: Error | null;
-}
-
-type SpawnSyncLike = (
-  command: string,
-  args: string[],
-  options: {
-    cwd: string;
-    encoding: 'utf8';
-    env: NodeJS.ProcessEnv;
-    maxBuffer: number;
-    timeout: number;
-    windowsHide: boolean;
-  },
-) => SpawnResultLike;
-
 export interface GrokRuntimeDoctorDependencies {
   now?: () => Date;
   cwd?: string;
   env?: NodeJS.ProcessEnv;
   exists?: (filePath: string) => boolean;
-  spawnSync?: SpawnSyncLike;
+  run?: CliProbeRunner;
   resolveExecutable?: (env: NodeJS.ProcessEnv) => string;
   listCandidates?: (env: NodeJS.ProcessEnv) => GrokExecutableCandidate[];
 }
@@ -72,9 +53,7 @@ const PROBE_TIMEOUT_MS = 10_000;
 const DEFAULT_DOCTOR_CACHE_MS = 30_000;
 const MAX_PROBE_OUTPUT_BYTES = 4 * 1024 * 1024;
 
-let cachedReport: { expiresAt: number; report: GrokRuntimeDoctorReport } | null = null;
-
-function outputText(result: SpawnResultLike) {
+function outputText(result: CliProbeResult) {
   return [result.stdout, result.stderr]
     .map((value) => (value == null ? '' : String(value)))
     .join('\n')
@@ -141,36 +120,26 @@ function parseImagineAvailability(stdout: string) {
   }
 }
 
-function runProbe(
-  spawnSync: SpawnSyncLike,
-  executable: string,
-  args: string[],
-  cwd: string,
-  env: NodeJS.ProcessEnv,
-) {
-  return spawnSync(executable, args, {
-    cwd,
-    encoding: 'utf8',
-    env,
-    maxBuffer: MAX_PROBE_OUTPUT_BYTES,
-    timeout: PROBE_TIMEOUT_MS,
-    windowsHide: true,
-  });
-}
-
-function inspectCandidate({
+async function inspectCandidate({
   executable,
   cwd,
   env,
-  spawnSync,
+  run,
 }: {
   executable: string;
   cwd: string;
   env: NodeJS.ProcessEnv;
-  spawnSync: SpawnSyncLike;
+  run: CliProbeRunner;
 }) {
+  const probe = (args: string[]) =>
+    run(executable, args, {
+      cwd,
+      env,
+      maxOutputBytes: MAX_PROBE_OUTPUT_BYTES,
+      timeoutMs: PROBE_TIMEOUT_MS,
+    });
   const issues: GrokRuntimeDoctorIssue[] = [];
-  const versionResult = runProbe(spawnSync, executable, ['version'], cwd, env);
+  const versionResult = await probe(['version']);
   const versionText = outputText(versionResult);
   const selectedVersion = versionResult.status === 0 ? versionText.split(/\r?\n/)[0]!.trim() : null;
   const selectedVersionNumber = parseVersionNumber(selectedVersion);
@@ -195,7 +164,7 @@ function inspectCandidate({
   let imagineAvailable = false;
 
   if (issues.length === 0) {
-    const helpResult = runProbe(spawnSync, executable, ['--no-auto-update', '--help'], cwd, env);
+    const helpResult = await probe(['--no-auto-update', '--help']);
     const helpText = outputText(helpResult);
     headlessSupported =
       helpResult.status === 0 &&
@@ -212,11 +181,9 @@ function inspectCandidate({
   }
 
   if (issues.length === 0) {
-    const modelsResult = runProbe(spawnSync, executable, ['--no-auto-update', 'models'], cwd, env);
+    const modelsResult = await probe(['--no-auto-update', 'models']);
     const modelsText = outputText(modelsResult);
-    ({ models: availableModels, defaultModel } = parseAvailableGrokModels(
-      String(modelsResult.stdout ?? ''),
-    ));
+    ({ models: availableModels, defaultModel } = parseAvailableGrokModels(modelsResult.stdout));
     const loginBlocked = /not logged in|login required|run\s+`?grok login`?/i.test(modelsText);
     if (modelsResult.status !== 0 || loginBlocked || availableModels.length === 0) {
       issues.push({
@@ -232,15 +199,8 @@ function inspectCandidate({
   }
 
   if (issues.length === 0) {
-    const inspectResult = runProbe(
-      spawnSync,
-      executable,
-      ['--no-auto-update', 'inspect', '--json'],
-      cwd,
-      env,
-    );
-    imagineAvailable =
-      inspectResult.status === 0 && parseImagineAvailability(String(inspectResult.stdout ?? ''));
+    const inspectResult = await probe(['--no-auto-update', 'inspect', '--json']);
+    imagineAvailable = inspectResult.status === 0 && parseImagineAvailability(inspectResult.stdout);
     if (!imagineAvailable) {
       issues.push({
         code: 'grok_imagine_unavailable',
@@ -262,38 +222,29 @@ function inspectCandidate({
   };
 }
 
-export function inspectGrokRuntime({
+export async function inspectGrokRuntime({
   now = () => new Date(),
   cwd = process.cwd(),
   env = process.env,
   exists = existsSync,
-  spawnSync = nodeSpawnSync,
+  run = runCliProbe,
   resolveExecutable = resolveGrokExecutable,
   listCandidates = listGrokExecutableCandidates,
-}: GrokRuntimeDoctorDependencies = {}): GrokRuntimeDoctorReport {
+}: GrokRuntimeDoctorDependencies = {}): Promise<GrokRuntimeDoctorReport> {
   const initialExecutable = resolveExecutable(env);
   const candidates = listCandidates(env);
   const ordered = [
     ...candidates.filter((candidate) => candidate.path === initialExecutable),
     ...candidates.filter((candidate) => candidate.path !== initialExecutable),
   ];
+  const probeEnv = { ...env, GROK_HOME: resolveGrokHome(env) };
   let selectedExecutable = initialExecutable;
-  let selected = inspectCandidate({
-    executable: initialExecutable,
-    cwd,
-    env: { ...env, GROK_HOME: resolveGrokHome(env) },
-    spawnSync,
-  });
+  let selected = await inspectCandidate({ executable: initialExecutable, cwd, env: probeEnv, run });
 
   for (const candidate of ordered) {
     if (selected.canRunJobs || candidate.path === initialExecutable) continue;
     if (candidate.path !== 'grok' && !exists(candidate.path)) continue;
-    const probe = inspectCandidate({
-      executable: candidate.path,
-      cwd,
-      env: { ...env, GROK_HOME: resolveGrokHome(env) },
-      spawnSync,
-    });
+    const probe = await inspectCandidate({ executable: candidate.path, cwd, env: probeEnv, run });
     if (probe.canRunJobs) {
       selectedExecutable = candidate.path;
       selected = probe;
@@ -335,10 +286,36 @@ export function grokOnboardingFactsFromDoctor(
   };
 }
 
-export function readGrokRuntimeDoctor({ maxAgeMs = DEFAULT_DOCTOR_CACHE_MS } = {}) {
-  const now = Date.now();
-  if (maxAgeMs > 0 && cachedReport && cachedReport.expiresAt > now) return cachedReport.report;
-  const report = inspectGrokRuntime();
-  cachedReport = { report, expiresAt: now + maxAgeMs };
-  return report;
+function createCheckingGrokRuntimeReport(): GrokRuntimeDoctorReport {
+  return {
+    status: 'blocked',
+    canRunJobs: false,
+    checkedAt: new Date(0).toISOString(),
+    selectedExecutable: '',
+    selectedVersion: null,
+    selectedVersionNumber: null,
+    defaultModel: null,
+    availableModels: [],
+    headlessSupported: false,
+    imagineAvailable: false,
+    recommendedAction: 'Grok Build readiness is still being checked.',
+    issues: [],
+    candidates: [],
+  };
+}
+
+const doctorCache = createRuntimeDoctorCache({
+  maxAgeMs: DEFAULT_DOCTOR_CACHE_MS,
+  probe: () => inspectGrokRuntime(),
+  checking: createCheckingGrokRuntimeReport,
+});
+
+/** The last Grok report, or a checking report before the first probe. Never waits on the CLI. */
+export function readGrokRuntimeDoctor() {
+  return doctorCache.read();
+}
+
+/** The last Grok report. Waits only while the first probe runs. */
+export function loadGrokRuntimeDoctor() {
+  return doctorCache.load();
 }

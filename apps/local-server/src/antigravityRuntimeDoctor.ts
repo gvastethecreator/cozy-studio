@@ -1,4 +1,3 @@
-import { spawnSync as nodeSpawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import {
   createAntigravityChildEnvironment,
@@ -6,6 +5,8 @@ import {
   resolveAntigravityExecutable,
   type AntigravityExecutableCandidate,
 } from './antigravityExecutable';
+import { runCliProbe, type CliProbeResult, type CliProbeRunner } from './cliProbe';
+import { createRuntimeDoctorCache } from './runtimeDoctorCache';
 
 export type AntigravityRuntimeDoctorIssueCode =
   | 'antigravity_cli_unavailable'
@@ -36,32 +37,12 @@ export interface AntigravityRuntimeDoctorReport {
   candidates: Array<AntigravityExecutableCandidate & { exists: boolean; selected: boolean }>;
 }
 
-interface SpawnResultLike {
-  status: number | null;
-  stdout?: string | Buffer | null;
-  stderr?: string | Buffer | null;
-  error?: Error | null;
-}
-
-type SpawnSyncLike = (
-  command: string,
-  args: string[],
-  options: {
-    cwd: string;
-    encoding: 'utf8';
-    env: NodeJS.ProcessEnv;
-    maxBuffer: number;
-    timeout: number;
-    windowsHide: boolean;
-  },
-) => SpawnResultLike;
-
 export interface AntigravityRuntimeDoctorDependencies {
   now?: () => Date;
   cwd?: string;
   env?: NodeJS.ProcessEnv;
   exists?: (filePath: string) => boolean;
-  spawnSync?: SpawnSyncLike;
+  run?: CliProbeRunner;
   resolveExecutable?: (env: NodeJS.ProcessEnv) => string;
   listCandidates?: (env: NodeJS.ProcessEnv) => AntigravityExecutableCandidate[];
 }
@@ -72,9 +53,7 @@ const DEFAULT_DOCTOR_CACHE_MS = 30_000;
 const MAX_PROBE_OUTPUT_BYTES = 4 * 1024 * 1024;
 const MODEL_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/;
 
-let cachedReport: { expiresAt: number; report: AntigravityRuntimeDoctorReport } | null = null;
-
-function outputText(result: SpawnResultLike) {
+function outputText(result: CliProbeResult) {
   return [result.stdout, result.stderr]
     .map((value) => (value == null ? '' : String(value)))
     .join('\n')
@@ -109,36 +88,26 @@ export function parseAvailableAntigravityModels(output: string) {
   return [...new Set(models)];
 }
 
-function runProbe(
-  spawnSync: SpawnSyncLike,
-  executable: string,
-  args: string[],
-  cwd: string,
-  env: NodeJS.ProcessEnv,
-) {
-  return spawnSync(executable, args, {
-    cwd,
-    encoding: 'utf8',
-    env,
-    maxBuffer: MAX_PROBE_OUTPUT_BYTES,
-    timeout: PROBE_TIMEOUT_MS,
-    windowsHide: true,
-  });
-}
-
-function inspectCandidate({
+async function inspectCandidate({
   executable,
   cwd,
   env,
-  spawnSync,
+  run,
 }: {
   executable: string;
   cwd: string;
   env: NodeJS.ProcessEnv;
-  spawnSync: SpawnSyncLike;
+  run: CliProbeRunner;
 }) {
+  const probe = (args: string[]) =>
+    run(executable, args, {
+      cwd,
+      env,
+      maxOutputBytes: MAX_PROBE_OUTPUT_BYTES,
+      timeoutMs: PROBE_TIMEOUT_MS,
+    });
   const issues: AntigravityRuntimeDoctorIssue[] = [];
-  const versionResult = runProbe(spawnSync, executable, ['--version'], cwd, env);
+  const versionResult = await probe(['--version']);
   const versionText = outputText(versionResult);
   const selectedVersion = versionResult.status === 0 ? versionText.split(/\r?\n/)[0]!.trim() : null;
   const selectedVersionNumber = parseVersionNumber(selectedVersion);
@@ -158,7 +127,7 @@ function inspectCandidate({
 
   let headlessSupported = false;
   if (issues.length === 0) {
-    const help = runProbe(spawnSync, executable, ['--help'], cwd, env);
+    const help = await probe(['--help']);
     const helpText = outputText(help);
     headlessSupported =
       help.status === 0 &&
@@ -181,9 +150,9 @@ function inspectCandidate({
 
   let availableModels: string[] = [];
   if (issues.length === 0) {
-    const models = runProbe(spawnSync, executable, ['models'], cwd, env);
+    const models = await probe(['models']);
     const modelsText = outputText(models);
-    availableModels = parseAvailableAntigravityModels(String(models.stdout ?? ''));
+    availableModels = parseAvailableAntigravityModels(models.stdout);
     const loginBlocked = /authentication required|not logged in|login required|sign in/i.test(
       modelsText,
     );
@@ -216,15 +185,15 @@ function inspectCandidate({
   };
 }
 
-export function inspectAntigravityRuntime({
+export async function inspectAntigravityRuntime({
   now = () => new Date(),
   cwd = process.cwd(),
   env = process.env,
   exists = existsSync,
-  spawnSync = nodeSpawnSync,
+  run = runCliProbe,
   resolveExecutable = resolveAntigravityExecutable,
   listCandidates = listAntigravityExecutableCandidates,
-}: AntigravityRuntimeDoctorDependencies = {}): AntigravityRuntimeDoctorReport {
+}: AntigravityRuntimeDoctorDependencies = {}): Promise<AntigravityRuntimeDoctorReport> {
   const initialExecutable = resolveExecutable(env);
   const candidates = listCandidates(env);
   const childEnv = createAntigravityChildEnvironment(env);
@@ -233,11 +202,11 @@ export function inspectAntigravityRuntime({
     ...candidates.filter((candidate) => candidate.path !== initialExecutable),
   ];
   let selectedExecutable = initialExecutable;
-  let selected = inspectCandidate({ executable: initialExecutable, cwd, env: childEnv, spawnSync });
+  let selected = await inspectCandidate({ executable: initialExecutable, cwd, env: childEnv, run });
   for (const candidate of ordered) {
     if (selected.canRunJobs || candidate.path === initialExecutable) continue;
     if (candidate.path !== 'agy' && !exists(candidate.path)) continue;
-    const probe = inspectCandidate({ executable: candidate.path, cwd, env: childEnv, spawnSync });
+    const probe = await inspectCandidate({ executable: candidate.path, cwd, env: childEnv, run });
     if (probe.canRunJobs) {
       selectedExecutable = candidate.path;
       selected = probe;
@@ -267,10 +236,36 @@ export function inspectAntigravityRuntime({
   };
 }
 
-export function readAntigravityRuntimeDoctor({ maxAgeMs = DEFAULT_DOCTOR_CACHE_MS } = {}) {
-  const now = Date.now();
-  if (maxAgeMs > 0 && cachedReport && cachedReport.expiresAt > now) return cachedReport.report;
-  const report = inspectAntigravityRuntime();
-  cachedReport = { report, expiresAt: now + maxAgeMs };
-  return report;
+function createCheckingAntigravityRuntimeReport(): AntigravityRuntimeDoctorReport {
+  return {
+    status: 'blocked',
+    canRunJobs: false,
+    checkedAt: new Date(0).toISOString(),
+    selectedExecutable: '',
+    selectedVersion: null,
+    selectedVersionNumber: null,
+    defaultModel: null,
+    availableModels: [],
+    headlessSupported: false,
+    generateImageSupported: false,
+    recommendedAction: 'Antigravity CLI readiness is still being checked.',
+    issues: [],
+    candidates: [],
+  };
+}
+
+const doctorCache = createRuntimeDoctorCache({
+  maxAgeMs: DEFAULT_DOCTOR_CACHE_MS,
+  probe: () => inspectAntigravityRuntime(),
+  checking: createCheckingAntigravityRuntimeReport,
+});
+
+/** The last Antigravity report, or a checking report before the first probe. Never waits on the CLI. */
+export function readAntigravityRuntimeDoctor() {
+  return doctorCache.read();
+}
+
+/** The last Antigravity report. Waits only while the first probe runs. */
+export function loadAntigravityRuntimeDoctor() {
+  return doctorCache.load();
 }

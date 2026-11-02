@@ -1,7 +1,7 @@
-import { readCodexRuntimeDoctor } from '../apps/local-server/src/codexRuntimeDoctor';
+import { refreshCodexRuntimeDoctor } from '../apps/local-server/src/codexRuntimeDoctor';
 
 const asJson = process.argv.includes('--json');
-const report = readCodexRuntimeDoctor({ maxAgeMs: 0 });
+const report = await refreshCodexRuntimeDoctor();
 
 if (asJson) {
   console.log(JSON.stringify(report, null, 2));

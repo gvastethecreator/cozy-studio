@@ -9,7 +9,7 @@ import {
   type StudioReadinessRefreshRequest,
 } from '../../../packages/shared/src';
 import type { getSettings } from './config';
-import { readCodexRuntimeDoctor } from './codexRuntimeDoctor';
+import { createCheckingCodexRuntimeReport, readCodexRuntimeDoctor } from './codexRuntimeDoctor';
 import type { getAppServerDiagnostics } from './codex/processSupervisor';
 import type { inspectLibrary } from './library';
 import type { WorkerStatus } from './worker';
@@ -51,22 +51,6 @@ interface RuntimeRoutesDependencies {
   readGrokOnboardingFacts?: () => { grokCliAvailable: boolean; grokLoggedIn: boolean };
   readSubscriptionFacts?: () => { codexSignedIn: boolean; grokSignedIn: boolean };
   readEditableSettings?: () => { defaultProviderId?: GenerationProviderId | null };
-}
-
-export function createCheckingRuntimeReport(): CodexRuntimeDoctorReport {
-  return {
-    status: 'blocked',
-    canRunJobs: false,
-    checkedAt: new Date(0).toISOString(),
-    selectedExecutable: '',
-    selectedCommand: '',
-    selectedVersion: null,
-    selectedVersionNumber: null,
-    appServerSupported: false,
-    recommendedAction: 'Codex Product Runtime readiness is still being checked.',
-    issues: [],
-    candidates: [],
-  };
 }
 
 function redactRuntimeDoctor(report: CodexRuntimeDoctorReport): CodexRuntimeDoctorReport {
@@ -164,7 +148,7 @@ export function createRuntimeRoutes({
     const library = inspectLibrary();
     const readinessSnapshot = readiness?.readSnapshot();
     const fullCodexRuntime = readiness
-      ? (readinessSnapshot?.codexRuntime ?? createCheckingRuntimeReport())
+      ? (readinessSnapshot?.codexRuntime ?? createCheckingCodexRuntimeReport())
       : readCodexRuntimeDoctorFn();
     const codexRuntime = redactRuntimeDoctor(fullCodexRuntime);
     const codexAvailable = codexRuntime.selectedVersion !== null;
@@ -352,13 +336,13 @@ export function createRuntimeRoutes({
   routes.get('/runtime/doctor', async (c) => {
     if (!readiness) return c.json(readCodexRuntimeDoctorFn());
     const snapshot = await readiness.refresh({ reason: 'manual', force: true });
-    return c.json(snapshot.codexRuntime ?? createCheckingRuntimeReport());
+    return c.json(snapshot.codexRuntime ?? createCheckingCodexRuntimeReport());
   });
 
   routes.post('/app-server/start', async (c) => {
     const codexRuntime = readiness
       ? ((await readiness.refresh({ reason: 'app_server_change', force: true })).codexRuntime ??
-        createCheckingRuntimeReport())
+        createCheckingCodexRuntimeReport())
       : readCodexRuntimeDoctorFn();
     if (!codexRuntime.canRunJobs) {
       const diagnostics = readAppServerDiagnostics();

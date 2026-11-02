@@ -2,14 +2,16 @@ import { createMcpRoutes } from './mcpRoutes';
 import { randomUUID } from 'node:crypto';
 import { Hono } from 'hono';
 import { getCodexWsUrl, getEnvLocalPath, getSettings, hasEnvLocalFile } from './config';
-import { readCodexRuntimeDoctor } from './codexRuntimeDoctor';
+import { createCheckingCodexRuntimeReport, readCodexRuntimeDoctor } from './codexRuntimeDoctor';
 import { isCodexHttpCredentialReady } from './auth/tokens';
 import {
   grokOnboardingFactsFromDoctor,
+  loadGrokRuntimeDoctor,
   readGrokRuntimeDoctor,
   type GrokRuntimeDoctorReport,
 } from './grokRuntimeDoctor';
 import {
+  loadAntigravityRuntimeDoctor,
   readAntigravityRuntimeDoctor,
   type AntigravityRuntimeDoctorReport,
 } from './antigravityRuntimeDoctor';
@@ -95,7 +97,7 @@ import { createLibrariesRoutes, type LibrariesRoutesDependencies } from './libra
 import { createJobRoutes } from './jobRoutes';
 import { jobBatchStore } from './db/jobBatches';
 import { createAssetLogRoutes } from './assetLogRoutes';
-import { createCheckingRuntimeReport, createRuntimeRoutes } from './runtimeRoutes';
+import { createRuntimeRoutes } from './runtimeRoutes';
 import { createStudioControlRoutes } from './studioControlRoutes';
 import { createRepositoryUpdates } from './repositoryUpdates';
 import { createRepositoryUpdateRoutes } from './repositoryUpdateRoutes';
@@ -230,6 +232,12 @@ export async function createStudioApp(
     options.dependencies?.readGrokRuntimeDoctor ?? readGrokRuntimeDoctor;
   const readAntigravityRuntimeDoctorFn =
     options.dependencies?.readAntigravityRuntimeDoctor ?? readAntigravityRuntimeDoctor;
+  const loadGrokRuntimeDoctorFn = options.dependencies?.readGrokRuntimeDoctor
+    ? async () => readGrokRuntimeDoctorFn()
+    : loadGrokRuntimeDoctor;
+  const loadAntigravityRuntimeDoctorFn = options.dependencies?.readAntigravityRuntimeDoctor
+    ? async () => readAntigravityRuntimeDoctorFn()
+    : loadAntigravityRuntimeDoctor;
   const ensureLocalAppServer = options.dependencies?.ensureAppServer ?? ensureAppServer;
   const stopLocalAppServer = options.dependencies?.stopAppServer ?? stopAppServer;
   const readAppServerDiagnostics =
@@ -371,9 +379,9 @@ export async function createStudioApp(
     createProviderRoutes({
       readSettings: () => readEditableStudioSettings(settingsStorage),
       readCodexRuntimeDoctor: () =>
-        readiness.readSnapshot().codexRuntime ?? createCheckingRuntimeReport(),
-      readGrokRuntimeDoctor: readGrokRuntimeDoctorFn,
-      readAntigravityRuntimeDoctor: readAntigravityRuntimeDoctorFn,
+        readiness.readSnapshot().codexRuntime ?? createCheckingCodexRuntimeReport(),
+      loadGrokRuntimeDoctor: loadGrokRuntimeDoctorFn,
+      loadAntigravityRuntimeDoctor: loadAntigravityRuntimeDoctorFn,
     }),
   );
 
@@ -557,8 +565,13 @@ export async function createStudioApp(
             ? (await readiness.refresh({ reason: 'passive' })).codexRuntime
             : readiness.readSnapshot().codexRuntime;
         const evaluatedCodexRuntime = codexRuntime ?? readCodexRuntimeDoctorFn();
-        const grokRuntime = readGrokRuntimeDoctorFn();
-        const antigravityRuntime = readAntigravityRuntimeDoctorFn();
+        // A Grok or Antigravity Job waits for that CLI's first probe instead of a checking report.
+        const grokRuntime =
+          providerId === 'grok' ? await loadGrokRuntimeDoctorFn() : readGrokRuntimeDoctorFn();
+        const antigravityRuntime =
+          providerId === 'antigravity'
+            ? await loadAntigravityRuntimeDoctorFn()
+            : readAntigravityRuntimeDoctorFn();
         const runtimePreflights = readGenerationProviderRuntimePreflights(
           process.env,
           evaluatedCodexRuntime,
@@ -706,6 +719,9 @@ export async function createStudioApp(
       `Studio Readiness startup refresh failed: ${error instanceof Error ? error.message : String(error)}`,
     );
   });
+  // Start the first Grok and Antigravity probes now, so later requests find a report.
+  readGrokRuntimeDoctorFn();
+  readAntigravityRuntimeDoctorFn();
 
   let shutdownPromise: Promise<void> | null = null;
 

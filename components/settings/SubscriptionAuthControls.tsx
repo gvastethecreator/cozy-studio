@@ -24,7 +24,7 @@ const controlPrimary = `${controlBase} studio-primary-control`;
 const controlGhost = `${controlBase} studio-ghost-control`;
 const controlQuiet = `${controlBase} border border-[color:var(--wb-line)] bg-transparent text-[color:var(--wb-muted)] hover:border-rose-500/2 hover:bg-rose-500/10 hover:text-[color:var(--wb-danger)] `;
 
-function useSubscriptionAuth(providerId: SubscriptionProviderId) {
+export function useSubscriptionAuth(providerId: SubscriptionProviderId) {
   const [status, setStatus] = useState<SubscriptionAuthPublicStatus | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   const [busy, setBusy] = useState(false);

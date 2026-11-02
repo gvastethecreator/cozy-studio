@@ -13,6 +13,7 @@ import {
   Folder,
   Palette,
   MediaImage,
+  OpenNewWindow,
   Play,
   Refresh as RefreshCw,
   Sparks as Sparkles,
@@ -32,8 +33,10 @@ import {
   type StudioReadinessSnapshot,
 } from '../packages/shared/src';
 import { resolveOnboardingPrimaryAction } from '../lib/onboardingPrimaryAction';
-import { SubscriptionAuthControls } from './settings/SubscriptionAuthControls';
+import { useSubscriptionAuth } from './settings/SubscriptionAuthControls';
 import { ProviderBrandMark } from './ProviderBrandMark';
+import { useT } from '../lib/i18n';
+import { isInstalledStylePack } from '../lib/installedStylePacks';
 import { providerBrandChipLabel } from '../lib/providerBrand';
 import {
   buildInAppSetupRequest,
@@ -53,6 +56,7 @@ import {
   updateEditableStudioSettings,
 } from '../services/studio-api/settings';
 import { listInstalledExtensions } from '../services/studio-api/extensions';
+import { cancelSubscriptionAuth, startSubscriptionAuth } from '../services/studio-api/auth';
 import { runOnboardingHostAction, runOnboardingSetup } from '../services/studio-api/runtime';
 import { createStudioEventStream } from '../services/studioEventSource';
 import {
@@ -193,10 +197,7 @@ function ImagesFolderRow({ isOpen }: { isOpen: boolean }) {
 
   return (
     <div className="onboarding-connection">
-      <span
-        className="grid size-10 shrink-0 place-items-center rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] text-[color:var(--wb-ink)]"
-        aria-hidden="true"
-      >
+      <span className="onboarding-connection-icon" aria-hidden="true">
         <Folder width={18} height={18} />
       </span>
       <div className="min-w-0 flex-1">
@@ -260,71 +261,323 @@ function ImagesFolderRow({ isOpen }: { isOpen: boolean }) {
   );
 }
 
-/** Style packs are installed separately (ADR 0011), so a new Studio starts with an empty Styles. */
-function describeStylePacks(
-  summary: { packs: number; styles: number } | 'loading' | 'error',
-  installing: boolean,
-  installed: boolean,
-) {
-  if (summary === 'loading') return 'Checking installed style packs.';
-  if (summary === 'error') return 'Studio could not read your style packs.';
-  if (installing) return 'Installing Essentials, a starter set of about a hundred styles.';
-  if (installed) return 'Essentials is installed. Reload Studio to start using it.';
-  if (summary.packs === 0)
-    return 'No style packs yet. Add a pack to fill Styles with looks to pick from.';
-  return `${summary.packs.toLocaleString('en-US')} ${summary.packs === 1 ? 'pack' : 'packs'} · ${summary.styles.toLocaleString('en-US')} styles ready to use.`;
+type SetupTone = 'success' | 'info' | 'warning' | 'danger' | 'muted';
+
+/** One setup card: icon, title with its status, what happens and why, and one main action. */
+function SetupRow({
+  icon,
+  title,
+  status,
+  children,
+  actions,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  status?: { tone: SetupTone; label: string };
+  children: React.ReactNode;
+  actions?: React.ReactNode;
+}) {
+  return (
+    <div className="onboarding-connection">
+      <span className="onboarding-connection-icon" aria-hidden="true">
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="onboarding-connection-title">
+          <h3>{title}</h3>
+          {status ? (
+            <span className="onboarding-status" data-tone={status.tone}>
+              {status.label}
+            </span>
+          ) : null}
+        </div>
+        {children}
+      </div>
+      {actions ? <div className="onboarding-connection-actions">{actions}</div> : null}
+    </div>
+  );
+}
+
+const ROW_PRIMARY = 'studio-primary-control onboarding-connections-button';
+const ROW_GHOST = 'studio-ghost-control onboarding-connections-button';
+
+/** ChatGPT web sign-in, the default provider. Studio polls until the browser step finishes. */
+function ChatGptRow({
+  isReady,
+  onRefresh,
+  onOpenProviders,
+}: {
+  isReady: boolean;
+  onRefresh: () => void;
+  onOpenProviders: () => void;
+}) {
+  const { t } = useT();
+  const { status, error, copied, busy, isLoadingStatus, browserUrl, run, copyCode, loadStatus } =
+    useSubscriptionAuth('codex');
+  const state = status?.status ?? null;
+  const pending = state === 'pending' && browserUrl ? status : null;
+
+  // The footer and auto-close read onboarding readiness, which only changes on a health refresh.
+  const refreshReadiness = React.useEffectEvent(() => {
+    if (!isReady) onRefresh();
+  });
+  React.useEffect(() => {
+    if (state === 'logged_in') refreshReadiness();
+  }, [state]);
+
+  const view = pending
+    ? {
+        tone: 'info' as const,
+        label: t('onboarding.status.waiting'),
+        detail: pending.userCode
+          ? t('onboarding.chatgpt.pendingCode')
+          : t('onboarding.chatgpt.pendingApprove'),
+      }
+    : state === 'logged_in'
+      ? {
+          tone: 'success' as const,
+          label: t('onboarding.status.signedIn'),
+          detail: status?.accountLabel
+            ? t('onboarding.chatgpt.signedInAs', { account: status.accountLabel })
+            : t('onboarding.chatgpt.signedIn'),
+        }
+      : state === 'refresh_failed'
+        ? {
+            tone: 'danger' as const,
+            label: t('onboarding.status.expired'),
+            detail: t('onboarding.chatgpt.expired'),
+          }
+        : state === null && !isLoadingStatus
+          ? {
+              tone: 'danger' as const,
+              label: t('onboarding.status.unavailable'),
+              detail: t('onboarding.chatgpt.statusError'),
+            }
+          : state === null
+            ? {
+                tone: 'muted' as const,
+                label: t('onboarding.status.checking'),
+                detail: t('onboarding.chatgpt.checking'),
+              }
+            : {
+                tone: 'muted' as const,
+                label: t('onboarding.status.notSignedIn'),
+                detail: t('onboarding.chatgpt.signedOut'),
+              };
+  const alert = error || status?.lastError;
+
+  const actions = pending ? (
+    <>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void run(() => cancelSubscriptionAuth('codex'))}
+        className={ROW_GHOST}
+      >
+        {t('onboarding.chatgpt.cancel')}
+      </button>
+      <a href={browserUrl ?? undefined} target="_blank" rel="noreferrer" className={ROW_PRIMARY}>
+        <OpenNewWindow width={15} height={15} aria-hidden="true" />
+        {t('onboarding.chatgpt.open')}
+      </a>
+    </>
+  ) : state === 'logged_in' ? (
+    <button type="button" onClick={onOpenProviders} className={ROW_GHOST}>
+      {t('onboarding.manage')}
+    </button>
+  ) : state === null && !isLoadingStatus ? (
+    <button type="button" onClick={() => void loadStatus()} className={ROW_GHOST}>
+      {t('onboarding.retry')}
+    </button>
+  ) : (
+    <button
+      type="button"
+      disabled={busy || isLoadingStatus}
+      onClick={() => void run(() => startSubscriptionAuth('codex'))}
+      className={ROW_PRIMARY}
+    >
+      {state === 'refresh_failed'
+        ? t('onboarding.chatgpt.signInAgain')
+        : t('onboarding.chatgpt.signIn')}
+    </button>
+  );
+
+  return (
+    <SetupRow
+      icon={<ProviderBrandMark providerId="chatgpt" size="sm" />}
+      title={providerBrandChipLabel('chatgpt')}
+      status={{ tone: view.tone, label: view.label }}
+      actions={actions}
+    >
+      <p>{view.detail}</p>
+      {pending?.userCode ? (
+        <div className="onboarding-code">
+          <code>{pending.userCode}</code>
+          <button
+            type="button"
+            onClick={() => void copyCode()}
+            aria-label={t('onboarding.chatgpt.copyCode')}
+            className="studio-ghost-control onboarding-code-copy"
+          >
+            {copied ? (
+              <ClipboardCheck width={16} height={16} />
+            ) : (
+              <Clipboard width={16} height={16} />
+            )}
+          </button>
+          <span role="status" aria-live="polite" className="sr-only">
+            {copied ? t('onboarding.chatgpt.codeCopied') : ''}
+          </span>
+        </div>
+      ) : null}
+      {alert ? (
+        <p role="alert" className="onboarding-alert">
+          {alert}
+        </p>
+      ) : null}
+      {pending || state === 'logged_in' ? null : (
+        <button type="button" onClick={onOpenProviders} className="onboarding-link">
+          {t('onboarding.otherProvider')}
+        </button>
+      )}
+    </SetupRow>
+  );
+}
+
+/** Any other default provider: its setup lives in Settings, Providers and the footer action. */
+function ProviderRow({
+  providerId,
+  isReady,
+  onOpenProviders,
+}: {
+  providerId: string;
+  isReady: boolean;
+  onOpenProviders: () => void;
+}) {
+  const { t } = useT();
+  const provider = providerBrandChipLabel(providerId);
+  return (
+    <SetupRow
+      icon={<ProviderBrandMark providerId={providerId} size="sm" />}
+      title={provider}
+      status={
+        isReady
+          ? { tone: 'success', label: t('onboarding.status.ready') }
+          : { tone: 'warning', label: t('onboarding.status.needsSetup') }
+      }
+      actions={
+        <button type="button" onClick={onOpenProviders} className={ROW_GHOST}>
+          {t('onboarding.manage')}
+        </button>
+      }
+    >
+      <p>
+        {isReady
+          ? t('onboarding.provider.ready', { provider })
+          : t('onboarding.provider.setup', { provider })}
+      </p>
+    </SetupRow>
+  );
+}
+
+interface StylePackListing {
+  packs: number;
+  styles: number;
+  /** Installed packs this page has not loaded: Studio reads them once at startup (ADR 0011). */
+  unloaded: { name: string; styles: number }[];
 }
 
 function StylePacksRow({ isOpen, onOpen }: { isOpen: boolean; onOpen: () => void }) {
-  const [summary, setSummary] = React.useState<
-    { packs: number; styles: number } | 'loading' | 'error'
-  >('loading');
+  const { t } = useT();
+  const [listing, setListing] = React.useState<StylePackListing | 'loading' | 'error'>('loading');
+  const empty = typeof listing === 'object' && listing.packs === 0;
+  // With no pack yet, Studio installs Essentials in the background; follow its progress.
+  const defaultPack = useDefaultStylePack(isOpen && empty);
+  const essentialsInstalled = defaultPack?.state === 'installed';
 
   React.useEffect(() => {
     if (!isOpen) return;
     const controller = new AbortController();
-    setSummary('loading');
     listInstalledExtensions({ signal: controller.signal })
-      .then(({ extensions }) =>
-        setSummary({
-          packs: extensions.length,
-          styles: extensions.reduce((total, item) => total + item.stylePack.presetCount, 0),
-        }),
-      )
+      .then(({ extensions }) => {
+        const packs = extensions.flatMap((item) =>
+          item.kind === 'style-pack' ? [item.stylePack] : [],
+        );
+        setListing({
+          packs: packs.length,
+          styles: packs.reduce((total, pack) => total + pack.presetCount, 0),
+          unloaded: packs
+            .filter((pack) => !isInstalledStylePack(pack.id))
+            .map((pack) => ({ name: pack.name, styles: pack.presetCount })),
+        });
+      })
       .catch(() => {
-        if (!controller.signal.aborted) setSummary('error');
+        if (!controller.signal.aborted) setListing('error');
       });
     return () => controller.abort();
-  }, [isOpen]);
+  }, [isOpen, essentialsInstalled]);
 
-  const empty = typeof summary === 'object' && summary.packs === 0;
-  // With no pack yet, Studio installs Essentials in the background; follow its progress.
-  const defaultPack = useDefaultStylePack(isOpen && empty);
-  const installing = empty && defaultPack?.state === 'installing';
-  const installed = empty && defaultPack?.state === 'installed';
-  const detail = describeStylePacks(summary, installing, installed);
+  const openPacks = (label: string, primary = false) => (
+    <button type="button" onClick={onOpen} className={primary ? ROW_PRIMARY : ROW_GHOST}>
+      {label}
+    </button>
+  );
+  const row = (
+    detail: string,
+    status?: { tone: SetupTone; label: string },
+    actions?: React.ReactNode,
+  ) => (
+    <SetupRow
+      icon={<Palette width={18} height={18} />}
+      title={t('onboarding.stylePacks.title')}
+      status={status}
+      actions={actions}
+    >
+      <p>{detail}</p>
+    </SetupRow>
+  );
 
-  return (
-    <div className="onboarding-connection">
-      <span
-        className="grid size-10 shrink-0 place-items-center rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] text-[color:var(--wb-ink)]"
-        aria-hidden="true"
-      >
-        <Palette width={18} height={18} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <h3>Style packs</h3>
-        <p>{detail}</p>
-      </div>
-      <button
-        type="button"
-        onClick={installed ? () => window.location.reload() : onOpen}
-        disabled={installing}
-        className={`${empty ? 'studio-primary-control' : 'studio-ghost-control'} onboarding-connections-button px-3`}
-      >
-        {installing ? 'Installing…' : installed ? 'Reload' : empty ? 'Get style packs' : 'Manage'}
-      </button>
-    </div>
+  if (listing === 'loading') return row(t('onboarding.stylePacks.checking'));
+  if (listing === 'error')
+    return row(
+      t('onboarding.stylePacks.error'),
+      { tone: 'danger', label: t('onboarding.status.unavailable') },
+      openPacks(t('onboarding.stylePacks.open')),
+    );
+  if (listing.unloaded.length > 0) {
+    const [first] = listing.unloaded;
+    return row(
+      listing.unloaded.length === 1
+        ? t('onboarding.stylePacks.reloadOne', { name: first.name, count: first.styles })
+        : t('onboarding.stylePacks.reloadMany', {
+            count: listing.unloaded.reduce((total, pack) => total + pack.styles, 0),
+          }),
+      { tone: 'warning', label: t('onboarding.status.reloadNeeded') },
+      <button type="button" onClick={() => window.location.reload()} className={ROW_PRIMARY}>
+        <RefreshCw width={15} height={15} aria-hidden="true" />
+        {t('onboarding.stylePacks.reload')}
+      </button>,
+    );
+  }
+  if (listing.packs > 0)
+    return row(
+      t('onboarding.stylePacks.ready', { count: listing.packs, styles: listing.styles }),
+      { tone: 'success', label: t('onboarding.status.ready') },
+      openPacks(t('onboarding.manage')),
+    );
+  // Installed with no listing yet: the effect above is fetching the new listing.
+  if (defaultPack === null || essentialsInstalled) return row(t('onboarding.stylePacks.checking'));
+  if (defaultPack.state === 'installing')
+    return row(t('onboarding.stylePacks.installing'), {
+      tone: 'info',
+      label: t('onboarding.status.installing'),
+    });
+  return row(
+    defaultPack.state === 'failed' || defaultPack.state === 'unavailable'
+      ? t('onboarding.stylePacks.failed')
+      : t('onboarding.stylePacks.empty'),
+    { tone: 'muted', label: t('onboarding.status.notInstalled') },
+    openPacks(t('onboarding.stylePacks.get'), true),
   );
 }
 
@@ -1347,33 +1600,19 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = (props) => {
                   ))}
                 </div>
                 <section className="onboarding-setup">
-                  <div className="onboarding-connection">
-                    <ProviderBrandMark providerId={connectedProvider} size="md" />
-                    <div className="min-w-0 flex-1">
-                      <h3>{providerBrandChipLabel(connectedProvider)}</h3>
-                      <p>
-                        {isReady
-                          ? 'Connected and ready to generate.'
-                          : 'Connect an account to start generating.'}
-                      </p>
-                      {primaryAction?.type === 'connect_chatgpt' ? (
-                        <div className="mt-3">
-                          <SubscriptionAuthControls providerId="codex" />
-                        </div>
-                      ) : null}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={onOpenSettings}
-                      className="studio-ghost-control onboarding-connections-button"
-                    >
-                      <span className="flex items-center gap-1" aria-hidden="true">
-                        <ProviderBrandMark providerId="grok" size="xs" />
-                        <ProviderBrandMark providerId="google" size="xs" />
-                      </span>
-                      Connections
-                    </button>
-                  </div>
+                  {connectedProvider === 'chatgpt' ? (
+                    <ChatGptRow
+                      isReady={isReady}
+                      onRefresh={onRefresh}
+                      onOpenProviders={onOpenSettings}
+                    />
+                  ) : (
+                    <ProviderRow
+                      providerId={connectedProvider}
+                      isReady={isReady}
+                      onOpenProviders={onOpenSettings}
+                    />
+                  )}
                   <StylePacksRow isOpen={isOpen} onOpen={onOpenStylePacks} />
                   <ImagesFolderRow isOpen={isOpen} />
                   <OnboardingDiagnostics modal={props} setup={setup} />

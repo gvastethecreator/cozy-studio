@@ -117,4 +117,69 @@ export const es: Dictionary = {
   'tcg.error.renderComposition': 'No se pudo renderizar la composición.',
   'tcg.error.createCanvas': 'No se pudo crear el lienzo de composición.',
   'tcg.canvas.uploadArt': 'Cargar ilustración',
+
+  'onboarding.status.notSignedIn': 'Sin sesión',
+  'onboarding.status.checking': 'Comprobando',
+  'onboarding.status.waiting': 'Esperándote',
+  'onboarding.status.signedIn': 'Sesión iniciada',
+  'onboarding.status.expired': 'Sesión caducada',
+  'onboarding.status.unavailable': 'No disponible',
+  'onboarding.status.ready': 'Listo',
+  'onboarding.status.needsSetup': 'Falta configurar',
+  'onboarding.status.installing': 'Instalando',
+  'onboarding.status.reloadNeeded': 'Falta recargar',
+  'onboarding.status.notInstalled': 'Sin instalar',
+  'onboarding.manage': 'Gestionar',
+  'onboarding.retry': 'Reintentar',
+  'onboarding.otherProvider': 'Usar otro proveedor',
+  'onboarding.chatgpt.signedOut':
+    'Inicia sesión con tu cuenta de ChatGPT para generar imágenes. Usa tu plan de ChatGPT, no créditos de API.',
+  'onboarding.chatgpt.checking': 'Comprobando tu sesión de ChatGPT…',
+  'onboarding.chatgpt.statusError': 'Studio no pudo comprobar tu sesión de ChatGPT.',
+  'onboarding.chatgpt.expired':
+    'Tu sesión de ChatGPT caducó. Vuelve a iniciar sesión para seguir generando.',
+  'onboarding.chatgpt.pendingCode':
+    'Abre ChatGPT y escribe este código. Studio completa el inicio de sesión solo.',
+  'onboarding.chatgpt.pendingApprove':
+    'Abre ChatGPT y aprueba el acceso. Studio completa el inicio de sesión solo.',
+  'onboarding.chatgpt.signedInAs': 'Sesión iniciada como {account}. Ya puedes generar.',
+  'onboarding.chatgpt.signedIn': 'Sesión iniciada. Ya puedes generar.',
+  'onboarding.chatgpt.signIn': 'Iniciar sesión con ChatGPT',
+  'onboarding.chatgpt.signInAgain': 'Volver a iniciar sesión',
+  'onboarding.chatgpt.open': 'Abrir ChatGPT',
+  'onboarding.chatgpt.cancel': 'Cancelar',
+  'onboarding.chatgpt.copyCode': 'Copiar código',
+  'onboarding.chatgpt.codeCopied': 'Código copiado.',
+  'onboarding.provider.ready': '{provider} está conectado. Ya puedes generar.',
+  'onboarding.provider.setup':
+    'Completa el paso de configuración de abajo para generar con {provider}.',
+  'onboarding.stylePacks.title': 'Paquetes de estilos',
+  'onboarding.stylePacks.checking': 'Comprobando tus paquetes de estilos…',
+  'onboarding.stylePacks.error': 'Studio no pudo leer tus paquetes de estilos.',
+  'onboarding.stylePacks.installing':
+    'Instalando Essentials, un set inicial de unos cien estilos. Puedes seguir mientras termina.',
+  'onboarding.stylePacks.reloadOne':
+    '{name} está instalado con {count} estilos. Studio carga los estilos al arrancar, así que recarga una vez para usarlos.',
+  'onboarding.stylePacks.reloadMany':
+    'Hay paquetes nuevos con {count} estilos. Studio carga los estilos al arrancar, así que recarga una vez para usarlos.',
+  'onboarding.stylePacks.failed':
+    'Studio no pudo instalar Essentials. Consigue un paquete para tener estilos que elegir.',
+  'onboarding.stylePacks.empty':
+    'Aún no hay paquetes de estilos. Consigue uno para tener estilos que elegir.',
+  'onboarding.stylePacks.ready': {
+    one: '{count} paquete · {styles} estilos listos en Estilos.',
+    other: '{count} paquetes · {styles} estilos listos en Estilos.',
+  },
+  'onboarding.stylePacks.reload': 'Recargar Studio',
+  'onboarding.stylePacks.get': 'Conseguir paquetes',
+  'onboarding.stylePacks.open': 'Abrir paquetes',
+  'stylePacks.notice.title': 'Aún no hay paquetes de estilos',
+  'stylePacks.notice.titleInstalling': 'Instalando Essentials',
+  'stylePacks.notice.titleInstalled': 'Essentials está instalado',
+  'stylePacks.notice.installing':
+    'Un set inicial de unos cien estilos. Aparecen después de recargar.',
+  'stylePacks.notice.installed':
+    'Studio carga los estilos al arrancar, así que recarga una vez para verlos.',
+  'stylePacks.notice.empty':
+    'Los estilos vienen de paquetes de estilos. Instala uno para llenar este catálogo.',
 };

@@ -1363,6 +1363,12 @@
   font-size: 14px;
   line-height: 1.5;
 }
+/* Short copy that wraps splits into even lines instead of leaving a word or two alone. */
+.onboarding-hero p,
+.onboarding-step p,
+.onboarding-connection p {
+  text-wrap: balance;
+}
 .onboarding-setup {
   display: grid;
   gap: 16px;
@@ -1376,11 +1382,97 @@
   border: var(--wb-border-width) solid var(--wb-line);
   border-radius: var(--wb-radius);
 }
+.onboarding-connection-icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  align-self: flex-start;
+  width: 40px;
+  height: 40px;
+  border: var(--wb-border-width) solid var(--wb-line);
+  border-radius: var(--wb-radius);
+  color: var(--wb-ink);
+}
+.onboarding-connection-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+.onboarding-status {
+  --tone: var(--wb-muted);
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border: var(--wb-border-width) solid color-mix(in srgb, var(--tone) 28%, transparent);
+  border-radius: var(--wb-radius);
+  background: color-mix(in srgb, var(--tone) 12%, transparent);
+  color: var(--tone);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.onboarding-status[data-tone='success'] {
+  --tone: var(--wb-success);
+}
+.onboarding-status[data-tone='info'] {
+  --tone: var(--wb-info);
+}
+.onboarding-status[data-tone='warning'] {
+  --tone: var(--wb-warning);
+}
+.onboarding-status[data-tone='danger'] {
+  --tone: var(--wb-danger);
+}
+.onboarding-connection .onboarding-alert {
+  color: var(--wb-danger);
+  overflow-wrap: anywhere;
+}
+.onboarding-link {
+  margin-top: 8px;
+  color: var(--wb-ink);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--wb-ink) 35%, transparent);
+  text-underline-offset: 3px;
+}
+.onboarding-link:hover {
+  text-decoration-color: currentColor;
+}
+.onboarding-code {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.onboarding-code code {
+  padding: 8px 14px;
+  border: var(--wb-border-width) solid var(--wb-line);
+  border-radius: var(--wb-radius);
+  background: var(--wb-well);
+  color: var(--wb-ink);
+  font-family: var(--wb-mono);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.onboarding-code-copy {
+  min-height: 38px;
+  min-width: 38px;
+}
+.onboarding-connection-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
 .onboarding-connections-button {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-height: 42px;
+  padding: 0 16px;
 }
 .onboarding-diagnostics summary {
   color: var(--wb-ink);
@@ -1427,6 +1519,7 @@
     flex-wrap: wrap;
     padding: 14px;
   }
+  .onboarding-connection-actions,
   .onboarding-connections-button {
     width: 100%;
   }

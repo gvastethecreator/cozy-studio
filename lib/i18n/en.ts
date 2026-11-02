@@ -114,6 +114,66 @@ export const en = {
   'tcg.error.renderComposition': 'Could not render the composition.',
   'tcg.error.createCanvas': 'Could not create the composition canvas.',
   'tcg.canvas.uploadArt': 'Upload illustration',
+
+  'onboarding.status.notSignedIn': 'Not signed in',
+  'onboarding.status.checking': 'Checking',
+  'onboarding.status.waiting': 'Waiting for you',
+  'onboarding.status.signedIn': 'Signed in',
+  'onboarding.status.expired': 'Sign-in expired',
+  'onboarding.status.unavailable': 'Unavailable',
+  'onboarding.status.ready': 'Ready',
+  'onboarding.status.needsSetup': 'Needs setup',
+  'onboarding.status.installing': 'Installing',
+  'onboarding.status.reloadNeeded': 'Reload needed',
+  'onboarding.status.notInstalled': 'Not installed',
+  'onboarding.manage': 'Manage',
+  'onboarding.retry': 'Try again',
+  'onboarding.otherProvider': 'Use another provider',
+  'onboarding.chatgpt.signedOut':
+    'Sign in with your ChatGPT account to generate images. It uses your ChatGPT plan, not API credits.',
+  'onboarding.chatgpt.checking': 'Checking your ChatGPT sign-in…',
+  'onboarding.chatgpt.statusError': 'Studio could not check your ChatGPT sign-in.',
+  'onboarding.chatgpt.expired': 'Your ChatGPT sign-in expired. Sign in again to keep generating.',
+  'onboarding.chatgpt.pendingCode':
+    'Open ChatGPT and enter this code. Studio finishes signing in by itself.',
+  'onboarding.chatgpt.pendingApprove':
+    'Open ChatGPT and approve access. Studio finishes signing in by itself.',
+  'onboarding.chatgpt.signedInAs': 'Signed in as {account}. You can start generating.',
+  'onboarding.chatgpt.signedIn': 'Signed in. You can start generating.',
+  'onboarding.chatgpt.signIn': 'Sign in with ChatGPT',
+  'onboarding.chatgpt.signInAgain': 'Sign in again',
+  'onboarding.chatgpt.open': 'Open ChatGPT',
+  'onboarding.chatgpt.cancel': 'Cancel',
+  'onboarding.chatgpt.copyCode': 'Copy code',
+  'onboarding.chatgpt.codeCopied': 'Code copied.',
+  'onboarding.provider.ready': '{provider} is connected. You can start generating.',
+  'onboarding.provider.setup': 'Finish the setup step below to generate with {provider}.',
+  'onboarding.stylePacks.title': 'Style packs',
+  'onboarding.stylePacks.checking': 'Checking your style packs…',
+  'onboarding.stylePacks.error': 'Studio could not read your style packs.',
+  'onboarding.stylePacks.installing':
+    'Installing Essentials, a starter set of about a hundred styles. You can keep going while it finishes.',
+  'onboarding.stylePacks.reloadOne':
+    '{name} is installed with {count} styles. Studio loads styles when it starts, so reload once to use them.',
+  'onboarding.stylePacks.reloadMany':
+    'New style packs with {count} styles are installed. Studio loads styles when it starts, so reload once to use them.',
+  'onboarding.stylePacks.failed':
+    'Studio could not install Essentials. Get a style pack to add styles to pick from.',
+  'onboarding.stylePacks.empty': 'No style packs yet. Get one to add styles to pick from.',
+  'onboarding.stylePacks.ready': {
+    one: '{count} pack · {styles} styles ready in Styles.',
+    other: '{count} packs · {styles} styles ready in Styles.',
+  },
+  'onboarding.stylePacks.reload': 'Reload Studio',
+  'onboarding.stylePacks.get': 'Get style packs',
+  'onboarding.stylePacks.open': 'Open style packs',
+  'stylePacks.notice.title': 'No style packs yet',
+  'stylePacks.notice.titleInstalling': 'Installing Essentials',
+  'stylePacks.notice.titleInstalled': 'Essentials is installed',
+  'stylePacks.notice.installing':
+    'A starter set of about a hundred styles. They appear after a reload.',
+  'stylePacks.notice.installed': 'Studio loads styles when it starts, so reload once to see them.',
+  'stylePacks.notice.empty': 'Styles come from style packs. Install a pack to fill this catalog.',
 } as const;
 
 export type MessageKey = keyof typeof en;

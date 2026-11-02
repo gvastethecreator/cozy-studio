@@ -1,17 +1,19 @@
-import { Palette } from 'iconoir-react';
+import { Palette, Refresh } from 'iconoir-react';
 import { useDefaultStylePack } from '../../hooks/useDefaultStylePack';
+import { useT } from '../../lib/i18n';
 import { openStudioSettings } from '../../lib/studioSettingsDomains';
 
 /** Shown where styles would be listed while Studio has no style pack installed (ADR 0011). */
 export function NoStylePacksNotice({ compact = false }: { compact?: boolean }) {
+  const { t } = useT();
   const defaultPack = useDefaultStylePack(true);
   const installing = defaultPack?.state === 'installing';
   const installed = defaultPack?.state === 'installed';
   const message = installing
-    ? 'Studio is installing Essentials, a starter set of about a hundred styles.'
+    ? t('stylePacks.notice.installing')
     : installed
-      ? 'Essentials is installed. Reload Studio to see its styles.'
-      : 'Styles come from style packs. Install a pack to fill this catalog.';
+      ? t('stylePacks.notice.installed')
+      : t('stylePacks.notice.empty');
   return (
     <div
       role="status"
@@ -24,17 +26,25 @@ export function NoStylePacksNotice({ compact = false }: { compact?: boolean }) {
         className="shrink-0"
       />
       <div className="min-w-0 flex-1">
-        <strong className="block text-sm">No style packs yet</strong>
-        <p className="text-xs text-[color:var(--wb-muted)]">{message}</p>
+        <strong className="block text-sm">
+          {installing
+            ? t('stylePacks.notice.titleInstalling')
+            : installed
+              ? t('stylePacks.notice.titleInstalled')
+              : t('stylePacks.notice.title')}
+        </strong>
+        <p className="text-xs text-balance text-[color:var(--wb-muted)]">{message}</p>
       </div>
-      <button
-        type="button"
-        disabled={installing}
-        onClick={() => (installed ? window.location.reload() : openStudioSettings('extensions'))}
-        className="studio-primary-control px-3"
-      >
-        {installing ? 'Installing…' : installed ? 'Reload' : 'Get style packs'}
-      </button>
+      {installing ? null : (
+        <button
+          type="button"
+          onClick={() => (installed ? window.location.reload() : openStudioSettings('extensions'))}
+          className="studio-primary-control px-3"
+        >
+          {installed ? <Refresh width={14} height={14} aria-hidden="true" /> : null}
+          {installed ? t('onboarding.stylePacks.reload') : t('onboarding.stylePacks.get')}
+        </button>
+      )}
     </div>
   );
 }

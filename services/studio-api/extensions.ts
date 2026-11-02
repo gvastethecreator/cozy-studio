@@ -1,4 +1,8 @@
-import type { ExtensionManifest, StylePackPreview } from '../../packages/shared/src/extensions';
+import {
+  extensionFilePath,
+  type ExtensionManifest,
+  type StylePackPreview,
+} from '../../packages/shared/src/extensions';
 import { getStudioApiBase, request } from './http';
 
 export interface InvalidExtensionFolder {
@@ -22,11 +26,6 @@ export async function listInstalledExtensions(
     origins: Record<string, ExtensionOrigin>;
     invalid: InvalidExtensionFolder[];
   }>(`/api/extensions${options.refresh ? '?refresh=1' : ''}`, { signal: options.signal });
-}
-
-function extensionFilePath(extensionId: string, relativePath: string) {
-  const encoded = relativePath.split('/').map(encodeURIComponent).join('/');
-  return `/api/extensions/${encodeURIComponent(extensionId)}/files/${encoded}`;
 }
 
 /** Absolute URL of a file inside an installed extension, for images. */

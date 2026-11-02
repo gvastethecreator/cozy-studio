@@ -1,6 +1,7 @@
 import type { Database } from 'bun:sqlite';
 import { randomUUID } from 'node:crypto';
 
+import { JOB_NOTICE_EVENT_TYPES } from '../../../../packages/shared/src/types';
 import type {
   GenerationProviderId,
   GenerationTaskSpec,
@@ -356,9 +357,9 @@ export function getJobStatus(id: string, db?: Database) {
   if (!row) return null;
   const notices = getDb(db)
     .query(
-      "SELECT message FROM job_events WHERE job_id = ? AND type IN ('asset.dimensions.info', 'asset.transparency.warning') ORDER BY id",
+      `SELECT message FROM job_events WHERE job_id = ? AND type IN (${JOB_NOTICE_EVENT_TYPES.map(() => '?').join(', ')}) ORDER BY id`,
     )
-    .all(id) as { message: string }[];
+    .all(id, ...JOB_NOTICE_EVENT_TYPES) as { message: string }[];
   return {
     id: row.id,
     status: row.status,

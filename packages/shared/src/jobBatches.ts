@@ -28,6 +28,10 @@ export interface RetryJobBatchRequest {
   requestId: string;
   items: Array<{ jobId: string; attempt: number }>;
 }
+/** The batch after a retry, and the jobs this request queued (none on a replay). */
+export interface RetryJobBatchResponse extends JobBatchDetail {
+  queuedJobIds: string[];
+}
 export interface JobAttemptRecord {
   attempt: number;
   queuedAt: string | null;

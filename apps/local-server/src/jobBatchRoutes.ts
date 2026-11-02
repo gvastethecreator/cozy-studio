@@ -2,7 +2,11 @@ import { createHash } from 'node:crypto';
 import { Hono } from 'hono';
 import { Exit, Schema } from 'effect';
 import { CreateJobRequestBoundarySchema } from '../../../packages/shared/src/studioApiSchemas';
-import type { CreateJobRequest, RetryJobBatchRequest } from '../../../packages/shared/src';
+import type {
+  CreateJobRequest,
+  RetryJobBatchRequest,
+  RetryJobBatchResponse,
+} from '../../../packages/shared/src';
 import type {
   createPersistentJobIntake,
   PersistentJobIntakeDependencies,
@@ -167,7 +171,10 @@ export function createJobBatchRoutes({
     const result = store.retryFailedJobBatch(id, request, requestHash(request.items));
     if (!result) return c.json({ error: 'Batch not found' }, 404);
     await intake.dispatchJobs(result.queued);
-    return c.json(result.batch);
+    return c.json({
+      ...result.batch,
+      queuedJobIds: result.queued.map(({ id }) => id),
+    } satisfies RetryJobBatchResponse);
   });
   return routes;
 }

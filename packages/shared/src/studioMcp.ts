@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { validateCatalogCollectionName } from './catalogCollections';
+import { normalizeImageHashtag } from './catalogTags';
 import { EXTENSION_LAYERS } from './extensions';
 import { CATALOG_SORT_OPTIONS } from './types';
 import { isPreferredWorkflow } from './workflowCatalog';
@@ -16,6 +18,14 @@ const id = z
 const page = { limit: z.number().int().min(1).max(100).default(30) };
 const tagNames = z.array(z.string().min(1).max(64)).max(8);
 const collectionName = z.string().trim().min(1).max(80);
+/** A name as Studio stores it, so #Pick matches pick and "My  set" matches "my set". */
+const storedName = (normalize: (name: string) => string, name: string) => {
+  try {
+    return normalize(name).toLowerCase();
+  } catch {
+    return name.toLowerCase();
+  }
+};
 const empty = z.strictObject({});
 const referenceMimeType = z.enum(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 
@@ -119,7 +129,7 @@ export const generationInput = z.strictObject({
     .enum(['generate', 'preserve', 'reinterpret'])
     .optional()
     .describe(
-      "How styles treat referenceIds: preserve keeps their layout, reinterpret restages them, generate ignores them (Intentional styles only). Defaults to the user's setting.",
+      "How styles treat referenceIds: preserve keeps their layout, reinterpret restages them, generate ignores them (Intentional styles only). Defaults to the user's setting, preserve unless changed. With Intentional styles on, preserve needs referenceIds: without references, set generate.",
     ),
   model: z
     .string()
@@ -277,13 +287,17 @@ export const studioMcpTools = {
           input.removeFromCollection,
         'Set addTags, removeTags, addToCollection or removeFromCollection.',
       )
-      .refine(
-        (input) =>
-          !input.addTags?.some((tag) => input.removeTags?.includes(tag)) &&
+      .refine((input) => {
+        const tag = (name: string) => storedName(normalizeImageHashtag, name);
+        const collection = (name: string) => storedName(validateCatalogCollectionName, name);
+        const removed = new Set(input.removeTags?.map(tag));
+        return (
+          !input.addTags?.some((name) => removed.has(tag(name))) &&
           (!input.addToCollection ||
-            input.addToCollection.toLowerCase() !== input.removeFromCollection?.toLowerCase()),
-        'Do not add and remove the same tag or collection.',
-      ),
+            !input.removeFromCollection ||
+            collection(input.addToCollection) !== collection(input.removeFromCollection))
+        );
+      }, 'Do not add and remove the same tag or collection.'),
   },
   studio_plan_generation: {
     access: 'read',

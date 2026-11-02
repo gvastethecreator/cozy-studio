@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
+import { HTTPException } from 'hono/http-exception';
 import { DEFAULT_GENERATION_CONFIG } from '../../../constants';
 import { RECIPE_DISCOVERY_CATALOG, searchRecipeCatalog } from '../../../lib/recipeCatalog';
 import { buildGenerationTaskSpecFromRecipe } from '../../../lib/recipeModules/taskSpec';
@@ -28,11 +29,15 @@ import {
 } from '../../../packages/shared/src/catalogCollections';
 import { applyCatalogTagChanges, type CatalogTag } from '../../../packages/shared/src/catalogTags';
 import type { EditableStudioSettings } from '../../../packages/shared/src/studioSettings';
-import type { JobBatchDetail } from '../../../packages/shared/src/jobBatches';
 import type {
-  CatalogImage,
-  JobDetailResponse,
-  JobExecutionOptions,
+  JobBatchDetail,
+  RetryJobBatchResponse,
+} from '../../../packages/shared/src/jobBatches';
+import {
+  JOB_NOTICE_EVENT_TYPES,
+  type CatalogImage,
+  type JobDetailResponse,
+  type JobExecutionOptions,
 } from '../../../packages/shared/src/types';
 import type { StudioWorkspace } from '../../../packages/shared/src/workspaceContracts';
 import type { ImageGenerationConfig, Attachment } from '../../../types';
@@ -41,9 +46,6 @@ import { jobImageMetadata } from './providers/jobImageMetadata';
 import { ReferenceImportConflictError } from './referenceImport';
 
 type HttpCall = (path: string, payload?: unknown) => Promise<Response>;
-
-// The job events that GET /api/jobs/:id/status reports as notices.
-const NOTICE_EVENT_TYPES = new Set(['asset.dimensions.info', 'asset.transparency.warning']);
 
 // Their runs coordinate many frames in the Studio UI (D6).
 const UI_ONLY_RECIPES = new Set(['sprite-atlas', 'animation-sequence']);
@@ -55,6 +57,13 @@ const COMPILED_STYLE_FIELDS = [
   'selectedStyles',
   'selectedStyleDraft',
 ];
+
+/** The catalog image with this id, or null. Ids such as `search` reach other catalog routes. */
+async function getCatalogImage(get: HttpCall, imageId: string) {
+  const response = await get(`/api/catalog/${imageId}`);
+  const image = response.ok ? ((await response.json()) as CatalogImage) : null;
+  return image?.id === imageId ? image : null;
+}
 
 /** A name maps to one id, so a timeout retry keeps its batch hash even after a rename. */
 function workspaceIdForName(name: string) {
@@ -126,9 +135,8 @@ async function buildGenerationRequest(
   }
   const attachments: Attachment[] = [];
   for (const imageId of input.referenceIds) {
-    const response = await get(`/api/catalog/${imageId}`);
-    if (!response.ok) return { error: 'Catalog reference not found', imageId };
-    const image = (await response.json()) as CatalogImage;
+    const image = await getCatalogImage(get, imageId);
+    if (!image) return { error: 'Catalog reference not found', imageId };
     if (image.isDeleted || image.sourceExists === false)
       return { error: 'Catalog reference is unavailable', imageId };
     attachments.push({
@@ -298,8 +306,13 @@ export function createMcpRoutes({
       get(path)
         .then((response) => response.json())
         .catch(() => null);
-    const list = <T>(path: string) =>
-      readJson(path).then((value: unknown) => (Array.isArray(value) ? (value as T[]) : []));
+    // A failed read stops the call before any write: an empty list would hide existing names.
+    const list = async <T>(path: string) => {
+      const value: unknown = await readJson(path);
+      if (Array.isArray(value)) return value as T[];
+      const error = `Could not read ${path}. Nothing changed. Call studio_status, then retry.`;
+      throw new HTTPException(500, { res: c.json({ error }, 500) });
+    };
     const unorganizedCount = (workspaceId?: string) =>
       readJson(
         `/api/catalog?${workspaceId ? `workspace_id=${workspaceId}&` : ''}unorganized=true&limit=1`,
@@ -369,18 +382,19 @@ export function createMcpRoutes({
       case 'studio_find_styles': {
         const { q, packId, limit } = studioMcpTools.studio_find_styles.schema.parse(args);
         const packs = await loadInstalledStylePacks(get, packId ? new Set([packId]) : undefined);
+        if (!Array.isArray(packs)) return c.json(packs, 400);
         return c.json({ styles: findStyles(packs, { q, limit }) });
       }
       case 'studio_workspaces': {
         const { workspaceId } = studioMcpTools.studio_workspaces.schema.parse(args);
         if (!workspaceId) return get('/api/workspaces');
-        const [workspace, tags, collections, unorganized] = await Promise.all([
-          get(`/api/workspaces/${workspaceId}`),
+        const workspace = await get(`/api/workspaces/${workspaceId}`);
+        if (workspace.status === 404) return c.json({ error: 'Unknown workspaceId.' }, 400);
+        const [tags, collections, unorganized] = await Promise.all([
           list<CatalogTag>(`/api/catalog/tags?workspace_id=${workspaceId}`),
           list<CatalogCollection>(`/api/catalog/collections?workspace_id=${workspaceId}`),
           unorganizedCount(workspaceId),
         ]);
-        if (workspace.status === 404) return c.json({ error: 'Unknown workspaceId.' }, 400);
         return c.json({
           workspace: await workspace.json(),
           tags: tags.map(({ name, color, imageCount }) => ({ name, color, imageCount })),
@@ -421,7 +435,7 @@ export function createMcpRoutes({
           completedAt: job.completedAt,
           error: job.error,
           notices: events
-            .filter(({ type }) => NOTICE_EVENT_TYPES.has(type))
+            .filter(({ type }) => JOB_NOTICE_EVENT_TYPES.includes(type))
             .map(({ message }) => message),
           model: jobImageMetadata(job).model,
           libraryOrganization: job.sourceSpec?.metadata.libraryOrganization ?? null,
@@ -445,13 +459,7 @@ export function createMcpRoutes({
         const { workspaceId, addTags, removeTags } = input;
         const imageIds = [...new Set(input.imageIds)];
         // Check every image and change first, so a rejected call writes nothing.
-        const images = await Promise.all(
-          imageIds.map((imageId) =>
-            get(`/api/catalog/${imageId}`).then((response) =>
-              response.ok ? (response.json() as Promise<CatalogImage>) : null,
-            ),
-          ),
-        );
+        const images = await Promise.all(imageIds.map((imageId) => getCatalogImage(get, imageId)));
         const outside = imageIds.filter((_, index) => {
           const image = images[index];
           return !image || image.isDeleted || (image.workspaceId ?? 'default') !== workspaceId;
@@ -583,9 +591,11 @@ export function createMcpRoutes({
           });
         const { workspace, libraryOrganization } = built;
         const collection = libraryOrganization?.collection ?? null;
-        const collections = collection
-          ? await list<CatalogCollection>(`/api/catalog/collections?workspace_id=${workspace.id}`)
-          : [];
+        // A workspace that does not exist yet has no collections to read.
+        const collections =
+          collection && !workspace.willCreate
+            ? await list<CatalogCollection>(`/api/catalog/collections?workspace_id=${workspace.id}`)
+            : [];
         return c.json({
           ready: true,
           jobCount: input.count,
@@ -629,9 +639,10 @@ export function createMcpRoutes({
           requestId: args.requestId,
           items: batch.retryable,
         });
-        return retried.ok
-          ? c.json({ retried: batch.retryable.length, batch: await retried.json() })
-          : retried;
+        if (!retried.ok) return retried;
+        // Studio skips a job whose attempt changed since the read, so count what it queued.
+        const { queuedJobIds, ...after } = (await retried.json()) as RetryJobBatchResponse;
+        return c.json({ retried: queuedJobIds.length, batch: after });
       }
       case 'studio_import_reference': {
         if (!importReference) return c.json({ error: 'Reference import is unavailable.' }, 400);

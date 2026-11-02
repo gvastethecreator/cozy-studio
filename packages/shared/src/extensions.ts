@@ -273,6 +273,12 @@ export function globalStylePresetId(extensionId: string, presetId: string) {
   return `${extensionId}/${presetId}`;
 }
 
+/** The Studio API path of a file inside an installed extension. */
+export function extensionFilePath(extensionId: string, relativePath: string) {
+  const encoded = relativePath.split('/').map(encodeURIComponent).join('/');
+  return `/api/extensions/${encodeURIComponent(extensionId)}/files/${encoded}`;
+}
+
 /**
  * The style-pack extension that serves each pack id (the first source wins, matching the backend
  * listing) and the copied presets each pack hides because their source pack is installed.

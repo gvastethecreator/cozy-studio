@@ -26,7 +26,7 @@ const runtimePack = {
 const styleExtension = {
   id: 'cozy.fixture',
   kind: 'style-pack',
-  files: { runtime: 'runtime.json' },
+  files: { runtime: 'runtime pack.json' },
   stylePack: { id: headshot.packId },
 };
 
@@ -54,6 +54,7 @@ describe('Studio MCP boundary', () => {
     };
     const collections: object[] = [];
     let workspacesDown = false;
+    let runtimeBody = JSON.stringify(runtimePack);
     const app = new Hono().route(
       '/api/mcp',
       createMcpRoutes({
@@ -95,8 +96,8 @@ describe('Studio MCP boundary', () => {
               { name: 'cover', color: null, imageCount: 2, lastUsedAt: '2026-11-01' },
             ]);
           if (path === '/api/extensions') return Response.json({ extensions: [styleExtension] });
-          if (path === '/api/extensions/cozy.fixture/files/runtime.json')
-            return Response.json(runtimePack);
+          if (path === '/api/extensions/cozy.fixture/files/runtime%20pack.json')
+            return new Response(runtimeBody);
           if (path === '/api/jobs/batches/plan') {
             const [item] = body.items;
             return body.items.length === 1 && item.providerId === 'chatgpt'
@@ -251,13 +252,16 @@ describe('Studio MCP boundary', () => {
       });
     }
     const batchesBefore = requests.filter(({ path }) => path === '/api/jobs/batches').length;
-    for (const rejected of [
-      { ...styled, styles: [{ ...styles[0], presetId: 'missing' }] },
-      { ...styled, recipeId: 'remaster' },
-      { ...styled, model: 'gpt-image-9' },
-      { ...styled, providerId: 'grok' },
-    ])
-      expect((await call('studio_generate', rejected)).status).toBe(400);
+    for (const [rejected, error] of [
+      [{ ...styled, styles: [{ ...styles[0], presetId: 'missing' }] }, 'is not installed'],
+      [{ ...styled, recipeId: 'remaster' }, 'styles uses the styles recipe'],
+      [{ ...styled, model: 'gpt-image-9' }, 'Unknown ChatGPT image model'],
+      [{ ...styled, providerId: 'grok' }, 'This provider uses its Settings default model'],
+    ] as const) {
+      const response = await call('studio_generate', rejected);
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toContain(error);
+    }
     expect(requests.filter(({ path }) => path === '/api/jobs/batches')).toHaveLength(batchesBefore);
 
     // A plan runs at Read only and never queues a batch or creates a workspace.
@@ -324,6 +328,11 @@ describe('Studio MCP boundary', () => {
         },
       ],
     });
+    runtimeBody = 'not json';
+    const unreadable = await call('studio_find_styles', { q: 'portrait' });
+    expect(unreadable.status).toBe(400);
+    expect((await unreadable.json()).error).toContain(`${headshot.packId} cannot be read`);
+    runtimeBody = JSON.stringify(runtimePack);
 
     settings.mcpAccess = 'organize';
     expect(await (await call('studio_status')).json()).toMatchObject({
@@ -331,11 +340,14 @@ describe('Studio MCP boundary', () => {
       library: { unorganized: 3 },
       organizeNotice: expect.stringContaining('3 Library images have no tags or collection.'),
     });
+    expect(requests.at(-1)?.path).toBe('/api/catalog?unorganized=true&limit=1');
     // Every image and tag change is checked before the first write.
     const writes = () => requests.filter(({ body }) => body);
     const writesBefore = writes().length;
+    // `search` answers from another catalog route, so it is not an image.
     for (const [imageIds, rejected] of [
       [['image-1', 'foreign'], 'foreign'],
+      [['image-1', 'search'], 'search'],
       [['image-1', 'full'], 'full'],
     ] as const) {
       const response = await call('studio_organize_images', { ...organize, imageIds });
@@ -344,6 +356,17 @@ describe('Studio MCP boundary', () => {
     }
     const unknownCollection = { ...organize, removeFromCollection: 'Missing' };
     expect((await call('studio_organize_images', unknownCollection)).status).toBe(400);
+    // #Pick is pick and "Best  Picks" is "best picks", so each pair adds and removes one name.
+    for (const conflict of [
+      { removeTags: ['pick'] },
+      { addToCollection: 'Best  Picks', removeFromCollection: 'best picks' },
+    ]) {
+      const response = await call('studio_organize_images', { ...organize, ...conflict });
+      expect(await response.json()).toMatchObject({ error: 'Invalid tool arguments' });
+    }
+    // The fake cannot list tags or collections of `other`; that read failure stops the call.
+    const unreadableTags = { ...organize, workspaceId: 'other', imageIds: ['foreign'] };
+    expect((await call('studio_organize_images', unreadableTags)).status).toBe(500);
     expect(writes()).toHaveLength(writesBefore);
     expect(await (await call('studio_organize_images', organize)).json()).toEqual({
       workspaceId: 'default',
@@ -375,6 +398,9 @@ describe('Studio MCP boundary', () => {
       collections: [{ id: 'collection-1', name: 'Picks', emoji: null, imageCount: 2 }],
       unorganized: 3,
     });
+    expect(requests.at(-1)?.path).toBe(
+      '/api/catalog?workspace_id=default&unorganized=true&limit=1',
+    );
     expect((await call('studio_workspaces', { workspaceId: 'missing' })).status).toBe(400);
 
     settings.mcpAccess = 'write';
@@ -464,6 +490,9 @@ describe('Studio MCP boundary', () => {
             body: typeof init?.body === 'string' ? JSON.parse(init.body) : null,
           });
           if (init?.method === 'DELETE') return new Response(null, { status: 204 });
+          // Studio queued nothing: the job's attempt changed after the batch was read.
+          if (path === '/api/jobs/batches/batch-1/retry')
+            return Response.json({ ...fixtures['/api/jobs/batches/batch-1']!, queuedJobIds: [] });
           return Response.json((!init?.method && fixtures[path]) || { path });
         },
       }),
@@ -553,8 +582,11 @@ describe('Studio MCP boundary', () => {
     expect((await call('studio_update_settings', patch)).status).toBe(200);
     expect(requests.at(-1)).toEqual({ method: 'PATCH', path: '/api/settings', body: patch });
 
-    // Only the failed job is retried, with its current attempt.
-    expect(await (await call('studio_retry_batch', retry)).json()).toMatchObject({ retried: 1 });
+    // Only the failed job is sent, with its current attempt; retried counts what Studio queued.
+    expect(await (await call('studio_retry_batch', retry)).json()).toMatchObject({
+      retried: 0,
+      batch: { id: 'batch-1' },
+    });
     expect(requests.at(-1)).toEqual({
       method: 'POST',
       path: '/api/jobs/batches/batch-1/retry',

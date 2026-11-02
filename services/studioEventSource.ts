@@ -282,10 +282,7 @@ class BrowserStudioEventStream implements StudioEventStream {
     } else if (event.type === 'asset.created') {
       this.assetListeners.forEach((listener) => notifyListener(listener, event.payload as Asset));
     } else if (event.type === 'catalog.created' || event.type === 'catalog.updated') {
-      const type = event.type as Exclude<
-        StudioCatalogEventPayload['type'],
-        'catalog.batch_changed'
-      >;
+      const type = event.type;
       this.catalogListeners.forEach((listener) =>
         notifyListener(listener, { type, image: event.payload as CatalogImage }),
       );

@@ -25,7 +25,7 @@ import {
   findAcceptedJobBatch,
   retryFailedJobBatch,
 } from './db/jobBatches';
-import type { Job } from '../../../packages/shared/src';
+import type { Job, RetryJobBatchResponse } from '../../../packages/shared/src';
 import { addAsset } from './db/assets';
 import { LATEST_DATABASE_SCHEMA_VERSION, migrateDatabase } from './db/migrations';
 import { createGenerationTaskSpec } from '../../../packages/shared/src/generationContracts';
@@ -433,8 +433,14 @@ async function inspectJobBatches() {
       post('/batch-atomic/retry', retry),
       post('/batch-atomic/retry', retry),
     ]);
+    const queuedJobIds = await Promise.all(
+      retries.map(
+        async (response) => ((await response.json()) as RetryJobBatchResponse).queuedJobIds,
+      ),
+    );
     if (
       retries.some((response) => response.status !== 200) ||
+      queuedJobIds.flat().length !== 1 ||
       dispatchedCount() !== 3 ||
       getJob(failure.id, batchDb)?.attempt !== 2
     )

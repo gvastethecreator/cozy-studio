@@ -299,6 +299,12 @@ export interface JobListPage {
   workspaces: Array<{ id: string; name: string }>;
 }
 
+/** Job event types that the job status route and studio_job report as notices. */
+export const JOB_NOTICE_EVENT_TYPES: readonly string[] = [
+  'asset.dimensions.info',
+  'asset.transparency.warning',
+];
+
 export interface JobEventRecord {
   id: number;
   jobId: string | null;

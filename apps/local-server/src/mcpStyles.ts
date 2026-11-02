@@ -8,6 +8,7 @@ import {
   type StyleRuntimePack,
 } from '../../../components/recipes/styles/runtimeTypes';
 import {
+  extensionFilePath,
   resolveStylePackExtensions,
   type ExtensionManifest,
 } from '../../../packages/shared/src/extensions';
@@ -16,8 +17,14 @@ import * as Intentional from '../../../packages/shared/src/styles/intentional-v1
 
 type Get = (path: string) => Promise<Response>;
 
-/** Installed style packs as the Studio UI loads them: the first source wins, hidden copies drop. */
-export async function loadInstalledStylePacks(get: Get, packIds?: ReadonlySet<string>) {
+/**
+ * Installed style packs as the Studio UI loads them: the first source wins, hidden copies drop.
+ * A runtime file that is not JSON with presets is reported, not skipped.
+ */
+export async function loadInstalledStylePacks(
+  get: Get,
+  packIds?: ReadonlySet<string>,
+): Promise<StyleRuntimePack[] | { error: string }> {
   const listed = (await get('/api/extensions')
     .then((response) => response.json())
     .catch(() => null)) as { extensions?: ExtensionManifest[] } | null;
@@ -26,11 +33,13 @@ export async function loadInstalledStylePacks(get: Get, packIds?: ReadonlySet<st
     [...byPackId]
       .filter(([packId]) => !packIds || packIds.has(packId))
       .map(async ([packId, extension]) => {
-        const response = await get(
-          `/api/extensions/${extension.id}/files/${extension.files.runtime}`,
-        );
+        const response = await get(extensionFilePath(extension.id, extension.files.runtime));
         if (!response.ok) return null;
-        const pack = (await response.json()) as StyleRuntimePack;
+        const pack = (await response.json().catch(() => null)) as StyleRuntimePack | null;
+        if (!Array.isArray(pack?.presets))
+          return {
+            error: `Style pack ${packId} cannot be read: ${extension.files.runtime} is not JSON with presets. Reinstall extension ${extension.id}.`,
+          };
         const hidden = hiddenPresetIds.get(packId);
         return normalizeStyleRuntimePack({
           ...pack,
@@ -38,7 +47,10 @@ export async function loadInstalledStylePacks(get: Get, packIds?: ReadonlySet<st
         });
       }),
   );
-  return packs.filter((pack) => pack !== null);
+  return (
+    packs.find((pack): pack is { error: string } => pack !== null && 'error' in pack) ??
+    packs.filter((pack): pack is StyleRuntimePack => pack !== null && !('error' in pack))
+  );
 }
 
 export function findStyles(packs: StyleRuntimePack[], { q, limit }: { q?: string; limit: number }) {
@@ -97,6 +109,7 @@ export async function compileMcpStyles(
     }
 > {
   const packs = await loadInstalledStylePacks(get, new Set(styles.map(({ packId }) => packId)));
+  if (!Array.isArray(packs)) return packs;
   const slots = [];
   for (const style of styles) {
     const pack = packs.find(({ id }) => id === style.packId);

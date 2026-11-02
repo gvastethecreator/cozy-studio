@@ -34,20 +34,24 @@ Use an absolute `bun` executable when the client does not search `PATH`. Set `CO
 
 ## Access
 
-Settings > Advanced & maintenance > **Agent access (MCP)** controls every call, including calls from already connected clients:
+Settings > Advanced & maintenance > **Agent access (MCP)** controls every call, including calls from already connected clients. Each level includes the one before it:
 
-- **Off** rejects all MCP calls.
-- **Read only**, the default, allows discovery and queries.
-- **Generate and cancel** also allows reference import, generation, cancellation, settings changes, pack install and removal, and app updates.
+- **Off** (`mcpAccess: "off"`) rejects all MCP calls.
+- **Read only** (`"read"`), the default, allows discovery and queries.
+- **Organize** (`"organize"`) is for Library organization tools (tags and collections), which never delete images or spend provider usage. Today it allows the same tools as Read only.
+- **Full control** (`"write"`) also allows reference import, generation, cancellation, settings changes, pack install and removal, and app updates.
+
+A denied call returns 403 with `access` (the current level) and `required` (the level the tool needs). The bridge answers `studio_guide` itself from `skills/cozy-studio-mcp/`, so it works while Studio is offline and when Agent access is Off.
 
 The setting controls the MCP gateway, not the app's own UI/API. Local MCP clients share this setting; there are no per-client credentials. Existing loopback host and browser-origin checks still apply. Provider secrets and transcripts are not exposed as MCP tools.
 
-**Allowed import folders**, in the same Settings section, controls which local folders agents can read through `studio_import_reference_file`. Enter one absolute folder path per line and save. The default is empty, which disables import by path. This permission includes subfolders. Remove a folder or clear the list to revoke access on the next call. Write access is also required. MCP tools cannot change Agent access or Allowed import folders.
+**Allowed import folders**, in the same Settings section, controls which local folders agents can read through `studio_import_reference_file`. Enter one absolute folder path per line and save. The default is empty, which disables import by path. This permission includes subfolders. Remove a folder or clear the list to revoke access on the next call. Full control is also required. MCP tools cannot change Agent access or Allowed import folders.
 
 ## Tools
 
 | Tool                                                               | Access             | Purpose                                                                                                    |
 | ------------------------------------------------------------------ | ------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `studio_guide`                                                     | none (bridge)      | The agent guide: `SKILL.md` for `overview`, or one reference topic.                                        |
 | `studio_status`                                                    | read               | Health, current `mcpAccess` and app update status (`update`, plus a `notice` when an update is available). |
 | `studio_onboarding`                                                | read               | Onboarding probe, provider readiness and ChatGPT sign-in state.                                            |
 | `studio_providers`, `studio_recipes`, `studio_workspaces`          | read               | Provider readiness, recipes, workspaces.                                                                   |
@@ -61,7 +65,7 @@ The setting controls the MCP gateway, not the app's own UI/API. Local MCP client
 | `studio_generate`, `studio_cancel`                                 | write              | Queue generation, cancel a job.                                                                            |
 | `studio_import_reference`, `studio_import_reference_file`          | write              | Import an image reference.                                                                                 |
 | `studio_updates`                                                   | read               | App update status; `check: true` fetches `origin/main`.                                                    |
-| `studio_apply_update`                                              | write              | Fast-forward to the checked commit, install and restart.                                                   |
+| `studio_apply_update`                                              | write, destructive | Fast-forward to the checked commit, install and restart.                                                   |
 
 `studio_update_settings` accepts only `defaultProviderId`, `providerDefaults`, `outputDirectory`, `outputOrganization`, `notifyOnUpdates` and `preferredWorkflow`. Any other field, including `mcpAccess` and `mcpAllowedImportRoots`, rejects the whole call. `outputDirectory` must be absolute; Studio registers it as the output destination. `null` returns output to the Studio Library.
 
@@ -72,7 +76,7 @@ The setting controls the MCP gateway, not the app's own UI/API. Local MCP client
 ## New user setup
 
 1. `studio_onboarding`. If ChatGPT is not signed in, ask the user to sign in from Studio Settings. Do not start sign-in.
-2. `studio_status`. If it returns a `notice`, tell the user an update is available and ask before `studio_apply_update`. If `mcpAccess` is not `write`, ask the user to set Agent access (MCP) to Generate and cancel before the write steps.
+2. `studio_status`. If it returns a `notice`, tell the user an update is available and ask before `studio_apply_update`. If `mcpAccess` is not `write`, ask the user to set Agent access (MCP) to Full control before the write steps.
 3. `studio_available_extensions`, then `studio_install_extension` for the packs the user wants, with `layers: ["cards"]` for preview cards.
 4. `studio_settings`, then `studio_update_settings` for the provider, output folder and organization the user asked for.
 5. Generate with the workflow below.

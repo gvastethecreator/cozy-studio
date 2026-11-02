@@ -32,6 +32,17 @@ export const es: Dictionary = {
   'settings.appearance.zoomSensitivity': 'Sensibilidad del zoom',
   'settings.appearance.zoomSensitivityHint':
     'Qué tan rápido hacen zoom la rueda o el pellizco en las vistas previas de imágenes.',
+  'settings.agents.heading': 'Agentes locales',
+  'settings.agents.access': 'Acceso de agentes (MCP)',
+  'settings.agents.accessHint':
+    'Solo lectura deja que los agentes consulten Studio. Organizar también les permite etiquetar imágenes y gestionar colecciones; nunca borra imágenes ni usa tu cuenta del proveedor. Control total también genera con tu cuenta del proveedor, importa imágenes, cambia ajustes, instala paquetes y aplica actualizaciones.',
+  'settings.agents.access.off': 'Desactivado',
+  'settings.agents.access.read': 'Solo lectura',
+  'settings.agents.access.organize': 'Organizar',
+  'settings.agents.access.write': 'Control total',
+  'settings.agents.importFolders': 'Carpetas permitidas para importar',
+  'settings.agents.importFoldersHint':
+    'Los agentes con Control total pueden importar imágenes de estas carpetas y sus subcarpetas. Escribe una ruta absoluta por línea. Déjalo vacío para desactivar la importación por ruta.',
 
   'tcg.title': 'TCG Component Studio',
   'tcg.intro':

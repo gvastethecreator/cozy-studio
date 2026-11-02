@@ -5,8 +5,9 @@ import { RECIPE_DISCOVERY_CATALOG } from '../../../lib/recipeCatalog';
 import { buildGenerationTaskSpecFromRecipe } from '../../../lib/recipeModules/taskSpec';
 import {
   studioMcpTools,
+  STUDIO_MCP_ACCESS_LABELS,
   STUDIO_REFERENCE_IMPORT_MAX_BASE64_CHARS,
-  isStudioMcpMutation,
+  canCallStudioMcpTool,
   type StudioMcpToolName,
   type StudioReferenceImportInput,
   type StudioReferenceFileImportInput,
@@ -49,15 +50,13 @@ export function createMcpRoutes({
     }
     const name = body.name as StudioMcpToolName;
     const settings = readSettings();
-    if (
-      settings.mcpAccess === 'off' ||
-      (isStudioMcpMutation(name) && settings.mcpAccess !== 'write')
-    ) {
+    if (!canCallStudioMcpTool(settings.mcpAccess, name)) {
+      const required = studioMcpTools[name].access;
       return c.json(
         {
-          error:
-            'MCP access denied. Change Agent access (MCP) in Studio Settings > Advanced & maintenance.',
+          error: `This tool needs ${STUDIO_MCP_ACCESS_LABELS[required]} access. Agent access is ${STUDIO_MCP_ACCESS_LABELS[settings.mcpAccess]}. Ask the user to change Agent access (MCP) in Studio Settings > Advanced & maintenance. Do not work around this with HTTP calls.`,
           access: settings.mcpAccess,
+          required,
         },
         403,
       );

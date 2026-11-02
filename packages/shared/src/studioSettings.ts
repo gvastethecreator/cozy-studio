@@ -6,7 +6,7 @@ import { isRecord } from './types';
 
 const EDITABLE_STUDIO_SETTINGS_VERSION = 'editable-studio-settings/v2' as const;
 
-export type StudioMcpAccess = 'off' | 'read' | 'write';
+export type StudioMcpAccess = 'off' | 'read' | 'organize' | 'write';
 
 /** UI language. English is the default and the source dictionary. */
 export type StudioLanguage = 'en' | 'es';
@@ -266,7 +266,12 @@ export function sanitizeEditableStudioSettingsPatch(value: unknown): EditableStu
   if (typeof value.autoDetectOutputSources === 'boolean') {
     patch.autoDetectOutputSources = value.autoDetectOutputSources;
   }
-  if (value.mcpAccess === 'off' || value.mcpAccess === 'read' || value.mcpAccess === 'write') {
+  if (
+    value.mcpAccess === 'off' ||
+    value.mcpAccess === 'read' ||
+    value.mcpAccess === 'organize' ||
+    value.mcpAccess === 'write'
+  ) {
     patch.mcpAccess = value.mcpAccess;
   }
   if (Array.isArray(value.mcpAllowedImportRoots)) {

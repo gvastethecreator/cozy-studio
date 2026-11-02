@@ -43,11 +43,19 @@ describe('Studio MCP boundary', () => {
     expect(denied.status).toBe(403);
     expect(await denied.json()).toMatchObject({
       error:
-        'MCP access denied. Change Agent access (MCP) in Studio Settings > Advanced & maintenance.',
+        'This tool needs Full control access. Agent access is Read only. Ask the user to change Agent access (MCP) in Studio Settings > Advanced & maintenance. Do not work around this with HTTP calls.',
+      access: 'read',
+      required: 'write',
     });
     expect((await call('studio_cancel', { jobId: 'job-1' })).status).toBe(403);
     expect(requests).toHaveLength(0);
     expect((await call('studio_recipes')).status).toBe(200);
+    settings.mcpAccess = 'organize';
+    expect((await call('studio_recipes')).status).toBe(200);
+    const organizeDenied = await call('studio_generate', input);
+    expect(organizeDenied.status).toBe(403);
+    expect(await organizeDenied.json()).toMatchObject({ access: 'organize', required: 'write' });
+    expect(requests).toHaveLength(0);
     settings.mcpAccess = 'write';
     expect((await call('studio_generate', { ...input, localPath: '/secret' })).status).toBe(400);
     expect(

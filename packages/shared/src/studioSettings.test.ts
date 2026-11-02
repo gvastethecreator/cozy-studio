@@ -164,6 +164,9 @@ describe('studioSettings', () => {
       'write',
     );
     expect(mergeEditableStudioSettingsPatch(settings, { mcpAccess: 'off' }).mcpAccess).toBe('off');
+    expect(mergeEditableStudioSettingsPatch(settings, { mcpAccess: 'organize' }).mcpAccess).toBe(
+      'organize',
+    );
     expect(
       mergeEditableStudioSettingsPatch(settings, { notifyOnUpdates: 'false' }).notifyOnUpdates,
     ).toBe(true);

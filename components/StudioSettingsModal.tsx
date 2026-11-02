@@ -257,13 +257,13 @@ const SETTINGS_SEARCH_ITEMS: {
     domain: 'maintenance',
     label: 'Agent access (MCP)',
     description: 'Local agent permissions and automation',
-    target: 'Agent access (MCP)',
+    target: 'settings.agents.access',
   },
   {
     domain: 'maintenance',
     label: 'Allowed import folders',
     description: 'Folders agents can read to import image references',
-    target: 'Allowed import folders',
+    target: 'settings.agents.importFolders',
   },
   {
     domain: 'maintenance',
@@ -395,19 +395,16 @@ function SettingsDomainContent({
       return (
         <div className="settings-form-stack">
           <fieldset className="settings-group" disabled={formDisabled}>
-            <legend className="sr-only">Local agents</legend>
-            <h3>Local agents</h3>
+            <legend className="sr-only">{t('settings.agents.heading')}</legend>
+            <h3>{t('settings.agents.heading')}</h3>
             <label className="settings-row">
               <span>
-                <strong>Agent access (MCP)</strong>
-                <small>
-                  Read only lets agents inspect Studio. Generate and cancel also uses your provider
-                  account.
-                </small>
+                <strong>{t('settings.agents.access')}</strong>
+                <small>{t('settings.agents.accessHint')}</small>
               </span>
               <select
                 className="studio-field"
-                aria-label="Agent access (MCP)"
+                aria-label={t('settings.agents.access')}
                 value={formState.mcpAccess}
                 onChange={(event) =>
                   setFormState((current) => ({
@@ -416,23 +413,20 @@ function SettingsDomainContent({
                   }))
                 }
               >
-                <option value="off">Off</option>
-                <option value="read">Read only</option>
-                <option value="write">Generate and cancel</option>
+                <option value="off">{t('settings.agents.access.off')}</option>
+                <option value="read">{t('settings.agents.access.read')}</option>
+                <option value="organize">{t('settings.agents.access.organize')}</option>
+                <option value="write">{t('settings.agents.access.write')}</option>
               </select>
             </label>
             <label className="settings-row">
               <span>
-                <strong>Allowed import folders</strong>
-                <small>
-                  Agents with Generate and cancel access can import images from these folders and
-                  their subfolders. Enter one absolute folder path per line. Leave empty to disable
-                  import by path.
-                </small>
+                <strong>{t('settings.agents.importFolders')}</strong>
+                <small>{t('settings.agents.importFoldersHint')}</small>
               </span>
               <textarea
                 className="studio-field"
-                aria-label="Allowed import folders"
+                aria-label={t('settings.agents.importFolders')}
                 rows={3}
                 value={formState.mcpAllowedImportRoots}
                 onChange={(event) =>

@@ -29,6 +29,17 @@ export const en = {
     'Sign in with xAI below, set XAI_API_KEY, or install Grok Build and sign in there.',
   'settings.appearance.zoomSensitivity': 'Zoom sensitivity',
   'settings.appearance.zoomSensitivityHint': 'How fast scrolling or pinching zooms image previews.',
+  'settings.agents.heading': 'Local agents',
+  'settings.agents.access': 'Agent access (MCP)',
+  'settings.agents.accessHint':
+    'Read only lets agents look at Studio. Organize also lets them tag images and manage collections; it never deletes images or uses your provider account. Full control also generates with your provider account, imports images, changes settings, installs packs and applies updates.',
+  'settings.agents.access.off': 'Off',
+  'settings.agents.access.read': 'Read only',
+  'settings.agents.access.organize': 'Organize',
+  'settings.agents.access.write': 'Full control',
+  'settings.agents.importFolders': 'Allowed import folders',
+  'settings.agents.importFoldersHint':
+    'Agents with Full control can import images from these folders and their subfolders. Enter one absolute folder path per line. Leave empty to turn off import by path.',
 
   'tcg.title': 'TCG Component Studio',
   'tcg.intro':

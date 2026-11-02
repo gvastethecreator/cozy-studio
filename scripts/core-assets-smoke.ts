@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /** Build and boot the UI from a temporary checkout with every optional asset pack absent. */
-import { cpSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from 'node:child_process';
@@ -10,6 +10,7 @@ const root = process.cwd();
 const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'cozy-studio-core-assets-'));
 const isolatedLibraryDir = path.join(tempRoot, '.local', 'library');
 const isolatedProfileDir = path.join(tempRoot, '.local', 'profile');
+const isolatedExtensionsDir = path.join(isolatedProfileDir, 'Extensions');
 const expectedTempPrefix = normalize(path.join(os.tmpdir(), 'cozy-studio-core-assets-'));
 if (!normalize(tempRoot).startsWith(expectedTempPrefix)) {
   throw new Error(`Unexpected core asset smoke path: ${tempRoot}`);
@@ -190,6 +191,10 @@ try {
   } else {
     const port = await findAvailablePort();
     const baseUrl = `http://127.0.0.1:${port}`;
+    // The UI asks the server to download Essentials (cozy.pack-00) when no style pack exists.
+    // The server skips that once this marker is in its install folder (extensionRoutes.ts).
+    mkdirSync(isolatedExtensionsDir, { recursive: true });
+    writeFileSync(path.join(isolatedExtensionsDir, '.default-pack-offered'), 'core-assets smoke\n');
     preview = spawn(process.execPath, ['apps/local-server/src/index.ts'], {
       cwd: tempRoot,
       env: {
@@ -199,6 +204,7 @@ try {
         LOCALAPPDATA: isolatedProfileDir,
         XDG_DATA_HOME: isolatedProfileDir,
         XDG_STATE_HOME: isolatedProfileDir,
+        STUDIO_EXTENSION_INSTALL_DIR: isolatedExtensionsDir,
         STUDIO_LIBRARY_DIR: isolatedLibraryDir,
         STUDIO_IMAGES_DIR: path.join(tempRoot, '.local', 'images'),
         STUDIO_SERVER_PORT: String(port),
@@ -215,11 +221,25 @@ try {
       previewOutput += String(chunk);
     });
     await waitForPreview(baseUrl, preview);
-    const { extensions } = (await (await fetch(`${baseUrl}/api/extensions`)).json()) as {
-      extensions: unknown[];
-    };
+    const extensionsResponse = await fetch(`${baseUrl}/api/extensions`);
+    if (!extensionsResponse.ok) {
+      throw new Error(`Scratch Studio extension list failed: HTTP ${extensionsResponse.status}`);
+    }
+    const { extensions } = (await extensionsResponse.json()) as { extensions: unknown[] };
     if (extensions.length > 0) {
       throw new Error(`Scratch Studio found ${extensions.length} extensions; packs must be absent`);
+    }
+    // Same request the UI sends; it must not start the Essentials download.
+    const defaultPackResponse = await fetch(`${baseUrl}/api/extensions/default-pack`, {
+      method: 'POST',
+    });
+    const defaultPack = defaultPackResponse.ok
+      ? ((await defaultPackResponse.json()) as { state?: string })
+      : { state: `HTTP ${defaultPackResponse.status}` };
+    if (defaultPack.state !== 'skipped') {
+      throw new Error(
+        `Scratch Studio default pack state is ${defaultPack.state}; expected skipped`,
+      );
     }
     let browserResult: { routes: string[] };
     try {

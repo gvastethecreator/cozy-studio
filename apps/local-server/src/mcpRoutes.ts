@@ -28,13 +28,22 @@ import {
 } from '../../../packages/shared/src/catalogCollections';
 import { applyCatalogTagChanges, type CatalogTag } from '../../../packages/shared/src/catalogTags';
 import type { EditableStudioSettings } from '../../../packages/shared/src/studioSettings';
-import type { CatalogImage, JobExecutionOptions } from '../../../packages/shared/src/types';
+import type { JobBatchDetail } from '../../../packages/shared/src/jobBatches';
+import type {
+  CatalogImage,
+  JobDetailResponse,
+  JobExecutionOptions,
+} from '../../../packages/shared/src/types';
 import type { StudioWorkspace } from '../../../packages/shared/src/workspaceContracts';
 import type { ImageGenerationConfig, Attachment } from '../../../types';
 import { compileMcpStyles, findStyles, loadInstalledStylePacks } from './mcpStyles';
+import { jobImageMetadata } from './providers/jobImageMetadata';
 import { ReferenceImportConflictError } from './referenceImport';
 
 type HttpCall = (path: string, payload?: unknown) => Promise<Response>;
+
+// The job events that GET /api/jobs/:id/status reports as notices.
+const NOTICE_EVENT_TYPES = new Set(['asset.dimensions.info', 'asset.transparency.warning']);
 
 // Their runs coordinate many frames in the Studio UI (D6).
 const UI_ONLY_RECIPES = new Set(['sprite-atlas', 'animation-sequence']);
@@ -190,9 +199,12 @@ async function buildGenerationRequest(
   } else {
     const name = input.workspaceName!;
     const listed: unknown = await get('/api/workspaces')
-      .then((response) => response.json())
+      .then((response) => (response.ok ? response.json() : null))
       .catch(() => null);
-    workspace = (Array.isArray(listed) ? (listed as StudioWorkspace[]) : []).find(
+    // Without the list, a create could duplicate a workspace that already has this name.
+    if (!Array.isArray(listed))
+      return { error: 'Could not read the workspaces. Call studio_status, then retry.' };
+    workspace = (listed as StudioWorkspace[]).find(
       (entry) =>
         String(entry?.name ?? '')
           .trim()
@@ -389,8 +401,41 @@ export function createMcpRoutes({
         return get('/api/styles/user');
       case 'studio_jobs':
         return query('/api/jobs');
-      case 'studio_job':
-        return get(`/api/jobs/${String(args.jobId)}/status`);
+      case 'studio_job': {
+        if (!args.detail) return get(`/api/jobs/${String(args.jobId)}/status`);
+        const response = await get(`/api/jobs/${String(args.jobId)}`);
+        if (!response.ok) return response;
+        // An allowlist, never a spread: transcripts and provider payloads stay in Studio.
+        const { job, events, catalogImages } = (await response.json()) as JobDetailResponse;
+        return c.json({
+          id: job.id,
+          status: job.status,
+          kind: job.kind,
+          providerId: job.providerId,
+          recipeId: job.recipeId ?? null,
+          workspaceId: job.workspaceId,
+          batchId: job.batchId ?? null,
+          attempt: job.attempt ?? 1,
+          createdAt: job.createdAt,
+          updatedAt: job.updatedAt,
+          completedAt: job.completedAt,
+          error: job.error,
+          notices: events
+            .filter(({ type }) => NOTICE_EVENT_TYPES.has(type))
+            .map(({ message }) => message),
+          model: jobImageMetadata(job).model,
+          libraryOrganization: job.sourceSpec?.metadata.libraryOrganization ?? null,
+          events: events
+            .slice(-20)
+            .map(({ type, message, createdAt }) => ({ type, message, createdAt })),
+          catalogImages: catalogImages.map(({ id, filePath, thumbnailPath, tags }) => ({
+            id,
+            filePath,
+            thumbnailPath,
+            tags,
+          })),
+        });
+      }
       case 'studio_batch':
         return get(`/api/jobs/batches/${String(args.batchId)}`);
       case 'studio_catalog':
@@ -573,6 +618,20 @@ export function createMcpRoutes({
         });
         if ('error' in built) return c.json(built, 400);
         return post('/api/jobs/batches', { requestId: input.requestId, items: built.items });
+      }
+      case 'studio_retry_batch': {
+        const response = await get(`/api/jobs/batches/${String(args.batchId)}`);
+        if (!response.ok) return response;
+        const batch = (await response.json()) as JobBatchDetail;
+        // retryable lists the failed jobs Studio can requeue, the same list the UI retries.
+        if (!batch.retryable.length) return c.json({ retried: 0, batch });
+        const retried = await post(`/api/jobs/batches/${batch.id}/retry`, {
+          requestId: args.requestId,
+          items: batch.retryable,
+        });
+        return retried.ok
+          ? c.json({ retried: batch.retryable.length, batch: await retried.json() })
+          : retried;
       }
       case 'studio_import_reference': {
         if (!importReference) return c.json({ error: 'Reference import is unavailable.' }, 400);

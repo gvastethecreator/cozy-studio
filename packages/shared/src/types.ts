@@ -533,7 +533,7 @@ export type StudioEvent =
       revision?: number;
     }
   | {
-      type: 'catalog.created' | 'catalog.updated' | 'catalog.deleted';
+      type: 'catalog.created' | 'catalog.updated';
       payload: CatalogImage;
       createdAt: string;
       revision?: number;

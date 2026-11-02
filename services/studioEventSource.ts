@@ -30,7 +30,7 @@ function notifyListener<T>(listener: Listener<T>, payload: T) {
 
 export type StudioCatalogEventPayload =
   | {
-      type: 'catalog.created' | 'catalog.updated' | 'catalog.deleted';
+      type: 'catalog.created' | 'catalog.updated';
       image: CatalogImage;
     }
   | {
@@ -281,11 +281,7 @@ class BrowserStudioEventStream implements StudioEventStream {
       this.jobListeners.get(job.id)?.forEach((listener) => notifyListener(listener, job));
     } else if (event.type === 'asset.created') {
       this.assetListeners.forEach((listener) => notifyListener(listener, event.payload as Asset));
-    } else if (
-      event.type === 'catalog.created' ||
-      event.type === 'catalog.updated' ||
-      event.type === 'catalog.deleted'
-    ) {
+    } else if (event.type === 'catalog.created' || event.type === 'catalog.updated') {
       const type = event.type as Exclude<
         StudioCatalogEventPayload['type'],
         'catalog.batch_changed'

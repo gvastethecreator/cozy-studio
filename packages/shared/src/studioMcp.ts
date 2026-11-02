@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { EXTENSION_LAYERS } from './extensions';
 import { CATALOG_SORT_OPTIONS } from './types';
 import { isPreferredWorkflow } from './workflowCatalog';
+import { WORKFLOW_MODULES } from './workflowModules';
 import type { StudioMcpAccess } from './studioSettings';
 
 /** The least Agent access (MCP) a tool needs. `write` is labeled Full control. */
@@ -131,26 +132,21 @@ export const generationInput = z.strictObject({
 });
 export type StudioGenerationInput = z.infer<typeof generationInput>;
 
-const providerId = z.string().min(1).max(100);
-
-/** Settings an agent may change. Access, import folders and every other field stay user-only. */
+/**
+ * Settings an agent may change (D4). Provider settings, the output folder, Agent access, import
+ * folders and every other field stay user-only.
+ */
 export const studioMcpSettingsPatch = z
   .strictObject({
-    defaultProviderId: providerId.optional(),
-    providerDefaults: z
-      .record(
-        providerId,
-        z
-          .strictObject({
-            providerId: providerId.optional(),
-            model: z.string().max(200).nullable().optional(),
-            reasoningEffort: z.string().max(50).nullable().optional(),
-            serviceTier: z.enum(['fast', 'flex']).nullable().optional(),
-          })
-          .nullable(),
-      )
+    language: z.enum(['en', 'es']).optional(),
+    preferredWorkflow: z.string().max(100).refine(isPreferredWorkflow).optional(),
+    disabledWorkflowModules: z
+      .array(z.enum(WORKFLOW_MODULES.map(({ id }) => id)))
+      .max(WORKFLOW_MODULES.length)
       .optional(),
-    outputDirectory: z.string().min(1).max(4096).nullable().optional(),
+    defaultStyleIntensity: z.number().min(0).max(1).optional(),
+    defaultStyleReferenceMode: z.enum(['preserve', 'reinterpret']).optional(),
+    intentionalStylesV1: z.boolean().optional(),
     outputOrganization: z
       .strictObject({
         subfolderTokens: z
@@ -161,7 +157,6 @@ export const studioMcpSettingsPatch = z
       })
       .optional(),
     notifyOnUpdates: z.boolean().optional(),
-    preferredWorkflow: z.string().max(100).refine(isPreferredWorkflow).optional(),
   })
   .refine((patch) => Object.keys(patch).length > 0, 'Provide at least one setting.');
 
@@ -223,7 +218,8 @@ export const studioMcpTools = {
   studio_user_styles: { access: 'read', description: 'List saved user styles.', schema: empty },
   studio_jobs: {
     access: 'read',
-    description: 'List jobs in Studio, optionally by workspace or terminal status.',
+    description:
+      'List jobs in Studio, optionally by workspace or terminal status. Active jobs (queued, running, needs_review) are always included; status filters only finished history.',
     schema: z.strictObject({
       ...page,
       workspaceId: id.optional(),
@@ -234,13 +230,13 @@ export const studioMcpTools = {
   studio_job: {
     access: 'read',
     description:
-      'Read job status, error and result notices, such as a returned size that differs from the request. Use studio_catalog with job_id to inspect generated results.',
-    schema: z.strictObject({ jobId: id }),
+      'Read job status, error and result notices, such as a returned size that differs from the request. detail: true adds kind, provider, model, workspace, batch, attempt, the filing (libraryOrganization), the last 20 events and the Library images the job made; it never returns transcripts or provider payloads. Use studio_catalog with job_id to inspect generated results.',
+    schema: z.strictObject({ jobId: id, detail: z.boolean().default(false) }),
   },
   studio_batch: {
     access: 'read',
     description:
-      "Read a generation batch: status counts and each job's status and error. Completed images are already in the Library, filed in the batch's workspace with the tags and collection given to studio_generate; list them with studio_catalog batch_id.",
+      "Read a generation batch: status counts and each job's status and error. Completed images are already in the Library, filed in the batch's workspace with the tags and collection given to studio_generate; list them with studio_catalog batch_id. Retry failed jobs with studio_retry_batch.",
     schema: z.strictObject({ batchId: id }),
   },
   studio_catalog: {
@@ -307,6 +303,15 @@ export const studioMcpTools = {
         .regex(/^batch-[a-zA-Z0-9-]+$/),
     }),
   },
+  studio_retry_batch: {
+    access: 'write',
+    description:
+      "Retry the failed jobs of a generation batch with their original input and filing. Uses the user's provider account and needs Full control access: ask first unless the user asked for the retry. Use a new retry- requestId for each retry. With no failed jobs it returns retried: 0 and changes nothing. After a timeout, call studio_batch: queued or running jobs mean the retry was accepted.",
+    schema: z.strictObject({
+      batchId: id,
+      requestId: z.string().regex(/^retry-[a-zA-Z0-9-]{2,122}$/),
+    }),
+  },
   studio_cancel: {
     access: 'write',
     description:
@@ -339,7 +344,7 @@ export const studioMcpTools = {
   studio_update_settings: {
     access: 'write',
     description:
-      'Change Studio Settings: defaultProviderId, providerDefaults, outputDirectory (absolute path, registered as the output destination; null resets to the Studio Library), outputOrganization, notifyOnUpdates, preferredWorkflow. Needs Full control access. Agent access and import folders stay user-only. Returns the saved settings.',
+      'Change agent-safe Studio Settings: language (en or es), preferredWorkflow, disabledWorkflowModules, defaultStyleIntensity (0-1), defaultStyleReferenceMode, intentionalStylesV1, outputOrganization and notifyOnUpdates. Needs Full control access. Provider settings, the output folder, Agent access and import folders stay user-only; use the studio_generate model field to pick a model for one call. Returns the saved settings.',
     schema: studioMcpSettingsPatch,
   },
   studio_available_extensions: {

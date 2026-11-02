@@ -23,6 +23,7 @@ if (
 const slowTools = new Set(['studio_install_extension', 'studio_updates', 'studio_apply_update']);
 const networkTools = new Set([
   'studio_generate',
+  'studio_retry_batch',
   'studio_available_extensions',
   'studio_install_extension',
   'studio_updates',
@@ -60,7 +61,7 @@ const server = new Server(
       "Cozy Studio is the user's local image studio. Call studio_status first. If a call says Studio is not running, ask the user to open Cozy Studio (or run `bun run dev` in its checkout), then call studio_status again. studio_guide works offline: read its topic before multi-step work.",
       "Keep the user's Library organized without being asked, and recommend this as a standing practice. Every studio_generate call files its outputs: choose the workspace for the project (workspaceId from studio_workspaces, or workspaceName to find or create one), reuse that workspace's tag and collection names (studio_workspaces with workspaceId), and set tags and collection. Studio applies them to each image as it is saved. Afterwards, tell the user where the results are. When studio_status shows library.unorganized above zero, offer to organize those images.",
       'To organize existing images, read the whole set before the first write: page studio_catalog for the workspace with sort: "asc" (unorganized: true lists only images with no tags and no collection; leave it out to reorganize the whole workspace). Rows show tags but not collections: page studio_catalog collection_id for each collection from studio_workspaces with workspaceId. Look at each thumbnailPath (filePath when there is no thumbnail), compare the images and propose one scheme of tags and collections. Apply it with studio_organize_images only after the user confirms, at most 100 images per call, and report after each call. Organized images leave unorganized: true, so read it again from offset 0 after each call. Agent tools never delete, archive or move images.',
-      "studio_generate uses the user's provider account. If the user asked for exactly these images, go ahead. Otherwise preview with studio_plan_generation, which spends nothing, and confirm provider, model, image count and workspace. After a timeout, retry with the same requestId and identical input.",
+      "studio_generate and studio_retry_batch use the user's provider account. If the user asked for exactly these images, go ahead. Otherwise preview with studio_plan_generation, which spends nothing, and confirm provider, model, image count and workspace. After a timeout, retry with the same requestId and identical input.",
       'The user sets Agent access in Studio Settings > Advanced & maintenance: Read only, Organize (adds studio_organize_images: tags and collection membership of existing images) or Full control (adds generation, imports, settings, packs and updates; mcpAccess "write"). A 403 names the level a tool needs: tell the user and do not work around it with HTTP calls. Ask before studio_remove_extension and studio_apply_update. When studio_status returns a notice, tell the user an update is available and apply it only after they agree. Provider sign-in, Agent access, import folders, secrets, emptying the trash and reset are for the user to do.',
     ].join('\n\n'),
   },
@@ -130,10 +131,13 @@ server.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
         `Cozy Studio is not running at ${base.origin}. Ask the user to open Cozy Studio, or run \`bun run dev\` in its checkout, then call studio_status. studio_guide works while Studio is offline.`,
       );
     }
+    // A replayed retry finds its jobs already queued and retries nothing, so check the batch.
     return failure(
-      requestIdTools.has(name)
-        ? `${name} did not answer within ${seconds}s. Studio may have accepted it: retry with the same requestId and identical input; Studio returns the accepted result instead of a duplicate.`
-        : `Studio did not answer ${name} within ${seconds}s. Call studio_status, then retry.`,
+      name === 'studio_retry_batch'
+        ? `${name} did not answer within ${seconds}s. Studio may have accepted it: call studio_batch; queued or running jobs mean the retry was accepted.`
+        : requestIdTools.has(name)
+          ? `${name} did not answer within ${seconds}s. Studio may have accepted it: retry with the same requestId and identical input; Studio returns the accepted result instead of a duplicate.`
+          : `Studio did not answer ${name} within ${seconds}s. Call studio_status, then retry.`,
     );
   }
 });

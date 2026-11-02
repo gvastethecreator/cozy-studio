@@ -380,6 +380,13 @@ describe('catalog routes', () => {
     ]) {
       const response = await routes.request('/commands/purge', { method: 'POST', body });
       expect(response.status, `purge: ${body}`).toBe(400);
+      expect(await response.json()).toMatchObject({ code: 'confirmation_required' });
+      expect(store.getCatalogImage(image.id)?.isDeleted).toBe(true);
+    }
+    // The token alone is not a filter, and it does not excuse a malformed one.
+    for (const body of ['{"confirm":"purge-trash"}', '{"ids":42,"confirm":"purge-trash"}']) {
+      const response = await routes.request('/commands/purge', { method: 'POST', body });
+      expect(response.status, `purge: ${body}`).toBe(400);
       expect(store.getCatalogImage(image.id)?.isDeleted).toBe(true);
     }
     const response = await routes.request('/commands/purge', {

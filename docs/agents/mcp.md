@@ -39,7 +39,7 @@ Settings > Advanced & maintenance > **Agent access (MCP)** controls every call, 
 - **Off** (`mcpAccess: "off"`) rejects all MCP calls.
 - **Read only** (`"read"`), the default, allows discovery, queries and `studio_plan_generation` previews.
 - **Organize** (`"organize"`) also allows `studio_organize_images`: add or remove tags on existing images, and add them to or remove them from a collection by name, which creates the collection when it is missing. It never deletes, archives or moves images, renames or deletes tags and collections, or spends provider usage.
-- **Full control** (`"write"`) also allows reference import, generation, cancellation, settings changes, pack install and removal, and app updates.
+- **Full control** (`"write"`) also allows reference import, generation, batch retry, cancellation, settings changes, pack install and removal, and app updates.
 
 A denied call returns 403 with `access` (the current level) and `required` (the level the tool needs). The bridge answers `studio_guide` itself from `skills/cozy-studio-mcp/`, so it works while Studio is offline and when Agent access is Off.
 
@@ -65,15 +65,16 @@ The setting controls the MCP gateway, not the app's own UI/API. Local MCP client
 | `studio_available_extensions`                                      | read               | Published packs with `installedVersion`, `installedLayers` and `updateAvailable`.                  |
 | `studio_install_extension`                                         | write              | Install or update a published pack.                                                                |
 | `studio_remove_extension`                                          | write, destructive | Delete a downloaded pack from disk.                                                                |
-| `studio_jobs`, `studio_job`, `studio_batch`                        | read               | Jobs and batches.                                                                                  |
+| `studio_jobs`, `studio_job`, `studio_batch`                        | read               | Jobs and batches; `studio_job` with `detail: true` adds model, filing, events and images.          |
 | `studio_catalog`                                                   | read               | Library images by text, `#tag`, workspace, collection, job, batch or recipe.                       |
 | `studio_organize_images`                                           | organize           | Tag existing images and add them to or remove them from a collection.                              |
-| `studio_generate`, `studio_cancel`                                 | write              | Queue generation, cancel a job.                                                                    |
+| `studio_generate`, `studio_retry_batch`                            | write              | Queue generation, retry the failed jobs of a batch.                                                |
+| `studio_cancel`                                                    | write, destructive | Cancel a queued or running job.                                                                    |
 | `studio_import_reference`, `studio_import_reference_file`          | write              | Import an image reference.                                                                         |
 | `studio_updates`                                                   | read               | App update status; `check: true` fetches `origin/main`.                                            |
 | `studio_apply_update`                                              | write, destructive | Fast-forward to the checked commit, install and restart.                                           |
 
-`studio_update_settings` accepts only `defaultProviderId`, `providerDefaults`, `outputDirectory`, `outputOrganization`, `notifyOnUpdates` and `preferredWorkflow`. Any other field, including `mcpAccess` and `mcpAllowedImportRoots`, rejects the whole call. `outputDirectory` must be absolute; Studio registers it as the output destination. `null` returns output to the Studio Library.
+`studio_update_settings` accepts only `language` (`en` or `es`), `preferredWorkflow`, `disabledWorkflowModules` (workflow module ids), `defaultStyleIntensity` (0 to 1), `defaultStyleReferenceMode` (`preserve` or `reinterpret`), `intentionalStylesV1`, `outputOrganization` and `notifyOnUpdates`. Any other field rejects the whole call. Provider settings (`defaultProviderId`, `providerDefaults`), the output folder (`outputDirectory`), `mcpAccess` and `mcpAllowedImportRoots` stay user-only. To compare models, pass `model` to `studio_generate` for that call instead of changing a default.
 
 `studio_install_extension` takes `{sourceId, extensionId, layers?}` from `studio_available_extensions`. Installing a pack that has `updateAvailable` updates it. When `layers` is omitted, the tool keeps the layers already installed for that pack. Pass `layers: []` to install without the full `cards` layer.
 
@@ -100,7 +101,7 @@ Imported references land in the Default workspace with the tag `imported referen
 1. `studio_onboarding`. If ChatGPT is not signed in, ask the user to sign in from Studio Settings. Do not start sign-in.
 2. `studio_status`. If it returns a `notice`, tell the user an update is available and ask before `studio_apply_update`. If `mcpAccess` is not `write`, ask the user to set Agent access (MCP) to Full control before the write steps.
 3. `studio_available_extensions`, then `studio_install_extension` for the packs the user wants, with `layers: ["cards"]` for preview cards.
-4. `studio_settings`, then `studio_update_settings` for the provider, output folder and organization the user asked for.
+4. `studio_settings`, then `studio_update_settings` for the language, workflow modules, style defaults and output organization the user asked for. The user sets the provider and the output folder in Studio Settings.
 5. Generate with the workflow below.
 6. Later, `studio_updates` with `check: true`. Install packs with `updateAvailable`. Ask the user before `studio_apply_update`.
 
@@ -116,8 +117,9 @@ Imported references land in the Default workspace with the tag `imported referen
    - Studio stores the filing in `sourceSpec.metadata.libraryOrganization` and applies it in the same transaction that saves each Catalog Entry. Invalid filing sent to the jobs API returns 400 `invalid_library_organization`.
    - `model` picks a model for this call only and leaves Settings unchanged. For `chatgpt` it must be a GPT Image model id (`gpt-image-2.5-flare`, `gpt-image-2.5-sunburst` or `gpt-image-2`); an unknown id returns 400 with the allowed ids. For `codex` it is the Codex model. Other providers return 400 and use their Settings default.
 5. If a call times out, retry the **same request ID and identical input**. Studio returns the accepted batch; changing its input produces a conflict. Do not invent a new request ID to retry.
-6. Poll `studio_batch` or `studio_job`. `studio_job` returns `id`, `status`, `error`, `updatedAt` and `notices`. A notice tells how a saved result differs from the request, for example `Requested image size 1024x1024; provider returned 1024x1536. Original dimensions preserved.` The job stays `completed` and keeps the original image. Query `studio_catalog` with `job_id` or `batch_id` to find output URLs and reusable image IDs. `studio_jobs` lists recent jobs with pagination.
-7. Call `studio_cancel` with a job ID. Completed jobs remain unchanged. Jobs awaiting human review keep Studio's existing review requirement. Cancelling does not guarantee a provider refund.
+6. Poll `studio_batch` or `studio_job`. `studio_job` returns `id`, `status`, `error`, `updatedAt` and `notices`. A notice tells how a saved result differs from the request, for example `Requested image size 1024x1024; provider returned 1024x1536. Original dimensions preserved.` The job stays `completed` and keeps the original image. With `detail: true`, `studio_job` returns `{id, status, kind, providerId, recipeId, workspaceId, batchId, attempt, createdAt, updatedAt, completedAt, error, notices, model, libraryOrganization, events, catalogImages}`: the last 20 events as `{type, message, createdAt}` and the job's Library images as `{id, filePath, thumbnailPath, tags}`. It never returns transcripts or provider payloads. Query `studio_catalog` with `job_id` or `batch_id` to find output URLs and reusable image IDs. `studio_jobs` lists recent jobs with pagination; queued, running and `needs_review` jobs are always included, and `status` filters only finished history.
+7. Call `studio_retry_batch` with `{batchId, requestId}` to retry a batch's failed jobs. It uses the user's provider account, so ask first unless the user asked for the retry. The `requestId` starts with `retry-` and is new for each retry. Studio requeues the jobs that `studio_batch` lists as `retryable`, with their original input and filing, and returns `{retried, batch}`. With no failed jobs it returns `retried: 0` and changes nothing. After a timeout, call `studio_batch`: queued or running jobs mean the retry was accepted.
+8. Call `studio_cancel` with a job ID. Completed jobs remain unchanged. Jobs awaiting human review keep Studio's existing review requirement. Cancelling does not guarantee a provider refund.
 
 Recipe validation, disabled modules, provider readiness and managed reference checks use Studio's normal intake. Generation references must be catalog image IDs. To add a local image, call `studio_import_reference_file` from an allowed folder, or use `studio_import_reference` for image bytes. Raw filesystem paths are not generation inputs. The tools do not delete library data, sign in to providers, change Agent access or import folders, or record human creative approval. ACP is not implemented: this interface provides app tools, rather than a conversational agent runtime.
 

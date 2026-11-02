@@ -380,7 +380,7 @@ describe('studio_import_reference', () => {
             },
           }),
         });
-      for (const access of ['off', 'read'] as const) {
+      for (const access of ['off', 'read', 'organize'] as const) {
         settings.mcpAccess = access;
         expect((await call(source)).status).toBe(403);
       }

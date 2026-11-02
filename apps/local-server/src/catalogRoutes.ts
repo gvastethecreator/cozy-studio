@@ -56,6 +56,9 @@ async function readJsonRecord(request: { json: () => Promise<unknown> }) {
   return body as Record<string, unknown>;
 }
 
+/** A purge without its confirm token answers code confirmation_required, like a reset. */
+class ConfirmationRequiredError extends Error {}
+
 function collectionError(error: unknown) {
   return { error: error instanceof Error ? error.message : 'Invalid collection' };
 }
@@ -94,7 +97,7 @@ async function readCatalogCommandFilter(
 ) {
   const { confirm, ...raw } = await readJsonRecord(request);
   if (action === 'purge' && confirm !== CATALOG_PURGE_CONFIRMATION) {
-    throw new Error(
+    throw new ConfirmationRequiredError(
       `Send {"confirm":"${CATALOG_PURGE_CONFIRMATION}"} to permanently delete trashed images.`,
     );
   }
@@ -299,7 +302,13 @@ export function createCatalogRoutes({
           catalogCommands[`${action}ByFilter`](await readCatalogCommandFilter(c.req, action)),
         );
       } catch (error) {
-        return c.json(collectionError(error), 400);
+        return c.json(
+          {
+            ...collectionError(error),
+            ...(error instanceof ConfirmationRequiredError && { code: 'confirmation_required' }),
+          },
+          400,
+        );
       }
     });
   }

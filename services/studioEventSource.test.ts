@@ -413,7 +413,7 @@ describe('studioEventSource', () => {
             : `${event.type}:${event.image.id}`,
         ),
       );
-      for (const type of ['catalog.created', 'catalog.updated', 'catalog.deleted']) {
+      for (const type of ['catalog.created', 'catalog.updated']) {
         sources[0]?.onmessage?.({
           data: JSON.stringify({
             type,
@@ -433,7 +433,6 @@ describe('studioEventSource', () => {
       expect(seen).toEqual([
         'catalog.created:catalog.created',
         'catalog.updated:catalog.updated',
-        'catalog.deleted:catalog.deleted',
         'catalog.batch_changed:200',
       ]);
       stream.close();

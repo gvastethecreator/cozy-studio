@@ -2,7 +2,10 @@ import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { Hono } from 'hono';
 import catalog from '../../../packages/shared/src/styles/intentional-v1/catalog.fixture.json';
+import { createGenerationTaskSpec } from '../../../packages/shared/src/generationContracts';
+import { summarizeJobBatch } from '../../../packages/shared/src/jobBatches';
 import { createDefaultEditableStudioSettings } from '../../../packages/shared/src/studioSettings';
+import type { Job, JobStatus } from '../../../packages/shared/src/types';
 import { createMcpRoutes } from './mcpRoutes';
 
 const headshot = catalog.find(({ id }) => id === 'SP01-001')!;
@@ -49,7 +52,8 @@ describe('Studio MCP boundary', () => {
         Array.from({ length: 32 }, (_, index) => `tag-${index}`),
       ),
     };
-    const collections: { id: string; name: string; imageCount: number }[] = [];
+    const collections: object[] = [];
+    let workspacesDown = false;
     const app = new Hono().route(
       '/api/mcp',
       createMcpRoutes({
@@ -63,7 +67,13 @@ describe('Studio MCP boundary', () => {
           if (path === '/api/catalog/collections?workspace_id=default')
             return Response.json(collections);
           if (path === '/api/catalog/collections') {
-            collections.push({ id: 'collection-1', name: body.name, imageCount: 2 });
+            collections.push({
+              id: 'collection-1',
+              workspaceId: 'default',
+              name: body.name,
+              emoji: null,
+              imageCount: 2,
+            });
             return Response.json(collections[0], { status: 201 });
           }
           if (path.startsWith('/api/catalog/collections/')) return Response.json(collections[0]);
@@ -71,7 +81,9 @@ describe('Studio MCP boundary', () => {
           if (path === '/api/workspaces')
             return init?.method === 'POST'
               ? Response.json(workspaces[workspaces.push(body) - 1], { status: 201 })
-              : Response.json(workspaces);
+              : Response.json(workspacesDown ? { error: 'Unavailable' } : workspaces, {
+                  status: workspacesDown ? 500 : 200,
+                });
           if (path.startsWith('/api/workspaces/')) {
             const workspace = workspaces.find(({ id }) => path.endsWith(`/${id}`));
             return Response.json(workspace ?? { error: 'Workspace not found' }, {
@@ -201,6 +213,13 @@ describe('Studio MCP boundary', () => {
     expect(requests.filter(({ path, body }) => path === '/api/workspaces' && body)).toHaveLength(1);
     expect(workspaces.at(-1)).toEqual({ id: namedId, name: 'Comic Book' });
     expect(namedBatch?.body).toMatchObject({ items: [{ workspaceId: namedId }, {}] });
+    // Without the workspace list, a name never becomes a second workspace.
+    workspacesDown = true;
+    expect((await call('studio_generate', { ...named, workspaceName: 'Default' })).status).toBe(
+      400,
+    );
+    workspacesDown = false;
+    expect(requests.filter(({ path, body }) => path === '/api/workspaces' && body)).toHaveLength(1);
 
     // styles compile on the server as in the Studio UI; model applies to this call only.
     const styles = [{ packId: headshot.packId, presetId: headshot.id }];
@@ -305,15 +324,6 @@ describe('Studio MCP boundary', () => {
         },
       ],
     });
-    settings.mcpAccess = 'write';
-
-    expect(await (await call('studio_workspaces', { workspaceId: 'default' })).json()).toEqual({
-      workspace: { id: 'default', name: 'Default' },
-      tags: [{ name: 'cover', color: null, imageCount: 2 }],
-      collections: [],
-      unorganized: 3,
-    });
-    expect((await call('studio_workspaces', { workspaceId: 'missing' })).status).toBe(400);
 
     settings.mcpAccess = 'organize';
     expect(await (await call('studio_status')).json()).toMatchObject({
@@ -359,6 +369,13 @@ describe('Studio MCP boundary', () => {
       path: '/api/catalog/collections/collection-1',
       body: { addImageIds: ['image-1', 'image-2'] },
     });
+    expect(await (await call('studio_workspaces', { workspaceId: 'default' })).json()).toEqual({
+      workspace: { id: 'default', name: 'Default' },
+      tags: [{ name: 'cover', color: null, imageCount: 2 }],
+      collections: [{ id: 'collection-1', name: 'Picks', emoji: null, imageCount: 2 }],
+      unorganized: 3,
+    });
+    expect((await call('studio_workspaces', { workspaceId: 'missing' })).status).toBe(400);
 
     settings.mcpAccess = 'write';
     expect((await call('studio_cancel', { jobId: 'job-1' })).status).toBe(200);
@@ -368,10 +385,74 @@ describe('Studio MCP boundary', () => {
     expect((await call('studio_generate', input)).status).toBe(403);
   });
 
-  it('routes onboarding, settings, packs and updates with an agent settings allowlist', async () => {
+  it('routes onboarding, settings, jobs, packs and updates with an agent settings allowlist', async () => {
     const settings = createDefaultEditableStudioSettings();
     settings.mcpAccess = 'read';
     const requests: { method: string; path: string; body: unknown }[] = [];
+    const job = (id: string, status: JobStatus, attempt = 1) =>
+      ({ id, status, attempt, providerId: 'dry_run', execution: null }) as Job;
+    const batch = (id: string, jobs: Job[]) => ({
+      ...summarizeJobBatch(
+        { id, workspaceId: 'default', requestedCount: jobs.length, createdAt: '' },
+        jobs,
+      ),
+      jobs,
+    });
+    const event = (type: string, message: string, createdAt: string) => ({
+      id: 0,
+      jobId: 'job-1',
+      type,
+      message,
+      metadata: { provider: 'raw' },
+      createdAt,
+    });
+    const detail = {
+      job: {
+        ...job('job-1', 'completed', 2),
+        kind: 'image_generate',
+        providerId: 'chatgpt',
+        workspaceId: 'default',
+        batchId: 'batch-1',
+        execution: { providerOptions: { chatgpt: { imageModel: 'gpt-image-2' } } },
+        sourceSpec: createGenerationTaskSpec({
+          id: 'job-1',
+          task: 'image_generate',
+          providerId: 'chatgpt',
+          prompt: 'Private prompt',
+          metadata: { libraryOrganization: { tags: ['cover'], collection: 'Covers' } },
+        }),
+        finalPromptUsed: 'Private prompt',
+        error: null,
+        createdAt: 'created',
+        updatedAt: 'updated',
+        completedAt: 'completed',
+      },
+      events: [
+        event('asset.dimensions.info', 'Provider returned 1024x1536.', 'notice'),
+        ...Array.from({ length: 20 }, (_, index) => event('job.progress', `Step ${index}`, '')),
+      ],
+      turn: { id: 'turn-1', transcriptPath: '/private/transcript.jsonl' },
+      transcriptEntries: [{ text: 'private' }],
+      catalogImages: [
+        {
+          id: 'image-1',
+          filePath: '/a.png',
+          thumbnailPath: '/a.webp',
+          tags: ['cover'],
+          prompt: 'Private prompt',
+        },
+      ],
+      metrics: {},
+      traceSummary: {},
+    };
+    const fixtures: Record<string, unknown> = {
+      '/api/jobs/job-1': detail,
+      '/api/jobs/batches/batch-1': batch('batch-1', [
+        job('job-failed', 'failed', 2),
+        job('job-done', 'completed'),
+      ]),
+      '/api/jobs/batches/batch-done': batch('batch-done', [job('job-done', 'completed')]),
+    };
     const app = new Hono().route(
       '/api/mcp',
       createMcpRoutes({
@@ -383,7 +464,7 @@ describe('Studio MCP boundary', () => {
             body: typeof init?.body === 'string' ? JSON.parse(init.body) : null,
           });
           if (init?.method === 'DELETE') return new Response(null, { status: 204 });
-          return Response.json({ path });
+          return Response.json((!init?.method && fixtures[path]) || { path });
         },
       }),
     );
@@ -409,9 +490,39 @@ describe('Studio MCP boundary', () => {
       'GET /api/updates',
       'POST /api/updates/check',
     ]);
+    await call('studio_job', { jobId: 'job-1' });
+    expect(requests.at(-1)?.path).toBe('/api/jobs/job-1/status');
+    // detail is an allowlist: prompts, transcripts and event metadata stay in Studio.
+    expect(await (await call('studio_job', { jobId: 'job-1', detail: true })).json()).toEqual({
+      id: 'job-1',
+      status: 'completed',
+      kind: 'image_generate',
+      providerId: 'chatgpt',
+      recipeId: null,
+      workspaceId: 'default',
+      batchId: 'batch-1',
+      attempt: 2,
+      createdAt: 'created',
+      updatedAt: 'updated',
+      completedAt: 'completed',
+      error: null,
+      notices: ['Provider returned 1024x1536.'],
+      model: 'gpt-image-2',
+      libraryOrganization: { tags: ['cover'], collection: 'Covers' },
+      events: Array.from({ length: 20 }, (_, index) => ({
+        type: 'job.progress',
+        message: `Step ${index}`,
+        createdAt: '',
+      })),
+      catalogImages: [
+        { id: 'image-1', filePath: '/a.png', thumbnailPath: '/a.webp', tags: ['cover'] },
+      ],
+    });
 
+    const retry = { batchId: 'batch-1', requestId: 'retry-batch-1' };
     const writes: [string, object][] = [
       ['studio_update_settings', { notifyOnUpdates: false }],
+      ['studio_retry_batch', retry],
       ['studio_install_extension', { sourceId: 'styles', extensionId: 'pack-1' }],
       ['studio_remove_extension', { extensionId: 'pack-1' }],
       ['studio_apply_update', { commit }],
@@ -424,6 +535,9 @@ describe('Studio MCP boundary', () => {
     for (const forbidden of [
       { mcpAccess: 'write' },
       { mcpAllowedImportRoots: ['C:/'] },
+      { defaultProviderId: 'codex' },
+      { outputDirectory: 'C:/' },
+      { disabledWorkflowModules: ['styles'] },
       { toolsPanelSide: 'left' },
       { preferredWorkflow: 'not-a-workflow' },
       {},
@@ -432,11 +546,24 @@ describe('Studio MCP boundary', () => {
     expect(requests).toHaveLength(before);
 
     const patch = {
-      defaultProviderId: 'chatgpt',
+      language: 'es',
+      disabledWorkflowModules: ['camera'],
       outputOrganization: { subfolderTokens: ['date'] },
     };
     expect((await call('studio_update_settings', patch)).status).toBe(200);
     expect(requests.at(-1)).toEqual({ method: 'PATCH', path: '/api/settings', body: patch });
+
+    // Only the failed job is retried, with its current attempt.
+    expect(await (await call('studio_retry_batch', retry)).json()).toMatchObject({ retried: 1 });
+    expect(requests.at(-1)).toEqual({
+      method: 'POST',
+      path: '/api/jobs/batches/batch-1/retry',
+      body: { requestId: retry.requestId, items: [{ jobId: 'job-failed', attempt: 2 }] },
+    });
+    const beforeRetry = requests.length;
+    const nothingFailed = await call('studio_retry_batch', { ...retry, batchId: 'batch-done' });
+    expect(await nothingFailed.json()).toMatchObject({ retried: 0, batch: { id: 'batch-done' } });
+    expect(requests.slice(beforeRetry).map(({ method }) => method)).toEqual(['GET']);
     await call('studio_install_extension', {
       sourceId: 'styles',
       extensionId: 'pack-1',

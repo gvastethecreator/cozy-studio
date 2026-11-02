@@ -8,20 +8,24 @@ import {
 } from '../../services/studio-api/catalog';
 import { CollectionEmojiPicker, TagColorPicker } from '../OrganizationAppearancePicker';
 import { OrganizationCreatePopover } from '../OrganizationCreatePopover';
+import { useT } from '../../lib/i18n';
 
 function OrganizationRow({
   name,
   appearance,
   kind,
   count,
+  smart = false,
   onSave,
 }: {
   name: string;
   appearance: string | null;
   kind: 'tag' | 'collection';
   count: number;
+  smart?: boolean;
   onSave: (name: string, appearance: string | null) => Promise<unknown>;
 }) {
+  const { t } = useT();
   const [draft, setDraft] = useState(name);
   const [value, setValue] = useState(appearance);
   const [busy, setBusy] = useState(false);
@@ -74,6 +78,9 @@ function OrganizationRow({
       <span className="organization-count" aria-label={`${count} images`}>
         {count}
       </span>
+      {smart && (
+        <span className="text-xs text-[color:var(--wb-muted)]">{t('smartCollection.marker')}</span>
+      )}
       <button
         type="submit"
         className="studio-ghost-control"
@@ -152,6 +159,7 @@ export function SettingsOrganizationPanel() {
                     name={collection.name}
                     appearance={collection.emoji ?? null}
                     count={collection.imageCount}
+                    smart={collection.kind === 'smart'}
                     onSave={(name, emoji) =>
                       updateCatalogCollection(collection.id, { name, emoji })
                     }

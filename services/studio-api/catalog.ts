@@ -4,6 +4,8 @@ import {
   type CatalogCollection,
   type CatalogCollectionPatch,
   type CatalogCollectionSelection,
+  type CatalogSmartRule,
+  type CatalogFacets,
   type CatalogOrganizeInput,
   type CatalogOrganizeResult,
   type CatalogOrganizeUndoResult,
@@ -139,11 +141,18 @@ export async function listCatalogCollections(workspaceId: string) {
   return request<CatalogCollection[]>(`/api/catalog/collections?${search}`);
 }
 
+export async function getCatalogFacets(workspaceId: string) {
+  return request<CatalogFacets>(
+    `/api/catalog/facets?${new URLSearchParams({ workspace_id: workspaceId })}`,
+  );
+}
+
 export async function createCatalogCollection(input: {
   workspaceId: string;
   name: string;
   emoji?: string | null;
-  imageIds: string[];
+  imageIds?: string[];
+  rule?: CatalogSmartRule;
 }) {
   return request<CatalogCollection>('/api/catalog/collections', {
     method: 'POST',

@@ -258,13 +258,17 @@ export function exportLibraryArchive(workspaceId: string, deps: LibraryArchiveDe
     collections: listCatalogCollections(workspaceId, database).map((collection) => ({
       name: collection.name,
       emoji: collection.emoji ?? null,
-      imageIds: (
-        database
-          .query(`SELECT member.image_id FROM catalog_collection_images member
+      ...(collection.kind === 'smart' && { rule: collection.rule }),
+      imageIds:
+        collection.kind === 'smart'
+          ? []
+          : (
+              database
+                .query(`SELECT member.image_id FROM catalog_collection_images member
         JOIN catalog_images image ON image.id = member.image_id
         WHERE member.collection_id = ? AND image.is_deleted = 0 AND COALESCE(image.workspace_id, 'default') = ?`)
-          .all(collection.id, workspaceId) as { image_id: string }[]
-      ).map((member) => member.image_id),
+                .all(collection.id, workspaceId) as { image_id: string }[]
+            ).map((member) => member.image_id),
     })),
   });
   const json = JSON.stringify(manifest);

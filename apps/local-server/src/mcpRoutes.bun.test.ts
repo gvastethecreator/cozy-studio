@@ -737,6 +737,11 @@ describe('Library archives', () => {
         database,
       );
       createCatalogCollection({ workspaceId: workspace.id, name: 'Empty', imageIds: [] }, database);
+      const smartRule = { providerId: 'chatgpt', favorite: true, q: '#boss' };
+      createCatalogCollection(
+        { workspaceId: workspace.id, name: 'Live picks', imageIds: [], rule: smartRule },
+        database,
+      );
       const sourceRows = database.query('SELECT * FROM catalog_images ORDER BY id').all();
       const events: unknown[] = [];
       const app = new Hono().route(
@@ -758,6 +763,12 @@ describe('Library archives', () => {
         JSON.parse(await zip.file('manifest.json')!.async('string')),
       );
       expect(manifest.missing).toEqual([{ id: source[2].id, reason: 'file_missing' }]);
+      expect(manifest.collections.find((collection) => collection.name === 'Live picks')).toEqual({
+        name: 'Live picks',
+        emoji: null,
+        imageIds: [],
+        rule: smartRule,
+      });
       expect(JSON.stringify(manifest)).not.toContain('private');
       expect(manifest.images[0].generationConfig.recipeParams).toEqual({
         layout: 'grid',
@@ -810,6 +821,14 @@ describe('Library archives', () => {
         { name: 'unused', color: '#00aa55' },
       ]);
       const collections = listCatalogCollections(result.workspace.id, database);
+      const smart = collections.find((collection) => collection.name === 'Live picks')!;
+      expect(smart).toMatchObject({ kind: 'smart', rule: smartRule });
+      expect(
+        queryCatalog(
+          { workspaceId: result.workspace.id, collectionId: smart.id },
+          database,
+        ).images.map((image) => image.id),
+      ).toEqual([rows.find((row) => row.isFavorite)!.id]);
       expect(collections.find((collection) => collection.name === 'Empty')?.imageCount).toBe(0);
       const picks = collections.find((collection) => collection.name === 'Picks')!;
       expect(picks).toMatchObject({ emoji: '⭐', imageCount: 1 });
@@ -918,6 +937,15 @@ describe('Library archives', () => {
           type: 'nodebuffer',
         }),
       );
+      for (const collection of [
+        { name: 'Invalid smart', emoji: null, imageIds: [], rule: { unsupported: true } },
+        { name: 'Manual smart', emoji: null, imageIds: ['a'], rule: { favorite: true } },
+      ])
+        await rejected(
+          await makeZip(ONE_BY_ONE_PNG, { ...manifest, collections: [collection] }).generateAsync({
+            type: 'nodebuffer',
+          }),
+        );
       await rejected(
         await makeZip(ONE_BY_ONE_PNG, {
           ...manifest,

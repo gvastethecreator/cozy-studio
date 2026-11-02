@@ -216,6 +216,7 @@ function createFakeCatalogStore(overrides?: Partial<StudioCatalogStore>): Studio
     restoreCatalogImage: vi.fn(() => image),
     purgeCatalogImage: vi.fn((id: string) => (id === image.id ? image : null)),
     listCollections: vi.fn(() => []),
+    listFacets: vi.fn(() => ({ providers: [], recipes: [], styles: [] })),
     listCollectionSelection: vi.fn(() => []),
     listTags: vi.fn(() => []),
     createTag: vi.fn((workspaceId, name, color) => ({
@@ -228,6 +229,7 @@ function createFakeCatalogStore(overrides?: Partial<StudioCatalogStore>): Studio
     updateTag: vi.fn(() => null),
     createCollection: vi.fn(() => ({
       id: 'collection-1',
+      kind: 'manual' as const,
       workspaceId: 'default',
       name: 'Collection',
       imageCount: 0,

@@ -31,6 +31,65 @@ const styleExtension = {
 };
 
 describe('Studio MCP boundary', () => {
+  it('saves smart collections with organize access and refuses manual name collisions', async () => {
+    const settings = createDefaultEditableStudioSettings();
+    const collections: {
+      id: string;
+      name: string;
+      kind: 'manual' | 'smart';
+      rule?: unknown;
+      imageCount: number;
+      emoji?: string | null;
+    }[] = [{ id: 'manual', name: 'Manual', kind: 'manual', imageCount: 1 }];
+    const writes: string[] = [];
+    const app = createMcpRoutes({
+      readSettings: () => settings,
+      request: async (path, init) => {
+        if (!init?.method) return Response.json(collections);
+        writes.push(init.method);
+        const body = JSON.parse(typeof init.body === 'string' ? init.body : '{}');
+        if (init.method === 'POST') {
+          const created = { ...body, id: 'smart', kind: 'smart' as const, imageCount: 2 };
+          collections.push(created);
+          return Response.json(created, { status: 201 });
+        }
+        const saved = collections.find((item) => path.endsWith(`/${item.id}`))!;
+        Object.assign(saved, body);
+        return Response.json(saved);
+      },
+    });
+    const call = (args: unknown) =>
+      app.request('/call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'studio_save_smart_collection', arguments: args }),
+      });
+    const input = {
+      workspaceId: 'default',
+      name: 'Live picks',
+      emoji: '⭐',
+      rule: { favorite: true, withinDays: 30 },
+    };
+    expect((await call(input)).status).toBe(403);
+    settings.mcpAccess = 'organize';
+    expect(await (await call(input)).json()).toEqual({
+      id: 'smart',
+      name: 'Live picks',
+      created: true,
+      imageCount: 2,
+      rule: input.rule,
+    });
+    expect(
+      await (await call({ ...input, name: 'live picks', rule: { q: '#pick' } })).json(),
+    ).toMatchObject({ id: 'smart', created: false, rule: { q: '#pick' } });
+    expect(writes).toEqual(['POST', 'PATCH']);
+    expect((await call({ ...input, name: 'manual' })).status).toBe(400);
+    for (const rule of [{}, { unsupported: true }, { withinDays: 0 }])
+      expect((await call({ ...input, rule })).status).toBe(400);
+    expect(writes).toEqual(['POST', 'PATCH']);
+    expect(collections[0]).toEqual({ id: 'manual', name: 'Manual', kind: 'manual', imageCount: 1 });
+  });
+
   it('enforces live access, validates arguments and routes generation through persistent intake', async () => {
     const settings = createDefaultEditableStudioSettings();
     const requests: { path: string; body: unknown }[] = [];
@@ -98,6 +157,7 @@ describe('Studio MCP boundary', () => {
               workspaceId: 'default',
               name: body.addToCollection,
               emoji: null,
+              kind: 'manual',
               imageCount: 2,
             });
             return Response.json(organized);
@@ -409,7 +469,9 @@ describe('Studio MCP boundary', () => {
     expect(await (await call('studio_workspaces', { workspaceId: 'default' })).json()).toEqual({
       workspace: { id: 'default', name: 'Default' },
       tags: [{ name: 'cover', color: null, imageCount: 2 }],
-      collections: [{ id: 'collection-1', name: 'Picks', emoji: null, imageCount: 2 }],
+      collections: [
+        { id: 'collection-1', name: 'Picks', emoji: null, imageCount: 2, kind: 'manual' },
+      ],
       unorganized: 3,
       recentChanges,
     });

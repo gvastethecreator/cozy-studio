@@ -8,6 +8,25 @@ import { migrateDatabase } from './migrations';
 import { openTestDatabase } from './testDatabase';
 
 describe('migrateDatabase', () => {
+  it('adds smart rules without changing existing manual collections', () => {
+    const database = openTestDatabase();
+    database.run('ALTER TABLE catalog_collections DROP COLUMN rule_json');
+    database.run('DELETE FROM schema_migrations WHERE version = 19');
+    database
+      .query(
+        "INSERT INTO catalog_collections (id, workspace_id, name, created_at, updated_at) VALUES ('manual', 'default', 'Manual', '2026-11-02', '2026-11-02')",
+      )
+      .run();
+    migrateDatabase(database);
+    migrateDatabase(database);
+    expect(
+      database.query("SELECT name, rule_json FROM catalog_collections WHERE id = 'manual'").get(),
+    ).toEqual({ name: 'Manual', rule_json: null });
+    expect(database.query('SELECT MAX(version) AS version FROM schema_migrations').get()).toEqual({
+      version: 19,
+    });
+  });
+
   it('creates composite catalog indexes for hot workspace and gallery queries', () => {
     const source = readFileSync(fileURLToPath(new URL('./migrations.ts', import.meta.url)), 'utf8');
 

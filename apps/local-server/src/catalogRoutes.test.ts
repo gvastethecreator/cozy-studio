@@ -15,6 +15,7 @@ import {
   type StudioCatalogStore,
 } from './catalogStore';
 import { recordCatalogTagUse } from './catalogTags';
+import { addImageToNamedCollection } from './catalogCollections';
 import { openTestDatabase } from './db/testDatabase';
 import { createWorkspaceInDb } from './db/workspaces';
 import { embedMetadata, extractMetadata } from './metadataEmbedder';
@@ -149,6 +150,251 @@ function createRoutes(
 }
 
 describe('catalog routes', () => {
+  it('evaluates smart rules live, narrows them with request filters and rejects manual membership', async () => {
+    const other = createWorkspaceInDb(testDb.current!, { name: 'Other' });
+    const config = {
+      providerId: 'chatgpt',
+      recipeParams: {
+        presetId: 'ink',
+        presetName: 'Ink',
+        selectedStyles: [{ presetId: 'ink', presetName: 'Ink' }],
+      },
+    };
+    const store = await createStore([
+      catalogImage({
+        id: 'alpha',
+        workspaceId: 'default',
+        prompt: 'Alpha castle',
+        tags: ['boss'],
+        isFavorite: true,
+        generationConfig: config,
+        createdAt: '2026-11-01T00:00:00.000Z',
+      }),
+      catalogImage({
+        id: 'beta',
+        workspaceId: 'default',
+        prompt: 'Beta castle',
+        isFavorite: true,
+        generationConfig: config,
+        createdAt: '2026-11-02T00:00:00.000Z',
+      }),
+      catalogImage({
+        id: 'job',
+        workspaceId: 'default',
+        prompt: 'Alpha castle',
+        jobId: 'job-1',
+        generationConfig: config,
+        recipeId: 'character-lab',
+      }),
+      catalogImage({
+        id: 'outside',
+        workspaceId: other.id,
+        generationConfig: {
+          providerId: 'outside-only',
+          recipeParams: { presetId: 'outside-style' },
+        },
+      }),
+      catalogImage({
+        id: 'archived',
+        workspaceId: 'default',
+        isDeleted: true,
+        generationConfig: { providerId: 'archived-only' },
+      }),
+    ]);
+    testDb.current!.query("UPDATE jobs SET provider_id = 'codex' WHERE id = 'job-1'").run();
+    const routes = createRoutes(store);
+    const send = (method: string, url: string, body: unknown) =>
+      routes.request(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    const rule = {
+      q: 'castle',
+      favorite: true,
+      providerId: 'chatgpt',
+      recipeId: 'default',
+      stylePresetId: 'ink',
+      createdFrom: '2026-11-01T00:00:00.000Z',
+      createdTo: '2026-11-03T00:00:00.000Z',
+    };
+    const created = await send('POST', '/collections', {
+      workspaceId: 'default',
+      name: 'Live picks',
+      rule,
+    });
+    expect(created.status).toBe(201);
+    const smart = await created.json();
+    expect(smart).toMatchObject({ kind: 'smart', rule, imageCount: 2 });
+    const page = async (query = '') =>
+      (await routes.request(`/?workspace_id=default&collection_id=${smart.id}${query}`)).json();
+    expect((await page('&q=Alpha')).images.map((image: CatalogImage) => image.id)).toEqual([
+      'alpha',
+    ]);
+    expect((await page('&q=%23boss')).total).toBe(1);
+    expect((await page('&q=absent')).total).toBe(0);
+    expect(
+      (await (await routes.request(`/?workspace_id=${other.id}&collection_id=${smart.id}`)).json())
+        .total,
+    ).toBe(0);
+    const facets = await (await routes.request('/facets?workspace_id=default')).json();
+    expect(facets).toEqual({
+      providers: [
+        { id: 'chatgpt', count: 2 },
+        { id: 'codex', count: 1 },
+      ],
+      recipes: [
+        { id: 'character-lab', count: 1 },
+        { id: 'default', count: 2 },
+      ],
+      styles: [{ presetId: 'ink', name: 'Ink', count: 3 }],
+    });
+    expect((await routes.request('/facets')).status).toBe(400);
+    expect(
+      (await send('POST', '/collections/selection', { workspaceId: 'default', imageIds: ['beta'] }))
+        .status,
+    ).toBe(200);
+    expect(
+      await (
+        await send('POST', '/collections/selection', { workspaceId: 'default', imageIds: ['beta'] })
+      ).json(),
+    ).toEqual([]);
+    const snapshot = () =>
+      testDb.current!.query('SELECT tags FROM catalog_images ORDER BY id').all();
+    const before = snapshot();
+    for (const action of ['addToCollection', 'removeFromCollection']) {
+      expect(
+        (
+          await send('POST', '/commands/organize', {
+            source: 'ui',
+            workspaceId: 'default',
+            imageIds: ['beta'],
+            addTags: ['new'],
+            [action]: smart.name,
+          })
+        ).status,
+      ).toBe(400);
+    }
+    for (const patch of [{ addImageIds: ['beta'] }, { removeImageIds: ['beta'] }])
+      expect((await send('PATCH', `/collections/${smart.id}`, patch)).status).toBe(400);
+    expect(
+      (
+        await send('POST', '/collections', {
+          workspaceId: 'default',
+          name: 'Invalid members',
+          rule,
+          imageIds: ['beta'],
+        })
+      ).status,
+    ).toBe(400);
+    expect(snapshot()).toEqual(before);
+    addImageToNamedCollection(testDb.current!, {
+      imageId: 'beta',
+      workspaceId: 'default',
+      name: smart.name,
+      timestamp: new Date().toISOString(),
+    });
+    expect(testDb.current!.query('SELECT * FROM catalog_collection_images').all()).toEqual([]);
+    expect((await page('&unorganized=true')).images.map((image: CatalogImage) => image.id)).toEqual(
+      ['beta'],
+    );
+    await send('PATCH', '/beta', { isFavorite: false });
+    expect((await page()).total).toBe(1);
+    expect(
+      (await (await routes.request('/collections?workspace_id=default')).json())[0].imageCount,
+    ).toBe(1);
+    const edited = await send('PATCH', `/collections/${smart.id}`, {
+      rule: { favorite: false, providerId: 'chatgpt' },
+      emoji: '⭐',
+      name: 'Unpicked',
+    });
+    expect(await edited.json()).toMatchObject({
+      kind: 'smart',
+      name: 'Unpicked',
+      emoji: '⭐',
+      imageCount: 1,
+    });
+    const manual = await (
+      await send('POST', '/collections', { workspaceId: 'default', name: 'Manual' })
+    ).json();
+    expect(
+      (await send('PATCH', `/collections/${manual.id}`, { rule: { favorite: true } })).status,
+    ).toBe(400);
+    expect(
+      (
+        await send('PATCH', `/collections/${smart.id}`, {
+          rule: { createdTo: '2026-11-02T00:00:00.000Z' },
+        })
+      ).status,
+    ).toBe(200);
+    expect((await page()).images.map((image: CatalogImage) => image.id).sort()).toEqual([
+      'alpha',
+      'job',
+    ]);
+    const realNow = Date.now;
+    Date.now = () => Date.parse('2026-11-03T00:00:00.000Z');
+    try {
+      await send('PATCH', `/collections/${smart.id}`, { rule: { withinDays: 1 } });
+      expect((await page()).images.map((image: CatalogImage) => image.id)).toEqual(['beta']);
+      Date.now = () => Date.parse('2026-11-04T00:00:00.000Z');
+      expect((await page()).total).toBe(0);
+    } finally {
+      Date.now = realNow;
+    }
+    testDb
+      .current!.query('UPDATE catalog_images SET created_at = ? WHERE id = ?')
+      .run('2026-11-01T00:00:00Z', 'beta');
+    await send('PATCH', `/collections/${smart.id}`, {
+      rule: { providerId: 'chatgpt', createdTo: '2026-11-01T00:00:00.001Z' },
+    });
+    expect((await page()).images.map((image: CatalogImage) => image.id).sort()).toEqual([
+      'alpha',
+      'beta',
+    ]);
+    await send('PATCH', `/collections/${smart.id}`, {
+      rule: { providerId: 'chatgpt', createdFrom: '2026-11-01T00:00:00.001Z' },
+    });
+    expect((await page()).total).toBe(0);
+    testDb
+      .current!.query('UPDATE catalog_collections SET rule_json = ? WHERE id = ?')
+      .run('{"unsupported":true}', smart.id);
+    expect((await page()).total).toBe(0);
+    expect((await routes.request(`/collections/${smart.id}`, { method: 'DELETE' })).status).toBe(
+      200,
+    );
+    expect(store.queryCatalog({ workspaceId: 'default' }).total).toBe(3);
+  });
+
+  it('rejects malformed smart rules before creating a collection', async () => {
+    const routes = createRoutes(await createStore([]));
+    for (const rule of [
+      {},
+      null,
+      [],
+      { unknown: true },
+      { q: 'x'.repeat(2001) },
+      { q: Array.from({ length: 33 }, (_, i) => `#tag${i}`).join(' ') },
+      { favorite: 'true' },
+      { providerId: 42 },
+      { withinDays: 0 },
+      { withinDays: 1.5 },
+      { createdFrom: 'yesterday' },
+      { createdFrom: '2026-02-30T00:00:00.000Z' },
+      { createdFrom: '2026-11-02T00:00:00Z', createdTo: '2026-11-01T00:00:00Z' },
+    ]) {
+      expect(
+        (
+          await routes.request('/collections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ workspaceId: 'default', name: 'Invalid', rule }),
+          })
+        ).status,
+      ).toBe(400);
+    }
+    expect(await (await routes.request('/collections?workspace_id=default')).json()).toEqual([]);
+  });
+
   it('preserves converted image metadata and refreshes its Catalog file size', async () => {
     const directory = mkdtempSync(path.join(os.tmpdir(), 'studio-catalog-embed-'));
     try {

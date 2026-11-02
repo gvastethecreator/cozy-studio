@@ -284,8 +284,8 @@ function inspectPreMigrationBackup() {
       );
     }
     writeFileSync(path.join(backupDir, 'notes.txt'), 'kept');
-    // Restore the v17 schema as well as its migration ledger before exercising v18.
-    db.run('DROP TABLE catalog_organize_history');
+    // Restore the v18 schema as well as its migration ledger before exercising v19.
+    db.run('ALTER TABLE catalog_collections DROP COLUMN rule_json');
     db.query('DELETE FROM schema_migrations WHERE version = ?').run(latest);
     migrateDatabase(db);
     const backups = listBackups();
@@ -303,7 +303,7 @@ function inspectPreMigrationBackup() {
     failingDb = new Database(path.join(failingRoot, 'studio.sqlite'));
     migrateDatabase(failingDb);
     writeFileSync(path.join(failingRoot, 'state'), 'not a folder');
-    failingDb.run('DROP TABLE catalog_organize_history');
+    failingDb.run('ALTER TABLE catalog_collections DROP COLUMN rule_json');
     failingDb.query('DELETE FROM schema_migrations WHERE version = ?').run(latest);
     let failure = '';
     try {

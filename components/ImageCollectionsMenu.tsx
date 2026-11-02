@@ -13,6 +13,7 @@ import {
   type CatalogOrganizeHistoryEntry,
 } from '../packages/shared/src';
 import { openStudioSettings } from '../lib/studioSettingsDomains';
+import { useT } from '../lib/i18n';
 import { DemandMountedGsapDropdown } from './ui/DemandMountedGsapDropdown';
 import { OrganizationCreatePopover } from './OrganizationCreatePopover';
 import {
@@ -22,6 +23,7 @@ import {
   CATALOG_ORGANIZATION_CHANGED,
 } from '../services/studio-api/catalog';
 import { ConfirmationModal } from './ConfirmationModal';
+import { SmartCollectionDialog } from './SmartCollectionDialog';
 
 const EMPTY_IMAGE_IDS: string[] = [];
 
@@ -35,6 +37,7 @@ function OrganizationMenuFooter({
   onChange,
   onManage,
   onDelete,
+  onEditRules,
 }: {
   history: CatalogOrganizeHistoryEntry[];
   historyError: string;
@@ -45,7 +48,9 @@ function OrganizationMenuFooter({
   onChange: (action: () => Promise<unknown>) => Promise<void>;
   onManage: () => void;
   onDelete: () => void;
+  onEditRules: () => void;
 }) {
+  const { t } = useT();
   return (
     <>
       <section aria-label="Recent changes" className="px-2 py-2 text-xs">
@@ -87,7 +92,12 @@ function OrganizationMenuFooter({
           );
         })}
       </section>
-      {active && selectedImageIds.length > 0 && (
+      {active?.kind === 'smart' && (
+        <button type="button" role="menuitem" disabled={busy} onClick={onEditRules}>
+          {t('smartCollection.editRules')}
+        </button>
+      )}
+      {active && active.kind !== 'smart' && selectedImageIds.length > 0 && (
         <>
           <button
             type="button"
@@ -142,6 +152,8 @@ function OrganizationMenu({
   onOpenCollection,
   selectedImageIds = EMPTY_IMAGE_IDS,
   query = '',
+  favorites = false,
+  unorganized = false,
   onQueryChange,
   onCatalogChanged,
 }: {
@@ -151,10 +163,14 @@ function OrganizationMenu({
   onOpenCollection?: (id: string | null) => void;
   selectedImageIds?: string[];
   query?: string;
+  favorites?: boolean;
+  unorganized?: boolean;
   onQueryChange?: (query: string) => void;
   onCatalogChanged?: () => void | Promise<void>;
 }) {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
+  const [smartDialog, setSmartDialog] = useState<CatalogCollection | null | undefined>();
   const [history, setHistory] = useState<CatalogOrganizeHistoryEntry[]>([]);
   const [historyError, setHistoryError] = useState('');
   useEffect(() => {
@@ -220,6 +236,7 @@ function OrganizationMenu({
         emoji: null,
         count: tag.imageCount,
         selected: searchTags.has(tag.name),
+        smart: false,
       }))
     : collections.map((collection) => ({
         id: collection.id,
@@ -228,6 +245,7 @@ function OrganizationMenu({
         emoji: collection.emoji,
         count: collection.imageCount,
         selected: collection.id === collectionId,
+        smart: collection.kind === 'smart',
       }));
   return (
     <div className="relative">
@@ -269,6 +287,18 @@ function OrganizationMenu({
             }
           }}
         />
+        {!isTag && (
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              setSmartDialog(null);
+            }}
+          >
+            ＋ {t('smartCollection.new')}
+          </button>
+        )}
         <button
           type="button"
           role="menuitem"
@@ -316,6 +346,9 @@ function OrganizationMenu({
                 {item.emoji ?? (isTag ? '' : '📁')}
               </span>
               <span className="min-w-0 flex-1 truncate">{item.name}</span>
+              {item.smart && (
+                <span className="text-[var(--wb-muted)]">{t('smartCollection.marker')}</span>
+              )}
               <span className="text-[var(--wb-dim)]">{item.count}</span>
               {item.selected && <span aria-hidden="true">✓</span>}
             </button>
@@ -344,6 +377,10 @@ function OrganizationMenu({
           busy={busy}
           title={title}
           onChange={changeCollection}
+          onEditRules={() => {
+            setOpen(false);
+            setSmartDialog(active);
+          }}
           onManage={() => {
             setOpen(false);
             openStudioSettings('organization');
@@ -355,6 +392,24 @@ function OrganizationMenu({
         />
         {actionError && <p role="alert">{actionError}</p>}
       </DemandMountedGsapDropdown>
+      {smartDialog !== undefined && (!smartDialog || smartDialog.workspaceId === workspaceId) && (
+        <SmartCollectionDialog
+          key={`${workspaceId}-${smartDialog?.id ?? 'new'}`}
+          workspaceId={workspaceId}
+          collection={smartDialog ?? undefined}
+          query={query}
+          favorites={favorites}
+          unorganized={unorganized}
+          onClose={() => setSmartDialog(undefined)}
+          onSaved={(collection) => {
+            setSmartDialog(undefined);
+            refresh();
+            void changeCollection(async () => {
+              onOpenCollection?.(collection.id);
+            });
+          }}
+        />
+      )}
       <ConfirmationModal
         isOpen={confirmDelete && Boolean(active)}
         title={`Delete ${active?.name ?? 'collection'}?`}
@@ -379,6 +434,9 @@ export function ImageCollectionsMenu(props: {
   workspaceId: string;
   collectionId: string | null;
   selectedImageIds: string[];
+  query?: string;
+  favorites?: boolean;
+  unorganized?: boolean;
   onOpenCollection: (collectionId: string | null) => void;
   onCatalogChanged?: () => void | Promise<void>;
 }) {

@@ -15,6 +15,7 @@ An invalid filename template blocks Save and stays visible in the footer from an
 | Accounts & models      | Sign in, provider selection and model execution defaults       |
 | Files & naming         | Generated image destination, subfolders and filename templates |
 | Library & imports      | Scan and import external images; export workspace metadata     |
+| Tags & collections     | Rename tags and collections; set tag colors and emojis         |
 | Styles & workflows     | Install style packs and enable built-in workflows              |
 | Advanced & maintenance | Agent access, allowed import folders, diagnostics and repair   |
 | Help & updates         | Getting started, update checks and managed restart             |

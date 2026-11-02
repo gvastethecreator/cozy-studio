@@ -467,7 +467,7 @@ export async function createStudioApp(
     )
       return c.json(
         {
-          error: `${workflowModule.title} is turned off. Turn it on in Settings, Extensions.`,
+          error: `${workflowModule.title} is turned off. Turn it on in Settings → Styles & workflows.`,
           code: 'workflow_module_disabled',
           moduleId: workflowModule.id,
         },

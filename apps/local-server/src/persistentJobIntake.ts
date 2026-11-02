@@ -242,7 +242,7 @@ export function createPersistentJobIntake({
         error: {
           status: 400,
           body: {
-            error: `${workflowModule.title} is turned off. Turn it on in Settings, Extensions.`,
+            error: `${workflowModule.title} is turned off. Turn it on in Settings → Styles & workflows.`,
             code: 'workflow_module_disabled',
             moduleId: workflowModule.id,
           },

@@ -200,7 +200,7 @@ bun install --frozen-lockfile
 bun run studio:init
 ```
 
-Do not delete `.studio/studio.sqlite` to bypass the error. If it still fails, keep the database plus its `-wal` and `-shm` files together. Report the exact stack. Restore from a copy only after the server is stopped.
+Do not delete `.studio/studio.sqlite` inside the Studio Library folder to bypass the error. If it still fails, keep the database plus its `-wal` and `-shm` files together. Report the exact stack. Restore from a copy only after the server is stopped.
 
 ## When terminal output is too short
 
@@ -233,7 +233,7 @@ From the app, open Settings → Advanced & maintenance. You can run audit, compa
 bun run storage:compact -- --write --confirm=compact-inline-payloads
 ```
 
-Backend logs rotate under `.studio/logs/history`. `/api/logs` and the activity panel show a recent window, not an infinite historical file.
+Backend logs rotate under `.studio/logs/history` inside the Studio Library folder. `/api/logs` and the activity panel show a recent window, not an infinite historical file.
 
 Tooling logs keep one `.latest.log` per task and prune timestamped runs automatically. To clean them by hand:
 

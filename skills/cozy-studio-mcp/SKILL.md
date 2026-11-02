@@ -26,6 +26,6 @@ This checkout ships the server. `.mcp.json` and `.cursor/mcp.json` register `coz
 3. Set up and maintain Studio.
    - For a new user, call `studio_onboarding`. If ChatGPT is not signed in, ask the user to sign in from Studio Settings. Never start sign-in.
    - `studio_update_settings` changes only `defaultProviderId`, `providerDefaults`, `outputDirectory`, `outputOrganization`, `notifyOnUpdates` and `preferredWorkflow`. Agent access and import folders stay user-only.
-   - Install or update packs with `studio_install_extension` using `sourceId` and `extensionId` from `studio_available_extensions`. Pass `layers: ["cards"]` to install or keep preview cards; omitting it removes an installed cards layer.
+   - Install or update packs with `studio_install_extension` using `sourceId` and `extensionId` from `studio_available_extensions`. Pass `layers: ["cards"]` to install preview cards. Omitting `layers` keeps the layers already installed for that pack; `layers: []` installs without cards.
    - `studio_remove_extension` deletes pack files. `studio_apply_update` changes the checkout and restarts Studio. Ask the user before either one. Get the commit from `studio_updates` with `check: true`.
    - Done when each write was a change the user asked for and `studio_status` answers after an update.

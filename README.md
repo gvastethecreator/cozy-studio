@@ -46,7 +46,7 @@ You need:
 - A modern browser.
 - Optional, only for the Codex provider: Codex CLI from <https://github.com/openai/codex> with `codex login`.
 
-**Portable launch.** Choose the ZIP for your OS and CPU. Open `scripts/Cozy Studio.bat` on Windows, `scripts/Cozy Studio.command` on macOS or `scripts/Cozy Studio.sh` on Linux. Read [PORTABLE.txt](PORTABLE.txt) for prerequisites. With no explicit `STUDIO_LIBRARY_DIR`, these launchers keep the Library inside the app folder. [Platform support](docs/PLATFORMS.md) lists path rules and verification limits.
+**Portable launch.** No portable ZIPs are published yet, so build your own ZIP for your OS and CPU (next paragraph) and extract it. Open `scripts/Cozy Studio.bat` on Windows, `scripts/Cozy Studio.command` on macOS or `scripts/Cozy Studio.sh` on Linux. Read [PORTABLE.txt](PORTABLE.txt) for prerequisites. With no explicit `STUDIO_LIBRARY_DIR`, these launchers keep the Library inside the app folder. [Platform support](docs/PLATFORMS.md) lists path rules and verification limits.
 
 To build a portable ZIP, run `bun run build` and `bun run portable:build`. The default target is the host; select another with, for example, `bun run portable:build linux-x64` or `bun run portable:build macos-arm64`. Each ZIP includes its pinned Bun runtime, matching production dependencies, launcher and built UI. The builder prints its path under `.scratch/portable/` and writes a SHA-256 file beside it.
 

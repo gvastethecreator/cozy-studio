@@ -53,7 +53,7 @@ If `rg` fails on Windows in this checkout, use PowerShell `Get-ChildItem` and `S
 - Backend provider execution belongs behind provider adapters, not route handlers.
 - Job kinds must describe provider-independent tasks.
 - Provider-specific options belong in provider settings or input, not generic task names.
-- New behavior needs tests. Reuse a nearby case for meaningful uncovered behavior. Import test APIs from `vitest`; `vitest.config.ts` owns test configuration.
+- Default to no new test. Extend one existing case only for a meaningful uncovered failure. Import test APIs from `vitest`; `vitest.config.ts` owns test configuration.
 - Keep the legacy workspace snapshot shape export-only. Durable and UI image truth is Catalog Entry.
 
 ## Agent skills

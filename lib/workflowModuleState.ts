@@ -1,6 +1,6 @@
 // Which optional workflow modules are on (ADR 0011). main.tsx registers them before React mounts so
 // navigation, routing and chunk preloading can check a module synchronously. A change in
-// Settings, Extensions takes effect after a reload.
+// Settings → Styles & workflows takes effect after a reload.
 import {
   findWorkflowModuleForRecipe,
   findWorkflowModuleForWorkflow,

@@ -165,7 +165,7 @@ Local folder or GitHub repository release feed where Studio finds Cozy Extension
 _Avoid_: marketplace, registry server, pack path
 
 **Workflow Module**:
-Optional built-in workflow, such as Character Lab or Sprite Atlas, that the user can turn off in Settings, Extensions. Create and Styles are not modules. A turned-off module hides its workflows, loads none of its code, closes its API routes and rejects its new jobs; its jobs and images stay in the Studio Library.
+Optional built-in workflow, such as Character Lab or Sprite Atlas, that the user can turn off in Settings → Styles & workflows. Create and Styles are not modules. A turned-off module hides its workflows, loads none of its code, closes its API routes and rejects its new jobs; its jobs and images stay in the Studio Library.
 _Avoid_: plugin, extension, feature flag
 
 **Codex Turn**:
@@ -263,7 +263,7 @@ _Avoid_: direct repair command, secret-printing audit, destructive storage scan
 ## Relationships
 
 - A **Library Registry** tracks one or more **Studio Libraries** and exactly one default library at a time.
-- A registered **Output Directory** stores new final images and exports without becoming a separate SQLite catalog. Each job captures its output root and layout; existing files stay under their original registered roots.
+- A registered output directory stores new final images and exports without becoming a separate SQLite catalog. Each job captures its output root and layout; existing files stay under their original registered roots.
 - Shared workflow categories drive discovery and preferences. Character views retain per-mode drafts within one workspace character. Native output background belongs to the Generation Task Spec, not a provider-specific task name.
 - **Bootstrap Configuration** locates the initial **Studio Library**, then **Studio Settings** become the editable source of truth.
 - **Provider Secrets** live outside **Studio Settings**. Settings can show only availability or validation state.
@@ -319,7 +319,7 @@ _Avoid_: direct repair command, secret-printing audit, destructive storage scan
 - **Studio Runtime** names the backend-resolution adapter. Readiness and onboarding status belong to **Studio Readiness**.
 - **Command Center** does not mean putting every control in the toolbar. Global controls live there or open from there instead of floating separately.
 - **Demand-Mounted Surface** is the default for heavy diagnostics, file views, activity panels, and visual effects that are not always visible.
-- **Local Codex Session** is the app-server capability snapshot for the local ChatGPT login. Studio shows the ChatGPT HTTP sign-in state separately. The phrase "account status" applies only to the compatibility endpoint `/api/codex/account`.
+- **Local Codex Session** is the app-server capability snapshot for the Codex CLI login (`codex login`). Studio shows the ChatGPT HTTP sign-in state separately. The phrase "account status" applies only to the compatibility endpoint `/api/codex/account`.
 - **Provider Boundary** does not mean the product becomes a generic provider router. ChatGPT HTTP and Codex app-server keep separate captured execution paths behind backend adapters.
 - **Generation Task** and **Generation Provider** are separate concepts. Task names do not encode provider names.
 - **Provider Capability Catalog** is a fixed build-time capability description, not runtime plugin machinery or a Provider Secret store.

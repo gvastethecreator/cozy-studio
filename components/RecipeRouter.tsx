@@ -91,8 +91,8 @@ export const RecipeRouter: React.FC<RecipeRouterProps> = ({
             {workflowModule?.title ?? activeRecipe} is turned off
           </strong>
           <span className="text-xs">
-            Turn it on in Settings, Extensions, then reload Studio. Its jobs and images stay in your
-            library.
+            Turn it on in Settings → Styles & workflows, then reload Studio. Its jobs and images
+            stay in your library.
           </span>
         </div>
       </div>

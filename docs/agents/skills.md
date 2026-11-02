@@ -10,4 +10,4 @@ For changes to either operational skill, verify source paths and commands, valid
 
 Style content belongs in the separate `cozy-styles-dev` repository. Its curation and authoring tools are not runtime dependencies of Studio. See [ADR 0011](../adr/0011-declarative-extensions-and-style-pack-sources.md).
 
-For app queries, generation and cancellation, use [cozy-studio-mcp](../../skills/cozy-studio-mcp/SKILL.md). [Studio MCP](mcp.md) owns the tool list and access rules. Skills guide work; MCP tools operate the running app.
+[Studio MCP](mcp.md) is the tool contract; the cozy-studio-mcp skill owns the procedures and safety rules.

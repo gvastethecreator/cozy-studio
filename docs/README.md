@@ -21,8 +21,8 @@
 
 - [Repository rules](../AGENTS.md): authority, safety and checks
 - [Setup skill](../skills/cozy-studio-setup/SKILL.md): initialize or repair a first run
-- [Cozy Studio MCP skill](../skills/cozy-studio-mcp/SKILL.md): operate the running app through the shipped `cozy-studio-mcp` server
-- [Studio MCP](agents/mcp.md): tool list, access modes, and workspace registration
+- [Operate Studio with an agent](../skills/cozy-studio-mcp/SKILL.md): the `cozy-studio-mcp` skill and its task references
+- [Studio MCP](agents/mcp.md): tool contract, access levels and server registration
 - [Skill ownership](agents/skills.md), [domain guidance](agents/domain.md), [issue tracker](agents/issue-tracker.md) and [triage labels](agents/triage-labels.md)
 - [Generated code map](codemap/codemap.md): module relationships and impact analysis
 

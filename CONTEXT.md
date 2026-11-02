@@ -44,6 +44,14 @@ _Avoid_: asset row, generated image record
 Named set of Catalog Entries inside one Workspace. An image can belong to many Image Collections. Stored in SQLite and opened from the Library beside tag search.
 _Avoid_: disk folder, Workspace, tag
 
+**Library Organization**:
+The tags and Image Collection that a generation request asks Studio to apply to each Catalog Entry when it saves the entry.
+_Avoid_: auto-tagging, post-generation cleanup
+
+**Unorganized Image**:
+Catalog Entry with no tags and no membership in an Image Collection of its own Workspace.
+_Avoid_: untagged image, uncollected image
+
 **Catalog Page**:
 Paginated metadata payload returned by `/api/catalog`.
 _Avoid_: gallery response, asset dump

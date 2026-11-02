@@ -20,6 +20,8 @@ An invalid filename template blocks Save and stays visible in the footer from an
 | Advanced & maintenance | Agent access, allowed import folders, diagnostics and repair   |
 | Help & updates         | Getting started, update checks and managed restart             |
 
+**Agent access (MCP)** in **Advanced & maintenance** sets what a local agent can do: **Off**, **Read only** (the default), **Organize** (adds tags and collections to existing images) or **Full control** (adds generation, imports, settings, style packs and updates).
+
 To let an agent import local image references by path, open **Advanced & maintenance**. Set **Agent access (MCP)** to **Full control**, enter one absolute path per line in **Allowed import folders**, then save. The permission includes subfolders. An empty list disables import by path. Studio copies and optimizes the image without changing the source. See [Studio MCP](agents/mcp.md#import-an-image-reference) for limits and tool inputs.
 
 ## Find, select and compare images
@@ -40,7 +42,7 @@ Check a collection to add the image or selection, and uncheck it to remove them.
 
 Right-click a carousel thumbnail to act on that image without changing the selected preview. Menus open to the right and below the pointer when space allows, then flip left or above. Keyboard users can use Shift+F10 on a focused thumbnail.
 
-The **Tags** and **Collections** buttons filter Library. In Settings → **Tags & collections**, rename items inline, choose tag colors or collection emojis, then **Save** or **Cancel** the row.
+The **Tags** and **Collections** buttons filter Library. **Unorganized**, next to **Favorites**, shows only the images with no tags and no collection in this workspace; images leave this view as you organize them. In Settings → **Tags & collections**, rename items inline, choose tag colors or collection emojis, then **Save** or **Cancel** the row.
 
 Search Library with `#boss` to match that exact tag, or `#boss #forest` to require both. You can combine tags with prompt text, Favorites and sorting. Metadata tags with spaces use quoted searches, such as `#"imported reference"`. Tags are saved in the Studio catalog; original image files stay unchanged.
 

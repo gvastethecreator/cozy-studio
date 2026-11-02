@@ -12,7 +12,7 @@ That skill owns initialization, provider-specific readiness, and runtime checks.
 
 ## Image jobs
 
-Use the ChatGPT provider after Studio Settings Sign in. Do not start `codex app-server` or select the Codex provider for ordinary image jobs. Codex app-server jobs create Codex turns and spend Codex usage. ChatGPT HTTP does not create those turns. It can still hit its own HTTP usage limit. It is not a separate subscription and not API credits. If Studio Settings still has the Codex provider selected, switch the next image job to ChatGPT before generating.
+Use the ChatGPT provider after Studio Settings Sign in. Do not start `codex app-server` or select the Codex provider for ordinary image jobs. Codex app-server jobs create Codex turns and spend Codex usage. ChatGPT HTTP does not create those turns. It can still hit its own HTTP usage limit. It is not a separate subscription and not API credits. In the Studio UI, if Settings still has the Codex provider selected, switch the next image job to ChatGPT before generating. For MCP generation, follow **Plan before you spend** in `skills/cozy-studio-mcp/SKILL.md`.
 
 ## Commands
 
@@ -62,7 +62,7 @@ Read [skill ownership and loading](docs/agents/skills.md) when selecting, updati
 
 ### Runtime tools
 
-For app queries, generation and cancellation, follow `skills/cozy-studio-mcp/SKILL.md`. The workspace server is `cozy-studio-mcp`, registered by `.mcp.json` and `.cursor/mcp.json`. `docs/agents/mcp.md` owns the tool list and access mode.
+To operate a running Studio through the `cozy-studio-mcp` server (settings, Library organization, generation, styles and packs, maintenance, errors), follow the router `skills/cozy-studio-mcp/SKILL.md`.
 
 ### Issue tracker
 

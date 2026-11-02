@@ -1,6 +1,10 @@
 # Studio MCP
 
-The local MCP server lets agents check first-run readiness, query Studio, organize Library images with tags and collections, change agent-safe settings, install and update style packs, import image references, queue generation, cancel jobs and apply app updates. It uses the running Studio backend and its existing routes, provider adapters, catalog and persistent job batches. It does not start another worker or sign in to providers.
+The local `cozy-studio-mcp` server is the agent interface to a running Studio. It calls the running Studio backend, so jobs use the same routes, provider adapters, catalog and persistent job batches as the UI. It does not start another worker or sign in to providers.
+
+This page is the tool contract: registration, access levels, tools, errors and the HTTP routes that agents may call. `studio_guide` serves it as the topic `contract`. [cozy-studio-mcp](../../skills/cozy-studio-mcp/SKILL.md) owns the procedures and the safety rules. The one exception is the agent HTTP route allowlist at the end of this page.
+
+## Register the server
 
 The checkout registers the server as `cozy-studio-mcp` in `.mcp.json` and `.cursor/mcp.json`. Open the repo as a workspace and reload MCP connections. The command is `bun` with `scripts/studio-mcp.ts`, and the working directory is the checkout. Start Studio before calling tools.
 
@@ -28,106 +32,150 @@ env = { COZY_STUDIO_API_URL = "http://127.0.0.1:17223" }
 tool_timeout_sec = 150
 ```
 
-Pack installs and update checks can take up to 120 seconds, so keep the client tool timeout above that.
+The bridge waits 30 seconds for a call, and 120 seconds for `studio_install_extension`, `studio_updates` and `studio_apply_update`. Keep the client tool timeout above 120 seconds.
 
-Use an absolute `bun` executable when the client does not search `PATH`. Set `COZY_STUDIO_API_URL` when the API port is not 17223. The URL must be a loopback HTTP origin. The bridge opens no listening port. `bun run mcp` starts the same script from a shell. Restart Studio after updating backend code. Operate it with [cozy-studio-mcp](../../skills/cozy-studio-mcp/SKILL.md).
+Use an absolute `bun` executable when the client does not search `PATH`. Set `COZY_STUDIO_API_URL` when the API port is not 17223. The URL must be a loopback HTTP origin. The bridge opens no listening port. `bun run mcp` starts the same script from a shell.
 
 ## Access
 
-Settings > Advanced & maintenance > **Agent access (MCP)** controls every call, including calls from already connected clients. Each level includes the one before it:
+Settings > Advanced & maintenance > **Agent access (MCP)** controls every call, including calls from already connected clients. Studio reads the setting again on each call. Each level includes the one before it.
 
-- **Off** (`mcpAccess: "off"`) rejects all MCP calls.
-- **Read only** (`"read"`), the default, allows discovery, queries and `studio_plan_generation` previews.
-- **Organize** (`"organize"`) also allows `studio_organize_images`: add or remove tags on existing images, and add them to or remove them from a collection by name, which creates the collection when it is missing. It never deletes, archives or moves images, renames or deletes tags and collections, or spends provider usage.
-- **Full control** (`"write"`) also allows reference import, generation, batch retry, cancellation, settings changes, pack install and removal, and app updates.
+| Level        | `mcpAccess` | Adds                                                                                                                                                                                                                            |
+| ------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Off          | `off`       | Nothing. Every call except `studio_guide` returns 403.                                                                                                                                                                          |
+| Read only    | `read`      | The default. Every read tool, including `studio_plan_generation`.                                                                                                                                                               |
+| Organize     | `organize`  | `studio_organize_images`: tags and collection membership of existing images. It never deletes, archives or moves images, never renames or deletes tags and collections, and never spends provider usage.                        |
+| Full control | `write`     | `studio_generate`, `studio_retry_batch`, `studio_cancel`, `studio_import_reference`, `studio_import_reference_file`, `studio_update_settings`, `studio_install_extension`, `studio_remove_extension` and `studio_apply_update`. |
 
-A denied call returns 403 with `access` (the current level) and `required` (the level the tool needs). The bridge answers `studio_guide` itself from `skills/cozy-studio-mcp/`, so it works while Studio is offline and when Agent access is Off.
+The bridge answers `studio_guide` itself from `skills/cozy-studio-mcp/` and this page, so it works while Studio is offline and when Agent access is Off.
 
-The setting controls the MCP gateway, not the app's own UI/API. Local MCP clients share this setting; there are no per-client credentials. Existing loopback host and browser-origin checks still apply. Provider secrets and transcripts are not exposed as MCP tools.
+The setting controls the MCP gateway, not the app's own UI and API. Local MCP clients share this setting; there are no per-client credentials. The loopback host and browser-origin checks still apply. No tool returns provider secrets or transcripts. No tool can change `mcpAccess` or `mcpAllowedImportRoots`.
 
-**Allowed import folders**, in the same Settings section, controls which local folders agents can read through `studio_import_reference_file`. Enter one absolute folder path per line and save. The default is empty, which disables import by path. This permission includes subfolders. Remove a folder or clear the list to revoke access on the next call. Full control is also required. MCP tools cannot change Agent access or Allowed import folders.
+**Allowed import folders**, in the same Settings section, controls which local folders agents can read through `studio_import_reference_file`. Enter one absolute folder path per line and save. The default is empty, which turns off import by path. This permission includes subfolders. Remove a folder or clear the list to revoke access on the next call.
 
 ## Tools
 
-| Tool                                                               | Access             | Purpose                                                                                            |
-| ------------------------------------------------------------------ | ------------------ | -------------------------------------------------------------------------------------------------- |
-| `studio_guide`                                                     | none (bridge)      | The agent guide: `SKILL.md` for `overview`, or one reference topic.                                |
-| `studio_status`                                                    | read               | Health, `mcpAccess`, update status and `library.unorganized`, with a `notice` or `organizeNotice`. |
-| `studio_onboarding`                                                | read               | Onboarding probe, provider readiness and ChatGPT sign-in state.                                    |
-| `studio_providers`                                                 | read               | Provider readiness.                                                                                |
-| `studio_recipes`                                                   | read               | Recipe summaries; `q` filters them, `id` returns one recipe with parameters and defaults.          |
-| `studio_find_styles`                                               | read               | Installed style presets by id, name or category, for `studio_generate` `styles`.                   |
-| `studio_plan_generation`                                           | read               | Preview a `studio_generate` call: provider, model, workspace, filing and prompt. Spends nothing.   |
-| `studio_workspaces`                                                | read               | Workspaces; with `workspaceId`, its tags, collections and `unorganized` count.                     |
-| `studio_settings`                                                  | read               | Editable Studio Settings.                                                                          |
-| `studio_update_settings`                                           | write              | Change agent-safe settings (allowlist below).                                                      |
-| `studio_extensions`, `studio_extension_json`, `studio_user_styles` | read               | Installed packs, their JSON files, saved user styles.                                              |
-| `studio_available_extensions`                                      | read               | Published packs with `installedVersion`, `installedLayers` and `updateAvailable`.                  |
-| `studio_install_extension`                                         | write              | Install or update a published pack.                                                                |
-| `studio_remove_extension`                                          | write, destructive | Delete a downloaded pack from disk.                                                                |
-| `studio_jobs`, `studio_job`, `studio_batch`                        | read               | Jobs and batches; `studio_job` with `detail: true` adds model, filing, events and images.          |
-| `studio_catalog`                                                   | read               | Library images by text, `#tag`, workspace, collection, job, batch or recipe.                       |
-| `studio_organize_images`                                           | organize           | Tag existing images and add them to or remove them from a collection.                              |
-| `studio_generate`, `studio_retry_batch`                            | write              | Queue generation, retry the failed jobs of a batch.                                                |
-| `studio_cancel`                                                    | write, destructive | Cancel a queued or running job.                                                                    |
-| `studio_import_reference`, `studio_import_reference_file`          | write              | Import an image reference.                                                                         |
-| `studio_updates`                                                   | read               | App update status; `check: true` fetches `origin/main`.                                            |
-| `studio_apply_update`                                              | write, destructive | Fast-forward to the checked commit, install and restart.                                           |
+| Tool                                                               | Access             | Purpose                                                                                             |
+| ------------------------------------------------------------------ | ------------------ | --------------------------------------------------------------------------------------------------- |
+| `studio_guide`                                                     | none (bridge)      | The agent guide: `SKILL.md` for `overview`, this page for `contract`, or one reference topic.       |
+| `studio_status`                                                    | read               | Health, access level, update status and `library.unorganized`, with a `notice` or `organizeNotice`. |
+| `studio_onboarding`                                                | read               | Onboarding probe and provider readiness, with the ChatGPT sign-in state.                            |
+| `studio_providers`                                                 | read               | Provider readiness.                                                                                 |
+| `studio_recipes`                                                   | read               | Recipe summaries; `q` filters them, `id` returns one recipe with parameters and defaults.           |
+| `studio_find_styles`                                               | read               | Installed style presets by id, name or category, for `studio_generate` `styles`.                    |
+| `studio_plan_generation`                                           | read               | Preview a `studio_generate` call: provider, model, workspace, filing and prompt. Spends nothing.    |
+| `studio_workspaces`                                                | read               | Workspaces; with `workspaceId`, its tags, collections and `unorganized` count.                      |
+| `studio_settings`                                                  | read               | Editable Studio Settings.                                                                           |
+| `studio_update_settings`                                           | write              | Change agent-safe settings.                                                                         |
+| `studio_extensions`, `studio_extension_json`, `studio_user_styles` | read               | Installed packs, their JSON files, saved user styles.                                               |
+| `studio_available_extensions`                                      | read               | Published packs with `installedVersion`, `installedLayers` and `updateAvailable`.                   |
+| `studio_install_extension`                                         | write              | Install or update a published pack.                                                                 |
+| `studio_remove_extension`                                          | write, destructive | Delete a downloaded pack from disk.                                                                 |
+| `studio_jobs`, `studio_job`, `studio_batch`                        | read               | Jobs and batches; `studio_job` with `detail: true` adds model, filing, events and images.           |
+| `studio_catalog`                                                   | read               | Library images by text, `#tag`, workspace, collection, job, batch or recipe.                        |
+| `studio_organize_images`                                           | organize           | Tag existing images and add them to or remove them from a collection.                               |
+| `studio_generate`, `studio_retry_batch`                            | write              | Queue generation, retry the failed jobs of a batch. Both use the user's provider account.           |
+| `studio_cancel`                                                    | write, destructive | Cancel a queued or running job.                                                                     |
+| `studio_import_reference`, `studio_import_reference_file`          | write              | Import an image reference.                                                                          |
+| `studio_updates`                                                   | read               | App update status; `check: true` fetches `origin/main`.                                             |
+| `studio_apply_update`                                              | write, destructive | Fast-forward to the checked commit, install and restart.                                            |
 
-`studio_update_settings` accepts only `language` (`en` or `es`), `preferredWorkflow`, `disabledWorkflowModules` (workflow module ids), `defaultStyleIntensity` (0 to 1), `defaultStyleReferenceMode` (`preserve` or `reinterpret`), `intentionalStylesV1`, `outputOrganization` and `notifyOnUpdates`. Any other field rejects the whole call. Provider settings (`defaultProviderId`, `providerDefaults`), the output folder (`outputDirectory`), `mcpAccess` and `mcpAllowedImportRoots` stay user-only. To compare models, pass `model` to `studio_generate` for that call instead of changing a default.
+Every input object is strict: an unknown field rejects the call.
 
-`studio_install_extension` takes `{sourceId, extensionId, layers?}` from `studio_available_extensions`. Installing a pack that has `updateAvailable` updates it. When `layers` is omitted, the tool keeps the layers already installed for that pack. Pass `layers: []` to install without the full `cards` layer.
+### Status and setup
 
-`studio_apply_update` takes the `latestCommit` from `studio_updates` with `check: true`. It requires `canUpdate`, the `main` branch, a clean checkout and no active jobs. Studio fast-forwards, runs the dependency install and restarts itself; poll `studio_status` until Studio is back, then reload the MCP connection.
+`studio_status` returns `{health, mcpAccess, mcpAccessLabel, library: {unorganized}, update: {behind, latestCommit, canUpdate, blocker, checkedAt} | null}`. `mcpAccessLabel` is `Read only`, `Organize` or `Full control`. At Off, `studio_status` returns 403 with `access: "off"`, like every tool except `studio_guide`. `library.unorganized` counts live images with no tags and no collection in the whole Library. When Studio is behind `origin/main`, the result adds `notice`. When `library.unorganized` is above zero, it adds `organizeNotice`.
 
-## Organize existing images
+`studio_onboarding` returns `{probe, readiness, chatgptAuth, signIn}`. `probe.facts.chatgptLoggedIn` is the ChatGPT sign-in state, and `probe.checks` lists each first-run check. Sign in is a user action in Studio Settings; no tool starts it.
 
-`studio_organize_images` takes `{workspaceId, imageIds, addTags?, removeTags?, addToCollection?, removeFromCollection?}`: 1 to 100 image IDs and up to 8 tags per list. Set at least one change, and do not add and remove the same tag or collection. Studio first checks that every image is live and in `workspaceId`, that every image stays within 32 tags after the change, and that `removeFromCollection` names a collection in that workspace. When a check fails, the call returns 400 with the `imageIds` at fault and changes nothing. Then it updates the tags of each image that changes, and adds the images to the collection whose name matches case-insensitively, or creates it. The result is `{workspaceId, imageCount, tags: {added, removed}, collection: {id, name, created, imageCount} | null, removedFrom: {id, name} | null}`. The writes are separate requests, not one transaction. If a call fails partway, repeat it: tags and members that are already present stay as they are.
+### Library
 
-`studio_catalog` with `unorganized: true` returns live images with no tags and no collection in their own workspace. `studio_status` counts them for the whole Library and returns an `organizeNotice` when there are any. Catalog rows show tags but not collections.
+`studio_catalog` takes `limit` (1 to 100, default 30), `offset`, `q` (text or `#tag`), `workspace_id`, `collection_id`, `job_id`, `batch_id`, `recipe_id`, `unorganized` and `sort` (`desc`, `asc`, `prompt`, `prompt_desc`, `ratio` or `id`). It returns `{images, total, hasMore}`. Each image row has `id`, `prompt`, `tags`, `thumbnailPath` and `filePath`. Rows do not list collections: page `collection_id` for each collection instead. `unorganized: true` returns live images with no tags and no collection in their own workspace. Image IDs work as `studio_generate` `referenceIds`.
 
-To organize a workspace:
+`studio_workspaces` without arguments lists the workspaces. With `workspaceId` it returns `{workspace, tags: [{name, color, imageCount}], collections: [{id, name, emoji, imageCount}], unorganized}`. An unknown id returns 400 `Unknown workspaceId.`
 
-1. Call `studio_workspaces` with `workspaceId` for its tags, collections and unorganized count.
-2. Read the whole set before the first write. Page `studio_catalog` with `workspace_id`, `sort: "asc"` and `limit: 100`, with `unorganized: true` for only the images nobody organized, or without it to reorganize the whole workspace. Page `studio_catalog` with `collection_id` for each collection to learn the current members.
-3. Look at each `thumbnailPath`, or `filePath` when there is no thumbnail. Compare the images and propose one scheme: which images get which tags and collection.
-4. After the user confirms, apply the scheme with `studio_organize_images`, at most 100 images per call, and report after each call. Organized images leave `unorganized: true`, so read that filter again from offset 0 after each call.
-5. To undo a call, send the inverse change (`removeTags`, `removeFromCollection`).
+`studio_organize_images` takes `{workspaceId, imageIds, addTags?, removeTags?, addToCollection?, removeFromCollection?}`:
 
-Imported references land in the Default workspace with the tag `imported reference`, so they never count as unorganized. When the user wants them filed, add them to a collection in Default with `studio_organize_images`. Agent tools never delete, archive or move images. In the Studio UI, the **Unorganized** toolbar filter shows the same images; select them and use **Tags and collections** to organize them by hand.
+- `imageIds`: 1 to 100 ids. Duplicates count once.
+- `addTags`, `removeTags`: up to 8 tags each. `addTags` are normalized (`#Pick` is stored as `pick`). `removeTags` must match the stored names exactly, as `tags` shows them.
+- `addToCollection`, `removeFromCollection`: a collection name, 1 to 80 characters. A case-insensitive match uses the existing collection. `addToCollection` creates the collection when it is missing.
+- Set at least one change. Do not add and remove the same tag or collection.
 
-## New user setup
+Studio checks the whole call before the first write. Every image must be live and in `workspaceId`, every image must stay within 32 tags, and `removeFromCollection` must name a collection in that workspace. When a check fails, the call returns 400 and changes nothing; image checks also return the `imageIds` at fault. Then Studio updates the tags of each image that changes and updates the collections. The result is `{workspaceId, imageCount, tags: {added, removed}, collection: {id, name, created, imageCount} | null, removedFrom: {id, name} | null}`.
 
-1. `studio_onboarding`. If ChatGPT is not signed in, ask the user to sign in from Studio Settings. Do not start sign-in.
-2. `studio_status`. If it returns a `notice`, tell the user an update is available and ask before `studio_apply_update`. If `mcpAccess` is not `write`, ask the user to set Agent access (MCP) to Full control before the write steps.
-3. `studio_available_extensions`, then `studio_install_extension` for the packs the user wants, with `layers: ["cards"]` for preview cards.
-4. `studio_settings`, then `studio_update_settings` for the language, workflow modules, style defaults and output organization the user asked for. The user sets the provider and the output folder in Studio Settings.
-5. Generate with the workflow below.
-6. Later, `studio_updates` with `check: true`. Install packs with `updateAvailable`. Ask the user before `studio_apply_update`.
+The writes are separate requests, not one transaction. If a call fails partway, repeat it: tags and members that are already present stay as they are. The inverse call (`removeTags`, `removeFromCollection`) undoes a call.
 
-## Workflow
+Imported references land in the Default workspace with the tag `imported reference`, so they never count as unorganized. In the Studio UI, the **Unorganized** toolbar filter shows the same images as `unorganized: true`.
 
-1. Call `studio_status`, `studio_providers` and `studio_recipes` (summaries; `id` for one recipe's parameters). Call `studio_workspaces` for workspace IDs, and with `workspaceId` for the tag and collection names to reuse.
-2. Find installed style presets with `studio_find_styles` (`q`, `packId`, `limit`). Pass them to `studio_generate` as `styles: [{packId, presetId, strength?}]` (1 to 5) with an optional `styleMode` (`preserve`, `reinterpret` or `generate`). Studio compiles them with the same functions and Settings as the Studio UI: the Intentional styles setting picks the compiler, and `strength` defaults to the Settings style intensity. `styles` uses the styles recipe, so leave `recipeId` out. `recipeParams` cannot carry compiled style fields such as `selectedStyles` or `compilerVersion`; the call returns 400 "Pass styles instead of compiled style fields." An unknown preset or a blocked Intentional compile returns 400, the second with `issues`. Intentional `preserve` needs a reference, so pass `styleMode: "generate"` without `referenceIds`. `studio_extensions` and `studio_extension_json` read pack files as data; `studio_user_styles` lists saved user styles, which `styles` cannot use yet.
-3. Unless the user asked for exactly these images, call `studio_plan_generation` with the same input minus `requestId` and confirm provider, model, image count and workspace with the user. It runs Studio's normal intake but creates no job, batch or workspace, and calls no provider. The result is `{ready: true, jobCount, providerId, model, task, recipeId, workspace: {id, name, willCreate}, filing: {tags, collection: {name, exists} | null}, providerPrompt, promptChars, styles?}`, with `providerPrompt` cut to 4000 characters, or `{ready: false, blocker: {error, code}}`, for example when ChatGPT is not signed in.
-4. Call `studio_generate` with a fresh `batch-` request ID, prompt, optional recipe and parameters, optional catalog `referenceIds` and the required filing fields. The default provider is ChatGPT. Use `task: "image_edit"` for editing. A count from 1 to 16 creates a persistent batch of individual jobs. Sprite Atlas and Animation Sequence runs stay in the Studio UI.
-   - `workspaceId` (an existing workspace) or `workspaceName`, not both. `workspaceName` uses the workspace with that name (case-insensitive) or creates one with the id `ws-` plus the first 12 hex characters of the SHA-256 of the lowercased name.
-   - `tags`: up to 8 hashtags; `#Cover` is stored as `cover`. `[]` only when the user asked for no tags.
-   - `collection`: a collection name in that workspace, created if missing. `null` only for a one-off.
-   - Studio stores the filing in `sourceSpec.metadata.libraryOrganization` and applies it in the same transaction that saves each Catalog Entry. Invalid filing sent to the jobs API returns 400 `invalid_library_organization`.
-   - `model` picks a model for this call only and leaves Settings unchanged. For `chatgpt` it must be a GPT Image model id (`gpt-image-2.5-flare`, `gpt-image-2.5-sunburst` or `gpt-image-2`); an unknown id returns 400 with the allowed ids. For `codex` it is the Codex model. Other providers return 400 and use their Settings default.
-5. If a call times out, retry the **same request ID and identical input**. Studio returns the accepted batch; changing its input produces a conflict. Do not invent a new request ID to retry.
-6. Poll `studio_batch` or `studio_job`. `studio_job` returns `id`, `status`, `error`, `updatedAt` and `notices`. A notice tells how a saved result differs from the request, for example `Requested image size 1024x1024; provider returned 1024x1536. Original dimensions preserved.` The job stays `completed` and keeps the original image. With `detail: true`, `studio_job` returns `{id, status, kind, providerId, recipeId, workspaceId, batchId, attempt, createdAt, updatedAt, completedAt, error, notices, model, libraryOrganization, events, catalogImages}`: the last 20 events as `{type, message, createdAt}` and the job's Library images as `{id, filePath, thumbnailPath, tags}`. It never returns transcripts or provider payloads. Query `studio_catalog` with `job_id` or `batch_id` to find output URLs and reusable image IDs. `studio_jobs` lists recent jobs with pagination; queued, running and `needs_review` jobs are always included, and `status` filters only finished history.
-7. Call `studio_retry_batch` with `{batchId, requestId}` to retry a batch's failed jobs. It uses the user's provider account, so ask first unless the user asked for the retry. The `requestId` starts with `retry-` and is new for each retry. Studio requeues the jobs that `studio_batch` lists as `retryable`, with their original input and filing, and returns `{retried, batch}`. `retried` counts the jobs Studio queued: a job whose attempt changed since the read is skipped. With no failed jobs it returns `retried: 0` and changes nothing. After a timeout, call `studio_batch`: queued or running jobs mean the retry was accepted.
-8. Call `studio_cancel` with a job ID. Completed jobs remain unchanged. Jobs awaiting human review keep Studio's existing review requirement. Cancelling does not guarantee a provider refund.
+### Generation
 
-Recipe validation, disabled modules, provider readiness and managed reference checks use Studio's normal intake. Generation references must be catalog image IDs. To add a local image, call `studio_import_reference_file` from an allowed folder, or use `studio_import_reference` for image bytes. Raw filesystem paths are not generation inputs. The tools do not delete library data, sign in to providers, change Agent access or import folders, or record human creative approval. ACP is not implemented: this interface provides app tools, rather than a conversational agent runtime.
+`studio_generate` queues 1 to 16 jobs as one persistent batch and returns the batch (`JobBatchDetail`). `studio_plan_generation` takes the same input without `requestId`.
 
-## Import an image reference
+| Field                          | Rule                                                                                                                                                                                                                                      |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `requestId`                    | Required on `studio_generate`. `batch-` plus letters, digits or hyphens, 8 to 128 characters.                                                                                                                                             |
+| `prompt`                       | Required. Up to 32000 characters.                                                                                                                                                                                                         |
+| `workspaceId`, `workspaceName` | Exactly one. `workspaceId` must exist. `workspaceName` (1 to 80 characters) uses the workspace with that name, case-insensitive, or creates one with the id `ws-` plus the first 12 hex characters of the SHA-256 of the lowercased name. |
+| `tags`                         | Required. Up to 8 hashtags: letters, digits, underscores or hyphens. `#Cover` is stored as `cover`. `[]` opts out.                                                                                                                        |
+| `collection`                   | Required. A collection name in that workspace, 1 to 80 characters, created if missing. `null` opts out.                                                                                                                                   |
+| `providerId`                   | Defaults to `chatgpt`, not the Settings default.                                                                                                                                                                                          |
+| `task`                         | `image_generate`, `image_edit`, `style_preset_card`, `sprite_sheet` or `texture_generate`.                                                                                                                                                |
+| `recipeId`, `recipeParams`     | From `studio_recipes`. Recipes marked `uiOnly` (Sprite Atlas and Animation Sequence runs) return 400.                                                                                                                                     |
+| `referenceIds`                 | Up to 16 catalog image IDs. File paths are not generation inputs.                                                                                                                                                                         |
+| `aspectRatio`, `imageSize`     | Default `1:1` and `1K`. `imageSize` is `512px`, `1K`, `2K` or `4K`.                                                                                                                                                                       |
+| `count`                        | 1 to 16, default 1. Each job gets the same input.                                                                                                                                                                                         |
+| `styles`                       | 1 to 5 `{packId, presetId, strength?}` from `studio_find_styles`. Uses the styles recipe, so leave `recipeId` out. `strength` (0 to 1) defaults to the Settings style intensity.                                                          |
+| `styleMode`                    | `generate`, `preserve` or `reinterpret`. Defaults to the Settings reference mode. With Intentional styles on, `preserve` needs `referenceIds`.                                                                                            |
+| `model`                        | One call only; Settings do not change. `chatgpt`: `gpt-image-2.5-flare`, `gpt-image-2.5-sunburst` or `gpt-image-2`. `codex`: a Codex model. Other providers return 400.                                                                   |
 
-`studio_import_reference_file` accepts `{requestId, path, name?}`. The path must be absolute and inside an allowed folder on the machine running Studio. The optional name defaults to the filename. Studio reads the file directly; image bytes do not pass through the model. Both the file and allowed folders are resolved with `realpath`. Paths with parent traversal, paths outside allowed folders, symlink or junction escapes, directories and other non-files are rejected. Files that change during reading are rejected. Missing or inaccessible allowed folders grant no access.
+Studio compiles `styles` with the same functions and Settings as the Studio UI. The Intentional styles setting picks the compiler. `recipeParams` cannot carry compiled style fields such as `selectedStyles` or `compilerVersion`.
 
-For example, after allowing `C:/Images`, call:
+Studio stores the filing in `sourceSpec.metadata.libraryOrganization` and applies it in the same transaction that saves each Catalog Entry. The filing is part of the batch request, so a retry with the same `requestId` must send the same filing.
+
+`studio_plan_generation` runs Studio's normal intake but creates no job, batch or workspace, and calls no provider. It returns `{ready: true, jobCount, providerId, model, task, recipeId, workspace: {id, name, willCreate}, filing: {tags, collection: {name, exists} | null}, providerPrompt, promptChars, styles?}`. `providerPrompt` is cut to 4000 characters. `styles` is `{compiler, mode, issues}`. For `codex`, `model` reads `unknown`. When intake blocks the job, for example because ChatGPT is not signed in, it returns `{ready: false, blocker: {error, code}}`. An invalid input returns 400, as `studio_generate` does.
+
+### Jobs and batches
+
+`studio_batch` takes `{batchId}` and returns the batch: `status`, `counts`, `jobs` and `retryable`, the failed jobs Studio can requeue.
+
+`studio_retry_batch` takes `{batchId, requestId}`. `requestId` is `retry-` plus 2 to 122 letters, digits or hyphens, new for each retry. Studio requeues the `retryable` jobs with their original input and filing and returns `{retried, batch}`. `retried` counts the jobs that Studio queued; a job whose attempt changed since the read is skipped. With no retryable jobs it returns `retried: 0` and changes nothing.
+
+`studio_job` takes `{jobId, detail?}`. Without `detail` it returns `{id, status, error, updatedAt, notices}`. A notice tells how a saved result differs from the request, for example `Requested image size 1024x1024; provider returned 1024x1536. Original dimensions preserved.` The job stays `completed` and keeps the original image. With `detail: true` it returns `{id, status, kind, providerId, recipeId, workspaceId, batchId, attempt, createdAt, updatedAt, completedAt, error, notices, model, libraryOrganization, events, catalogImages}`: the last 20 events as `{type, message, createdAt}`, and the job's Library images as `{id, filePath, thumbnailPath, tags}`. It never returns transcripts or provider payloads.
+
+`studio_jobs` takes `limit`, `workspaceId`, `status` (`completed`, `failed` or `cancelled`) and `cursor`. Queued, running and `needs_review` jobs are always included; `status` filters only finished history.
+
+`studio_cancel` takes `{jobId}`. Finished jobs stay unchanged. Jobs that wait for human review keep that requirement. Cancelling does not guarantee a provider refund.
+
+### Settings
+
+`studio_update_settings` accepts only these fields. Any other field rejects the whole call, and an empty call returns `Provide at least one setting.`
+
+- `language`: `en` or `es`.
+- `preferredWorkflow`: a workflow id.
+- `disabledWorkflowModules`: workflow module ids.
+- `defaultStyleIntensity`: 0 to 1.
+- `defaultStyleReferenceMode`: `preserve` or `reinterpret`.
+- `intentionalStylesV1`: true or false.
+- `outputOrganization`: `{subfolderTokens?, fileNameTemplate?}`. Up to 6 tokens from `workspace`, `date`, `provider`, `model`, `recipe` and `workflow`. The template has 1 to 120 characters.
+- `notifyOnUpdates`: true or false.
+
+Provider settings (`defaultProviderId`, `providerDefaults`), the output folder (`outputDirectory`), `mcpAccess` and `mcpAllowedImportRoots` stay user-only.
+
+### Packs and updates
+
+`studio_find_styles` takes `{q?, packId?, limit}` (`limit` 1 to 50, default 20) and returns `{styles: [{packId, presetId, name, category, hasIntentionalPolicy, summary}]}`. `q` matches the preset id, name, display name and category.
+
+`studio_install_extension` takes `{sourceId, extensionId, layers?}` from `studio_available_extensions`. Installing a pack that has `updateAvailable` updates it. Without `layers`, the tool keeps the layers already installed for that pack. `layers: ["cards"]` adds full-quality cards; `layers: []` installs without them.
+
+`studio_remove_extension` takes `{extensionId}` and returns `{removed}`. Built-in and local packs cannot be removed.
+
+`studio_apply_update` takes the `latestCommit` from `studio_updates` with `check: true`. It needs `canUpdate`: the `main` branch, a clean checkout, no local commits ahead of `origin/main`, no active jobs and Studio started with `bun run dev`. Studio fast-forwards, installs dependencies and restarts itself.
+
+### Import an image reference
+
+`studio_import_reference_file` takes `{requestId, path, name?}`. The path must be absolute and inside an allowed folder on the machine that runs Studio. The optional name defaults to the filename. Studio reads the file directly, so image bytes do not pass through the model. Studio resolves the file and the allowed folders with `realpath`. It rejects parent traversal, paths outside allowed folders, symlink or junction escapes, directories and other non-files, and files that change during reading. A missing or inaccessible allowed folder grants no access.
+
+For example, after the user allows `C:/Images`:
 
 ```json
 {
@@ -137,10 +185,49 @@ For example, after allowing `C:/Images`, call:
 }
 ```
 
-`studio_import_reference` accepts `{requestId, name, mimeType, base64, sha256}`. Use the SHA-256 of the decoded source bytes. This tool accepts no filesystem paths and does not require an allowed folder. Prefer the file tool for local images to avoid sending base64 through the model.
+`studio_import_reference` takes `{requestId, name, mimeType, base64, sha256}`. `sha256` is the SHA-256 of the decoded source bytes. This tool accepts no filesystem path and needs no allowed folder.
 
-Both tools require write access and a stable `reference-` request ID. They accept PNG, JPEG, WebP and GIF, up to 8 MiB and 40 million decoded pixels. Studio checks the signature and decoded image. Animated inputs supply their first frame. New imports are stored as WebP, downscaled to fit 2048 × 2048 without enlargement and with orientation applied. Images with transparency, or at most 512 × 512 source pixels, use lossless WebP. Larger opaque images use quality 90. Alpha is preserved; resizing changes pixels. An optimized file over 8 MiB is rejected. The source file is never changed.
+Both tools need Full control and a stable `reference-` request ID. They accept PNG, JPEG, WebP and GIF, up to 8 MiB and 40 million decoded pixels. Studio checks the signature and the decoded image. An animated input supplies its first frame. Studio stores new imports as WebP, scaled down to fit 2048 × 2048 without enlargement and with orientation applied. Images with transparency, or with at most 512 × 512 source pixels, use lossless WebP. Larger opaque images use quality 90. Alpha is kept; resizing changes pixels. An optimized file over 8 MiB is rejected. The source file never changes.
 
-The result contains `{requestId, catalogImageId, sha256, storedSha256, mimeType, byteLength}`. `sha256` identifies the original bytes. `storedSha256`, `mimeType` and `byteLength` describe the stored file. Both hashes are saved with the import receipt and new Catalog Entry. Existing receipts keep their original files and catalog identities.
+The result is `{requestId, catalogImageId, sha256, storedSha256, mimeType, byteLength}`. `sha256` identifies the original bytes. `storedSha256`, `mimeType` and `byteLength` describe the stored file. Studio saves both hashes with the import receipt and the new Catalog Entry. Existing receipts keep their original files and catalog identities.
 
-Use `catalogImageId` in `studio_generate.referenceIds` with `task: "image_edit"`. No generation or provider call occurs during import. The Catalog Entry and request receipt persist locally. Retry an uncertain import with the same ID and identical content and name, including after a restart. Reusing an ID for changed content or a changed name is a conflict. A file retry still needs permission to read its source. Restart Studio after updating the backend, and reload the MCP connection to discover the new tool.
+Use `catalogImageId` in `studio_generate` `referenceIds` with `task: "image_edit"`. An import makes no generation or provider call. The Catalog Entry and the request receipt persist locally, also across a restart. Reusing an ID for changed content or a changed name returns 409. A file retry still needs permission to read its source.
+
+## Errors
+
+A JSON reply from Studio passes through unchanged and is an error when its HTTP status is not 2xx.
+
+| Reply                                                                                           | Meaning                                                                                                                                                                                                                                                                     |
+| ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 400 `Unknown Studio MCP tool. If Studio was updated, restart Studio so it knows the new tools.` | The bridge lists a tool that the running Studio predates.                                                                                                                                                                                                                   |
+| 403 `{error, access, required}`                                                                 | The tool needs a higher access level. `access` is the current level and `required` the level the tool needs.                                                                                                                                                                |
+| 400 `{error: "Invalid tool arguments", issues: [{path, message}]}`                              | The input does not match the tool schema.                                                                                                                                                                                                                                   |
+| 400 `{error}`, sometimes with `imageId`, `imageIds` or `issues`                                 | A tool check failed, for example `Unknown workspaceId. Use studio_workspaces, or workspaceName to create one.` Nothing changed, with one exception: when `studio_generate` intake rejects the batch (an error with `code`), a workspace that `workspaceName` created stays. |
+| 500 `Could not read <path>. Nothing changed. Call studio_status, then retry.`                   | A read before the first write failed in `studio_workspaces`, `studio_organize_images` or `studio_plan_generation`. Call `studio_status`, then retry.                                                                                                                        |
+| 409                                                                                             | A `requestId` reused with different input, or a state conflict such as an update blocker.                                                                                                                                                                                   |
+| 503 `Studio update is incomplete. Finish it in Settings before continuing.`                     | An app update is in progress; Studio blocks writes.                                                                                                                                                                                                                         |
+
+The bridge returns these texts when Studio gives no JSON reply:
+
+- `Cozy Studio is not running at <origin>. ...`: the request did not reach Studio.
+- `<tool> did not answer within <N>s. Studio may have accepted it: retry with the same requestId and identical input; ...`: a timeout on `studio_generate` or an import.
+- `studio_retry_batch did not answer within <N>s. Studio may have accepted it: call studio_batch; ...`: a timeout on a retry.
+- `Studio did not answer <tool> within <N>s. Call studio_status, then retry.`: a timeout on any other tool.
+- `The request is larger than Studio accepts. ...`: HTTP 413 from the body limit.
+- `Something other than this Studio answered at <origin> (HTTP <status>). ...`: another server, a Studio build without the MCP route, or an internal Studio error (HTTP 500).
+- `Unknown guide topic. Topics: <list>. After a Studio update, reload the MCP connection.`: a `studio_guide` topic with no file.
+
+## Agent HTTP routes
+
+Loopback HTTP has no Agent access check: Studio checks only the host and the browser origin. This allowlist is therefore the boundary for agents that have a shell. Use the MCP tools for everything else.
+
+| Route                          | Use                                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `GET /api/health`              | Backend health.                                                                                |
+| `GET /api/onboarding/probe`    | First-run readiness.                                                                           |
+| `GET /api/readiness`           | Provider readiness.                                                                            |
+| `GET /api/providers/preflight` | Provider runtime preflight.                                                                    |
+| `GET /api/codex/session`       | Only when the user asked for the Codex provider.                                               |
+| `POST /api/app-server/start`   | Only when the user asked for the Codex provider and `/api/health` says the app-server is down. |
+
+Every other route is off-limits to agents, including reset, purge and workspace delete, even with a confirm body. [cozy-studio-setup](../../skills/cozy-studio-setup/SKILL.md) owns when to run these checks.

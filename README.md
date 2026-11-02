@@ -71,7 +71,7 @@ Then open the UI at <http://localhost:17222>. The local API health check is at <
 Set up Cozy Studio for first run.
 ```
 
-After setup, the agent can drive Studio through the `cozy-studio-mcp` server: check readiness, install or update style packs, change settings, generate images and apply app updates. [Agent tools (MCP)](docs/agents/mcp.md) lists the tools and how to register the server.
+After setup, the agent can drive Studio through the `cozy-studio-mcp` server: check readiness, organize Library images with tags and collections, install or update style packs, change settings, generate images and apply app updates. [Agent tools (MCP)](docs/agents/mcp.md) lists the tools and how to register the server.
 
 ## First image
 

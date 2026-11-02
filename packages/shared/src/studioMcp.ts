@@ -174,7 +174,7 @@ export const studioMcpTools = {
   studio_status: {
     access: 'read',
     description:
-      'Read Studio health, Agent access (mcpAccess: off, read, organize, or write = Full control), update status and how many Library images are unorganized. Call it first. When the result has a notice, tell the user an update is available and ask before applying it. When it has an organizeNotice (library.unorganized above zero), recommend organizing those images.',
+      'Read Studio health, Agent access (mcpAccess: read, organize, or write = Full control; at off it returns 403), update status and how many Library images are unorganized. Call it first. When the result has a notice, tell the user an update is available and ask before applying it. When it has an organizeNotice (library.unorganized above zero), recommend organizing those images.',
     schema: empty,
   },
   studio_providers: {
@@ -308,7 +308,7 @@ export const studioMcpTools = {
   studio_generate: {
     access: 'write',
     description:
-      "Queue image generation or editing (1-16 jobs) and file every output in the Library as it is saved. Filing is required: workspaceId (an existing workspace) or workspaceName (finds a workspace by name or creates it), tags (2-5 lowercase hashtags for subject, project and variant; [] only if the user asked for no tags) and collection (the project or set name, created if missing; null only for a one-off the user does not want collected). Reuse names from studio_workspaces with workspaceId. Uses the user's provider account and needs Full control access: unless the user asked for these images, preview with studio_plan_generation and ask first. providerId defaults to chatgpt, not the Settings default. styles applies installed presets the way the Studio UI does (find them with studio_find_styles); model picks a model for this call only. After a timeout, retry with the same batch- requestId and identical input; never invent a new ID to retry. Poll studio_batch.",
+      "Queue image generation or editing (1-16 jobs) and file every output in the Library as it is saved. Filing is required: workspaceId (an existing workspace) or workspaceName (finds a workspace by name or creates it), tags (2-5 lowercase hashtags for subject, project and variant; [] only if the user asked for no tags) and collection (the project or set name, created if missing; null only if the user asked for no collection). Reuse names from studio_workspaces with workspaceId. Uses the user's provider account and needs Full control access: unless the user asked for these images, preview with studio_plan_generation and ask first. providerId defaults to chatgpt, not the Settings default. styles applies installed presets the way the Studio UI does (find them with studio_find_styles); model picks a model for this call only. After a timeout, retry with the same batch- requestId and identical input; never invent a new ID to retry. Poll studio_batch.",
     schema: generationInput.extend({
       requestId: z
         .string()
@@ -320,7 +320,7 @@ export const studioMcpTools = {
   studio_retry_batch: {
     access: 'write',
     description:
-      "Retry the failed jobs of a generation batch with their original input and filing. Uses the user's provider account and needs Full control access: ask first unless the user asked for the retry. Use a new retry- requestId for each retry. With no failed jobs it returns retried: 0 and changes nothing. After a timeout, call studio_batch: queued or running jobs mean the retry was accepted.",
+      "Retry the failed jobs of a generation batch with their original input and filing. Uses the user's provider account and needs Full control access: ask first unless the user asked for the retry. Use a new retry- requestId for each retry. With no retryable jobs it returns retried: 0 and changes nothing. After a timeout, call studio_batch: queued or running jobs mean the retry was accepted.",
     schema: z.strictObject({
       batchId: id,
       requestId: z.string().regex(/^retry-[a-zA-Z0-9-]{2,122}$/),
@@ -347,7 +347,7 @@ export const studioMcpTools = {
   studio_onboarding: {
     access: 'read',
     description:
-      'Read first-run readiness: onboarding probe, provider readiness and ChatGPT sign-in state. Sign in is a user action in Studio Settings; this tool never starts it.',
+      'Read first-run readiness: onboarding probe and provider readiness. probe.facts.chatgptLoggedIn is the ChatGPT sign-in state. Sign in is a user action in Studio Settings; this tool never starts it.',
     schema: empty,
   },
   studio_settings: {

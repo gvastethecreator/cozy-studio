@@ -1,5 +1,6 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
@@ -42,10 +43,22 @@ const requestIdTools = new Set([
 ]);
 
 // studio_guide is answered here, so it works while Studio is offline and when Agent access is Off.
+const checkout = fileURLToPath(new URL('..', import.meta.url));
 const guideRoot = new URL('../skills/cozy-studio-mcp/', import.meta.url);
 const guideReferences = new URL('references/', guideRoot);
+// Topics resolve at call time, so a reference added by an update works before a reconnect.
+// A plain lowercase name keeps the read inside references/.
+const guideFile = (topic: string) =>
+  topic === 'overview'
+    ? new URL('SKILL.md', guideRoot)
+    : topic === 'contract'
+      ? new URL('../docs/agents/mcp.md', import.meta.url)
+      : /^[a-z-]+$/.test(topic)
+        ? new URL(`${topic}.md`, guideReferences)
+        : null;
 const guideTopics = [
   'overview',
+  'contract',
   ...(existsSync(guideReferences) ? readdirSync(guideReferences) : [])
     .filter((file) => file.endsWith('.md'))
     .map((file) => file.slice(0, -3)),
@@ -58,11 +71,11 @@ const server = new Server(
   {
     capabilities: { tools: {} },
     instructions: [
-      "Cozy Studio is the user's local image studio. Call studio_status first. If a call says Studio is not running, ask the user to open Cozy Studio (or run `bun run dev` in its checkout), then call studio_status again. studio_guide works offline: read its topic before multi-step work.",
-      "Keep the user's Library organized without being asked, and recommend this as a standing practice. Every studio_generate call files its outputs: choose the workspace for the project (workspaceId from studio_workspaces, or workspaceName to find or create one), reuse that workspace's tag and collection names (studio_workspaces with workspaceId), and set tags and collection. Studio applies them to each image as it is saved. Afterwards, tell the user where the results are. When studio_status shows library.unorganized above zero, offer to organize those images.",
-      'To organize existing images, read the whole set before the first write: page studio_catalog for the workspace with sort: "asc" (unorganized: true lists only images with no tags and no collection; leave it out to reorganize the whole workspace). Rows show tags but not collections: page studio_catalog collection_id for each collection from studio_workspaces with workspaceId. Look at each thumbnailPath (filePath when there is no thumbnail), compare the images and propose one scheme of tags and collections. Apply it with studio_organize_images only after the user confirms, at most 100 images per call, and report after each call. Organized images leave unorganized: true, so read it again from offset 0 after each call. Agent tools never delete, archive or move images.',
-      "studio_generate and studio_retry_batch use the user's provider account. If the user asked for exactly these images, go ahead. Otherwise preview with studio_plan_generation, which spends nothing, and confirm provider, model, image count and workspace. After a timeout, retry with the same requestId and identical input.",
-      'The user sets Agent access in Studio Settings > Advanced & maintenance: Read only, Organize (adds studio_organize_images: tags and collection membership of existing images) or Full control (adds generation, imports, settings, packs and updates; mcpAccess "write"). A 403 names the level a tool needs: tell the user and do not work around it with HTTP calls. Ask before studio_remove_extension and studio_apply_update. When studio_status returns a notice, tell the user an update is available and apply it only after they agree. Provider sign-in, Agent access, import folders, secrets, emptying the trash and reset are for the user to do.',
+      "Cozy Studio is the user's local image studio. Call studio_status first. Before multi-step work, read studio_guide (topic overview, then the topic for the task). It works while Studio is offline.",
+      'Organize while generating. Every studio_generate sets the workspace (workspaceId, or workspaceName to find or create one), tags and collection. Reuse the names from studio_workspaces with workspaceId. Send tags: [] or collection: null only when the user asks for that. Tell the user where the results are. Keeping the Library organized is a standing recommendation: when studio_status returns organizeNotice, offer to organize those images.',
+      'To organize existing images, read the whole set with studio_catalog before the first write. Look at each thumbnailPath, or filePath when there is no thumbnail. Propose one scheme of tags and collections. Apply it with studio_organize_images only after the user confirms, at most 100 images per call. Never delete, archive or move images.',
+      "studio_generate and studio_retry_batch spend the user's provider usage. A direct request for exactly these images, or for this retry, is consent. Otherwise preview with studio_plan_generation, which spends nothing, and confirm provider, model, image count and workspace; for a retry, confirm the retryable job count from studio_batch. After a studio_generate timeout, repeat it with the same requestId and identical input.",
+      'The user sets Agent access in Studio Settings > Advanced & maintenance: Read only, Organize (adds studio_organize_images) or Full control (mcpAccess "write": generation, imports, settings, packs, updates). A 403 names the level a tool needs: tell the user. Use these tools, not raw HTTP. Ask before studio_remove_extension and studio_apply_update. Provider sign-in, provider settings, secrets, Agent access, import folders, emptying the Archive and reset are for the user to do.',
     ].join('\n\n'),
   },
 );
@@ -82,7 +95,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: 'studio_guide',
       description:
-        'Read the Cozy Studio agent guide. topic "overview" (the default) is the main guide; the other topics are its references. Works while Studio is offline and when Agent access is Off.',
+        'Read the Cozy Studio agent guide. topic "overview" (the default) is the main guide and names the Studio checkout; "contract" is the full tool contract; the other topics are its references. Works while Studio is offline and when Agent access is Off.',
       inputSchema: z.toJSONSchema(
         z.strictObject({ topic: z.enum(guideTopics).default('overview') }),
         { io: 'input' },
@@ -95,17 +108,20 @@ server.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
   const { name } = params;
   if (name === 'studio_guide') {
     const topic = params.arguments?.topic ?? 'overview';
-    // Only listed topics are read, so a topic can never name another path.
-    const text =
-      typeof topic === 'string' && guideTopics.includes(topic)
-        ? await readFile(
-            new URL(topic === 'overview' ? 'SKILL.md' : `references/${topic}.md`, guideRoot),
-            'utf8',
-          ).catch(() => null)
-        : null;
-    return text === null
-      ? failure('Guide topic not installed; update Studio.')
-      : { content: [{ type: 'text', text }] };
+    const file = typeof topic === 'string' ? guideFile(topic) : null;
+    const text = file && (await readFile(file, 'utf8').catch(() => null));
+    if (!text)
+      return failure(
+        `Unknown guide topic. Topics: ${guideTopics.join(', ')}. After a Studio update, reload the MCP connection.`,
+      );
+    return {
+      content: [
+        {
+          type: 'text',
+          text: topic === 'overview' ? `Studio checkout: ${checkout}\n\n${text}` : text,
+        },
+      ],
+    };
   }
   const seconds = slowTools.has(name) ? 120 : 30;
   try {
@@ -128,7 +144,7 @@ server.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
   } catch (error) {
     if (!(error instanceof Error && error.name === 'TimeoutError')) {
       return failure(
-        `Cozy Studio is not running at ${base.origin}. Ask the user to open Cozy Studio, or run \`bun run dev\` in its checkout, then call studio_status. studio_guide works while Studio is offline.`,
+        `Cozy Studio is not running at ${base.origin}. Ask the user to open Cozy Studio, or run \`bun run dev\` in ${checkout}, then call studio_status. studio_guide works while Studio is offline.`,
       );
     }
     // A replayed retry finds its jobs already queued and retries nothing, so check the batch.

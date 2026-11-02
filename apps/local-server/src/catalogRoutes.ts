@@ -316,7 +316,8 @@ export function createCatalogRoutes({
           ...(error instanceof CatalogOrganizeError &&
             error.imageIds && { imageIds: error.imageIds }),
         },
-        400,
+        // Input and organize errors are the caller's; a database failure is Studio's.
+        error instanceof Error && error.name === 'SQLiteError' ? 500 : 400,
       );
     }
   });

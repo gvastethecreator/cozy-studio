@@ -328,12 +328,13 @@ export function organizeCatalogImages(
       if (rejected.length) throw new CatalogOrganizeError(`${tagError} Nothing changed.`, rejected);
     }
 
+    // SQLite NOCASE folds ASCII only, so compare in JS to match "Ácido" with "ácido".
+    const fold = (value: string) => value.normalize('NFC').toLocaleLowerCase();
+    const workspaceCollections = database
+      .query('SELECT id, name FROM catalog_collections WHERE workspace_id = ?')
+      .all(workspaceId) as Array<{ id: string; name: string }>;
     const byName = (name: string) =>
-      database
-        .query(
-          'SELECT id, name FROM catalog_collections WHERE workspace_id = ? AND name = ? COLLATE NOCASE',
-        )
-        .get(workspaceId, name) as { id: string; name: string } | null;
+      workspaceCollections.find((collection) => fold(collection.name) === fold(name)) ?? null;
     const target = addToCollection ? byName(addToCollection) : null;
     const removeFrom = removeFromCollection ? byName(removeFromCollection) : null;
     if (removeFromCollection && !removeFrom)

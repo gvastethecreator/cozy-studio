@@ -284,7 +284,7 @@ Heavy or optional UI must mount only when it is visible or the user asks for it:
 - Style Pack data loads through one cached single-flight runtime registry. Rejected loads are evicted so the visible retry action can recover.
 - heavy catalog data, YAML parsing, ZIP export, and Three.js are lazy-loaded
 - settings, diagnostics, activity, and provider internals open from explicit surfaces
-- `ui:source:verify` and `ui:chunks:verify` guard against eager-regression imports
+- `bun run lint` (import rules in `vite.config.ts`) and `ui:chunks:verify` guard against eager-regression imports
 
 ## Automation surfaces
 
@@ -294,16 +294,13 @@ Codex SDK and scripts are automation surfaces, not the product runtime. They sup
 - `storage:compact`
 - `storage:thumbnails:backfill`
 - `tooling:logs:prune`
-- `catalog:source:verify`
 - `providers:verify`
 - `recipes:verify`
 - `styles:render:verify`
 - `runtime:doctor`
 - `providers:preflight`
-- `ui:source:verify`
 - `ui:chunks:verify`
-- `library:layout:verify`
-- `architecture:verify` (the aggregate Style, Recipe, Provider, Catalog, Library-layout, UI, Workspace-authority, and render-isolation gate; CI runs `architecture:source:verify` through `validate`, and the render-isolation tests run in its Vitest suite)
+- `architecture:verify` (the aggregate boundary gate: lint import rules in `vite.config.ts`, the source text rules in `architecture:source:verify`, and render isolation; `validate` runs the same lint and text rules, and its Vitest suite runs the render-isolation tests)
 
 ## Project site
 

@@ -2,7 +2,11 @@ import type { GeneratedImageWithConfig } from '../types';
 import { runtimeLogger } from './runtimeLogger';
 
 export const downloadImage = async (src: string, filename: string) => {
-  const blob = await fetchImageBlob(src);
+  downloadBlob(await fetchImageBlob(src), filename);
+};
+
+/** Save a blob through a temporary download link. */
+export function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -15,7 +19,7 @@ export const downloadImage = async (src: string, filename: string) => {
     // Keep the blob alive until the browser has started the download.
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-};
+}
 
 const IMAGE_EXTENSIONS: Record<string, string> = {
   'image/png': 'png',
@@ -119,10 +123,7 @@ export const downloadMultipleImagesAsZip = async (
     failedImages,
   };
   if (result.exported === 0) return result;
-  const [{ default: JSZip }, { saveAs }] = await Promise.all([
-    import('jszip'),
-    import('file-saver'),
-  ]);
+  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
   const nameKey = (name: string) => name.normalize('NFC').toLowerCase();
   const originalNames = new Set(files.flatMap((file) => (file ? [nameKey(file.filename)] : [])));
@@ -143,7 +144,7 @@ export const downloadMultipleImagesAsZip = async (
     zip.file(filename, file.blob);
   }
   const content = await zip.generateAsync({ type: 'blob' });
-  saveAs(content, zipFilename);
+  downloadBlob(content, zipFilename);
   return result;
 };
 
@@ -182,15 +183,7 @@ export async function copyImageToClipboard(source: string) {
  * Export any serializable payload as a downloadable JSON file.
  */
 export const exportToJson = <T>(data: T, filename: string) => {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), filename);
 };
 
 /**

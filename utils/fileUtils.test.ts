@@ -12,7 +12,6 @@ import {
 const archive = vi.hoisted(() => ({
   file: vi.fn(),
   generateAsync: vi.fn().mockResolvedValue('archive'),
-  saveAs: vi.fn(),
 }));
 vi.mock('jszip', () => ({
   default: class {
@@ -20,7 +19,14 @@ vi.mock('jszip', () => ({
     generateAsync = archive.generateAsync;
   },
 }));
-vi.mock('file-saver', () => ({ saveAs: archive.saveAs }));
+
+function stubDownloadLink() {
+  const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:download');
+  vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+  const link = { href: '', download: '', click: vi.fn(), remove: vi.fn() };
+  vi.stubGlobal('document', { createElement: vi.fn(() => link), body: { appendChild: vi.fn() } });
+  return { createObjectURL, link };
+}
 
 afterEach(() => {
   vi.useRealTimers();
@@ -110,6 +116,7 @@ describe('download filenames', () => {
       );
     });
     vi.stubGlobal('fetch', fetch);
+    const saved = stubDownloadLink();
 
     let resolveOthers!: () => void;
     const othersSettled = new Promise<void>((resolve) => {
@@ -140,7 +147,9 @@ describe('download filenames', () => {
       'image/png',
       'image/png',
     ]);
-    expect(archive.saveAs).toHaveBeenCalledWith('archive', 'selection.zip');
+    expect(saved.createObjectURL).toHaveBeenCalledWith('archive');
+    expect(saved.link.download).toBe('selection.zip');
+    expect(saved.link.click).toHaveBeenCalledOnce();
   });
 
   it('reports all failed images and saves no empty archive for failed or empty selections', async () => {
@@ -153,6 +162,7 @@ describe('download filenames', () => {
       config: DEFAULT_GENERATION_CONFIG,
     }));
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Offline')));
+    const { createObjectURL } = stubDownloadLink();
     const onProgress = vi.fn();
 
     expect(await downloadMultipleImagesAsZip(images, 'failed.zip', onProgress)).toEqual({
@@ -173,7 +183,7 @@ describe('download filenames', () => {
     expect(onProgress).not.toHaveBeenCalled();
     expect(archive.file).not.toHaveBeenCalled();
     expect(archive.generateAsync).not.toHaveBeenCalled();
-    expect(archive.saveAs).not.toHaveBeenCalled();
+    expect(createObjectURL).not.toHaveBeenCalled();
     expect(fetch).toHaveBeenCalledWith('/original-one', { cache: 'no-cache' });
     expect(fetch).not.toHaveBeenCalledWith('/missing-one', expect.anything());
   });
@@ -194,10 +204,11 @@ describe('download filenames', () => {
           Promise.resolve(new Response(new Blob(['image'], { type: 'image/png' }))),
         ),
     );
+    const { createObjectURL } = stubDownloadLink();
     archive.generateAsync.mockRejectedValueOnce(new Error('Encoding failed'));
     await expect(downloadMultipleImagesAsZip([image])).rejects.toThrow('Encoding failed');
-    expect(archive.saveAs).not.toHaveBeenCalled();
-    archive.saveAs.mockImplementationOnce(() => {
+    expect(createObjectURL).not.toHaveBeenCalled();
+    createObjectURL.mockImplementationOnce(() => {
       throw new Error('Saving failed');
     });
     await expect(downloadMultipleImagesAsZip([image])).rejects.toThrow('Saving failed');

@@ -12,6 +12,7 @@ import {
 } from '../services/studio-api/imageConversion';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import Slider from './ui/Slider';
+import { downloadBlob } from '../utils/fileUtils';
 import { formatBytes } from '../lib/i18n';
 
 type ConversionItem = {
@@ -406,9 +407,8 @@ export default function ImageConversionModal({
     setPreparingDownload(true);
     setDownloadError(null);
     try {
-      const { saveAs } = await import('file-saver');
       if (completed.length === 1) {
-        saveAs(completed[0].blob!, completed[0].filename!);
+        downloadBlob(completed[0].blob!, completed[0].filename!);
       } else {
         const { default: JSZip } = await import('jszip');
         const zip = new JSZip();
@@ -417,7 +417,10 @@ export default function ImageConversionModal({
           const position = items.findIndex((candidate) => candidate.image.id === item.image.id) + 1;
           zip.file(`${String(position).padStart(6, '0')}/${item.filename!}`, item.blob!);
         });
-        saveAs(await zip.generateAsync({ type: 'blob' }), `converted-images-${Date.now()}.zip`);
+        downloadBlob(
+          await zip.generateAsync({ type: 'blob' }),
+          `converted-images-${Date.now()}.zip`,
+        );
       }
     } catch (error) {
       setDownloadError(error instanceof Error ? error.message : 'Could not prepare the download.');

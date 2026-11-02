@@ -5,16 +5,16 @@ import type { GeneratedImage } from '../types';
 import ImageConversionModal from './ImageConversionModal';
 import { DEFAULT_IMAGE_CONVERSION_OPTIONS } from '../packages/shared/src/imageConversion';
 
-const { convert, download, saveAs } = vi.hoisted(() => ({
+const { convert, download, downloadBlob } = vi.hoisted(() => ({
   convert: vi.fn(),
   download: vi.fn(),
-  saveAs: vi.fn(),
+  downloadBlob: vi.fn(),
 }));
 vi.mock('../services/studio-api/imageConversion', () => ({
   convertCatalogImage: convert,
   downloadConvertedCatalogImage: download,
 }));
-vi.mock('file-saver', () => ({ saveAs }));
+vi.mock('../utils/fileUtils', () => ({ downloadBlob }));
 
 afterEach(() => {
   cleanup();
@@ -95,7 +95,7 @@ describe('ImageConversionModal', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Convert for download' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Download image' }));
-    await waitFor(() => expect(saveAs).toHaveBeenCalledWith(blob, 'copy.webp'));
+    await waitFor(() => expect(downloadBlob).toHaveBeenCalledWith(blob, 'copy.webp'));
     expect(convert).not.toHaveBeenCalled();
   });
 });

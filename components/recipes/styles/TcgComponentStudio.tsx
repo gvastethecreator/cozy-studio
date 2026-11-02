@@ -13,6 +13,7 @@ import { getRequiredTcgArtworkCount, getRequiredTcgMasks } from './tcgCardRender
 import type { TcgArtworkSource, TcgRenderInput } from './tcgCardRenderer';
 import { getTcgCompositionReadiness, useTcgCompositionPreview } from './useTcgCompositionPreview';
 import { t, useT } from '../../../lib/i18n';
+import { downloadBlob } from '../../../utils/fileUtils';
 
 export interface TcgComponentStudioProps {
   query: string;
@@ -209,20 +210,13 @@ function useTcgComponentStudioController({
         setRenderError(t('tcg.error.exportPng'));
         return;
       }
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
       const name =
         (artwork[activeFace]?.name || 'tcg-composition')
           .trim()
           .replace(/[^\p{L}\p{N}_-]+/gu, '-')
           .replace(/^-+|-+$/g, '') || 'tcg-composition';
       const faceSuffix = layoutId === 'TCG-L009' ? (activeFace === 0 ? '-face-a' : '-face-b') : '';
-      link.href = url;
-      link.download = `${name}${faceSuffix}.png`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      downloadBlob(blob, `${name}${faceSuffix}.png`);
     }, 'image/png');
   };
 

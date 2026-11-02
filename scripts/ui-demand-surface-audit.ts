@@ -26,7 +26,7 @@ export const uiDemandSurfaceRules: UiDemandSurfaceRule[] = [
   {
     id: 'zip-export-no-static-vendors',
     filePath: 'utils/fileUtils.ts',
-    forbidden: ["from 'jszip'", 'from "jszip"', "from 'file-saver'", 'from "file-saver"'],
+    forbidden: ["from 'jszip'", 'from "jszip"'],
     message: 'ZIP/export vendors must load only inside downloadMultipleImagesAsZip().',
   },
   {

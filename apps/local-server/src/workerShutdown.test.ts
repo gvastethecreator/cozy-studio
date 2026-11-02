@@ -309,6 +309,11 @@ describe('worker shutdown', () => {
       })),
     ];
     const jobList = workload.map(({ id, providerId }) => ({ ...createJob(id), providerId }));
+    // Provider durations run on a virtual clock. The Effect scheduler hops through setImmediate, so
+    // faking it too keeps every hop ordered against the provider timers whatever the CPU load is.
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'setImmediate', 'clearImmediate', 'performance'],
+    });
     const sequence: Array<{
       event: string;
       id: string;
@@ -366,24 +371,24 @@ describe('worker shutdown', () => {
         providerId: 'grok',
         reason: 'global_capacity',
       });
-      await vi.waitFor(() => expect(harness.controller.getWorkerStatus().trackedJobs).toBe(0));
+      await vi.runAllTimersAsync();
+      expect(harness.controller.getWorkerStatus().trackedJobs).toBe(0);
+      // Comfy runs one job at a time while the other providers share the second global slot, so
+      // every fast job finishes before the first slow job releases Comfy capacity.
       expect(
-        sequence
-          .filter((entry) => entry.event === 'start')
-          .map((entry) => entry.id)
-          .toSorted(),
-      ).toEqual(jobList.map((job) => job.id).toSorted());
-      expect(
-        sequence
-          .filter((entry) => entry.event === 'start' && entry.providerId === 'comfy')
-          .map((entry) => entry.id),
-      ).toEqual(['slow-0', 'slow-1', 'slow-2', 'slow-3']);
-      expect(maximumActive).toBeLessThanOrEqual(2);
-      const starts = sequence.filter((entry) => entry.event === 'start');
-      expect(starts.slice(0, 2).map((entry) => entry.id)).toEqual(['slow-0', 'fast-codex']);
-      expect(starts.findIndex((entry) => entry.id === 'fast-fal')).toBeLessThan(
-        starts.findIndex((entry) => entry.id === 'slow-1'),
-      );
+        sequence.filter((entry) => entry.event === 'start').map(({ id, atMs }) => ({ id, atMs })),
+      ).toEqual([
+        { id: 'slow-0', atMs: 0 },
+        { id: 'fast-codex', atMs: 0 },
+        { id: 'fast-grok', atMs: 5 },
+        { id: 'fast-google', atMs: 10 },
+        { id: 'fast-antigravity', atMs: 15 },
+        { id: 'fast-fal', atMs: 20 },
+        { id: 'slow-1', atMs: 100 },
+        { id: 'slow-2', atMs: 200 },
+        { id: 'slow-3', atMs: 300 },
+      ]);
+      expect(maximumActive).toBe(2);
       let activeComfy = 0;
       for (const entry of sequence.filter((entry) => entry.providerId === 'comfy')) {
         activeComfy += entry.event === 'start' ? 1 : -1;
@@ -408,7 +413,7 @@ describe('worker shutdown', () => {
               maximumActive,
               elapsedMs: sequence.at(-1)!.atMs,
               scope:
-                'Fake provider execution through the real worker. No assets or import I/O; empty results settle as needs_review. Wall time is descriptive; ordering and capacity are deterministic assertions.',
+                'Fake provider execution through the real worker on a virtual clock. No assets or import I/O; empty results settle as needs_review. Times are virtual; ordering and capacity are deterministic assertions.',
             },
             null,
             2,
@@ -416,7 +421,14 @@ describe('worker shutdown', () => {
         );
       }
     } finally {
-      await harness.controller.shutdown();
+      try {
+        const stopped = harness.controller.shutdown();
+        await vi.runAllTimersAsync();
+        await stopped;
+      } finally {
+        // Real timers come back even when shutdown fails, so later tests are not left on fake ones.
+        vi.useRealTimers();
+      }
     }
   });
   it('persists an HTTP marker before POST and does not resend recovered running work', async () => {

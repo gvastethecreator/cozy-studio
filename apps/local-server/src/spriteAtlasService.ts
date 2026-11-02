@@ -415,7 +415,7 @@ function resolveRunStatus(run: SpriteAtlasRun): SpriteAtlasRun['status'] {
   ) {
     return 'ready_to_extract';
   }
-  if (run.rows.some((row) => row.status === 'handoff_ready' || row.status === 'generating')) {
+  if (run.rows.some((row) => row.status === 'generating')) {
     return 'waiting_for_rows';
   }
   return run.status === 'draft' ? 'draft' : run.status;
@@ -477,7 +477,15 @@ async function resolveImportSource({
   return { kind: 'ready', sourcePath, catalogImageId: null };
 }
 
-function normalizeRun(run: SpriteAtlasRun): SpriteAtlasRun {
+type StoredSpriteAtlasRun = Omit<SpriteAtlasRun, 'rows'> & {
+  rows: Array<
+    Omit<SpriteAtlasRowState, 'status'> & {
+      status: SpriteAtlasRowState['status'] | 'handoff_ready';
+    }
+  >;
+};
+
+function normalizeRun(run: StoredSpriteAtlasRun): SpriteAtlasRun {
   const qa = run.qa
     ? {
         ...run.qa,
@@ -494,18 +502,24 @@ function normalizeRun(run: SpriteAtlasRun): SpriteAtlasRun {
     qa,
     anchor: run.anchor ?? null,
     visualReview: run.visualReview ?? { status: 'pending', acceptedAt: null },
-    rows: run.rows.map((row) => ({
-      ...row,
-      sourceSha256: row.sourceSha256 ?? null,
-      catalogImageId: row.catalogImageId ?? null,
-      normalization: row.normalization ?? null,
-      // Older runs kept the one dispatched job id on a generating row.
-      dispatch:
-        row.dispatch ??
-        (row.status === 'generating' && row.jobId
-          ? { jobIds: [row.jobId], dispatchedAt: row.updatedAt }
-          : null),
-    })),
+    rows: run.rows.map((row): SpriteAtlasRowState => {
+      const { status } = row;
+      const legacyHandoff = status === 'handoff_ready';
+      return {
+        ...row,
+        status: legacyHandoff ? (row.rawPath ? 'raw_imported' : 'planned') : status,
+        jobId: legacyHandoff && !row.rawPath ? null : row.jobId,
+        sourceSha256: row.sourceSha256 ?? null,
+        catalogImageId: row.catalogImageId ?? null,
+        normalization: row.normalization ?? null,
+        // Older runs kept the one dispatched job id on a generating row.
+        dispatch:
+          row.dispatch ??
+          (row.status === 'generating' && row.jobId
+            ? { jobIds: [row.jobId], dispatchedAt: row.updatedAt }
+            : null),
+      };
+    }),
   };
 }
 
@@ -568,7 +582,7 @@ export function createSpriteAtlasService({
   }
 
   async function getRun(runId: string) {
-    const stored = await readRunRecord<SpriteAtlasRun>(
+    const stored = await readRunRecord<StoredSpriteAtlasRun>(
       readLibraryDir(),
       'sprite-atlas',
       safeSegment(runId),

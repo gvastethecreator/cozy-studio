@@ -66,7 +66,6 @@ export type SpriteAtlasRunStatus = (typeof SPRITE_ATLAS_RUN_STATUSES)[number];
 
 const SPRITE_ATLAS_ROW_STATUSES = [
   'planned',
-  'handoff_ready',
   'generating',
   'raw_imported',
   'blocked',
@@ -173,7 +172,7 @@ export interface SpriteAtlasRowState {
   sourceSha256: string | null;
   normalization: SpriteAtlasRowNormalization | null;
   catalogImageId: string | null;
-  /** The primary job of the current dispatch, or the handoff job id. Display only. */
+  /** The primary job of the current dispatch. Display only. */
   jobId: string | null;
   /** Provider jobs the backend reconciles into this row. A new batch replaces the set. */
   dispatch: SpriteAtlasRowDispatch | null;

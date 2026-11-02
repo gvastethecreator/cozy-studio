@@ -1,13 +1,85 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { CatalogCollection, CatalogOrganizeResult, CatalogTag } from '../packages/shared/src';
+import type {
+  CatalogCollection,
+  CatalogOrganizeInput,
+  CatalogOrganizeResult,
+  CatalogOrganizeHistoryEntry,
+  CatalogTag,
+} from '../packages/shared/src';
+import { addToastToStore, removeToastFromStore } from '../contexts/toastStore';
 import {
   CATALOG_ORGANIZATION_CHANGED,
   listCatalogCollections,
   listCatalogTags,
+  organizeCatalogImages,
+  undoCatalogOrganize,
+  notifyCatalogOrganizationChanged,
 } from '../services/studio-api/catalog';
 
 const EMPTY_TAGS: CatalogTag[] = [];
 const EMPTY_COLLECTIONS: CatalogCollection[] = [];
+
+let organizeToastId: string | null = null;
+
+export function summarizeOrganizeCounts(counts: CatalogOrganizeHistoryEntry['counts']) {
+  const images = (count: number) => `${count} image${count === 1 ? '' : 's'}`;
+  const parts = [
+    ...Object.entries(counts.tagsAdded).map(([tag, count]) => `Added #${tag} to ${images(count)}`),
+    ...Object.entries(counts.tagsRemoved).map(
+      ([tag, count]) => `Removed #${tag} from ${images(count)}`,
+    ),
+  ];
+  if (counts.collection?.added)
+    parts.push(`Added ${images(counts.collection.added)} to ${counts.collection.name}`);
+  if (counts.removedFrom?.removed)
+    parts.push(`Removed ${images(counts.removedFrom.removed)} from ${counts.removedFrom.name}`);
+  return parts.join('; ');
+}
+
+export async function undoOrganization(operationId: string, summary: string) {
+  try {
+    const result = await undoCatalogOrganize(operationId);
+    notifyCatalogOrganizationChanged(result);
+    if (organizeToastId) removeToastFromStore(organizeToastId);
+    organizeToastId = null;
+    const skipped = result.skippedImageIds.length;
+    addToastToStore(
+      `${result.alreadyUndone ? 'Already undone' : 'Undid'}: ${summary}${skipped ? `. ${skipped} images skipped` : ''}`,
+      'success',
+    );
+  } catch (cause) {
+    addToastToStore(
+      cause instanceof Error ? cause.message : 'Could not undo this change.',
+      'error',
+    );
+  }
+}
+
+export async function organizeWithUndo(input: Omit<CatalogOrganizeInput, 'source'>) {
+  const result = await organizeCatalogImages({ ...input, source: 'ui' });
+  notifyCatalogOrganizationChanged(result);
+  if (result.operationId) {
+    const operationId = result.operationId;
+    const countTags = (tags: Record<string, string[]>) =>
+      Object.fromEntries(Object.entries(tags).map(([tag, ids]) => [tag, ids.length]));
+    const summary = summarizeOrganizeCounts({
+      tagsAdded: countTags(result.tags.added),
+      tagsRemoved: countTags(result.tags.removed),
+      collection: result.collection
+        ? { name: result.collection.name, added: result.collection.addedImageIds.length }
+        : null,
+      removedFrom: result.removedFrom
+        ? { name: result.removedFrom.name, removed: result.removedFrom.removedImageIds.length }
+        : null,
+    });
+    if (organizeToastId) removeToastFromStore(organizeToastId);
+    organizeToastId = addToastToStore(summary, 'success', 8000, {
+      label: 'Undo',
+      run: () => undoOrganization(operationId, summary),
+    });
+  }
+  return result;
+}
 
 export function useCatalogOrganization(workspaceId: string, enabled = true) {
   const [tags, setTags] = useState<CatalogTag[]>([]);
@@ -70,5 +142,5 @@ export function applyOrganizeResult(
   const has = (byTag: Record<string, string[]>) =>
     Object.keys(byTag).filter((tag) => byTag[tag].includes(imageId));
   const removed = new Set(has(result.tags.removed));
-  return [...tags.filter((tag) => !removed.has(tag)), ...has(result.tags.added)];
+  return [...new Set([...tags.filter((tag) => !removed.has(tag)), ...has(result.tags.added)])];
 }

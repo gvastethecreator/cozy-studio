@@ -491,6 +491,22 @@ const DATABASE_MIGRATIONS = [
         WHERE ${legacyJob}`);
     },
   },
+  {
+    version: 18,
+    name: 'catalog-organize-history',
+    migrate(database: Database) {
+      database.run(`CREATE TABLE catalog_organize_history (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL,
+        source TEXT NOT NULL CHECK (source IN ('ui', 'agent')),
+        changes_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        undone_at TEXT
+      )`);
+      database.run(`CREATE INDEX idx_catalog_organize_history_workspace
+        ON catalog_organize_history(workspace_id)`);
+    },
+  },
 ] as const;
 
 function backfillJobOperationalColumns(database: Database) {

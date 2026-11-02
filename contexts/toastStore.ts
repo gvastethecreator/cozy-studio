@@ -21,9 +21,14 @@ export function subscribeToasts(listener: () => void): () => void {
   };
 }
 
-export function addToastToStore(msg: string, type: ToastType = 'info', duration = 4000): string {
+export function addToastToStore(
+  msg: string,
+  type: ToastType = 'info',
+  duration = 4000,
+  action?: ToastMessage['action'],
+): string {
   const id = Math.random().toString(36).slice(2, 11);
-  toasts = [...toasts, { id, message: msg, type, duration }];
+  toasts = [...toasts, { id, message: msg, type, duration, action }];
   emit();
   if (duration > 0 && typeof window !== 'undefined') {
     const timer = setTimeout(() => {

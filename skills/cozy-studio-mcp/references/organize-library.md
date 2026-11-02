@@ -117,14 +117,15 @@ Done when the counts match the scheme, or you told the user the reason for each 
 
 ### Undo
 
-Send the inverse call only for the ids that the result lists. The other images had that tag or membership before the call, so leave them as they are.
+Call `studio_undo_organize` with the `operationId` returned by `studio_organize_images`. An unchanged call returns `operationId: null` and writes no history.
 
-- Added tags: for each tag name in `tags.added`, one call with `removeTags` set to that name, for the ids listed under it.
-- Removed tags: for each tag name in `tags.removed`, one call with `addTags` set to that name, for the ids listed under it.
-- Added to a collection: `removeFromCollection` with the collection name, for `collection.addedImageIds`.
-- Removed from a collection: `addToCollection` with the collection name, for `removedFrom.removedImageIds`.
+- Undo only your own calls unless the user asks. The newest active change in that workspace must be undone first. A 409 `newer_change` names the newer `operationId`. Stop and report it.
+- After a timeout, find the last five changes in `studio_workspaces` with `workspaceId`, under `recentChanges`. Each entry has `operationId`, `source`, `createdAt`, `undoneAt` and counts. Repeating an undo is safe and returns `alreadyUndone: true`.
+- Studio keeps 20 changes per workspace. A missing or expired change returns 404. Do not reconstruct an inverse call from current membership.
+- Undo restores only the changed pairs. It reports `skippedImageIds` for missing or moved images and tags that no longer fit the 32-tag limit. Archived images can still be updated. Renamed tags and deleted collections are left alone.
+- A collection created by the call stays, empty. No image is deleted, archived or moved.
 
-A collection that a call created stays, empty. Agent tools cannot delete a collection or rename a tag. The user does that in Studio (see the manual path).
+The user can also click **Undo** on the success toast or open **Recent changes** in the Tags or Collections menu. Undone entries remain visible.
 
 ## Imported images
 

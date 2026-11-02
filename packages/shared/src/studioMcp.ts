@@ -273,7 +273,7 @@ export const studioMcpTools = {
   studio_organize_images: {
     access: 'organize',
     description:
-      'Organize up to 100 existing images in one workspace: add or remove tags, add the images to a collection by name (created if missing) or remove them from one. Needs Organize or Full control access. Propose the scheme to the user first (which images get which tags and collection) and call this only after they confirm. The call is one transaction: every image must be live and in workspaceId, and every tag change must fit, or nothing changes. Safe to repeat: tags and members already present stay as they are. The result lists the ids each change touched (tags.added and tags.removed map each tag name to its image ids): to undo, send the inverse change for those ids only, one call per tag. Never deletes, archives or moves images.',
+      'Organize up to 100 existing images in one workspace: add or remove tags, add the images to a collection by name (created if missing) or remove them from one. Needs Organize or Full control access. Propose the scheme to the user first (which images get which tags and collection) and call this only after they confirm. The call is one transaction: every image must be live and in workspaceId, and every tag change must fit, or nothing changes. Safe to repeat: tags and members already present stay as they are. The result lists only the pairs changed and returns operationId for studio_undo_organize, or null when nothing changed. Never deletes, archives or moves images.',
     schema: z
       .strictObject({
         workspaceId: id,
@@ -302,6 +302,16 @@ export const studioMcpTools = {
             collection(input.addToCollection) !== collection(input.removeFromCollection))
         );
       }, 'Do not add and remove the same tag or collection.'),
+  },
+  studio_undo_organize: {
+    access: 'organize',
+    description:
+      'Undo an organize call by operationId. Only the newest not-undone change in its workspace can be undone; a 409 names the newer operationId. Safe to repeat. A collection created by the call stays, empty. Undo only your own calls unless the user asks. Read recentChanges from studio_workspaces with workspaceId to recover an operationId after a timeout.',
+    schema: z.strictObject({
+      operationId: z
+        .string()
+        .regex(/^organize-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/),
+    }),
   },
   studio_plan_generation: {
     access: 'read',

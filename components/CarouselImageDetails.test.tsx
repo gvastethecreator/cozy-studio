@@ -16,13 +16,18 @@ import { CarouselImageDetails } from './CarouselImageDetails';
 import { ImageTagsEditor } from './ImageTagsEditor';
 import { ImageCollectionsEditor } from './ImageCollectionsEditor';
 import { ImageOrganizationPicker } from './ImageOrganizationPicker';
+import { ImageOrganizationDialog } from './ImageOrganizationDialog';
+import ToastContainer from './ToastContainer';
+import { ToastUiProvider } from '../contexts/ToastUiContext';
 import {
   getCatalogCollectionSelection,
   organizeCatalogImages,
+  undoCatalogOrganize,
   listCatalogTags,
   listCatalogCollections,
   CATALOG_ORGANIZATION_CHANGED,
 } from '../services/studio-api/catalog';
+import { getToastsSnapshot, removeToastFromStore } from '../contexts/toastStore';
 import { useCatalogOrganization } from '../hooks/useCatalogOrganization';
 import { applyCatalogTagChanges } from '../packages/shared/src/catalogTags';
 import type { CatalogOrganizeResult } from '../packages/shared/src';
@@ -31,15 +36,24 @@ vi.mock('../services/studio-api/catalog', () => ({
   CATALOG_ORGANIZATION_CHANGED: 'studio:catalog-organization-changed',
   listCatalogTags: vi.fn().mockResolvedValue([]),
   listCatalogCollections: vi.fn().mockResolvedValue([]),
-  notifyCatalogOrganizationChanged: vi.fn(),
+  notifyCatalogOrganizationChanged: vi.fn((result?: CatalogOrganizeResult) =>
+    window.dispatchEvent(
+      new CustomEvent('studio:catalog-organization-changed', { detail: result }),
+    ),
+  ),
   getCatalogCollectionSelection: vi.fn().mockResolvedValue([]),
   organizeCatalogImages: vi.fn(),
+  undoCatalogOrganize: vi.fn(),
 }));
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  for (const toast of getToastsSnapshot()) removeToastFromStore(toast.id);
+});
 
 function organized(added: Record<string, string[]> = {}, removed: Record<string, string[]> = {}) {
   return {
+    operationId: 'organize-00000000-0000-0000-0000-000000000001',
     workspaceId: 'default',
     imageCount: 1,
     tags: { added, removed },
@@ -98,6 +112,7 @@ it('refreshes collection checkboxes after another control changes membership', a
   fireEvent.click(checkbox);
   await waitFor(() =>
     expect(organizeCatalogImages).toHaveBeenLastCalledWith({
+      source: 'ui',
       workspaceId: 'default',
       imageIds: ['tagged'],
       removeFromCollection: 'Album',
@@ -168,6 +183,7 @@ it('applies batch tag changes in one call without replacing unrelated tags, and 
   await waitFor(() => expect(screen.queryByText('#boss')).toBeNull());
   expect(stored.get('second')).toEqual(['forest']);
   expect(organizeCatalogImages).toHaveBeenLastCalledWith({
+    source: 'ui',
     workspaceId: 'default',
     imageIds: ['tagged', 'second'],
     removeTags: ['boss'],
@@ -208,12 +224,14 @@ it('adds and removes collection membership for a mixed selection and preserves f
   fireEvent.click(checkbox);
   await waitFor(() => expect(checkbox.getAttribute('aria-checked')).toBe('true'));
   expect(organizeCatalogImages).toHaveBeenLastCalledWith({
+    source: 'ui',
     ...selection,
     addToCollection: 'Bosses',
   });
   fireEvent.click(checkbox);
   await waitFor(() => expect(checkbox.getAttribute('aria-checked')).toBe('false'));
   expect(organizeCatalogImages).toHaveBeenLastCalledWith({
+    source: 'ui',
     ...selection,
     removeFromCollection: 'Bosses',
   });
@@ -229,6 +247,7 @@ it('adds and removes collection membership for a mixed selection and preserves f
   fireEvent.click(screen.getByRole('button', { name: 'Create' }));
   await waitFor(() => expect(input.value).toBe(''));
   expect(organizeCatalogImages).toHaveBeenLastCalledWith({
+    source: 'ui',
     ...selection,
     addToCollection: 'New album',
   });
@@ -248,28 +267,52 @@ it('adds multiple normalized hashtags without losing existing metadata and remov
   const stored = new Map([[taggedImage.id, [...taggedImage.tags!]]]);
   organizeTagsIn(stored);
   const update = vi.mocked(organizeCatalogImages);
-  const tagged = { workspaceId: 'default', imageIds: ['tagged'] };
-  const view = render(
-    <ImageTagsEditor key={taggedImage.id} workspaceId="default" images={[taggedImage]} />,
+  const tagged = { source: 'ui', workspaceId: 'default', imageIds: ['tagged'] };
+  const onClose = vi.fn();
+  const content = (images: GeneratedImageWithConfig[] | null) => (
+    <ToastUiProvider>
+      {images && (
+        <ImageOrganizationDialog images={images} workspaceId="default" onClose={onClose} />
+      )}
+      <ToastContainer />
+    </ToastUiProvider>
   );
+  const view = render(content([taggedImage]));
   fireEvent.change(screen.getByRole('textbox', { name: 'Add hashtags' }), {
     target: { value: '#ACCIÓN #accio\u0301n, #Jefe' },
   });
   fireEvent.submit(screen.getByRole('button', { name: 'Add tags' }).closest('form')!);
   await waitFor(() => expect(screen.getByText('#acción')).toBeDefined());
   expect(update).toHaveBeenLastCalledWith({ ...tagged, addTags: ['acción', 'jefe'] });
-  view.rerender(
-    <ImageTagsEditor
-      key={taggedImage.id}
-      workspaceId="default"
-      images={[{ ...taggedImage, tags: ['imported reference', 'acción'] }]}
-    />,
-  );
+  view.rerender(content([{ ...taggedImage, tags: ['imported reference', 'acción'] }]));
   expect(screen.getByText('#jefe')).toBeDefined();
   fireEvent.click(screen.getByRole('button', { name: 'Remove tag jefe' }));
   await waitFor(() => expect(screen.queryByText('#jefe')).toBeNull());
   expect(update).toHaveBeenLastCalledWith({ ...tagged, removeTags: ['jefe'] });
   expect(stored.get('tagged')).toEqual(['imported reference', 'acción']);
+  const toast = getToastsSnapshot().find((entry) => entry.action);
+  expect(toast?.action?.label).toBe('Undo');
+  expect(getToastsSnapshot().filter((entry) => entry.action)).toHaveLength(1);
+  vi.mocked(undoCatalogOrganize).mockResolvedValue({
+    ...organized({ jefe: ['tagged'] }),
+    alreadyUndone: false,
+    skippedImageIds: [],
+  });
+  const dialog = screen.getByRole('dialog', { name: 'Tags and collections' });
+  const undo = screen.getByRole('button', { name: 'Undo' });
+  expect(dialog.contains(undo)).toBe(true);
+  undo.focus();
+  expect(document.activeElement).toBe(undo);
+  fireEvent.click(undo);
+  await waitFor(() => expect(screen.getByText('#jefe')).toBeDefined());
+  expect(onClose).not.toHaveBeenCalled();
+  expect(screen.getByRole('dialog', { name: 'Tags and collections' })).toBe(dialog);
+  expect(undoCatalogOrganize).toHaveBeenLastCalledWith(
+    'organize-00000000-0000-0000-0000-000000000001',
+  );
+  expect(screen.getByText('#jefe')).toBeDefined();
+  view.rerender(content(null));
+  expect(screen.getByText(/^Undid:/).closest('dialog')).toBeNull();
 });
 
 it('keeps failed hashtag input for retry and does not apply partial invalid input', async () => {

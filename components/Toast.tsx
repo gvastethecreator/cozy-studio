@@ -77,6 +77,18 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
             {toast.message}
           </p>
         </div>
+        {toast.action && (
+          <button
+            type="button"
+            className="studio-control studio-ghost-control"
+            onClick={() => {
+              onDismiss(toast.id);
+              void toast.action?.run();
+            }}
+          >
+            {toast.action.label}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => onDismiss(toast.id)}

@@ -30,7 +30,7 @@ Done when `studio_workspaces` lists the workspace after the batch is queued.
 
 ## Read a workspace
 
-- `studio_workspaces` with `workspaceId` returns `workspace`, `tags` (`name`, `color`, `imageCount`), `collections` (`id`, `name`, `emoji`, `imageCount`) and `unorganized`.
+- `studio_workspaces` with `workspaceId` returns `workspace`, `tags` (`name`, `color`, `imageCount`), `collections` (`id`, `name`, `emoji`, `imageCount`) and `unorganized`. It also returns the last five `recentChanges`, with `operationId`, `source`, `createdAt`, `undoneAt` and change counts.
 - `studio_catalog` with `workspace_id` lists its images. `workspace_id` is required, and a search never reads another workspace. Add `collection_id` to list one collection.
 - `studio_jobs` with `workspaceId` lists its jobs.
 

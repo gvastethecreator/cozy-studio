@@ -3,6 +3,7 @@ import {
   CATALOG_PURGE_CONFIRMATION,
   CATALOG_SORT_OPTIONS,
   CatalogOrganizeError,
+  CatalogOrganizeConflict,
   parseCatalogOrganizeInput,
   validateCatalogCollectionImageIds,
   validateCatalogCollectionName,
@@ -319,6 +320,31 @@ export function createCatalogRoutes({
         // Input and organize errors are the caller's; a database failure is Studio's.
         error instanceof Error && error.name === 'SQLiteError' ? 500 : 400,
       );
+    }
+  });
+
+  routes.get('/commands/organize/history', (c) => {
+    try {
+      const workspaceId = validateCatalogCollectionWorkspaceId(c.req.query('workspace_id'));
+      return c.json(catalogStore.listOrganizeHistory(workspaceId, 20));
+    } catch (error) {
+      return c.json(collectionError(error), 400);
+    }
+  });
+
+  routes.post('/commands/organize/:operationId/undo', (c) => {
+    try {
+      const result = catalogStore.undoOrganize(c.req.param('operationId'));
+      if (!result) return c.json({ error: 'Unknown or expired organize change.' }, 404);
+      if (!result.alreadyUndone) publishOrganized(result.imageCount, result.workspaceId);
+      return c.json(result);
+    } catch (error) {
+      if (error instanceof CatalogOrganizeConflict)
+        return c.json(
+          { error: error.message, code: 'newer_change', operationId: error.operationId },
+          409,
+        );
+      return c.json(collectionError(error), 500);
     }
   });
 

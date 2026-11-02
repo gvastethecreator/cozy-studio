@@ -3,11 +3,14 @@ import type { Database } from 'bun:sqlite';
 
 import {
   CatalogOrganizeError,
+  CatalogOrganizeConflict,
   type CatalogCollection,
   type CatalogCollectionPatch,
   type CatalogCollectionSelection,
   type CatalogOrganizeInput,
   type CatalogOrganizeResult,
+  type CatalogOrganizeHistoryEntry,
+  type CatalogOrganizeUndoResult,
 } from '../../../packages/shared/src/catalogCollections';
 import { applyCatalogTagChanges } from '../../../packages/shared/src/catalogTags';
 import { recordCatalogTagUse } from './catalogTags';
@@ -400,7 +403,8 @@ export function organizeCatalogImages(
         .query('UPDATE catalog_collections SET updated_at = ? WHERE id = ?')
         .run(timestamp, removeFrom.id);
     }
-    return {
+    const result: CatalogOrganizeResult = {
+      operationId: null,
       workspaceId,
       imageCount: imageIds.length,
       tags: { added, removed },
@@ -413,5 +417,179 @@ export function organizeCatalogImages(
           }
         : null,
     };
+    if (changedOrganizeImageIds(result).length) {
+      result.operationId = `organize-${randomUUID()}`;
+      database
+        .query(`INSERT INTO catalog_organize_history
+        (id, workspace_id, source, changes_json, created_at) VALUES (?, ?, ?, ?, ?)`)
+        .run(result.operationId, workspaceId, input.source, JSON.stringify(result), timestamp);
+      database
+        .query(`DELETE FROM catalog_organize_history WHERE workspace_id = ? AND rowid NOT IN
+        (SELECT rowid FROM catalog_organize_history WHERE workspace_id = ? ORDER BY rowid DESC LIMIT 20)`)
+        .run(workspaceId, workspaceId);
+    }
+    return result;
+  })();
+}
+
+function changedOrganizeImageIds(result: CatalogOrganizeResult) {
+  return [
+    ...new Set([
+      ...Object.values(result.tags.added).flat(),
+      ...Object.values(result.tags.removed).flat(),
+      ...(result.collection?.addedImageIds ?? []),
+      ...(result.removedFrom?.removedImageIds ?? []),
+    ]),
+  ];
+}
+
+interface OrganizeHistoryRow {
+  id: string;
+  workspace_id: string;
+  source: CatalogOrganizeHistoryEntry['source'];
+  changes_json: string;
+  created_at: string;
+  undone_at: string | null;
+}
+
+export function listCatalogOrganizeHistory(
+  workspaceId: string,
+  limit = 5,
+  db?: Database,
+): CatalogOrganizeHistoryEntry[] {
+  const rows = getDb(db)
+    .query(`SELECT * FROM catalog_organize_history
+    WHERE workspace_id = ? ORDER BY rowid DESC LIMIT ?`)
+    .all(workspaceId, Math.max(1, Math.min(20, limit))) as OrganizeHistoryRow[];
+  const counts = (tags: Record<string, string[]>) =>
+    Object.fromEntries(Object.entries(tags).map(([tag, ids]) => [tag, ids.length]));
+  return rows.map((row) => {
+    const changes = JSON.parse(row.changes_json) as CatalogOrganizeResult;
+    return {
+      operationId: row.id,
+      source: row.source,
+      createdAt: row.created_at,
+      undoneAt: row.undone_at,
+      counts: {
+        tagsAdded: counts(changes.tags.added),
+        tagsRemoved: counts(changes.tags.removed),
+        collection: changes.collection
+          ? { name: changes.collection.name, added: changes.collection.addedImageIds.length }
+          : null,
+        removedFrom: changes.removedFrom
+          ? { name: changes.removedFrom.name, removed: changes.removedFrom.removedImageIds.length }
+          : null,
+      },
+    };
+  });
+}
+
+export function undoCatalogOrganize(
+  operationId: string,
+  db?: Database,
+): CatalogOrganizeUndoResult | null {
+  const database = getDb(db);
+  return database.transaction(() => {
+    const row = database
+      .query('SELECT * FROM catalog_organize_history WHERE id = ?')
+      .get(operationId) as OrganizeHistoryRow | null;
+    if (!row) return null;
+    const result: CatalogOrganizeUndoResult = {
+      operationId,
+      workspaceId: row.workspace_id,
+      imageCount: 0,
+      tags: { added: {}, removed: {} },
+      collection: null,
+      removedFrom: null,
+      alreadyUndone: Boolean(row.undone_at),
+      skippedImageIds: [],
+    };
+    if (result.alreadyUndone) return result;
+    const newest = database
+      .query(`SELECT id FROM catalog_organize_history
+      WHERE workspace_id = ? AND undone_at IS NULL ORDER BY rowid DESC LIMIT 1`)
+      .get(row.workspace_id) as { id: string };
+    if (newest.id !== operationId) throw new CatalogOrganizeConflict(newest.id);
+    const changes = JSON.parse(row.changes_json) as CatalogOrganizeResult;
+    const ids = changedOrganizeImageIds(changes);
+    const images = database
+      .query(`SELECT id, tags FROM catalog_images
+      WHERE COALESCE(workspace_id, 'default') = ? AND id IN (${ids.map(() => '?').join(', ')})`)
+      .all(row.workspace_id, ...ids) as { id: string; tags: string | null }[];
+    const byId = new Map(images.map((image) => [image.id, parseTags(image.tags)]));
+    const skipped = new Set(ids.filter((id) => !byId.has(id)));
+    const knownTags = new Set(
+      (
+        database
+          .query('SELECT name FROM catalog_tags WHERE workspace_id = ?')
+          .all(row.workspace_id) as { name: string }[]
+      ).map(({ name }) => name),
+    );
+    const setTags = database.query('UPDATE catalog_images SET tags = ? WHERE id = ?');
+    for (const [id, previous] of byId) {
+      let tags = [...previous];
+      for (const [tag, imageIds] of Object.entries(changes.tags.added)) {
+        if (!knownTags.has(tag) || !imageIds.includes(id) || !tags.includes(tag)) continue;
+        tags = tags.filter((value) => value !== tag);
+        (result.tags.removed[tag] ??= []).push(id);
+      }
+      for (const [tag, imageIds] of Object.entries(changes.tags.removed)) {
+        if (!knownTags.has(tag) || !imageIds.includes(id) || tags.includes(tag)) continue;
+        if (tags.length >= 32) {
+          skipped.add(id);
+          continue;
+        }
+        tags.push(tag);
+        (result.tags.added[tag] ??= []).push(id);
+      }
+      if (tags.join('\n') !== previous.join('\n')) setTags.run(JSON.stringify(tags), id);
+    }
+    const timestamp = now();
+    const collectionExists = (id: string) =>
+      Boolean(
+        database
+          .query('SELECT id FROM catalog_collections WHERE id = ? AND workspace_id = ?')
+          .get(id, row.workspace_id),
+      );
+    if (changes.collection && collectionExists(changes.collection.id)) {
+      const { id, name, addedImageIds } = changes.collection;
+      const remove = database.query(
+        'DELETE FROM catalog_collection_images WHERE collection_id = ? AND image_id = ?',
+      );
+      const removedImageIds = addedImageIds.filter(
+        (imageId) => byId.has(imageId) && remove.run(id, imageId).changes > 0,
+      );
+      result.removedFrom = { id, name, removedImageIds };
+      if (removedImageIds.length)
+        database
+          .query('UPDATE catalog_collections SET updated_at = ? WHERE id = ?')
+          .run(timestamp, id);
+    }
+    if (changes.removedFrom && collectionExists(changes.removedFrom.id)) {
+      const { id, name, removedImageIds } = changes.removedFrom;
+      const insert = database.query(
+        'INSERT OR IGNORE INTO catalog_collection_images (collection_id, image_id, added_at) VALUES (?, ?, ?)',
+      );
+      const addedImageIds = removedImageIds.filter(
+        (imageId) => byId.has(imageId) && insert.run(id, imageId, timestamp).changes > 0,
+      );
+      if (addedImageIds.length)
+        database
+          .query('UPDATE catalog_collections SET updated_at = ?, last_used_at = ? WHERE id = ?')
+          .run(timestamp, timestamp, id);
+      result.collection = {
+        id,
+        name,
+        created: false,
+        addedImageIds,
+        imageCount: getCatalogCollection(id, database)!.imageCount,
+      };
+    }
+    result.imageCount = changedOrganizeImageIds(result).length;
+    result.skippedImageIds = [...skipped];
+    database
+      .query('UPDATE catalog_organize_history SET undone_at = ? WHERE id = ?')
+      .run(timestamp, operationId);
+    return result;
   })();
 }

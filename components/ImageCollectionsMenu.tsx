@@ -1,24 +1,33 @@
-import React, { useRef, useState } from 'react';
+import { organizeWithUndo } from '../hooks/useCatalogOrganization';
+import React, { useEffect, useRef, useState } from 'react';
 import { Folder, Hashtag } from 'iconoir-react';
-import { useCatalogOrganization } from '../hooks/useCatalogOrganization';
+import {
+  useCatalogOrganization,
+  summarizeOrganizeCounts,
+  undoOrganization,
+} from '../hooks/useCatalogOrganization';
 import {
   parseCatalogSearch,
   formatCatalogSearchTag,
   type CatalogCollection,
+  type CatalogOrganizeHistoryEntry,
 } from '../packages/shared/src';
 import { openStudioSettings } from '../lib/studioSettingsDomains';
 import { DemandMountedGsapDropdown } from './ui/DemandMountedGsapDropdown';
 import { OrganizationCreatePopover } from './OrganizationCreatePopover';
 import {
-  organizeCatalogImages,
   deleteCatalogCollection,
   notifyCatalogOrganizationChanged,
+  listCatalogOrganizeHistory,
+  CATALOG_ORGANIZATION_CHANGED,
 } from '../services/studio-api/catalog';
 import { ConfirmationModal } from './ConfirmationModal';
 
 const EMPTY_IMAGE_IDS: string[] = [];
 
 function OrganizationMenuFooter({
+  history,
+  historyError,
   active,
   selectedImageIds,
   busy,
@@ -27,6 +36,8 @@ function OrganizationMenuFooter({
   onManage,
   onDelete,
 }: {
+  history: CatalogOrganizeHistoryEntry[];
+  historyError: string;
   active: CatalogCollection | undefined;
   selectedImageIds: string[];
   busy: boolean;
@@ -37,6 +48,45 @@ function OrganizationMenuFooter({
 }) {
   return (
     <>
+      <section aria-label="Recent changes" className="px-2 py-2 text-xs">
+        <p className="mb-2 text-[var(--wb-muted)]">Recent changes</p>
+        {historyError && <p role="alert">{historyError}</p>}
+        {!historyError && history.length === 0 && <p>No recent changes.</p>}
+        {history.slice(0, 5).map((entry) => {
+          const summary = summarizeOrganizeCounts(entry.counts);
+          const newest = history.find((change) => !change.undoneAt);
+          return (
+            <div key={entry.operationId} className="mb-2">
+              <p>
+                <time dateTime={entry.createdAt}>
+                  {new Date(entry.createdAt).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </time>{' '}
+                · {entry.source === 'ui' ? 'You' : 'Agent'} · {summary}
+              </p>
+              {entry.undoneAt ? (
+                <span>Undone</span>
+              ) : (
+                newest?.operationId === entry.operationId && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={busy}
+                    aria-label={`Undo: ${summary}`}
+                    onClick={() =>
+                      void onChange(() => undoOrganization(entry.operationId, summary))
+                    }
+                  >
+                    Undo
+                  </button>
+                )
+              )}
+            </div>
+          );
+        })}
+      </section>
       {active && selectedImageIds.length > 0 && (
         <>
           <button
@@ -45,7 +95,7 @@ function OrganizationMenuFooter({
             disabled={busy}
             onClick={() =>
               void onChange(() =>
-                organizeCatalogImages({
+                organizeWithUndo({
                   workspaceId: active.workspaceId,
                   imageIds: selectedImageIds,
                   addToCollection: active.name,
@@ -61,7 +111,7 @@ function OrganizationMenuFooter({
             disabled={busy}
             onClick={() =>
               void onChange(() =>
-                organizeCatalogImages({
+                organizeWithUndo({
                   workspaceId: active.workspaceId,
                   imageIds: selectedImageIds,
                   removeFromCollection: active.name,
@@ -105,6 +155,38 @@ function OrganizationMenu({
   onCatalogChanged?: () => void | Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
+  const [history, setHistory] = useState<CatalogOrganizeHistoryEntry[]>([]);
+  const [historyError, setHistoryError] = useState('');
+  useEffect(() => {
+    setHistory([]);
+    setHistoryError('');
+    if (!open) return;
+    let cancelled = false;
+    let revision = 0;
+    const refreshHistory = () => {
+      const request = ++revision;
+      void listCatalogOrganizeHistory(workspaceId).then(
+        (entries) => {
+          if (!cancelled && request === revision) {
+            setHistory(entries);
+            setHistoryError('');
+          }
+        },
+        (cause: unknown) => {
+          if (!cancelled && request === revision)
+            setHistoryError(
+              cause instanceof Error ? cause.message : 'Could not load recent changes.',
+            );
+        },
+      );
+    };
+    refreshHistory();
+    window.addEventListener(CATALOG_ORGANIZATION_CHANGED, refreshHistory);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(CATALOG_ORGANIZATION_CHANGED, refreshHistory);
+    };
+  }, [workspaceId, open]);
   const [limit, setLimit] = useState(15);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState('');
@@ -255,6 +337,8 @@ function OrganizationMenu({
         )}
         <div className="organization-menu-separator" />
         <OrganizationMenuFooter
+          history={history}
+          historyError={historyError}
           active={active}
           selectedImageIds={selectedImageIds}
           busy={busy}

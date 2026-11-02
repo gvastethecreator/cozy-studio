@@ -45,7 +45,18 @@ describe('Studio MCP boundary', () => {
       },
     };
     const collections: object[] = [];
+    const operationId = 'organize-00000000-0000-0000-0000-000000000001';
+    const recentChanges = [
+      {
+        operationId,
+        source: 'agent',
+        createdAt: '2026-11-02',
+        undoneAt: null,
+        counts: { tagsAdded: { pick: 1 }, tagsRemoved: {}, collection: null, removedFrom: null },
+      },
+    ];
     const organized = {
+      operationId,
       workspaceId: 'default',
       imageCount: 2,
       tags: { added: { pick: ['image-1'] }, removed: {} },
@@ -72,6 +83,10 @@ describe('Studio MCP boundary', () => {
             return Response.json(catalogImage);
           if (path === '/api/catalog/collections?workspace_id=default')
             return Response.json(collections);
+          if (path === `/api/catalog/commands/organize/${operationId}/undo`)
+            return Response.json({ operationId, alreadyUndone: false });
+          if (path === '/api/catalog/commands/organize/history?workspace_id=default')
+            return Response.json(recentChanges);
           if (path === '/api/catalog/commands/organize') {
             if (body.imageIds.includes('foreign'))
               return Response.json(
@@ -379,15 +394,27 @@ describe('Studio MCP boundary', () => {
     expect(rejected.status).toBe(400);
     expect(await rejected.json()).toMatchObject({ imageIds: ['foreign'] });
     expect(await (await call('studio_organize_images', organize)).json()).toEqual(organized);
-    expect(requests.at(-1)).toEqual({ path: '/api/catalog/commands/organize', body: organize });
+    expect(requests.at(-1)).toEqual({
+      path: '/api/catalog/commands/organize',
+      body: { ...organize, source: 'agent' },
+    });
+    expect(await (await call('studio_undo_organize', { operationId })).json()).toEqual({
+      operationId,
+      alreadyUndone: false,
+    });
+    expect(requests.at(-1)).toEqual({
+      path: `/api/catalog/commands/organize/${operationId}/undo`,
+      body: {},
+    });
     expect(await (await call('studio_workspaces', { workspaceId: 'default' })).json()).toEqual({
       workspace: { id: 'default', name: 'Default' },
       tags: [{ name: 'cover', color: null, imageCount: 2 }],
       collections: [{ id: 'collection-1', name: 'Picks', emoji: null, imageCount: 2 }],
       unorganized: 3,
+      recentChanges,
     });
     expect(requests.at(-1)?.path).toBe(
-      '/api/catalog?workspace_id=default&unorganized=true&limit=1',
+      '/api/catalog/commands/organize/history?workspace_id=default',
     );
     expect((await call('studio_workspaces', { workspaceId: 'missing' })).status).toBe(400);
 

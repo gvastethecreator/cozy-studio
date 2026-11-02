@@ -82,7 +82,7 @@ function requestHash(input: Pick<ValidatedReference, 'name' | 'mimeType' | 'sha2
     .digest('hex');
 }
 
-function mimeFromSignature(bytes: Buffer): ReferenceMime | null {
+export function mimeFromSignature(bytes: Buffer): ReferenceMime | null {
   if (
     bytes.length >= 8 &&
     bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
@@ -130,7 +130,7 @@ function managedPath(libraryPath: string, sha256: string) {
   return destination;
 }
 
-function placeManagedFile(destination: string, bytes: Buffer) {
+export function placeManagedFile(destination: string, bytes: Buffer) {
   mkdirSync(path.dirname(destination), { recursive: true });
   if (existsSync(destination)) {
     if (!readFileSync(destination).equals(bytes)) {

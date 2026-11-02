@@ -165,6 +165,8 @@ export function registerCatalogImage(
     batchId?: string | null;
     recipeId?: string | null;
     tags?: string[];
+    createdAt?: string;
+    isFavorite?: boolean;
     /** Collection of the image's workspace to join, created if missing. */
     collectionName?: string | null;
     generationConfig?: Record<string, unknown> | null;
@@ -175,10 +177,12 @@ export function registerCatalogImage(
   const library = input.libraryId ? getLibrary(input.libraryId, database) : ensureDefaultLibrary();
   if (!library) throw new Error('No studio library registered.');
   const id = randomUUID();
-  const createdAt = now();
+  const createdAt = input.createdAt ?? now();
   const libraryContext = { libraryId: library.id, rootPath: library.path };
   const publicUrl = toPublicAssetUrl(input.filePath, libraryContext);
-  const thumbnailLibrary = input.thumbnailPath ? getLibraryForFilePath(input.thumbnailPath) : null;
+  const thumbnailLibrary = input.thumbnailPath
+    ? getLibraryForFilePath(input.thumbnailPath, database)
+    : null;
   const thumbnailUrl = input.thumbnailPath
     ? toPublicAssetUrl(
         input.thumbnailPath,
@@ -196,8 +200,8 @@ export function registerCatalogImage(
         INSERT INTO catalog_images (
           id, library_id, file_path, thumbnail_path, public_url, thumbnail_url,
           prompt, negative_prompt, aspect_ratio, image_size, width, height, mime_type,
-          file_size_bytes, job_id, workspace_id, batch_id, recipe_id, tags, generation_config, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          file_size_bytes, job_id, workspace_id, batch_id, recipe_id, tags, generation_config, created_at, is_favorite
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
       .run(
         id,
@@ -221,6 +225,7 @@ export function registerCatalogImage(
         JSON.stringify(input.tags ?? []),
         input.generationConfig === undefined ? null : JSON.stringify(input.generationConfig),
         createdAt,
+        input.isFavorite ? 1 : 0,
       );
     recordCatalogTagUse(workspaceId, input.tags ?? [], database);
     if (input.collectionName) {
@@ -238,7 +243,7 @@ export function registerCatalogImage(
 export function getCatalogImage(id: string, db?: Database) {
   const row = getDb(db)
     .query(
-      'SELECT *, (SELECT provider_id FROM jobs WHERE jobs.id = catalog_images.job_id) AS provider_id FROM catalog_images WHERE id = ?',
+      `SELECT *, COALESCE((SELECT provider_id FROM jobs WHERE jobs.id = catalog_images.job_id), json_extract(generation_config, '$.providerId')) AS provider_id FROM catalog_images WHERE id = ?`,
     )
     .get(id);
   return row ? mapCatalogImage(row, { includeGenerationConfig: true }) : null;
@@ -371,7 +376,7 @@ function queryCatalogInternal(
     .query(
       `SELECT ${
         options.includeGenerationConfig ? '*' : CATALOG_IMAGE_SUMMARY_COLUMNS
-      }, (SELECT provider_id FROM jobs WHERE jobs.id = catalog_images.job_id) AS provider_id FROM catalog_images ${where} ORDER BY ${orderBy[filters.sort ?? 'desc']} LIMIT ? OFFSET ?`,
+      }, COALESCE((SELECT provider_id FROM jobs WHERE jobs.id = catalog_images.job_id), json_extract(generation_config, '$.providerId')) AS provider_id FROM catalog_images ${where} ORDER BY ${orderBy[filters.sort ?? 'desc']} LIMIT ? OFFSET ?`,
     )
     .all(...params, limit, offset)
     .map((row) => mapCatalogImage(row, options));
@@ -464,7 +469,7 @@ export function queryCatalogWorkspaceSummaries(
   });
 }
 
-export function listCatalogImageIds(filters: CatalogCommandFilter = {}) {
+export function listCatalogImageIds(filters: CatalogCommandFilter = {}, db?: Database) {
   const clauses: string[] = [];
   const params: any[] = [];
 
@@ -490,7 +495,7 @@ export function listCatalogImageIds(filters: CatalogCommandFilter = {}) {
   }
 
   const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
-  return getDb()
+  return getDb(db)
     .query(`SELECT id FROM catalog_images ${where} ORDER BY created_at DESC`)
     .all(...params)
     .map((row: any) => String(row.id));

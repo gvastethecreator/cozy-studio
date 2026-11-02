@@ -488,7 +488,7 @@ export interface CatalogBatchCommandResult {
 }
 
 export interface CatalogBatchChangedEventPayload {
-  action: CatalogBatchCommandResult['action'] | 'organize';
+  action: CatalogBatchCommandResult['action'] | 'organize' | 'import';
   changedCount: number;
   scope:
     | { kind: 'all' }

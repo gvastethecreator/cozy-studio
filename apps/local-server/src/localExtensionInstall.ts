@@ -38,7 +38,7 @@ function reject(message: string): never {
   throw new ExtensionInstallError(message);
 }
 
-function safePath(name: string) {
+export function safePath(name: string) {
   return (
     name.length > 0 &&
     !name.startsWith('/') &&

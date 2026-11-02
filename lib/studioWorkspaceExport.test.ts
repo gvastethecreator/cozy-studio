@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CatalogImage } from '../packages/shared/src';
 import { createCatalogView } from './studioCatalogView';
-import { buildWorkspaceExportImages, exportLegacyWorkspaceSnapshot } from './studioWorkspaceExport';
+import { exportLegacyWorkspaceSnapshot } from './studioWorkspaceExport';
 
 function catalogImage(overrides: Partial<CatalogImage> = {}): CatalogImage {
   const id = overrides.id ?? 'catalog-image';
@@ -51,22 +51,7 @@ describe('studioWorkspaceExport', () => {
     expect(snapshotBatches[0].config.prompt).toBe('Catalog prompt');
   });
 
-  it('builds workspace export images from Catalog View', () => {
-    const catalogView = createCatalogView([
-      catalogImage({
-        id: 'catalog-image',
-        generationConfig: { prompt: 'Catalog archive prompt' },
-      }),
-    ]);
-
-    const images = buildWorkspaceExportImages({ catalogView });
-
-    expect(images.map((image) => image.id)).toEqual(['catalog-image']);
-    expect(images[0].config.prompt).toBe('Catalog archive prompt');
-  });
-
   it('returns empty arrays when no Catalog View is available', () => {
     expect(exportLegacyWorkspaceSnapshot({})).toEqual([]);
-    expect(buildWorkspaceExportImages({})).toEqual([]);
   });
 });

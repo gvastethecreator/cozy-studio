@@ -7,6 +7,7 @@ import { serveWithPortFallback } from './portUtils';
 import { beginSignalShutdown, shutdownStudioServer } from './serverShutdown';
 import { STUDIO_RESTART_EXIT_CODE } from '../../../packages/shared/src/repositoryUpdates';
 import { LOCAL_EXTENSION_BODY_LIMIT } from './localExtensionInstall';
+import { LIBRARY_ARCHIVE_MAX_BYTES } from '../../../packages/shared/src/libraryArchive';
 import { MIN_BUN_VERSION } from './imagePipeline';
 
 export { createStudioApp } from './appFactory';
@@ -37,7 +38,7 @@ if (import.meta.main) {
   const { server, port: boundPort } = serveWithPortFallback({
     hostname,
     port: configuredPort,
-    maxRequestBodySize: LOCAL_EXTENSION_BODY_LIMIT,
+    maxRequestBodySize: Math.max(LOCAL_EXTENSION_BODY_LIMIT, LIBRARY_ARCHIVE_MAX_BYTES + 64 * 1024),
     onPortConflict(attemptedPort, nextPort) {
       if (process.env.STUDIO_MANAGED_RESTART === '1') {
         throw new Error(
@@ -47,7 +48,12 @@ if (import.meta.main) {
       log('warn', 'server', `Port ${attemptedPort} is in use; attempting next port ${nextPort}...`);
     },
     fetch(req: Request, server: any) {
-      if (new URL(req.url).pathname === '/api/events') {
+      const pathname = new URL(req.url).pathname;
+      if (
+        pathname === '/api/events' ||
+        pathname === '/api/workspaces/import' ||
+        /^\/api\/workspaces\/[^/]+\/export$/.test(pathname)
+      ) {
         server.timeout(req, 0);
       }
 

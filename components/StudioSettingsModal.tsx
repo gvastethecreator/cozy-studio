@@ -4,6 +4,7 @@ import { validateOutputTemplate } from '../packages/shared/src/outputLayout';
 import { SettingsGeneralPanel } from './settings/SettingsGeneralPanel';
 import { SettingsOrganizationPanel } from './settings/SettingsOrganizationPanel';
 import { SettingsUpdatesPanel } from './settings/SettingsUpdatesPanel';
+import { SettingsLibraryArchivePanel } from './settings/SettingsLibraryArchivePanel';
 import { StudioHelpGuide } from './StudioHelpGuide';
 import { ConfirmationModal } from './ConfirmationModal';
 import { Refresh as RefreshCw, FloppyDisk as Save, Settings, Xmark as X } from 'iconoir-react';
@@ -234,6 +235,12 @@ const SETTINGS_SEARCH_ITEMS: {
     label: 'Import sources',
     description: 'Register a folder or import images',
     target: '',
+  },
+  {
+    domain: 'library',
+    label: 'Library archive',
+    description: 'Export or import a workspace with its images',
+    target: 'Library archive',
   },
   {
     domain: 'library',
@@ -485,6 +492,7 @@ function SettingsDomainContent({
                 onImportOutputSourceFiles={onImportOutputSourceFiles}
                 onRegisterOutputSource={onRegisterOutputSource}
               />
+              <SettingsLibraryArchivePanel />
               <details className="settings-disclosure mt-4">
                 <summary>Export workspace metadata</summary>
                 <p className="my-2 text-xs studio-muted">

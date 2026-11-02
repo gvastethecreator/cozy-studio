@@ -88,8 +88,8 @@ function registerLibrary(input: {
   return row;
 }
 
-export function listLibraries() {
-  return getDb()
+export function listLibraries(db?: Database) {
+  return getDb(db)
     .query('SELECT * FROM libraries ORDER BY is_default DESC, created_at ASC')
     .all()
     .map(mapLibrary);
@@ -117,9 +117,9 @@ export function getLibrary(id: string, db?: Database) {
   return row ? mapLibrary(row) : null;
 }
 
-export function getLibraryForFilePath(filePath: string) {
+export function getLibraryForFilePath(filePath: string, db?: Database) {
   return (
-    listLibraries()
+    listLibraries(db)
       .sort((a, b) => b.path.length - a.path.length)
       .find((library) => {
         const relative = path.relative(library.path, filePath);

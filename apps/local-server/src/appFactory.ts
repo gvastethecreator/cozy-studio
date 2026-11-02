@@ -130,7 +130,6 @@ import { createAnimationSequenceRunParticipant } from './animationSequenceRunRec
 import { createWorkflowRunReconciler } from './workflowRunReconciler';
 import { createStudioReadinessLifecycle } from './studioReadinessLifecycle';
 import { createSqliteUserStyleStore } from './sqliteUserStyles';
-import type { UserStyleStore } from './userStyles';
 import { createLocalApiSecurityMiddleware } from './localApiSecurity';
 import { createUiStaticHandler, resolveUiDistDir, uiDistIsReady } from './uiStaticRoutes';
 import type {
@@ -202,7 +201,6 @@ export interface CreateStudioAppOptions {
     jobStore?: StudioJobStore;
     assetStore?: StudioAssetStore;
     logStore?: StudioLogStore;
-    userStyleStore?: UserStyleStore;
     extensionStore?: ExtensionStore;
     extensionSourceClient?: ExtensionSourceClient;
     extensionHubStore?: ExtensionHubStore;
@@ -254,7 +252,7 @@ export async function createStudioApp(
   const assetStore = options.dependencies?.assetStore ?? defaultAssetStore;
   const logStore = options.dependencies?.logStore ?? defaultLogStore;
   const catalogStore = options.dependencies?.catalogStore ?? (await createDefaultCatalogStore());
-  const userStyleStore = options.dependencies?.userStyleStore ?? createSqliteUserStyleStore();
+  const userStyleStore = createSqliteUserStyleStore();
   const extensionStore =
     options.dependencies?.extensionStore ?? createExtensionStore(resolveExtensionSources());
   const appLogger = options.dependencies?.logger ?? log;

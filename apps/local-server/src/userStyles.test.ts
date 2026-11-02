@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { createMemoryUserStyleStore } from './userStyles';
+import { openTestDatabase } from './db/testDatabase';
+import { createSqliteUserStyleStore } from './sqliteUserStyles';
 import type { CreateUserStylePresetInput } from '../../../packages/shared/src';
 
 const VISUAL_DNA: CreateUserStylePresetInput['visualDna'] = {
@@ -16,7 +17,7 @@ const VISUAL_DNA: CreateUserStylePresetInput['visualDna'] = {
 };
 
 function createStore() {
-  return createMemoryUserStyleStore();
+  return createSqliteUserStyleStore(openTestDatabase());
 }
 
 describe('user style store', () => {

@@ -1,8 +1,6 @@
 /** @vitest-environment jsdom */
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import React from 'react';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDefaultEditableStudioSettings } from '../packages/shared/src';
 import { StudioSettingsModal } from './StudioSettingsModal';
@@ -13,6 +11,7 @@ import {
   getStudioSettingsFormState,
   OUTPUT_SUBFOLDER_PRESETS,
 } from '../lib/studioSettingsForm';
+import { STUDIO_SETTINGS_DOMAIN_TABS } from '../lib/studioSettingsDomains';
 
 const theme = vi.hoisted(() => ({
   preferences: {},
@@ -20,18 +19,17 @@ const theme = vi.hoisted(() => ({
   previewPreferences: vi.fn(),
   commitPreferences: vi.fn(),
 }));
-vi.mock('../hooks/useTheme', () => ({ useTheme: () => theme }));
+vi.mock('../hooks/useTheme', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  useTheme: () => theme,
+}));
 
 afterEach(() => {
   cleanup();
   Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
 });
 
-it('explains blocked saving from every section and returns focus to the invalid filename', () => {
-  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
-    configurable: true,
-    value: vi.fn(),
-  });
+function renderSettingsModal() {
   render(
     React.createElement(StudioSettingsModal, {
       isOpen: true,
@@ -71,6 +69,14 @@ it('explains blocked saving from every section and returns focus to the invalid 
       isResettingStudio: false,
     }),
   );
+}
+
+it('explains blocked saving from every section and returns focus to the invalid filename', () => {
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: vi.fn(),
+  });
+  renderSettingsModal();
   fireEvent.click(screen.getByRole('button', { name: 'Files & naming' }));
   fireEvent.change(screen.getByLabelText('File name template'), { target: { value: '{unknown}' } });
   expect((screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(true);
@@ -129,25 +135,33 @@ describe('StudioSettingsModal provider defaults', () => {
     expect(EXTERNAL_SCAN_PATH_HELP).toContain('does not change where new images are saved');
     expect(EXTERNAL_SCAN_PATH_LABEL.toLowerCase()).not.toContain('preferred output');
 
-    const settingsSource = [
-      'StudioSettingsModal.tsx',
-      'settings/SettingsFormPanel.tsx',
-      'settings/SettingsProvidersPanel.tsx',
-    ]
-      .map((file) => readFileSync(path.join(import.meta.dirname, file), 'utf8'))
-      .join('\n');
-    expect(settingsSource).toContain('EXTERNAL_SCAN_PATH_LABEL');
-    expect(settingsSource).toContain('EXTERNAL_SCAN_PATH_HELP');
-    expect(settingsSource).not.toMatch(/Preferred Output Path/);
-    expect(settingsSource).toContain('STUDIO_SETTINGS_DOMAIN_TABS');
-    expect(settingsSource).toContain('Accounts');
-    expect(settingsSource).toContain('ProviderBrandMark');
-    expect(settingsSource).toContain('type="radio"');
-    expect(settingsSource).toContain('studio-dialog');
-    expect(settingsSource).not.toMatch(/bg-zinc-950/);
+    renderSettingsModal();
+    expect(document.querySelector('.studio-dialog')).not.toBeNull();
+    const nav = screen.getByRole('navigation', { name: 'Settings sections' });
     expect(
-      readFileSync(path.join(import.meta.dirname, '..', 'lib', 'studioSettingsDomains.ts'), 'utf8'),
-    ).toContain("label: 'Accounts & models'");
+      within(nav)
+        .getAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual(STUDIO_SETTINGS_DOMAIN_TABS.map((tab) => tab.label));
+    // Tags and Styles panels need the workspace provider and live in their own files.
+    for (const tab of STUDIO_SETTINGS_DOMAIN_TABS.filter(
+      ({ id }) => id !== 'organization' && id !== 'extensions',
+    )) {
+      fireEvent.click(screen.getByRole('button', { name: tab.label }));
+      expect(document.body.textContent).not.toContain('Preferred Output Path');
+      expect(document.querySelector('[class*="bg-zinc-950"]')).toBeNull();
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Library & imports' }));
+    expect(screen.getByLabelText(EXTERNAL_SCAN_PATH_LABEL)).toBeTruthy();
+    expect(screen.getByText(EXTERNAL_SCAN_PATH_HELP)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Accounts & models' }));
+    const radios = within(screen.getByRole('group', { name: 'Default provider' })).getAllByRole(
+      'radio',
+    );
+    expect(radios.length).toBeGreaterThan(1);
+    // Each option shows its decorative provider brand mark.
+    for (const radio of radios)
+      expect(radio.closest('label')?.querySelector('[aria-hidden="true"]')).not.toBeNull();
   });
 
   it('keeps a flat default output preset alongside date provider model and recipe', () => {
@@ -162,15 +176,5 @@ describe('StudioSettingsModal provider defaults', () => {
       'model',
       'recipe',
     ]);
-  });
-
-  it('does not offer a second generate output folder during onboarding', () => {
-    const onboardingSource = readFileSync(
-      path.join(import.meta.dirname, 'OnboardingModal.tsx'),
-      'utf8',
-    );
-    expect(onboardingSource).not.toMatch(/preferredOutputPath/);
-    expect(onboardingSource).not.toMatch(/Preferred Output Path/);
-    expect(onboardingSource).not.toMatch(/External folder to scan/);
   });
 });

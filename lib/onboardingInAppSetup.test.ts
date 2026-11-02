@@ -96,5 +96,6 @@ describe('OnboardingModal Setup surface', () => {
     expect(onboardingSource).toContain('Studio Library path');
     expect(onboardingSource).not.toMatch(/preferredOutputPath/);
     expect(onboardingSource).not.toMatch(/Preferred Output Path/);
+    expect(onboardingSource).not.toMatch(/External folder to scan/);
   });
 });

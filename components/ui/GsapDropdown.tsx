@@ -47,6 +47,17 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(value, max));
 }
 
+// A portaled dropdown opened from inside another dropdown still belongs to that dropdown.
+function ownsTarget(panel: HTMLElement, target: Node) {
+  let node: Element | null = target instanceof Element ? target : target.parentElement;
+  while (node) {
+    if (panel.contains(node)) return true;
+    const parentId = node.closest<HTMLElement>('[data-dropdown-parent]')?.dataset.dropdownParent;
+    node = parentId ? document.getElementById(parentId) : null;
+  }
+  return false;
+}
+
 function resolvePortalStyle({
   trigger,
   panel,
@@ -219,7 +230,7 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
       const handlePointerDown = (event: PointerEvent) => {
         const target = event.target as Node | null;
         if (!target) return;
-        if (panelRef.current?.contains(target)) return;
+        if (panelRef.current && ownsTarget(panelRef.current, target)) return;
         if (triggerRef?.current?.contains(target)) return;
         closeFromDocument(false);
       };
@@ -371,6 +382,8 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
     if (!isMounted) return null;
 
     const ambient = workbenchAmbientPortalProps();
+    const trigger = triggerRef?.current ?? null;
+    const portalParentId = portal ? trigger?.closest('[data-gsap-dropdown]')?.id : undefined;
 
     const dropdown = (
       <div
@@ -380,6 +393,7 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
         ref={setRefs}
         role={role}
         data-gsap-dropdown
+        data-dropdown-parent={portalParentId}
         data-state={open ? 'open' : 'closed'}
         inert={!open}
         aria-hidden={!open || undefined}
@@ -396,10 +410,12 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
 
     if (portal && typeof document !== 'undefined') {
       const fullscreen = document.fullscreenElement;
+      // Body keeps fixed menus clear of ancestor overflow and transforms. Only a modal dialog's
+      // top layer would cover it, so menus inside a modal stay there.
       const owner =
-        fullscreen && fullscreen.contains(triggerRef?.current ?? null)
+        fullscreen && fullscreen.contains(trigger)
           ? fullscreen
-          : (triggerRef?.current?.closest('dialog[open]') ?? document.body);
+          : (trigger?.closest('dialog:modal') ?? document.body);
       return createPortal(dropdown, owner);
     }
 

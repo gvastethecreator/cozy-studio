@@ -67,6 +67,48 @@ describe('GsapDropdown Workbench Ambient', () => {
     }
   });
 
+  it('portals out of non-modal dialogs and keeps the parent open while a nested menu is used', () => {
+    function NestedMenus() {
+      const parentTrigger = useRef<HTMLButtonElement>(null);
+      const childTrigger = useRef<HTMLButtonElement>(null);
+      const [parentOpen, setParentOpen] = useState(true);
+      const [childOpen, setChildOpen] = useState(false);
+      return (
+        <dialog open>
+          <button ref={parentTrigger}>Workspaces</button>
+          <GsapDropdown
+            id="parent-menu"
+            open={parentOpen}
+            onOpenChange={setParentOpen}
+            triggerRef={parentTrigger}
+            aria-label="Parent"
+          >
+            <button ref={childTrigger} onClick={() => setChildOpen(true)}>
+              More
+            </button>
+            <GsapDropdown
+              open={childOpen}
+              onOpenChange={setChildOpen}
+              triggerRef={childTrigger}
+              portal
+              aria-label="Child"
+            >
+              <button role="menuitem">Delete</button>
+            </GsapDropdown>
+          </GsapDropdown>
+        </dialog>
+      );
+    }
+    render(<NestedMenus />);
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    expect(screen.getByRole('menu', { name: 'Child' }).parentElement).toBe(document.body);
+    fireEvent.pointerDown(screen.getByRole('menuitem', { name: 'Delete' }));
+    expect(screen.getByRole('menu', { name: 'Parent' }).dataset.state).toBe('open');
+    expect(screen.getByRole('menu', { name: 'Child' }).dataset.state).toBe('open');
+    fireEvent.pointerDown(document.body);
+    expect(document.getElementById('parent-menu')?.dataset.state).toBe('closed');
+  });
+
   it('focuses a dialog field after opening and restores the trigger on Escape', async () => {
     function DisplayOptions() {
       const triggerRef = useRef<HTMLButtonElement>(null);

@@ -139,16 +139,6 @@ export default defineConfig({
       typeCheck: true,
     },
   },
-  test: {
-    globals: true,
-    include: ['**/*.test.ts', '**/*.test.tsx'],
-    exclude: ['**/node_modules/**', '**/dist/**', '**/*.bun.test.ts'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json-summary', 'html'],
-      reportsDirectory: './coverage',
-    },
-  },
   staged: {
     '*.{ts,tsx,js,jsx,css,md,json}': 'vp check --fix',
   },

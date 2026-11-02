@@ -17,7 +17,13 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./scripts/vitest-browser-setup.ts'],
     include: ['**/*.test.ts', '**/*.test.tsx'],
-    exclude: ['**/node_modules/**', '**/dist/**', '**/.scratch/**', '**/*.bun.test.ts'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/.scratch/**',
+      '**/.claude/**',
+      '**/*.bun.test.ts',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'html'],

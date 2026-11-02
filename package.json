@@ -69,6 +69,7 @@
     "typecheck:environments": "bun run typecheck:web && bun run build:server && bun run typecheck:shared && bun run typecheck:scripts",
     "test": "bun run scripts/tooling-task.ts test",
     "test:unit": "bun run scripts/tooling-task.ts test:unit",
+    "test:bun": "bun run scripts/tooling-task.ts test:bun",
     "test:coverage": "bun run scripts/tooling-task.ts test:coverage",
     "build": "bun run scripts/tooling-task.ts build",
     "build:ui": "bun run scripts/tooling-task.ts build:ui",

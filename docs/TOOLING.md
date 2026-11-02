@@ -36,11 +36,7 @@ Use one validation level per integration. Each broader gate includes the narrowe
 
 ## Complete test pass
 
-`bun run test` and `validate` run the complete Vitest suite. Native Bun cases use `bun:sqlite` and are excluded from Vitest. For a complete test pass, also run:
-
-```bash
-bun test apps/local-server/src/imagePipeline.bun.test.ts apps/local-server/src/mcpRoutes.bun.test.ts
-```
+`bun run test` runs the complete Vitest suite. Native Bun cases use `bun:sqlite` and `Bun.Image` and are excluded from Vitest; `bun run test:bun` runs them. `validate` runs both.
 
 The UI build checks chunk budgets. Keep optional surfaces demand-loaded and preserve the 500,000-byte main-entry limit; a smaller entry alone does not prove faster startup.
 

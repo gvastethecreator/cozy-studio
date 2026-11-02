@@ -1,5 +1,4 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -64,17 +63,5 @@ describe('libraryAssetVariants', () => {
     const source = readHotPathSource('./libraryAssetVariants.ts');
     expect(source).not.toMatch(/from ['"]sharp['"]/);
     expect(source).toMatch(/encodeResizedWebpFromPath/);
-  });
-
-  it('encodes thumbs and references with Bun.Image', () => {
-    const bunTest = fileURLToPath(new URL('./imagePipeline.bun.test.ts', import.meta.url));
-    const result = spawnSync('bun', ['test', bunTest], {
-      cwd: path.resolve(fileURLToPath(new URL('../../../', import.meta.url))),
-      encoding: 'utf8',
-    });
-    if (result.status !== 0) {
-      throw new Error(result.stderr || result.stdout || 'bun test failed');
-    }
-    expect(`${result.stdout}\n${result.stderr}`).toMatch(/2 pass/);
   });
 });

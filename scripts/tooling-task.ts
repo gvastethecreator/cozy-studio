@@ -50,7 +50,12 @@ const UNIT_TEST_FILES = [
   'lib/workspaceIdbMigration.test.ts',
   'packages/shared/src/workspaceContracts.test.ts',
   'services/studio-api/api.test.ts',
-  'services/localGenerationRun.workspace.test.ts',
+];
+
+// Native Bun cases (bun:sqlite, Bun.Image) that Vitest excludes.
+const BUN_TEST_FILES = [
+  'apps/local-server/src/imagePipeline.bun.test.ts',
+  'apps/local-server/src/mcpRoutes.bun.test.ts',
 ];
 
 const FMT_THREADS = resolveToolThreads('OXFMT_THREADS', DEFAULT_MAX_OXC_THREADS);
@@ -127,6 +132,10 @@ const TASKS: Record<string, TaskDefinition> = {
       },
     ],
   },
+  'test:bun': {
+    description: 'Run the native Bun test files that Vitest excludes.',
+    steps: [{ label: 'Bun Test', command: 'bun', args: ['test', ...BUN_TEST_FILES] }],
+  },
   'test:coverage': {
     description: 'Run tests with coverage output.',
     steps: [
@@ -191,6 +200,7 @@ const TASKS: Record<string, TaskDefinition> = {
         command: 'bunx',
         args: ['vitest', 'run', '--maxWorkers', String(TEST_WORKERS)],
       },
+      { label: 'Bun Test', command: 'bun', args: ['test', ...BUN_TEST_FILES] },
       { label: 'UI Build', command: 'vp', args: ['build'], consoleMode: 'tail' },
       {
         label: 'UI Chunk Verify',

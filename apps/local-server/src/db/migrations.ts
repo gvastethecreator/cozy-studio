@@ -462,6 +462,35 @@ const DATABASE_MIGRATIONS = [
             AND collection.workspace_id <> COALESCE(image.workspace_id, 'default'))`);
     },
   },
+  {
+    version: 17,
+    name: 'settle-legacy-size-review-jobs',
+    migrate(database: Database) {
+      // Builds from 2026-10-07 to 2026-10-26 saved the image and then held the job in
+      // needs_review for a size or aspect difference. The current finalizer completes such a job
+      // and records an asset.dimensions.info notice; apply that rule to the old rows.
+      // Only that finalizer wrote actualSize on a job.needs_review event. Images are not touched.
+      const legacyEvent = `SELECT MAX(e.id) FROM job_events e
+        WHERE e.job_id = jobs.id AND e.type = 'job.needs_review'
+          AND json_extract(CASE WHEN json_valid(e.metadata) THEN e.metadata ELSE '{}' END,
+            '$.actualSize') IS NOT NULL`;
+      const legacyJob = `jobs.status = 'needs_review' AND jobs.finalization_state = 'completed'
+        AND jobs.finalization_catalog_id IS NOT NULL AND (${legacyEvent}) IS NOT NULL`;
+      // Insert first: the job predicate reads the status that the update changes.
+      database.run(`INSERT INTO job_events (job_id, type, message, metadata, created_at)
+        SELECT jobs.id, 'asset.dimensions.info',
+          'Requested image size ' || COALESCE(json_extract(e.metadata, '$.requestedSize'), 'unknown')
+            || '; provider returned ' || json_extract(e.metadata, '$.actualSize')
+            || '. Original dimensions preserved.',
+          e.metadata, e.created_at
+        FROM jobs JOIN job_events e ON e.id = (${legacyEvent})
+        WHERE ${legacyJob}`);
+      // Keep updated_at: the Queue "clear list" filters compare with it.
+      database.run(`UPDATE jobs SET status = 'completed', error = NULL,
+        completed_at = COALESCE(completed_at, updated_at)
+        WHERE ${legacyJob}`);
+    },
+  },
 ] as const;
 
 function backfillJobOperationalColumns(database: Database) {

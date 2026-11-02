@@ -18,6 +18,7 @@ import {
   deleteWorkspace as deleteWorkspaceApi,
   updateWorkspace as updateWorkspaceApi,
 } from '../services/studio-api/workspaces';
+import { CATALOG_WORKSPACE_SEEN } from '../services/studio-api/catalog';
 import {
   loadDurableWorkspacesFromApi,
   migrateIndexedDbWorkspacesToServer,
@@ -194,6 +195,17 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
       cancelled = true;
     };
   }, [retryVersion]);
+
+  // An agent can create a workspace while this window is open; reload the list when one appears.
+  useEffect(() => {
+    const onWorkspaceSeen = (event: Event) => {
+      const workspaceId = (event as CustomEvent<string>).detail;
+      if (!state.workspaces.some((workspace) => workspace.id === workspaceId))
+        setRetryVersion((version) => version + 1);
+    };
+    window.addEventListener(CATALOG_WORKSPACE_SEEN, onWorkspaceSeen);
+    return () => window.removeEventListener(CATALOG_WORKSPACE_SEEN, onWorkspaceSeen);
+  }, [state.workspaces]);
 
   useEffect(() => {
     if (!isHydrated) return;

@@ -129,6 +129,9 @@ export function notifyCatalogOrganizationChanged() {
   window.dispatchEvent(new Event(CATALOG_ORGANIZATION_CHANGED));
 }
 
+/** A `CustomEvent<string>` with the workspace id of a new Catalog Entry. */
+export const CATALOG_WORKSPACE_SEEN = 'studio:catalog-workspace-seen';
+
 export function listCatalogTags(workspaceId: string) {
   return request<CatalogTag[]>(
     `/api/catalog/tags?${new URLSearchParams({ workspace_id: workspaceId })}`,

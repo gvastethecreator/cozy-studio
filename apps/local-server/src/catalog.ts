@@ -8,6 +8,7 @@ import { ensureDefaultLibrary, getLibrary } from './libraries';
 import { resolveLibraryPathFromRoot, toPublicAssetUrl } from './library';
 import { buildCatalogWorkspaceClause } from './catalogWorkspaceClause';
 import { recordCatalogTagUse } from './catalogTags';
+import { addImageToNamedCollection } from './catalogCollections';
 import { MAX_CATALOG_TAGS, parseCatalogSearch } from '../../../packages/shared/src/catalogTags';
 import type {
   CatalogCommandFilter,
@@ -165,6 +166,8 @@ export function registerCatalogImage(
     batchId?: string | null;
     recipeId?: string | null;
     tags?: string[];
+    /** Collection of the image's workspace to join, created if missing. */
+    collectionName?: string | null;
     generationConfig?: Record<string, unknown> | null;
   },
   db?: Database,
@@ -185,39 +188,52 @@ export function registerCatalogImage(
           : libraryContext,
       )
     : null;
-  database
-    .query(`
-      INSERT INTO catalog_images (
-        id, library_id, file_path, thumbnail_path, public_url, thumbnail_url,
-        prompt, negative_prompt, aspect_ratio, image_size, width, height, mime_type,
-        file_size_bytes, job_id, workspace_id, batch_id, recipe_id, tags, generation_config, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
-    .run(
-      id,
-      library.id,
-      input.filePath,
-      input.thumbnailPath ?? null,
-      publicUrl,
-      thumbnailUrl,
-      input.prompt ?? null,
-      input.negativePrompt ?? null,
-      input.aspectRatio ?? null,
-      input.imageSize ?? null,
-      input.width ?? null,
-      input.height ?? null,
-      input.mimeType,
-      input.fileSizeBytes ?? null,
-      input.jobId ?? null,
-      input.workspaceId ?? null,
-      input.batchId ?? null,
-      input.recipeId ?? null,
-      JSON.stringify(input.tags ?? []),
-      input.generationConfig === undefined ? null : JSON.stringify(input.generationConfig),
-      createdAt,
-    );
-  recordCatalogTagUse(input.workspaceId ?? 'default', input.tags ?? [], database);
-  return getCatalogImage(id, database)!;
+  const workspaceId = input.workspaceId ?? 'default';
+  // The row, its tags and its collection membership commit together, so a resumed
+  // finalization that finds the row never needs to file it again.
+  return database.transaction(() => {
+    database
+      .query(`
+        INSERT INTO catalog_images (
+          id, library_id, file_path, thumbnail_path, public_url, thumbnail_url,
+          prompt, negative_prompt, aspect_ratio, image_size, width, height, mime_type,
+          file_size_bytes, job_id, workspace_id, batch_id, recipe_id, tags, generation_config, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `)
+      .run(
+        id,
+        library.id,
+        input.filePath,
+        input.thumbnailPath ?? null,
+        publicUrl,
+        thumbnailUrl,
+        input.prompt ?? null,
+        input.negativePrompt ?? null,
+        input.aspectRatio ?? null,
+        input.imageSize ?? null,
+        input.width ?? null,
+        input.height ?? null,
+        input.mimeType,
+        input.fileSizeBytes ?? null,
+        input.jobId ?? null,
+        input.workspaceId ?? null,
+        input.batchId ?? null,
+        input.recipeId ?? null,
+        JSON.stringify(input.tags ?? []),
+        input.generationConfig === undefined ? null : JSON.stringify(input.generationConfig),
+        createdAt,
+      );
+    recordCatalogTagUse(workspaceId, input.tags ?? [], database);
+    if (input.collectionName) {
+      addImageToNamedCollection(database, {
+        imageId: id,
+        workspaceId,
+        name: input.collectionName,
+        timestamp: createdAt,
+      });
+    }
+    return getCatalogImage(id, database)!;
+  })();
 }
 
 export function getCatalogImage(id: string, db?: Database) {

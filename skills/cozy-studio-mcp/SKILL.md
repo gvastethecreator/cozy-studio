@@ -20,7 +20,7 @@ This checkout ships the server. `.mcp.json` and `.cursor/mcp.json` register `coz
    - For a local image, use `studio_import_reference_file` with `{requestId, path, name?}`. The path must be absolute and inside **Allowed import folders** saved by the user in the same Settings section. An empty list disables this tool. Do not broaden folder permissions yourself. Studio rejects parent traversal, symlink or junction escapes, non-images and files over 8 MiB or 40 million pixels.
    - Use `studio_import_reference` with `{requestId, name, mimeType, base64, sha256}` only when you already have bounded image bytes. That tool accepts no filesystem path. Prefer the file tool for local images so image bytes do not pass through the model.
    - Both imports store WebP at up to 2048 pixels per side and preserve alpha. Small or transparent images use lossless encoding; larger opaque images use quality 90. The source stays unchanged. Use a stable `reference-` request ID. Keep the same content and name after an uncertain import. The result includes the source `sha256`, `storedSha256` and a catalog ID. Use `catalogImageId` in `studio_generate.referenceIds`; paths are not generation inputs.
-   - Use a fresh `batch-` request ID. After a timeout, retry that same ID and the same input. Pass catalog image IDs as references.
+   - Use a fresh `batch-` request ID. After a timeout, retry that same ID and the same input. Pass catalog image IDs as references. File every generation: `workspaceId` or `workspaceName`, plus `tags` and `collection`, reusing names from `studio_workspaces` with `workspaceId`.
    - Done when the call used a tool from `docs/agents/mcp.md` and a retry kept the same request ID.
 
 3. Set up and maintain Studio.

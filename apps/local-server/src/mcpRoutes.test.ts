@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { Hono } from 'hono';
 import { createDefaultEditableStudioSettings } from '../../../packages/shared/src/studioSettings';
@@ -7,21 +8,34 @@ describe('Studio MCP boundary', () => {
   it('enforces live access, validates arguments and routes generation through persistent intake', async () => {
     const settings = createDefaultEditableStudioSettings();
     const requests: { path: string; body: unknown }[] = [];
+    const workspaces = [{ id: 'default', name: 'Default' }];
     const app = new Hono().route(
       '/api/mcp',
       createMcpRoutes({
         readSettings: () => settings,
         request: async (path, init) => {
-          requests.push({
-            path,
-            body: typeof init?.body === 'string' ? JSON.parse(init.body) : null,
-          });
+          const body = typeof init?.body === 'string' ? JSON.parse(init.body) : null;
+          requests.push({ path, body });
           if (path === '/api/catalog/reference-1')
             return Response.json({
               id: 'reference-1',
               filePath: '/managed/reference.png',
               isDeleted: false,
             });
+          if (path === '/api/workspaces')
+            return init?.method === 'POST'
+              ? Response.json(workspaces[workspaces.push(body) - 1], { status: 201 })
+              : Response.json(workspaces);
+          if (path.startsWith('/api/workspaces/')) {
+            const workspace = workspaces.find(({ id }) => path.endsWith(`/${id}`));
+            return Response.json(workspace ?? { error: 'Workspace not found' }, {
+              status: workspace ? 200 : 404,
+            });
+          }
+          if (path === '/api/catalog/tags?workspace_id=default')
+            return Response.json([
+              { name: 'cover', color: null, imageCount: 2, lastUsedAt: '2026-11-01' },
+            ]);
           return Response.json({ ok: true });
         },
       }),
@@ -38,6 +52,9 @@ describe('Studio MCP boundary', () => {
       task: 'image_edit',
       count: 2,
       referenceIds: ['reference-1'],
+      workspaceId: 'default',
+      tags: ['#Cover', 'cover', 'forest'],
+      collection: 'Covers',
     };
     const denied = await call('studio_generate', input);
     expect(denied.status).toBe(403);
@@ -62,22 +79,63 @@ describe('Studio MCP boundary', () => {
       (await call('studio_extension_json', { extensionId: 'test', path: '../secret.json' })).status,
     ).toBe(400);
     expect((await call('studio_generate', { ...input, recipeId: 'missing' })).status).toBe(400);
+    const { workspaceId: _workspaceId, ...withoutWorkspace } = input;
+    const { tags: _tags, ...withoutTags } = input;
+    for (const rejected of [
+      withoutTags,
+      withoutWorkspace,
+      { ...input, workspaceName: 'Comic' },
+      { ...input, workspaceId: 'missing' },
+      { ...input, recipeId: 'sprite-atlas' },
+      { ...input, recipeParams: { selectedStyles: [] } },
+    ])
+      expect((await call('studio_generate', rejected)).status).toBe(400);
+    expect(requests.some(({ path }) => path === '/api/jobs/batches')).toBe(false);
     expect((await call('studio_generate', input)).status).toBe(200);
     const accepted = requests.at(-1);
     expect(accepted?.path).toBe('/api/jobs/batches');
+    const filed = {
+      workspaceId: 'default',
+      sourceSpec: {
+        metadata: { libraryOrganization: { tags: ['cover', 'forest'], collection: 'Covers' } },
+      },
+    };
     expect(accepted?.body).toMatchObject({
       requestId: input.requestId,
       items: [
         {
           providerId: 'chatgpt',
           kind: 'image_edit',
-          sourceSpec: { assets: [{ localPath: '/managed/reference.png' }] },
+          ...filed,
+          sourceSpec: { ...filed.sourceSpec, assets: [{ localPath: '/managed/reference.png' }] },
         },
-        { providerId: 'chatgpt', kind: 'image_edit' },
+        { providerId: 'chatgpt', kind: 'image_edit', ...filed },
       ],
     });
     await call('studio_generate', input);
     expect(requests.at(-1)).toEqual(accepted);
+
+    // A new workspace gets an id derived from its name, so a replay sends the same batch.
+    const named = {
+      ...withoutWorkspace,
+      requestId: 'batch-mcp-named',
+      workspaceName: 'Comic Book',
+    };
+    const namedId = `ws-${createHash('sha256').update('comic book').digest('hex').slice(0, 12)}`;
+    await call('studio_generate', named);
+    const namedBatch = requests.at(-1);
+    await call('studio_generate', named);
+    expect(requests.at(-1)).toEqual(namedBatch);
+    expect(requests.filter(({ path, body }) => path === '/api/workspaces' && body)).toHaveLength(1);
+    expect(workspaces.at(-1)).toEqual({ id: namedId, name: 'Comic Book' });
+    expect(namedBatch?.body).toMatchObject({ items: [{ workspaceId: namedId }, {}] });
+
+    expect(await (await call('studio_workspaces', { workspaceId: 'default' })).json()).toEqual({
+      workspace: { id: 'default', name: 'Default' },
+      tags: [{ name: 'cover', color: null, imageCount: 2 }],
+      collections: [],
+    });
+    expect((await call('studio_workspaces', { workspaceId: 'missing' })).status).toBe(400);
     expect((await call('studio_cancel', { jobId: 'job-1' })).status).toBe(200);
     expect(requests.at(-1)?.path).toBe('/api/jobs/job-1/cancel');
     settings.mcpAccess = 'off';

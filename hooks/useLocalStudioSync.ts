@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useReducer, useMemo, useRef } from 'react';
+import {
+  CATALOG_WORKSPACE_SEEN,
+  notifyCatalogOrganizationChanged,
+} from '../services/studio-api/catalog';
 import { listStudioJobs } from '../services/studio-api/jobs';
 import { listStudioLogs } from '../services/studio-api/logs';
 import {
@@ -110,6 +114,8 @@ export function useLocalStudioSync({
     // always receives fresh, non-disposed instances.
     const catalogRefreshPolicy = createCatalogEventRefreshPolicy({
       refreshCatalog: async (scope) => {
+        // Agents file new images into tags and collections, so those menus refresh too.
+        notifyCatalogOrganizationChanged();
         await onCatalogChanged?.(scope);
       },
     });
@@ -129,6 +135,11 @@ export function useLocalStudioSync({
       refreshPolicy.onAssetAdded();
     });
     const unsubscribeCatalog = stream.onCatalogChanged((event) => {
+      // An agent can generate into a workspace this window has not loaded yet.
+      if (event.type === 'catalog.created' && event.image.workspaceId)
+        window.dispatchEvent(
+          new CustomEvent(CATALOG_WORKSPACE_SEEN, { detail: event.image.workspaceId }),
+        );
       catalogRefreshPolicy.request(
         event.type === 'catalog.batch_changed'
           ? { kind: 'all' }

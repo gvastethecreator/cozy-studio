@@ -1,3 +1,6 @@
+import { normalizeImageHashtag, validateCatalogTags } from './catalogTags';
+import { isRecord } from './types';
+
 export const MAX_CATALOG_COLLECTION_NAME = 80;
 export const MAX_CATALOG_COLLECTION_IMAGES = 2000;
 const emojiSegmenter = new Intl.Segmenter();
@@ -56,6 +59,22 @@ export function validateCatalogCollectionName(value: unknown): string {
     throw new Error('Collection name cannot include control characters.');
   }
   return name;
+}
+
+/** Tags and a collection that Studio applies to each Catalog Entry of a generation as it is saved. */
+export interface LibraryOrganization {
+  tags: string[];
+  collection: string | null;
+}
+
+/** Throws on invalid input. Returns null when nothing is requested. */
+export function parseLibraryOrganization(value: unknown): LibraryOrganization | null {
+  if (value == null) return null;
+  if (!isRecord(value)) throw new Error('Library organization must be an object.');
+  const tags = [...new Set(validateCatalogTags(value.tags ?? []).map(normalizeImageHashtag))];
+  const collection =
+    value.collection == null ? null : validateCatalogCollectionName(value.collection);
+  return tags.length || collection ? { tags, collection } : null;
 }
 
 export function validateCatalogCollectionImageIds(value: unknown): string[] {

@@ -159,6 +159,45 @@ export function createCatalogCollection(
   return created;
 }
 
+/**
+ * Finds or creates a collection by name in the image's workspace and adds the image. It never
+ * throws for a missing collection or workspace, because it runs after the asset file has moved.
+ */
+export function addImageToNamedCollection(
+  database: Database,
+  input: { imageId: string; workspaceId: string; name: string; timestamp: string },
+) {
+  const { imageId, workspaceId, name, timestamp } = input;
+  // The unique (workspace_id, name NOCASE) index makes this a race-free find-or-create. Without a
+  // workspace row (deleted mid-batch) no collection is created.
+  database
+    .query(
+      `INSERT OR IGNORE INTO catalog_collections (id, workspace_id, name, emoji, last_used_at, created_at, updated_at)
+       SELECT ?, ?, ?, NULL, ?, ?, ? WHERE EXISTS (SELECT 1 FROM workspaces WHERE id = ?)`,
+    )
+    .run(
+      `collection-${randomUUID()}`,
+      workspaceId,
+      name,
+      timestamp,
+      timestamp,
+      timestamp,
+      workspaceId,
+    );
+  database
+    .query(
+      `INSERT OR IGNORE INTO catalog_collection_images (collection_id, image_id, added_at)
+       SELECT id, ?, ? FROM catalog_collections WHERE workspace_id = ? AND name = ? COLLATE NOCASE`,
+    )
+    .run(imageId, timestamp, workspaceId, name);
+  database
+    .query(
+      `UPDATE catalog_collections SET last_used_at = ?, updated_at = ?
+       WHERE workspace_id = ? AND name = ? COLLATE NOCASE`,
+    )
+    .run(timestamp, timestamp, workspaceId, name);
+}
+
 export function updateCatalogCollection(id: string, patch: CatalogCollectionPatch, db?: Database) {
   const database = getDb(db);
   return database.transaction(() => {

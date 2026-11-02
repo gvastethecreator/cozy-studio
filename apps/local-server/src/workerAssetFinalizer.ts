@@ -266,6 +266,8 @@ export function createWorkerAssetFinalizer({
               workspaceId: catalogContext.workspaceId,
               batchId: catalogContext.batchId,
               recipeId: parsedPrompt.recipeId,
+              tags: catalogContext.organization?.tags,
+              collectionName: catalogContext.organization?.collection ?? null,
               generationConfig: resolveCatalogGenerationConfig(job),
             });
           updateJobFinalization(job.id, {

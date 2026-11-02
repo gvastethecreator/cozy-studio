@@ -32,16 +32,18 @@ describe('resolveJobCatalogContext', () => {
       metadata: {
         workspaceId: 'concepts',
         batchId: 'batch-9',
+        libraryOrganization: { tags: ['#Cover', 'cover'], collection: ' Covers ' },
       },
     });
 
     expect(resolveJobCatalogContext(job({ sourceSpec }))).toEqual({
       workspaceId: 'concepts',
       batchId: 'batch-9',
+      organization: { tags: ['cover'], collection: 'Covers' },
     });
   });
 
-  it('falls back to the default workspace when metadata is absent or blank', () => {
+  it('falls back to the default workspace and no filing when metadata is absent or malformed', () => {
     const sourceSpec = createGenerationTaskSpec({
       id: 'spec-1',
       task: 'image_generate',
@@ -49,6 +51,7 @@ describe('resolveJobCatalogContext', () => {
       metadata: {
         workspaceId: '   ',
         batchId: 42,
+        libraryOrganization: { tags: 'cover' },
       },
     });
 

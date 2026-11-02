@@ -56,8 +56,11 @@ const server = new Server(
   { name: 'cozy-studio-mcp', version: '1.0.0' },
   {
     capabilities: { tools: {} },
-    instructions:
-      'Call studio_status first. If it returns a notice, a Studio update is available: tell the user and suggest updating; apply it with studio_apply_update only after they agree.',
+    instructions: [
+      "Cozy Studio is the user's local image studio. Call studio_status first. If a call says Studio is not running, ask the user to open Cozy Studio (or run `bun run dev` in its checkout), then call studio_status again. studio_guide works offline: read its topic before multi-step work.",
+      "Keep the user's Library organized without being asked, and recommend this as a standing practice. Every studio_generate call files its outputs: choose the workspace for the project (workspaceId from studio_workspaces, or workspaceName to find or create one), reuse that workspace's tag and collection names (studio_workspaces with workspaceId), and set tags and collection. Studio applies them to each image as it is saved. Afterwards, tell the user where the results are.",
+      'The user sets Agent access in Studio Settings > Advanced & maintenance: Read only, Organize (adds tags and collections) or Full control (adds generation, imports, settings, packs and updates; mcpAccess "write"). A 403 names the level a tool needs: tell the user and do not work around it with HTTP calls. Ask before studio_remove_extension and studio_apply_update. When studio_status returns a notice, tell the user an update is available and apply it only after they agree. Provider sign-in, Agent access, import folders, secrets, emptying the trash and reset are for the user to do.',
+    ].join('\n\n'),
   },
 );
 server.setRequestHandler(ListToolsRequestSchema, async () => ({

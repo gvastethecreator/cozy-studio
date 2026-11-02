@@ -11,6 +11,7 @@ import {
   resolveCodexExecutionPolicy,
   resolveChatgptExecutionPolicy,
 } from '../../../packages/shared/src/codexExecutionContract';
+import { parseLibraryOrganization } from '../../../packages/shared/src/catalogCollections';
 import { collectGrokImagineJobIssues } from '../../../packages/shared/src/grokImagineContract';
 import { createDefaultEditableStudioSettings } from '../../../packages/shared/src/studioSettings';
 import { findWorkflowModuleForRecipe } from '../../../packages/shared/src/workflowModules';
@@ -220,6 +221,27 @@ export function createPersistentJobIntake({
     let sourceSpec = createSourceSpecDraft(request.sourceSpec, providerId);
     if (sourceSpec) {
       sourceSpec = withWorkspaceMetadata(sourceSpec, workspaceId) ?? sourceSpec;
+      // Metadata keys are not checked by the task spec validator, so filing is checked here.
+      if (Object.hasOwn(sourceSpec.metadata, 'libraryOrganization')) {
+        try {
+          const libraryOrganization = parseLibraryOrganization(
+            sourceSpec.metadata.libraryOrganization,
+          );
+          sourceSpec = { ...sourceSpec, metadata: { ...sourceSpec.metadata, libraryOrganization } };
+        } catch (error) {
+          return {
+            ok: false,
+            error: {
+              status: 400,
+              body: {
+                error: error instanceof Error ? error.message : 'Invalid library organization',
+                code: 'invalid_library_organization',
+                field: 'sourceSpec.metadata.libraryOrganization',
+              },
+            },
+          };
+        }
+      }
     }
     if (sourceSpec) {
       const structuralValidationError = createValidationErrorResponse(sourceSpec, providerId, {

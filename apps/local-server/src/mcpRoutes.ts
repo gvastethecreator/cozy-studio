@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { DEFAULT_GENERATION_CONFIG } from '../../../constants';
@@ -13,10 +14,145 @@ import {
   type StudioReferenceFileImportInput,
   type StudioReferenceImportResult,
 } from '../../../packages/shared/src/studioMcp';
+import {
+  parseLibraryOrganization,
+  type CatalogCollection,
+  type LibraryOrganization,
+} from '../../../packages/shared/src/catalogCollections';
+import type { CatalogTag } from '../../../packages/shared/src/catalogTags';
 import type { EditableStudioSettings } from '../../../packages/shared/src/studioSettings';
 import type { CatalogImage } from '../../../packages/shared/src/types';
+import type { StudioWorkspace } from '../../../packages/shared/src/workspaceContracts';
 import type { ImageGenerationConfig, Attachment } from '../../../types';
 import { ReferenceImportConflictError } from './referenceImport';
+
+type GenerateInput = ReturnType<typeof studioMcpTools.studio_generate.schema.parse>;
+type HttpCall = (path: string, payload?: unknown) => Promise<Response>;
+
+// Their runs coordinate many frames in the Studio UI (D6).
+const UI_ONLY_RECIPES = new Set(['sprite-atlas', 'animation-sequence']);
+// lib/recipeModules/styles.ts trusts these recipeParams as an already compiled style plan.
+const COMPILED_STYLE_FIELDS = [
+  'compilerVersion',
+  'styleRequestHash',
+  'effectivePrompt',
+  'selectedStyles',
+  'selectedStyleDraft',
+];
+
+/** A name maps to one id, so a timeout retry keeps its batch hash even after a rename. */
+function workspaceIdForName(name: string) {
+  return `ws-${createHash('sha256').update(name.toLowerCase()).digest('hex').slice(0, 12)}`;
+}
+
+/** Checks a studio_generate input and returns its batch items, or the 400 body. */
+async function buildGenerationRequest(
+  input: GenerateInput,
+  { get, post }: { get: HttpCall; post: HttpCall },
+): Promise<{ error: string; imageId?: string } | { items: Record<string, unknown>[] }> {
+  if (!input.workspaceId === !input.workspaceName)
+    return {
+      error:
+        'Set workspaceId (an existing workspace) or workspaceName (find or create by name), not both.',
+    };
+  const recipe = input.recipeId
+    ? RECIPE_DISCOVERY_CATALOG.find((entry) => entry.id === input.recipeId)
+    : null;
+  if (input.recipeId && !recipe) return { error: 'Unknown recipe. Use studio_recipes.' };
+  if (recipe && UI_ONLY_RECIPES.has(recipe.targetRecipeId))
+    return {
+      error:
+        'This workflow needs its run in the Studio UI (Workflows). studio_generate makes single images.',
+    };
+  if (COMPILED_STYLE_FIELDS.some((key) => Object.hasOwn(input.recipeParams ?? {}, key)))
+    return { error: 'Compiled style fields are not accepted in recipeParams.' };
+  // Normalized before hashing, so #Cover and cover give the same batch.
+  let libraryOrganization: LibraryOrganization | null;
+  try {
+    libraryOrganization = parseLibraryOrganization({
+      tags: input.tags,
+      collection: input.collection,
+    });
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Invalid library organization' };
+  }
+  const attachments: Attachment[] = [];
+  for (const imageId of input.referenceIds) {
+    const response = await get(`/api/catalog/${imageId}`);
+    if (!response.ok) return { error: 'Catalog reference not found', imageId };
+    const image = (await response.json()) as CatalogImage;
+    if (image.isDeleted || image.sourceExists === false)
+      return { error: 'Catalog reference is unavailable', imageId };
+    attachments.push({
+      id: image.id,
+      name: image.id,
+      dataUrl: '',
+      localPath: image.filePath,
+      strength: 1,
+    });
+  }
+  let sourceSpec: ReturnType<typeof buildGenerationTaskSpecFromRecipe>;
+  try {
+    const config: ImageGenerationConfig = {
+      ...DEFAULT_GENERATION_CONFIG,
+      prompt: input.prompt,
+      negativePrompt: input.negativePrompt,
+      recipeId: recipe?.targetRecipeId ?? null,
+      recipeParams: recipe
+        ? { ...recipe.defaultParams, ...input.recipeParams }
+        : input.recipeParams,
+      attachments,
+      aspectRatio: input.aspectRatio,
+      imageSize: input.imageSize,
+      batchCount: 1,
+    };
+    sourceSpec = buildGenerationTaskSpecFromRecipe({
+      id: input.requestId,
+      providerId: input.providerId,
+      task: input.task,
+      config,
+    });
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Invalid generation recipe' };
+  }
+  // The normal intake resolves execution defaults from Studio Settings.
+  delete sourceSpec.metadata.execution;
+  if (libraryOrganization) sourceSpec.metadata.libraryOrganization = libraryOrganization;
+
+  // The workspace is resolved last, so a rejected request creates no workspace.
+  let workspaceId = input.workspaceId;
+  if (workspaceId) {
+    if ((await get(`/api/workspaces/${workspaceId}`)).status === 404)
+      return {
+        error: 'Unknown workspaceId. Use studio_workspaces, or workspaceName to create one.',
+      };
+  } else {
+    const name = input.workspaceName!;
+    const listed: unknown = await get('/api/workspaces')
+      .then((response) => response.json())
+      .catch(() => null);
+    workspaceId = (Array.isArray(listed) ? (listed as StudioWorkspace[]) : []).find(
+      (workspace) =>
+        String(workspace?.name ?? '')
+          .trim()
+          .toLowerCase() === name.toLowerCase(),
+    )?.id;
+    if (!workspaceId) {
+      workspaceId = workspaceIdForName(name);
+      // Idempotent by id: an existing workspace with this id is returned unchanged.
+      if (!(await post('/api/workspaces', { id: workspaceId, name })).ok)
+        return { error: 'Could not create the workspace.' };
+    }
+  }
+  return {
+    items: Array.from({ length: input.count }, () => ({
+      workspaceId,
+      providerId: input.providerId,
+      kind: sourceSpec.task,
+      sourceSpec,
+    })),
+  };
+}
 
 interface Dependencies {
   request: (path: string, init?: RequestInit) => Promise<Response>;
@@ -118,8 +254,28 @@ export function createMcpRoutes({
         return get('/api/providers');
       case 'studio_recipes':
         return c.json({ recipes: RECIPE_DISCOVERY_CATALOG });
-      case 'studio_workspaces':
-        return get('/api/workspaces');
+      case 'studio_workspaces': {
+        const { workspaceId } = studioMcpTools.studio_workspaces.schema.parse(args);
+        if (!workspaceId) return get('/api/workspaces');
+        const list = <T>(path: string) =>
+          readJson(path).then((value: unknown) => (Array.isArray(value) ? (value as T[]) : []));
+        const [workspace, tags, collections] = await Promise.all([
+          get(`/api/workspaces/${workspaceId}`),
+          list<CatalogTag>(`/api/catalog/tags?workspace_id=${workspaceId}`),
+          list<CatalogCollection>(`/api/catalog/collections?workspace_id=${workspaceId}`),
+        ]);
+        if (workspace.status === 404) return c.json({ error: 'Unknown workspaceId.' }, 400);
+        return c.json({
+          workspace: await workspace.json(),
+          tags: tags.map(({ name, color, imageCount }) => ({ name, color, imageCount })),
+          collections: collections.map(({ id, name, emoji, imageCount }) => ({
+            id,
+            name,
+            emoji,
+            imageCount,
+          })),
+        });
+      }
       case 'studio_extensions':
         return get('/api/extensions');
       case 'studio_extension_json':
@@ -138,61 +294,9 @@ export function createMcpRoutes({
         return post(`/api/jobs/${String(args.jobId)}/cancel`);
       case 'studio_generate': {
         const input = studioMcpTools.studio_generate.schema.parse(args);
-        const recipe = input.recipeId
-          ? RECIPE_DISCOVERY_CATALOG.find((entry) => entry.id === input.recipeId)
-          : null;
-        if (input.recipeId && !recipe)
-          return c.json({ error: 'Unknown recipe. Use studio_recipes.' }, 400);
-        const attachments: Attachment[] = [];
-        for (const imageId of input.referenceIds) {
-          const response = await get(`/api/catalog/${imageId}`);
-          if (!response.ok) return c.json({ error: 'Catalog reference not found', imageId }, 400);
-          const image = (await response.json()) as CatalogImage;
-          if (image.isDeleted || image.sourceExists === false)
-            return c.json({ error: 'Catalog reference is unavailable', imageId }, 400);
-          attachments.push({
-            id: image.id,
-            name: image.id,
-            dataUrl: '',
-            localPath: image.filePath,
-            strength: 1,
-          });
-        }
-        try {
-          const config: ImageGenerationConfig = {
-            ...DEFAULT_GENERATION_CONFIG,
-            prompt: input.prompt,
-            negativePrompt: input.negativePrompt,
-            recipeId: recipe?.targetRecipeId ?? null,
-            recipeParams: recipe
-              ? { ...recipe.defaultParams, ...input.recipeParams }
-              : input.recipeParams,
-            attachments,
-            aspectRatio: input.aspectRatio,
-            imageSize: input.imageSize,
-            batchCount: 1,
-          };
-          const sourceSpec = buildGenerationTaskSpecFromRecipe({
-            id: input.requestId,
-            providerId: input.providerId,
-            task: input.task,
-            config,
-          });
-          // The normal intake resolves execution defaults from Studio Settings.
-          delete sourceSpec.metadata.execution;
-          const items = Array.from({ length: input.count }, () => ({
-            workspaceId: input.workspaceId,
-            providerId: input.providerId,
-            kind: sourceSpec.task,
-            sourceSpec,
-          }));
-          return post('/api/jobs/batches', { requestId: input.requestId, items });
-        } catch (error) {
-          return c.json(
-            { error: error instanceof Error ? error.message : 'Invalid generation recipe' },
-            400,
-          );
-        }
+        const built = await buildGenerationRequest(input, { get, post });
+        if ('error' in built) return c.json(built, 400);
+        return post('/api/jobs/batches', { requestId: input.requestId, items: built.items });
       }
       case 'studio_import_reference': {
         if (!importReference) return c.json({ error: 'Reference import is unavailable.' }, 400);

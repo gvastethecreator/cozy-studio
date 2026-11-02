@@ -70,7 +70,34 @@ export const generationInput = z.strictObject({
     .enum(['image_generate', 'image_edit', 'style_preset_card', 'sprite_sheet', 'texture_generate'])
     .optional(),
   prompt: z.string().min(1).max(32000),
-  workspaceId: id.optional(),
+  // The handler checks "exactly one workspace field": JSON Schema export drops refinements.
+  workspaceId: id
+    .optional()
+    .describe(
+      'Existing workspace for this project, from studio_workspaces. Use workspaceName instead to find or create one by name.',
+    ),
+  workspaceName: z
+    .string()
+    .trim()
+    .min(1)
+    .max(80)
+    .optional()
+    .describe('Project name. Studio uses the workspace with this name, or creates it.'),
+  tags: z
+    .array(z.string().min(1).max(64))
+    .max(8)
+    .describe(
+      '2-5 lowercase hashtags put on every output: subject, project, variant (for example cover, neon-city, cmp-ink). Reuse names from studio_workspaces. [] only if the user asked for no tags.',
+    ),
+  collection: z
+    .string()
+    .trim()
+    .min(1)
+    .max(80)
+    .nullable()
+    .describe(
+      'Collection in that workspace that every output joins; created if missing. null only for a one-off the user does not want collected.',
+    ),
   providerId: z.string().min(1).max(100).default('chatgpt'),
   recipeId: z.string().min(1).max(100).optional(),
   recipeParams: z.record(z.string(), z.json()).optional(),
@@ -138,8 +165,9 @@ export const studioMcpTools = {
   },
   studio_workspaces: {
     access: 'read',
-    description: 'List existing Studio workspaces.',
-    schema: empty,
+    description:
+      "List Studio workspaces. With workspaceId, also return that workspace's tags and collections with image counts. Reuse these names when you generate.",
+    schema: z.strictObject({ workspaceId: id.optional() }),
   },
   studio_extensions: {
     access: 'read',
@@ -177,7 +205,8 @@ export const studioMcpTools = {
   },
   studio_batch: {
     access: 'read',
-    description: 'Read a persistent generation batch and its jobs.',
+    description:
+      "Read a generation batch: status counts and each job's status and error. Completed images are already in the Library, filed in the batch's workspace with the tags and collection given to studio_generate; list them with studio_catalog batch_id.",
     schema: z.strictObject({ batchId: id }),
   },
   studio_catalog: {
@@ -197,7 +226,7 @@ export const studioMcpTools = {
   studio_generate: {
     access: 'write',
     description:
-      'Queue recipe-based image generation or editing using catalog references. Defaults to ChatGPT. Needs Full control access. Reuse the same batch- requestId and identical input after a timeout; never create a new ID just to retry. Returns a batch to poll with studio_batch. Generation may consume provider usage.',
+      "Queue image generation or editing (1-16 jobs) and file every output in the Library as it is saved. Filing is required: workspaceId (an existing workspace) or workspaceName (finds a workspace by name or creates it), tags (2-5 lowercase hashtags for subject, project and variant; [] only if the user asked for no tags) and collection (the project or set name, created if missing; null only for a one-off the user does not want collected). Reuse names from studio_workspaces with workspaceId. Uses the user's provider account and needs Full control access. providerId defaults to chatgpt, not the Settings default. After a timeout, retry with the same batch- requestId and identical input; never invent a new ID to retry. Poll studio_batch.",
     schema: generationInput.extend({
       requestId: z
         .string()

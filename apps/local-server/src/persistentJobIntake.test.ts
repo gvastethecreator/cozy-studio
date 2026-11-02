@@ -384,6 +384,46 @@ describe('persistentJobIntake', () => {
     expect(processReferences).not.toHaveBeenCalled();
   });
 
+  it('rejects invalid library organization before reference persistence', async () => {
+    const processReferences = vi.fn(async () => ({ augmentedPrompt: 'x', persistedRefs: [] }));
+    const intake = createPersistentJobIntake({
+      createJobId: () => 'job-new',
+      createJob: () => createJob(),
+      updateJobFinalPrompt: () => null,
+      processReferences,
+      hydrateSourceSpecAssetPaths: (sourceSpec) => sourceSpec,
+      readLibraryDir: () => 'D:/library',
+      resolveProviderExecutionBlocker: () => null,
+      isReferenceProcessingError: (_error): _error is ReferenceProcessingErrorLike => false,
+      publishEvent: () => ({ type: 'job.created', payload: {}, createdAt: '' }),
+      logJobCreated: () => {},
+      enqueueJob: () => {},
+    });
+
+    const result = await intake.createJob({
+      kind: 'image_generate',
+      prompt: 'draw',
+      sourceSpec: createGenerationTaskSpec({
+        id: 'filed',
+        task: 'image_generate',
+        prompt: 'draw',
+        metadata: { libraryOrganization: { tags: ['two words'], collection: 'Covers' } },
+      }),
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        status: 400,
+        body: expect.objectContaining({
+          code: 'invalid_library_organization',
+          field: 'sourceSpec.metadata.libraryOrganization',
+        }),
+      },
+    });
+    expect(processReferences).not.toHaveBeenCalled();
+  });
+
   it('rejects new jobs of a turned-off workflow module before reference persistence', async () => {
     const processReferences = vi.fn(async () => ({ augmentedPrompt: 'x', persistedRefs: [] }));
     const intake = createPersistentJobIntake({

@@ -192,6 +192,7 @@ describe('workerAssetFinalizer', () => {
               catalogContext: {
                 workspaceId: 'workspace-1',
                 batchId: 'batch-1',
+                organization: { tags: ['cover'], collection: 'Covers' },
               },
               discoveredImagePath: 'D:/tmp/discovered.png',
               providerId: 'chatgpt',
@@ -215,7 +216,7 @@ describe('workerAssetFinalizer', () => {
             height,
           }),
         );
-        expect(registerCatalogImage).toHaveBeenCalledWith(
+        expect(registerCatalogImage).toHaveBeenCalledExactlyOnceWith(
           expect.objectContaining({
             libraryId: 'library-1',
             filePath: organizedPath,
@@ -223,6 +224,8 @@ describe('workerAssetFinalizer', () => {
             fileSizeBytes: original.length + 17,
             width,
             height,
+            tags: ['cover'],
+            collectionName: 'Covers',
           }),
         );
         expect(embedMetadataMock).toHaveBeenCalledWith(
@@ -384,7 +387,11 @@ describe('workerAssetFinalizer', () => {
         Effect.scoped(
           finalizer.finalizeJobAsset({
             job,
-            catalogContext: { workspaceId: 'project-1', batchId: null },
+            catalogContext: {
+              workspaceId: 'project-1',
+              batchId: null,
+              organization: { tags: ['cover'], collection: 'Covers' },
+            },
             discoveredImagePath: organizedPath,
             providerId: 'google',
             options: { logPrefix: 'Recovered' },

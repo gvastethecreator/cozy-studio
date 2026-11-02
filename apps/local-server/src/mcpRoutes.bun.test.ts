@@ -22,6 +22,8 @@ import {
 } from '../../../packages/shared/src/studioMcp';
 import { createDefaultEditableStudioSettings } from '../../../packages/shared/src/studioSettings';
 import { getCatalogImage, queryCatalog, registerCatalogImage } from './catalog';
+import { listCatalogCollections } from './catalogCollections';
+import { listCatalogTags } from './catalogTags';
 import { migrateDatabase } from './db/migrations';
 import { createMcpRoutes } from './mcpRoutes';
 import { importStudioReference, importStudioReferenceFile } from './referenceImport';
@@ -308,6 +310,9 @@ describe('studio_import_reference', () => {
         prompt: 'Edit the imported still',
         task: 'image_edit',
         referenceIds: [createdBody.catalogImageId],
+        workspaceId: 'default',
+        tags: ['forest'],
+        collection: null,
       });
       expect(generated.status).toBe(200);
       expect(requests.at(-1)).toMatchObject({
@@ -534,6 +539,9 @@ describe('studio_import_reference', () => {
               prompt: 'Edit this reference',
               task: 'image_edit',
               referenceIds: [result.catalogImageId],
+              workspaceId: 'default',
+              tags: [],
+              collection: null,
             })
           ).status,
         ).toBe(200);
@@ -611,6 +619,44 @@ describe('studio_import_reference', () => {
       });
       expect(readFileSync(filePath)).toEqual(ONE_BY_ONE_PNG);
       expect(countRows(database, 'catalog_images')).toBe(1);
+    } finally {
+      database.close();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('registerCatalogImage filing', () => {
+  it('files tags and a named collection with the insert, also inside an outer transaction', () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), 'studio-catalog-filing-'));
+    const database = openLibrary(path.join(root, 'library.sqlite'), root);
+    try {
+      const register = (name: string, collectionName: string, workspaceId = 'default') =>
+        registerCatalogImage(
+          {
+            libraryId: LIBRARY_ID,
+            filePath: path.join(root, name),
+            mimeType: 'image/png',
+            workspaceId,
+            tags: ['cover'],
+            collectionName,
+          },
+          database,
+        );
+      register('a.png', 'Covers');
+      database.transaction(() => register('b.png', 'covers'))();
+      // A workspace deleted mid-batch gets no orphan collection, and the image is still saved.
+      register('c.png', 'Covers', 'deleted-workspace');
+      expect(listCatalogCollections('default', database)).toMatchObject([
+        { name: 'Covers', imageCount: 2 },
+      ]);
+      expect(countRows(database, 'catalog_images')).toBe(3);
+      expect(database.query('SELECT workspace_id FROM catalog_collections').all()).toEqual([
+        { workspace_id: 'default' },
+      ]);
+      expect(listCatalogTags('default', database)).toMatchObject([
+        { name: 'cover', imageCount: 2 },
+      ]);
     } finally {
       database.close();
       rmSync(root, { recursive: true, force: true });

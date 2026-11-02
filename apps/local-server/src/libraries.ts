@@ -56,7 +56,7 @@ export function ensureDefaultLibrary() {
   return registerLibrary({ name: 'Default Studio Library', path: configuredPath, isDefault: true });
 }
 
-export function registerLibrary(input: {
+function registerLibrary(input: {
   name: string;
   path: string;
   isDefault?: boolean;
@@ -155,20 +155,4 @@ export function resolvePublicLibraryAssetRequest(relativePath: string) {
     assetRelativePath:
       library.kind === 'output' ? `outputs/${assetRelativePath}` : assetRelativePath,
   };
-}
-
-export function setDefaultLibrary(id: string) {
-  const database = getDb();
-  const row = database.query('SELECT * FROM libraries WHERE id = ?').get(id);
-  if (!row || (row as { kind?: string }).kind === 'output') return null;
-  database.run('UPDATE libraries SET is_default = 0');
-  database.query('UPDATE libraries SET is_default = 1 WHERE id = ?').run(id);
-  return mapLibrary({ ...(row as any), is_default: 1 });
-}
-
-export function removeLibrary(id: string) {
-  const library = getLibrary(id);
-  if (!library || library.isDefault || library.kind === 'output') return false;
-  getDb().query('DELETE FROM libraries WHERE id = ?').run(id);
-  return true;
 }

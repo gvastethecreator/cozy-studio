@@ -557,11 +557,7 @@ export type StudioEvent =
       revision?: number;
     }
   | {
-      type:
-        | 'library.created'
-        | 'library.default'
-        | 'output-source.registered'
-        | 'output-source.imported';
+      type: 'output-source.registered' | 'output-source.imported';
       payload: unknown;
       createdAt: string;
       revision?: number;

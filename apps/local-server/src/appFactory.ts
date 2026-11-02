@@ -42,12 +42,9 @@ import { inspectLibrary, resolvePublicLibraryPath, toPublicAssetUrl } from './li
 import {
   ensureDefaultLibrary,
   listLibraries,
-  registerLibrary,
   registerOutputDirectory,
   getLibrary,
-  removeLibrary,
   resolvePublicLibraryAssetRequest,
-  setDefaultLibrary,
 } from './libraries';
 import { log } from './logger';
 import {
@@ -623,10 +620,6 @@ export async function createStudioApp(
 
   const libraryRouteDependencies: LibrariesRoutesDependencies = {
     listLibraries,
-    registerLibrary,
-    setDefaultLibrary,
-    removeLibrary,
-    publishEvent,
     ...options.dependencies?.libraryRoutes,
   };
   app.route('/api/libraries', createLibrariesRoutes(libraryRouteDependencies));

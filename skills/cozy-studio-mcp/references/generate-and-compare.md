@@ -87,7 +87,7 @@ A comparison changes one variable and keeps everything else the same. Each varia
      | ------- | ----- | ------ | --------- | --------- | ----- |
 
    - Under the table, describe the visible differences between the variants.
-   - Tell the user how to see them side by side: in the Library, filter by the collection, select two images and choose **Compare 2 images**. `studio_catalog` with the comparison's `workspace_id` and `q: "#cmp-<slug>"` lists the whole comparison again later.
+   - Tell the user how to see them side by side: in the Library, filter by the collection, select 2 to 9 images and choose **Compare N images**. `studio_catalog` with the comparison's `workspace_id` and `q: "#cmp-<slug>"` lists the whole comparison again later.
    - When the user picks favorites, offer to tag them. Use [organize-library.md](organize-library.md).
    - Done when the table has a row for every variant.
 

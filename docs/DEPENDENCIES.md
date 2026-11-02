@@ -6,7 +6,7 @@ Cozy Studio uses Bun as its package manager and backend runtime. `bun:sqlite` an
 
 - `package.json` declares dependency ranges, overrides, and the Bun baseline.
 - `bun.lock` records resolved packages.
-- `.github/workflows/ci.yml` selects the CI runtime.
+- `.github/workflows/ci.yml`, `pages.yml` and `release.yml` each pin the Bun version; change all three together.
 - `vitest.config.ts` owns tests. Tests import `vitest` directly; Vite+ supplies the build and check commands.
 
 Read these files for current versions. A local run on another Bun release does not prove compatibility with the CI baseline.

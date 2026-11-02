@@ -43,12 +43,12 @@ Use one validation level per integration. Each broader gate includes the narrowe
 | `bun run repo:hygiene:verify`    | Reject tracked secrets, DBs, and scratch     |
 | `bun run repo:assets:audit`      | Core budget and optional pack hashes         |
 | `bun run repo:assets:lock`       | Refresh optional pack integrity lock         |
-| `bun run core-assets:smoke`      | Build and route smoke without optional packs |
+| `bun run core-assets:smoke`      | Isolated build and route smoke, no packs     |
 | `bun run portability:smoke`      | Isolated local API health smoke              |
 
 ## Complete test pass
 
-`bun run test` runs the complete Vitest suite. Native Bun cases use `bun:sqlite` and `Bun.Image` and are excluded from Vitest; `bun run test:bun` runs them. `validate` runs both.
+`bun run test` runs the complete Vitest suite. `vitest.config.ts` pins `VITE_STUDIO_API_BASE` to empty, so a custom port in `.env.local` does not change test results; a new `VITE_` variable that tests read needs the same pin. Native Bun cases use `bun:sqlite` and `Bun.Image` and are excluded from Vitest; `bun run test:bun` runs them. `validate` runs both.
 
 The full test task limits Vitest to eight workers, to avoid Windows filesystem and process contention. Set `VITEST_MAX_WORKERS` to a positive integer only when you need a different local limit.
 

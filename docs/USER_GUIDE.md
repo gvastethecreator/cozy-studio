@@ -43,7 +43,7 @@ Library search, Favorites and sorting apply to the whole workspace before the re
 
 Studio has no control that moves images to another workspace. A move through the local API changes only the image's workspace: the image keeps its tags and leaves the collections of its old workspace. The file stays where it is, also when its folder name has the old workspace name.
 
-Select exactly two images and choose **Compare 2 images**. Switch between A and B at the same zoom and position. Scroll or use the zoom buttons; drag or use the arrow keys to pan. **Fit image** resets the view. A missing original shows an error.
+Select 2 to 9 images and choose **Compare N images**. All images share one zoom and position; **One at a time** switches between them without losing it. Scroll or use the zoom buttons; drag or use the arrow keys to pan. When the grid is taller than the window, the wheel scrolls it and Ctrl+wheel or pinch zooms. **Fit image** resets the view, and **Actual size** shows an original at 1:1. Each image shows what differs (prompt, style, model, provider, size). **Pick** marks your favorite. A missing original shows an error in its own cell.
 
 ZIP downloads show progress and the exported count. A partial download lists the missing count, and **Retry missing images** puts those images in a separate ZIP. If every image fails, no empty ZIP is downloaded.
 

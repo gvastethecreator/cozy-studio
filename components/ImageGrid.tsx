@@ -15,6 +15,7 @@ import {
   List as ClipboardList,
   Heart,
   HeartSolid,
+  Label,
   MediaImageXmark as ImageOff,
   MediaImage as Photo,
   Sort as ArrowUpDown,
@@ -834,6 +835,7 @@ function useImageGrid(props: ImageGridProps) {
       q: searchQuery,
       sort: sortOrder,
       favorites: showFavoritesOnly,
+      unorganized: showUnorganizedOnly = false,
       collection: collectionId = null,
     },
     onLibraryFiltersChange,
@@ -1222,6 +1224,7 @@ function useImageGrid(props: ImageGridProps) {
     isCatalogLoading,
     searchQuery,
     showFavoritesOnly,
+    showUnorganizedOnly,
     collectionId,
     workspaceId,
     onLibraryFiltersChange,
@@ -1498,6 +1501,7 @@ function ImageGridActions({ model }: { model: ImageGridModel }) {
     sortedImages,
     onLibraryFiltersChange,
     showFavoritesOnly,
+    showUnorganizedOnly,
     selectedImageCount,
   } = model;
   return (
@@ -1535,6 +1539,13 @@ function ImageGridActions({ model }: { model: ImageGridModel }) {
         }
         label={showFavoritesOnly ? 'All images' : 'Favorites'}
         isActive={showFavoritesOnly}
+        tooltipPosition="bottom"
+      />
+      <ActionButton
+        onClick={() => onLibraryFiltersChange({ unorganized: !showUnorganizedOnly })}
+        icon={<Label width={16} height={16} strokeWidth={2.5} />}
+        label={showUnorganizedOnly ? 'All images' : 'Unorganized'}
+        isActive={showUnorganizedOnly}
         tooltipPosition="bottom"
       />
       <ImageGridBulkActions model={model} />
@@ -1812,8 +1823,15 @@ function ImageGridPagination({ model }: { model: ImageGridModel }) {
 }
 
 function ImageGridNoMatches({ model }: { model: ImageGridModel }) {
-  const { searchQuery, showFavoritesOnly, collectionId, onLibraryFiltersChange, onCreate } = model;
-  const filtered = Boolean(searchQuery || showFavoritesOnly || collectionId);
+  const {
+    searchQuery,
+    showFavoritesOnly,
+    showUnorganizedOnly,
+    collectionId,
+    onLibraryFiltersChange,
+    onCreate,
+  } = model;
+  const filtered = Boolean(searchQuery || showFavoritesOnly || showUnorganizedOnly || collectionId);
   return (
     <div className="max-w-md space-y-3">
       <h2 className="text-lg font-semibold">
@@ -1826,17 +1844,26 @@ function ImageGridNoMatches({ model }: { model: ImageGridModel }) {
             ? 'No images in this collection.'
             : showFavoritesOnly
               ? 'No favorite images in this view.'
-              : 'Create an image to add your first result to this workspace.'}
+              : showUnorganizedOnly
+                ? 'Every image in this workspace has tags or a collection.'
+                : 'Create an image to add your first result to this workspace.'}
       </p>
       {filtered ? (
         <button
           type="button"
           className="studio-ghost-control px-4 py-2"
           onClick={() => {
-            onLibraryFiltersChange({ q: '', favorites: false, collection: null });
+            onLibraryFiltersChange({
+              q: '',
+              favorites: false,
+              unorganized: false,
+              collection: null,
+            });
           }}
         >
-          {collectionId && !searchQuery && !showFavoritesOnly ? 'Show all images' : 'Clear filters'}
+          {collectionId && !searchQuery && !showFavoritesOnly && !showUnorganizedOnly
+            ? 'Show all images'
+            : 'Clear filters'}
         </button>
       ) : (
         <button type="button" className="studio-ghost-control px-4 py-2" onClick={onCreate}>

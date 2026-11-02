@@ -178,6 +178,11 @@ describe('catalog collections', () => {
       queryCatalog({ workspaceId: 'default', collectionId: created.id, q: '#boss' }, database)
         .total,
     ).toBe(1);
+    expect(
+      queryCatalog({ workspaceId: 'default', unorganized: true }, database).images.map(
+        (image) => image.id,
+      ),
+    ).toEqual(['extra']);
 
     expect(() =>
       createCatalogCollection(
@@ -206,6 +211,7 @@ describe('catalog collections', () => {
 
     const added = updateCatalogCollection(created.id, { addImageIds: ['extra'] }, database);
     expect(added?.imageCount).toBe(1);
+    expect(queryCatalog({ workspaceId: 'default', unorganized: true }, database).total).toBe(0);
     expect(deleteCatalogCollection(created.id, database)).toBe(true);
     expect(
       sqlite.prepare('SELECT COUNT(*) AS count FROM catalog_collection_images').get() as {

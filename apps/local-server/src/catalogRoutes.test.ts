@@ -139,7 +139,7 @@ describe('catalog routes', () => {
     );
 
     const response = await routes.request(
-      '/?workspace_id=workspace-1&recipe_id=styles&job_id=job-1&batch_id=batch-1&favorite=true&deleted=false&q=studio&sort=asc&offset=5&limit=10',
+      '/?workspace_id=workspace-1&recipe_id=styles&job_id=job-1&batch_id=batch-1&unorganized=true&favorite=true&deleted=false&q=studio&sort=asc&offset=5&limit=10',
     );
 
     await expect(response.json()).resolves.toEqual({
@@ -154,6 +154,7 @@ describe('catalog routes', () => {
         recipeId: 'styles',
         jobId: 'job-1',
         batchId: 'batch-1',
+        unorganized: true,
         favorite: true,
         isDeleted: false,
         q: 'studio',

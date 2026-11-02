@@ -215,6 +215,7 @@ export function useStudioShell(): StudioShellController {
       ? {
           query: deferredCatalogQuery,
           favorites: libraryFilters.favorites,
+          unorganized: libraryFilters.unorganized,
           collectionId: libraryFilters.collection || undefined,
           sort: libraryFilters.sort,
         }

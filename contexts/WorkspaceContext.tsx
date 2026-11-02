@@ -132,10 +132,11 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     () => ({
       q: query.q,
       favorites: query.favorites,
+      unorganized: query.unorganized,
       sort: query.sort,
       collection: query.collection,
     }),
-    [query.q, query.favorites, query.sort, query.collection],
+    [query.q, query.favorites, query.unorganized, query.sort, query.collection],
   );
   const setLibraryFilters = useCallback(
     (filters: Partial<LibraryFilters>) => {
@@ -305,7 +306,14 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
   const resetWorkspaces = useCallback(() => {
     dispatch({ type: 'RESET' });
     void setQuery(
-      { workspace: DEFAULT_WORKSPACE_ID, q: '', favorites: false, sort: 'desc', collection: null },
+      {
+        workspace: DEFAULT_WORKSPACE_ID,
+        q: '',
+        favorites: false,
+        unorganized: false,
+        sort: 'desc',
+        collection: null,
+      },
       { history: 'replace' },
     );
   }, [setQuery]);

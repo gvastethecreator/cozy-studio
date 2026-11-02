@@ -32,7 +32,7 @@ export const en = {
   'settings.agents.heading': 'Local agents',
   'settings.agents.access': 'Agent access (MCP)',
   'settings.agents.accessHint':
-    'Read only lets agents look at Studio. Organize also lets them tag images and manage collections; it never deletes images or uses your provider account. Full control also generates with your provider account, imports images, changes settings, installs packs and applies updates.',
+    'Read only lets agents look at Studio. Organize also lets them add and remove image tags and put images in collections or take them out, creating a collection when needed. It never deletes, archives or moves images, and never uses your provider account. Full control also generates with your provider account, imports images, changes settings, installs packs and applies updates.',
   'settings.agents.access.off': 'Off',
   'settings.agents.access.read': 'Read only',
   'settings.agents.access.organize': 'Organize',

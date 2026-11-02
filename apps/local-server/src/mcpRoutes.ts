@@ -16,10 +16,11 @@ import {
 } from '../../../packages/shared/src/studioMcp';
 import {
   parseLibraryOrganization,
+  validateCatalogCollectionName,
   type CatalogCollection,
   type LibraryOrganization,
 } from '../../../packages/shared/src/catalogCollections';
-import type { CatalogTag } from '../../../packages/shared/src/catalogTags';
+import { applyCatalogTagChanges, type CatalogTag } from '../../../packages/shared/src/catalogTags';
 import type { EditableStudioSettings } from '../../../packages/shared/src/studioSettings';
 import type { CatalogImage } from '../../../packages/shared/src/types';
 import type { StudioWorkspace } from '../../../packages/shared/src/workspaceContracts';
@@ -219,6 +220,12 @@ export function createMcpRoutes({
       get(path)
         .then((response) => response.json())
         .catch(() => null);
+    const list = <T>(path: string) =>
+      readJson(path).then((value: unknown) => (Array.isArray(value) ? (value as T[]) : []));
+    const unorganizedCount = (workspaceId?: string) =>
+      readJson(
+        `/api/catalog?${workspaceId ? `workspace_id=${workspaceId}&` : ''}unorganized=true&limit=1`,
+      ).then((page) => (page as { total?: number } | null)?.total ?? 0);
     const query = (path: string) =>
       get(
         `${path}?${new URLSearchParams(Object.fromEntries(Object.entries(args).map(([key, value]) => [key, String(value)]))).toString()}`,
@@ -235,9 +242,12 @@ export function createMcpRoutes({
           checkedAt?: string | null;
         } | null;
         const behind = update?.behind ?? 0;
+        const unorganized = await unorganizedCount();
         return c.json({
           health: await health.json(),
           mcpAccess: settings.mcpAccess,
+          mcpAccessLabel: STUDIO_MCP_ACCESS_LABELS[settings.mcpAccess],
+          library: { unorganized },
           update: update && {
             behind,
             latestCommit: update.latestCommit ?? null,
@@ -248,6 +258,9 @@ export function createMcpRoutes({
           ...(behind > 0 && {
             notice: `Studio is ${behind} commit${behind === 1 ? '' : 's'} behind origin/main. Tell the user an update is available and ask before applying it with studio_apply_update, or point them to Settings → Help & updates.`,
           }),
+          ...(unorganized > 0 && {
+            organizeNotice: `${unorganized} Library image${unorganized === 1 ? ' has' : 's have'} no tags or collection. Recommend organizing them: propose a scheme, apply only after the user confirms.`,
+          }),
         });
       }
       case 'studio_providers':
@@ -257,12 +270,11 @@ export function createMcpRoutes({
       case 'studio_workspaces': {
         const { workspaceId } = studioMcpTools.studio_workspaces.schema.parse(args);
         if (!workspaceId) return get('/api/workspaces');
-        const list = <T>(path: string) =>
-          readJson(path).then((value: unknown) => (Array.isArray(value) ? (value as T[]) : []));
-        const [workspace, tags, collections] = await Promise.all([
+        const [workspace, tags, collections, unorganized] = await Promise.all([
           get(`/api/workspaces/${workspaceId}`),
           list<CatalogTag>(`/api/catalog/tags?workspace_id=${workspaceId}`),
           list<CatalogCollection>(`/api/catalog/collections?workspace_id=${workspaceId}`),
+          unorganizedCount(workspaceId),
         ]);
         if (workspace.status === 404) return c.json({ error: 'Unknown workspaceId.' }, 400);
         return c.json({
@@ -274,6 +286,7 @@ export function createMcpRoutes({
             emoji,
             imageCount,
           })),
+          unorganized,
         });
       }
       case 'studio_extensions':
@@ -290,6 +303,114 @@ export function createMcpRoutes({
         return get(`/api/jobs/batches/${String(args.batchId)}`);
       case 'studio_catalog':
         return query('/api/catalog');
+      case 'studio_organize_images': {
+        const input = studioMcpTools.studio_organize_images.schema.parse(args);
+        const { workspaceId, addTags, removeTags } = input;
+        const imageIds = [...new Set(input.imageIds)];
+        // Check every image and change first, so a rejected call writes nothing.
+        const images = await Promise.all(
+          imageIds.map((imageId) =>
+            get(`/api/catalog/${imageId}`).then((response) =>
+              response.ok ? (response.json() as Promise<CatalogImage>) : null,
+            ),
+          ),
+        );
+        const outside = imageIds.filter((_, index) => {
+          const image = images[index];
+          return !image || image.isDeleted || (image.workspaceId ?? 'default') !== workspaceId;
+        });
+        if (outside.length)
+          return c.json(
+            {
+              error: 'Every image must be live and in workspaceId. Nothing changed.',
+              imageIds: outside,
+            },
+            400,
+          );
+        const tagChanges = addTags || removeTags ? { addTags, removeTags } : null;
+        const knownTags = tagChanges
+          ? (await list<CatalogTag>(`/api/catalog/tags?workspace_id=${workspaceId}`)).map(
+              ({ name }) => name,
+            )
+          : [];
+        // PATCH checks each image's own tags (at most 32), so check them all here first.
+        const retagged: string[] = [];
+        const rejected: string[] = [];
+        let tagError = '';
+        for (const image of tagChanges ? (images as CatalogImage[]) : []) {
+          try {
+            const tags = applyCatalogTagChanges(image.tags, tagChanges!, knownTags);
+            if (tags.join('\n') !== image.tags.join('\n')) retagged.push(image.id);
+          } catch (error) {
+            rejected.push(image.id);
+            tagError = error instanceof Error ? error.message : 'Invalid tags.';
+          }
+        }
+        if (rejected.length)
+          return c.json({ error: `${tagError} Nothing changed.`, imageIds: rejected }, 400);
+        let addName: string | undefined;
+        try {
+          addName = input.addToCollection && validateCatalogCollectionName(input.addToCollection);
+        } catch (error) {
+          return c.json({ error: error instanceof Error ? error.message : 'Invalid name' }, 400);
+        }
+        const collections = await list<CatalogCollection>(
+          `/api/catalog/collections?workspace_id=${workspaceId}`,
+        );
+        const byName = (name: string) =>
+          collections.find((collection) => collection.name.toLowerCase() === name.toLowerCase());
+        const target = addName ? byName(addName) : undefined;
+        const removeFrom = input.removeFromCollection
+          ? byName(input.removeFromCollection)
+          : undefined;
+        if (input.removeFromCollection && !removeFrom)
+          return c.json(
+            {
+              error: 'removeFromCollection is not a collection in this workspace. Nothing changed.',
+            },
+            400,
+          );
+
+        // ponytail: up to 100 per-image PATCHes, not one transaction; every step is idempotent,
+        // so a repeated call converges. Add POST /api/catalog/commands/organize if partial
+        // failures show up.
+        for (const imageId of retagged) {
+          const response = await send('PATCH', `/api/catalog/${imageId}`, tagChanges);
+          if (!response.ok) return response;
+        }
+        let collection = null;
+        if (addName) {
+          const response = target
+            ? await send('PATCH', `/api/catalog/collections/${target.id}`, {
+                addImageIds: imageIds,
+              })
+            : await post('/api/catalog/collections', { workspaceId, name: addName, imageIds });
+          if (!response.ok) return response;
+          const saved = (await response.json()) as CatalogCollection;
+          collection = {
+            id: saved.id,
+            name: saved.name,
+            created: !target,
+            imageCount: saved.imageCount,
+          };
+        }
+        if (removeFrom) {
+          const response = await send('PATCH', `/api/catalog/collections/${removeFrom.id}`, {
+            removeImageIds: imageIds,
+          });
+          if (!response.ok) return response;
+        }
+        return c.json({
+          workspaceId,
+          imageCount: imageIds.length,
+          tags: {
+            added: addTags ? applyCatalogTagChanges([], { addTags }, knownTags) : [],
+            removed: removeTags ?? [],
+          },
+          collection,
+          removedFrom: removeFrom ? { id: removeFrom.id, name: removeFrom.name } : null,
+        });
+      }
       case 'studio_cancel':
         return post(`/api/jobs/${String(args.jobId)}/cancel`);
       case 'studio_generate': {

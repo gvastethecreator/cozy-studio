@@ -40,6 +40,7 @@ export interface QueryCatalogFilters {
   batchId?: string | null;
   favorite?: boolean;
   collectionId?: string | null;
+  unorganized?: boolean;
   isDeleted?: boolean;
   q?: string | null;
   sort?: CatalogSortOption;

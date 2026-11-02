@@ -267,6 +267,7 @@ function queryCatalogInternal(
     jobId?: string | null;
     batchId?: string | null;
     collectionId?: string | null;
+    unorganized?: boolean;
     favorite?: boolean;
     isDeleted?: boolean;
     q?: string | null;
@@ -320,6 +321,18 @@ function queryCatalogInternal(
       )`,
     );
     params.push(filters.collectionId);
+  }
+  if (filters.unorganized) {
+    // No tags and no collection in the image's own workspace: nobody has organized it yet.
+    clauses.push(
+      `json_array_length(CASE WHEN json_valid(tags) THEN tags ELSE '[]' END) = 0
+      AND NOT EXISTS (
+        SELECT 1 FROM catalog_collection_images
+        JOIN catalog_collections ON catalog_collections.id = catalog_collection_images.collection_id
+        WHERE catalog_collection_images.image_id = catalog_images.id
+          AND catalog_collections.workspace_id = COALESCE(catalog_images.workspace_id, 'default')
+      )`,
+    );
   }
   if (filters.favorite !== undefined) {
     clauses.push('is_favorite = ?');

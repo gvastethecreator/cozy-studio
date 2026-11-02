@@ -35,7 +35,7 @@ export const es: Dictionary = {
   'settings.agents.heading': 'Agentes locales',
   'settings.agents.access': 'Acceso de agentes (MCP)',
   'settings.agents.accessHint':
-    'Solo lectura deja que los agentes consulten Studio. Organizar también les permite etiquetar imágenes y gestionar colecciones; nunca borra imágenes ni usa tu cuenta del proveedor. Control total también genera con tu cuenta del proveedor, importa imágenes, cambia ajustes, instala paquetes y aplica actualizaciones.',
+    'Solo lectura deja que los agentes consulten Studio. Organizar también les permite poner y quitar etiquetas de imágenes y meter imágenes en colecciones o sacarlas, creando una colección cuando hace falta. Nunca borra, archiva ni mueve imágenes, y nunca usa tu cuenta del proveedor. Control total también genera con tu cuenta del proveedor, importa imágenes, cambia ajustes, instala paquetes y aplica actualizaciones.',
   'settings.agents.access.off': 'Desactivado',
   'settings.agents.access.read': 'Solo lectura',
   'settings.agents.access.organize': 'Organizar',

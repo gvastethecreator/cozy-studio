@@ -78,6 +78,7 @@ function catalogFiltersFromUrl(url: string) {
     jobId: searchParams.get('job_id'),
     batchId: searchParams.get('batch_id'),
     collectionId: searchParams.get('collection_id') || undefined,
+    unorganized: searchParams.get('unorganized') === 'true' || undefined,
     favorite: searchParams.has('favorite') ? searchParams.get('favorite') === 'true' : undefined,
     isDeleted: searchParams.get('deleted') === 'true',
     q: searchParams.get('q'),
@@ -130,6 +131,13 @@ export function createCatalogRoutes({
   publishEvent,
 }: CreateCatalogRoutesDependencies) {
   const routes = new Hono();
+  // Open windows refresh their Tags and Collections menus, including after agent changes.
+  const publishOrganized = (changedCount: number, workspaceId?: string) =>
+    publishEvent?.('catalog.batch_changed', {
+      action: 'organize',
+      changedCount,
+      scope: workspaceId ? { kind: 'workspace', workspaceId } : { kind: 'all' },
+    });
 
   routes.get('/tags', (c) => {
     try {
@@ -169,13 +177,8 @@ export function createCatalogRoutes({
       if (!Object.keys(patch).length) throw new Error('Send a name or color.');
       const updated = catalogStore.updateTag(workspaceId, c.req.param('name'), patch);
       if (!updated) return c.json({ error: 'Tag not found' }, 404);
-      if (patch.name && patch.name !== c.req.param('name')) {
-        publishEvent?.('catalog.batch_changed', {
-          action: 'organize',
-          changedCount: updated.imageCount,
-          scope: { kind: 'workspace', workspaceId },
-        });
-      }
+      if (patch.name && patch.name !== c.req.param('name'))
+        publishOrganized(updated.imageCount, workspaceId);
       return c.json(updated);
     } catch (error) {
       return c.json(collectionError(error), 400);
@@ -230,18 +233,17 @@ export function createCatalogRoutes({
   routes.post('/collections', async (c) => {
     try {
       const body = await readJsonRecord(c.req);
-      return c.json(
-        catalogStore.createCollection({
-          workspaceId: validateCatalogCollectionWorkspaceId(body.workspaceId),
-          name: validateCatalogCollectionName(body.name),
-          emoji: validateCollectionEmoji(body.emoji ?? null),
-          imageIds:
-            body.imageIds === undefined || (Array.isArray(body.imageIds) && !body.imageIds.length)
-              ? []
-              : validateCatalogCollectionImageIds(body.imageIds),
-        }),
-        201,
-      );
+      const created = catalogStore.createCollection({
+        workspaceId: validateCatalogCollectionWorkspaceId(body.workspaceId),
+        name: validateCatalogCollectionName(body.name),
+        emoji: validateCollectionEmoji(body.emoji ?? null),
+        imageIds:
+          body.imageIds === undefined || (Array.isArray(body.imageIds) && !body.imageIds.length)
+            ? []
+            : validateCatalogCollectionImageIds(body.imageIds),
+      });
+      publishOrganized(created.imageCount, created.workspaceId);
+      return c.json(created, 201);
     } catch (error) {
       return c.json(collectionError(error), 400);
     }
@@ -264,6 +266,7 @@ export function createCatalogRoutes({
       }
       const updated = catalogStore.updateCollection(c.req.param('collectionId'), patch);
       if (!updated) return c.json({ error: 'Collection not found' }, 404);
+      publishOrganized(updated.imageCount, updated.workspaceId);
       return c.json(updated);
     } catch (error) {
       return c.json(collectionError(error), 400);
@@ -274,6 +277,8 @@ export function createCatalogRoutes({
     if (!catalogStore.deleteCollection(c.req.param('collectionId'))) {
       return c.json({ error: 'Collection not found' }, 404);
     }
+    // The store does not return the deleted collection's workspace.
+    publishOrganized(0);
     return c.json({ ok: true });
   });
 

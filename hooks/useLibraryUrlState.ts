@@ -7,6 +7,7 @@ export const libraryQueryParsers = {
   q: parseAsString.withDefault(''),
   collection: parseAsString,
   favorites: parseAsBoolean.withDefault(false),
+  unorganized: parseAsBoolean.withDefault(false),
   sort: parseAsStringLiteral([
     'desc',
     'asc',
@@ -20,6 +21,8 @@ export const libraryQueryParsers = {
 export interface LibraryFilters {
   q: string;
   favorites: boolean;
+  /** Only images with no tags and no collection, the same filter agents page with. */
+  unorganized?: boolean;
   sort: ImageGridSortOption;
   collection?: string | null;
 }

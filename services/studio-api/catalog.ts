@@ -29,6 +29,8 @@ export interface CatalogQueryParams {
   batchId?: string;
   favorite?: boolean;
   collectionId?: string;
+  /** Only images with no tags and no collection in their workspace. */
+  unorganized?: boolean;
   deleted?: boolean;
   q?: string;
   sort?: CatalogSortOption;
@@ -41,6 +43,7 @@ export function buildCatalogQuery(params: CatalogQueryParams = {}) {
   if (params.id) search.set('id', params.id);
   if (params.workspaceId) search.set('workspace_id', params.workspaceId);
   if (params.collectionId) search.set('collection_id', params.collectionId);
+  if (params.unorganized) search.set('unorganized', 'true');
   if (params.recipeId !== undefined) search.set('recipe_id', params.recipeId ?? 'default');
   if (params.libraryId) search.set('library_id', params.libraryId);
   if (params.jobId) search.set('job_id', params.jobId);

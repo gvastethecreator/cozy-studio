@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { EXTENSION_LAYERS } from './extensions';
+import { CATALOG_SORT_OPTIONS } from './types';
 import { isPreferredWorkflow } from './workflowCatalog';
 import type { StudioMcpAccess } from './studioSettings';
 
@@ -12,6 +13,8 @@ const id = z
   .max(512)
   .regex(/^[a-zA-Z0-9][a-zA-Z0-9_.:-]*$/);
 const page = { limit: z.number().int().min(1).max(100).default(30) };
+const tagNames = z.array(z.string().min(1).max(64)).max(8);
+const collectionName = z.string().trim().min(1).max(80);
 const empty = z.strictObject({});
 const referenceMimeType = z.enum(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 
@@ -83,17 +86,10 @@ export const generationInput = z.strictObject({
     .max(80)
     .optional()
     .describe('Project name. Studio uses the workspace with this name, or creates it.'),
-  tags: z
-    .array(z.string().min(1).max(64))
-    .max(8)
-    .describe(
-      '2-5 lowercase hashtags put on every output: subject, project, variant (for example cover, neon-city, cmp-ink). Reuse names from studio_workspaces. [] only if the user asked for no tags.',
-    ),
-  collection: z
-    .string()
-    .trim()
-    .min(1)
-    .max(80)
+  tags: tagNames.describe(
+    '2-5 lowercase hashtags put on every output: subject, project, variant (for example cover, neon-city, cmp-ink). Reuse names from studio_workspaces. [] only if the user asked for no tags.',
+  ),
+  collection: collectionName
     .nullable()
     .describe(
       'Collection in that workspace that every output joins; created if missing. null only for a one-off the user does not want collected.',
@@ -148,7 +144,7 @@ export const studioMcpTools = {
   studio_status: {
     access: 'read',
     description:
-      'Read Studio health, Agent access (mcpAccess: off, read, organize, or write = Full control) and update status. Call it first. When the result has a notice, tell the user an update is available and ask before applying it.',
+      'Read Studio health, Agent access (mcpAccess: off, read, organize, or write = Full control), update status and how many Library images are unorganized. Call it first. When the result has a notice, tell the user an update is available and ask before applying it. When it has an organizeNotice (library.unorganized above zero), recommend organizing those images.',
     schema: empty,
   },
   studio_providers: {
@@ -166,7 +162,7 @@ export const studioMcpTools = {
   studio_workspaces: {
     access: 'read',
     description:
-      "List Studio workspaces. With workspaceId, also return that workspace's tags and collections with image counts. Reuse these names when you generate.",
+      "List Studio workspaces. With workspaceId, also return that workspace's tags and collections with image counts and its unorganized count. Reuse these names when you generate or organize.",
     schema: z.strictObject({ workspaceId: id.optional() }),
   },
   studio_extensions: {
@@ -212,16 +208,48 @@ export const studioMcpTools = {
   studio_catalog: {
     access: 'read',
     description:
-      'Search generated images and results. Returned image IDs can be used as generation references.',
+      'Search Library images (generated and imported) by text or #tag, workspace, collection, job, batch or recipe. unorganized: true returns images with no tags and no collection in their workspace. Use sort: "asc" to page through a whole workspace in a stable order. Each row has id, prompt, tags, thumbnailPath and filePath: open thumbnailPath to look at an image, filePath for full detail. Rows do not list collections; page collection_id for each collection instead. Image IDs work as studio_generate referenceIds.',
     schema: z.strictObject({
       ...page,
       offset: z.number().int().min(0).default(0),
       q: z.string().max(2000).optional(),
       workspace_id: id.optional(),
+      collection_id: id.optional(),
       job_id: id.optional(),
       batch_id: id.optional(),
       recipe_id: z.string().max(100).optional(),
+      unorganized: z.boolean().optional(),
+      sort: z.enum(CATALOG_SORT_OPTIONS).optional(),
     }),
+  },
+  studio_organize_images: {
+    access: 'organize',
+    description:
+      'Organize up to 100 existing images in one workspace: add or remove tags, add the images to a collection by name (created if missing) or remove them from one. Needs Organize or Full control access. Propose the scheme to the user first (which images get which tags and collection) and call this only after they confirm. Every image must be live and in workspaceId, and every tag change must fit, or nothing changes. Safe to repeat: tags and members already present stay as they are. Never deletes, archives or moves images.',
+    schema: z
+      .strictObject({
+        workspaceId: id,
+        imageIds: z.array(id).min(1).max(100),
+        addTags: tagNames.optional(),
+        removeTags: tagNames.optional(),
+        addToCollection: collectionName.optional(),
+        removeFromCollection: collectionName.optional(),
+      })
+      .refine(
+        (input) =>
+          input.addTags?.length ||
+          input.removeTags?.length ||
+          input.addToCollection ||
+          input.removeFromCollection,
+        'Set addTags, removeTags, addToCollection or removeFromCollection.',
+      )
+      .refine(
+        (input) =>
+          !input.addTags?.some((tag) => input.removeTags?.includes(tag)) &&
+          (!input.addToCollection ||
+            input.addToCollection.toLowerCase() !== input.removeFromCollection?.toLowerCase()),
+        'Do not add and remove the same tag or collection.',
+      ),
   },
   studio_generate: {
     access: 'write',
@@ -244,13 +272,13 @@ export const studioMcpTools = {
   studio_import_reference: {
     access: 'write',
     description:
-      'Import an image into the Studio Library as a catalog reference. Needs Full control access. Reuse the same reference- requestId and identical input after a timeout. Returns a catalog image ID for studio_generate referenceIds. Does not accept filesystem paths or start a provider.',
+      'Import an image into the Studio Library as a catalog reference. Needs Full control access. Reuse the same reference- requestId and identical input after a timeout. Returns a catalog image ID for studio_generate referenceIds. Does not accept filesystem paths or start a provider. Imports land in the Default workspace with the tag "imported reference"; when the user wants them filed, add them to a collection in Default with studio_organize_images.',
     schema: referenceImportInput,
   },
   studio_import_reference_file: {
     access: 'write',
     description:
-      'Import a local image by absolute path from Allowed import folders in Studio Settings. Needs Full control access. Reuse the same reference- requestId and identical input after a timeout. Stores optimized WebP and returns a catalog image ID for studio_generate referenceIds. Does not start a provider.',
+      'Import a local image by absolute path from Allowed import folders in Studio Settings. Needs Full control access. Reuse the same reference- requestId and identical input after a timeout. Stores optimized WebP and returns a catalog image ID for studio_generate referenceIds. Does not start a provider. Imports land in the Default workspace with the tag "imported reference"; when the user wants them filed, add them to a collection in Default with studio_organize_images.',
     schema: referenceFileImportInput,
   },
   studio_onboarding: {

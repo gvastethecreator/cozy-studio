@@ -67,35 +67,38 @@
   }
 }
 
-:where(dialog.studio-modal) {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  max-width: none;
-  max-height: none;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  color: inherit;
-  background: transparent;
-}
+/* Base layer so Tailwind utilities on these dialogs win over the reset. */
+@layer base {
+  :where(dialog.studio-modal) {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+  }
 
-:where(dialog.studio-modal)::backdrop {
-  background: transparent;
-}
+  :where(dialog.studio-modal)::backdrop {
+    background: transparent;
+  }
 
-:where(dialog.studio-panel-dialog) {
-  position: relative;
-  inset: auto;
-  width: auto;
-  max-width: none;
-  max-height: none;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  color: inherit;
-  background: transparent;
+  :where(dialog.studio-panel-dialog) {
+    position: relative;
+    inset: auto;
+    width: auto;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+  }
 }
 
 /* react-scan overlay must float above all app chrome (z-40/z-50 toolbars) */

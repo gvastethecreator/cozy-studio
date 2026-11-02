@@ -7,10 +7,17 @@ import { serveWithPortFallback } from './portUtils';
 import { beginSignalShutdown, shutdownStudioServer } from './serverShutdown';
 import { STUDIO_RESTART_EXIT_CODE } from '../../../packages/shared/src/repositoryUpdates';
 import { LOCAL_EXTENSION_BODY_LIMIT } from './localExtensionInstall';
+import { MIN_BUN_VERSION } from './imagePipeline';
 
 export { createStudioApp } from './appFactory';
 
 if (import.meta.main) {
+  if (Bun.semver.order(Bun.version, MIN_BUN_VERSION) < 0) {
+    console.error(
+      `Cozy Studio needs Bun ${MIN_BUN_VERSION} or later; this is Bun ${Bun.version}. Run \`bun upgrade\` and start Studio again.`,
+    );
+    process.exit(1);
+  }
   const studio = await createStudioApp({
     restart:
       process.env.STUDIO_MANAGED_RESTART === '1'

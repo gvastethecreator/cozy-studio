@@ -13,11 +13,14 @@ export interface EncodedWebp {
   height: number | null;
 }
 
+/** First Bun release with `Bun.Image`; local-server refuses to start below it. */
+export const MIN_BUN_VERSION = '1.3.14';
+
 function getBunImage() {
   const Image = globalThis.Bun?.Image;
   if (typeof Image !== 'function') {
     throw new Error(
-      'Bun.Image is required for Catalog Entry thumbnails and reference WebP conversion. Run local-server with Bun 1.3.14 or later.',
+      `Bun.Image is required for Catalog Entry thumbnails and reference WebP conversion. Run local-server with Bun ${MIN_BUN_VERSION} or later.`,
     );
   }
   return Image;

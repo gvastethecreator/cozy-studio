@@ -125,6 +125,8 @@ Send the inverse call only for the ids that the result lists. The other images h
 - Added to a collection: `removeFromCollection` with the collection name, for `collection.addedImageIds`.
 - Removed from a collection: `addToCollection` with the collection name, for `removedFrom.removedImageIds`.
 
+If a call failed partway and you repeated it, the repeat lists only what it changed itself. Undo the rest from your step 2 working file, or tell the user what the failed attempt already wrote.
+
 A collection that a call created stays, empty. Agent tools cannot delete a collection or rename a tag. The user does that in Studio (see the manual path).
 
 ## Imported images

@@ -94,7 +94,7 @@ it('does not expose the previous workspace organization when a new scope fails, 
   vi.mocked(listCatalogTags)
     .mockResolvedValueOnce([{ name: 'private-tag', color: null, imageCount: 1, lastUsedAt: null }])
     .mockRejectedValueOnce(new Error('Offline'))
-    .mockResolvedValueOnce([]);
+    .mockResolvedValueOnce([{ name: 'retried', color: null, imageCount: 1, lastUsedAt: null }]);
   const { result, rerender } = renderHook(
     ({ workspaceId }) => useCatalogOrganization(workspaceId),
     { initialProps: { workspaceId: 'first' } },
@@ -102,13 +102,17 @@ it('does not expose the previous workspace organization when a new scope fails, 
   await waitFor(() => expect(result.current.tags[0]?.name).toBe('private-tag'));
   rerender({ workspaceId: 'second' });
   expect(result.current.tags).toEqual([]);
+  expect(result.current.loading).toBe(true);
   await waitFor(() => expect(result.current.errors.tag).toBe('Offline'));
   expect(result.current.errors.collection).toBe('');
   expect(result.current.collections).toEqual(collections);
   act(() => result.current.refresh());
-  await waitFor(() => expect(result.current.loading).toBe(false));
+  // A background refresh keeps the loaded lists and does not show the loading status.
+  expect(result.current.loading).toBe(false);
+  expect(result.current.collections).toEqual(collections);
+  await waitFor(() => expect(result.current.tags[0]?.name).toBe('retried'));
   expect(result.current.errors).toEqual({ tag: '', collection: '' });
-  expect(result.current.tags).toEqual([]);
+  expect(result.current.loading).toBe(false);
 });
 
 it('applies batch tag changes without replacing unrelated tags and keeps partial failures retryable', async () => {

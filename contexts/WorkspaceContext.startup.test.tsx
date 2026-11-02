@@ -5,6 +5,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ToastUiProvider } from './ToastUiContext';
 import { WorkspaceProvider, useWorkspaceState } from './WorkspaceContext';
+import { CATALOG_WORKSPACE_SEEN } from '../services/studio-api/catalog';
 import {
   migrateIndexedDbWorkspacesToServer,
   loadDurableWorkspacesFromApi,
@@ -25,11 +26,13 @@ function ActiveWorkspace() {
     activeWorkspaceId,
     hasInitialLibraryLink,
     libraryFilters,
+    workspaces,
     createWorkspace,
     deleteWorkspace,
   } = useWorkspaceState();
   return (
     <>
+      <div data-testid="workspaces">{workspaces.map((workspace) => workspace.id).join(',')}</div>
       <div data-testid="active-workspace" data-explicit={hasInitialLibraryLink}>
         {activeWorkspaceId}
       </div>
@@ -90,6 +93,21 @@ describe('workspace startup', () => {
         ),
       );
       await waitFor(() => expect(screen.getByTestId('collection').textContent).toBe(''));
+      // An agent's new workspace arrives before the server sees this window's create or delete.
+      vi.mocked(loadDurableWorkspacesFromApi).mockResolvedValueOnce({
+        workspaces: [
+          { id: 'default', createdAt: 1 },
+          { id: 'current', createdAt: 2 },
+          { id: 'agent', createdAt: 4 },
+        ],
+        activeWorkspaceId: 'default',
+      });
+      window.dispatchEvent(new CustomEvent(CATALOG_WORKSPACE_SEEN, { detail: 'agent' }));
+      await waitFor(() =>
+        expect(screen.getByTestId('workspaces').textContent).toBe(
+          action === 'Create workspace' ? 'default,current,created,agent' : 'default,agent',
+        ),
+      );
     },
   );
 

@@ -197,12 +197,19 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     };
   }, [retryVersion]);
 
-  // An agent can create a workspace while this window is open; reload the list when one appears.
+  // An agent can create a workspace while this window is open. Add only that workspace, so a
+  // pending optimistic create or delete in this window keeps its state.
   useEffect(() => {
     const onWorkspaceSeen = (event: Event) => {
       const workspaceId = (event as CustomEvent<string>).detail;
-      if (!state.workspaces.some((workspace) => workspace.id === workspaceId))
-        setRetryVersion((version) => version + 1);
+      if (state.workspaces.some((workspace) => workspace.id === workspaceId)) return;
+      loadDurableWorkspacesFromApi().then(
+        ({ workspaces }) => {
+          const seen = workspaces.find((workspace) => workspace.id === workspaceId);
+          if (seen) dispatch({ type: 'CREATE', workspace: seen, activate: false });
+        },
+        (error: unknown) => runtimeLogger.error('Unable to load a new workspace', error),
+      );
     };
     window.addEventListener(CATALOG_WORKSPACE_SEEN, onWorkspaceSeen);
     return () => window.removeEventListener(CATALOG_WORKSPACE_SEEN, onWorkspaceSeen);

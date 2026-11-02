@@ -30,6 +30,7 @@ import {
 } from 'iconoir-react';
 import { ImageActionsMenu } from './ImageActionsMenu';
 import { ImageTagsMenu, ImageCollectionsMenu } from './ImageCollectionsMenu';
+import { parseCatalogSearch } from '../packages/shared/src';
 import { ImageOrganizationDialog } from './ImageOrganizationDialog';
 import { DemandMountedGsapDropdown } from './ui/DemandMountedGsapDropdown';
 import { copyImageToClipboard, downloadImage, generateSmartFilename } from '../utils/fileUtils';
@@ -1364,13 +1365,15 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
         <ImageTagsMenu
           workspaceId={model.workspaceId}
           query={searchQuery}
-          onQueryChange={(q) => model.onLibraryFiltersChange({ q })}
+          onQueryChange={(q) => model.onLibraryFiltersChange({ q, unorganized: false })}
         />
         <ImageCollectionsMenu
           workspaceId={model.workspaceId}
           collectionId={model.collectionId}
           selectedImageIds={model.selectedImageIds}
-          onOpenCollection={(collection) => model.onLibraryFiltersChange({ collection })}
+          onOpenCollection={(collection) =>
+            model.onLibraryFiltersChange({ collection, unorganized: false })
+          }
           onCatalogChanged={model.onRetryCatalog}
         />
         <ImageGridActions model={model} />
@@ -1537,14 +1540,14 @@ function ImageGridActions({ model }: { model: ImageGridModel }) {
             strokeWidth={2.5}
           />
         }
-        label={showFavoritesOnly ? 'All images' : 'Favorites'}
+        label="Favorites"
         isActive={showFavoritesOnly}
         tooltipPosition="bottom"
       />
       <ActionButton
         onClick={() => onLibraryFiltersChange({ unorganized: !showUnorganizedOnly })}
         icon={<Label width={16} height={16} strokeWidth={2.5} />}
-        label={showUnorganizedOnly ? 'All images' : 'Unorganized'}
+        label="Unorganized"
         isActive={showUnorganizedOnly}
         tooltipPosition="bottom"
       />
@@ -1838,15 +1841,17 @@ function ImageGridNoMatches({ model }: { model: ImageGridModel }) {
         {filtered ? 'No matching images' : 'Your library starts here'}
       </h2>
       <p className="text-sm text-[color:var(--wb-muted)]">
-        {searchQuery
-          ? `No results for “${searchQuery}” in this workspace.`
-          : collectionId
-            ? 'No images in this collection.'
-            : showFavoritesOnly
-              ? 'No favorite images in this view.'
-              : showUnorganizedOnly
-                ? 'Every image in this workspace has tags or a collection.'
-                : 'Create an image to add your first result to this workspace.'}
+        {showUnorganizedOnly && (collectionId || parseCatalogSearch(searchQuery).tags.length)
+          ? 'The Unorganized filter hides every image with a tag or a collection. Turn it off to see these images.'
+          : searchQuery
+            ? `No results for “${searchQuery}” in this workspace.`
+            : collectionId
+              ? 'No images in this collection.'
+              : showFavoritesOnly
+                ? 'No favorite images in this view.'
+                : showUnorganizedOnly
+                  ? 'Every image in this workspace has tags or a collection.'
+                  : 'Create an image to add your first result to this workspace.'}
       </p>
       {filtered ? (
         <button

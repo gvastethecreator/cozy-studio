@@ -12,9 +12,9 @@ const EMPTY_COLLECTIONS: CatalogCollection[] = [];
 export function useCatalogOrganization(workspaceId: string, enabled = true) {
   const [tags, setTags] = useState<CatalogTag[]>([]);
   const [collections, setCollections] = useState<CatalogCollection[]>([]);
-  const [loadedWorkspaceId, setLoadedWorkspaceId] = useState(workspaceId);
+  // Loading means this workspace has no result yet; background refreshes keep the current lists.
+  const [loadedWorkspaceId, setLoadedWorkspaceId] = useState<string | null>(null);
   const [errors, setErrors] = useState({ tag: '', collection: '' });
-  const [loading, setLoading] = useState(true);
   const [revision, setRevision] = useState(0);
   const refresh = useCallback(() => setRevision((value) => value + 1), []);
   useEffect(() => {
@@ -24,7 +24,6 @@ export function useCatalogOrganization(workspaceId: string, enabled = true) {
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
-    setLoading(true);
     setErrors({ tag: '', collection: '' });
     void Promise.allSettled([
       listCatalogTags(workspaceId),
@@ -48,7 +47,6 @@ export function useCatalogOrganization(workspaceId: string, enabled = true) {
               : 'Could not load collections.'
             : '',
       });
-      setLoading(false);
     });
     return () => {
       cancelled = true;
@@ -58,7 +56,7 @@ export function useCatalogOrganization(workspaceId: string, enabled = true) {
     tags: loadedWorkspaceId === workspaceId ? tags : EMPTY_TAGS,
     collections: loadedWorkspaceId === workspaceId ? collections : EMPTY_COLLECTIONS,
     errors,
-    loading,
+    loading: loadedWorkspaceId !== workspaceId,
     refresh,
   };
 }

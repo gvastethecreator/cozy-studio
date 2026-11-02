@@ -114,7 +114,8 @@ export function useLocalStudioSync({
     // always receives fresh, non-disposed instances.
     const catalogRefreshPolicy = createCatalogEventRefreshPolicy({
       refreshCatalog: async (scope) => {
-        // Agents file new images into tags and collections, so those menus refresh too.
+        // Agents file new images into tags and collections, and single-image tag edits,
+        // deletes and restores arrive as catalog.updated, so those menus refresh too.
         notifyCatalogOrganizationChanged();
         await onCatalogChanged?.(scope);
       },

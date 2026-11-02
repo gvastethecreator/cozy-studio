@@ -23,6 +23,10 @@ vi.mock('../hooks/useTheme', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   useTheme: () => theme,
 }));
+vi.mock('../contexts/GlobalContext', () => ({
+  useWorkspaceState: () => ({ activeWorkspaceId: 'default', createWorkspace: vi.fn() }),
+  useToastUi: () => ({ addToast: vi.fn() }),
+}));
 
 afterEach(() => {
   cleanup();
@@ -154,6 +158,8 @@ describe('StudioSettingsModal provider defaults', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Data folder & imports' }));
     expect(screen.getByLabelText(EXTERNAL_SCAN_PATH_LABEL)).toBeTruthy();
     expect(screen.getByText(EXTERNAL_SCAN_PATH_HELP)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Export this workspace' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Import a Library archive' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Accounts & models' }));
     const radios = within(screen.getByRole('group', { name: 'Default provider' })).getAllByRole(
       'radio',

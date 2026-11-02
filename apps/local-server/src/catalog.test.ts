@@ -29,7 +29,8 @@ describe('buildCatalogWorkspaceClause', () => {
           public_url TEXT, thumbnail_url TEXT, prompt TEXT, negative_prompt TEXT,
           aspect_ratio TEXT, image_size TEXT, width INTEGER, height INTEGER, mime_type TEXT,
           file_size_bytes INTEGER, job_id TEXT, workspace_id TEXT, batch_id TEXT, recipe_id TEXT,
-          is_favorite INTEGER, is_deleted INTEGER, deleted_at TEXT, tags TEXT, created_at TEXT
+          is_favorite INTEGER, is_deleted INTEGER, deleted_at TEXT, tags TEXT, created_at TEXT,
+          generation_config TEXT
         );
       `);
       const insert = sqlite.prepare(`INSERT INTO catalog_images

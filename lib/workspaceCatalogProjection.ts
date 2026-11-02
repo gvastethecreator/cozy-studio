@@ -8,7 +8,6 @@ export interface WorkspaceWithThumbs extends Workspace {
   imageCount: number;
   totalFileSizeBytes: number;
   knownFileSizeCount: number;
-  libraryIds: string[];
   locationPath?: string;
   firstImageCreatedAt?: string;
   latestImageCreatedAt?: string;
@@ -35,7 +34,6 @@ interface WorkspaceCatalogSummary {
   lastImage?: string;
   totalFileSizeBytes: number;
   knownFileSizeCount: number;
-  libraryIds: string[];
   locationPath?: string;
   firstImageCreatedAt?: string;
   latestImageCreatedAt?: string;
@@ -54,7 +52,6 @@ function buildWorkspaceCatalogSummaries(
       lastImage: summary.lastImage ? resolveCatalogThumb(summary.lastImage) : undefined,
       totalFileSizeBytes: summary.totalFileSizeBytes,
       knownFileSizeCount: summary.knownFileSizeCount,
-      libraryIds: summary.libraryIds,
       locationPath: summary.sampleFilePath ?? undefined,
       firstImageCreatedAt: summary.firstCreatedAt ?? undefined,
       latestImageCreatedAt: summary.latestCreatedAt ?? undefined,
@@ -65,10 +62,6 @@ function buildWorkspaceCatalogSummaries(
     return summaries;
   }
 
-  const libraryIdsByWorkspace = new Map(
-    [...summaries].map(([workspaceId, summary]) => [workspaceId, new Set(summary.libraryIds)]),
-  );
-
   for (const entry of catalogView.entries) {
     const workspaceId = entry.workspaceId || 'default';
     const existing = summaries.get(workspaceId);
@@ -78,12 +71,6 @@ function buildWorkspaceCatalogSummaries(
         existing.imageCount += 1;
         existing.totalFileSizeBytes += entry.fileSizeBytes ?? 0;
         existing.knownFileSizeCount += entry.fileSizeBytes === null ? 0 : 1;
-        const libraryIds = libraryIdsByWorkspace.get(workspaceId) ?? new Set<string>();
-        if (!libraryIds.has(entry.libraryId)) {
-          libraryIds.add(entry.libraryId);
-          libraryIdsByWorkspace.set(workspaceId, libraryIds);
-          existing.libraryIds.push(entry.libraryId);
-        }
       }
       existing.lastImage ??= resolveCatalogThumb(entry);
       existing.locationPath ??= entry.filePath;
@@ -97,12 +84,10 @@ function buildWorkspaceCatalogSummaries(
       lastImage: resolveCatalogThumb(entry),
       totalFileSizeBytes: entry.fileSizeBytes ?? 0,
       knownFileSizeCount: entry.fileSizeBytes === null ? 0 : 1,
-      libraryIds: [entry.libraryId],
       locationPath: entry.filePath,
       firstImageCreatedAt: entry.createdAt,
       latestImageCreatedAt: entry.createdAt,
     });
-    libraryIdsByWorkspace.set(workspaceId, new Set([entry.libraryId]));
   }
 
   return summaries;
@@ -170,7 +155,6 @@ export function buildWorkspacesWithThumbs({
         imageCount: summary?.imageCount ?? 0,
         totalFileSizeBytes: summary?.totalFileSizeBytes ?? 0,
         knownFileSizeCount: summary?.knownFileSizeCount ?? 0,
-        libraryIds: summary?.libraryIds ?? [],
         locationPath: summary?.locationPath,
         firstImageCreatedAt: summary?.firstImageCreatedAt,
         latestImageCreatedAt: summary?.latestImageCreatedAt,
@@ -184,6 +168,5 @@ export function buildWorkspacesWithThumbs({
     imageCount: 0,
     totalFileSizeBytes: 0,
     knownFileSizeCount: 0,
-    libraryIds: [],
   }));
 }

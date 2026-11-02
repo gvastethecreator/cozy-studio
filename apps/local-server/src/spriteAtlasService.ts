@@ -615,7 +615,7 @@ export function createSpriteAtlasService({
         blockedReason(
           'path_rejected',
           'That image is outside the Studio Library.',
-          'Import the image through Settings → Library & imports, then choose it here.',
+          'Import the image through Settings → Data folder & imports, then choose it here.',
         ),
       );
     }

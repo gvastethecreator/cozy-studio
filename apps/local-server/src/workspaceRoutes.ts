@@ -5,6 +5,7 @@ import {
   CreateStudioWorkspaceRequestSchema,
   UpdateStudioWorkspaceRequestSchema,
 } from '../../../packages/shared/src/studioApiSchemas';
+import type { CatalogBatchCommandResult } from '../../../packages/shared/src/types';
 
 import {
   createWorkspaceInDb,
@@ -15,10 +16,9 @@ import {
   type DeleteWorkspaceResult,
 } from './db/workspaces';
 import { getDb } from './db/connection';
-import { ensureDefaultLibrary } from './libraries';
 
 function listCatalogWorkspaces() {
-  return listWorkspacesFromDb(getDb(), ensureDefaultLibrary().id);
+  return listWorkspacesFromDb(getDb());
 }
 
 function getCatalogWorkspace(id: string) {
@@ -28,27 +28,21 @@ function getCatalogWorkspace(id: string) {
 function createCatalogWorkspace(input: {
   id?: string;
   name: string;
-  libraryId?: string | null;
   filter?: Record<string, unknown>;
   sortOrder?: 'newest' | 'oldest' | 'favorite';
 }) {
-  return createWorkspaceInDb(getDb(), input, ensureDefaultLibrary().id);
+  return createWorkspaceInDb(getDb(), input);
 }
 
 function updateCatalogWorkspace(
   id: string,
   patch: {
     name?: string;
-    libraryId?: string | null;
     filter?: Record<string, unknown>;
     sortOrder?: 'newest' | 'oldest' | 'favorite';
   },
 ) {
   return updateWorkspaceInDb(getDb(), id, patch);
-}
-
-function deleteCatalogWorkspace(id: string) {
-  return deleteWorkspaceFromDb(getDb(), id);
 }
 
 export interface WorkspaceRoutesDependencies {
@@ -57,6 +51,8 @@ export interface WorkspaceRoutesDependencies {
   createCatalogWorkspace: typeof createCatalogWorkspace;
   updateCatalogWorkspace: typeof updateCatalogWorkspace;
   deleteCatalogWorkspace: (id: string) => DeleteWorkspaceResult | boolean;
+  /** Moves the workspace's live images to Archived Images through the soft-delete path. */
+  trashWorkspaceImages: (workspaceId: string) => CatalogBatchCommandResult;
 }
 
 function normalizeWorkspaceBoundaryAliases(body: unknown) {
@@ -64,7 +60,6 @@ function normalizeWorkspaceBoundaryAliases(body: unknown) {
   const record = body as Record<string, unknown>;
   return {
     ...record,
-    libraryId: record.libraryId ?? record.library_id,
     filter: record.filter ?? record.filterJson ?? record.filter_json,
     sortOrder: record.sortOrder ?? record.sort_order,
   };
@@ -81,13 +76,18 @@ function invalidWorkspaceBody(c: Context) {
   );
 }
 
-export function createWorkspaceRoutes(dependencies: Partial<WorkspaceRoutesDependencies> = {}) {
+export function createWorkspaceRoutes(
+  dependencies: Partial<WorkspaceRoutesDependencies> &
+    Pick<WorkspaceRoutesDependencies, 'trashWorkspaceImages'>,
+) {
   const {
     listCatalogWorkspaces: listWorkspaces = listCatalogWorkspaces,
     getCatalogWorkspace: readWorkspace = getCatalogWorkspace,
     createCatalogWorkspace: createWorkspace = createCatalogWorkspace,
     updateCatalogWorkspace: updateWorkspace = updateCatalogWorkspace,
-    deleteCatalogWorkspace: deleteWorkspace = deleteCatalogWorkspace,
+    trashWorkspaceImages,
+    deleteCatalogWorkspace: deleteWorkspace = (id: string) =>
+      deleteWorkspaceFromDb(getDb(), id, trashWorkspaceImages),
   } = dependencies;
   const routes = new Hono();
   routes.get('/', (c) => c.json(listWorkspaces()));
@@ -107,7 +107,6 @@ export function createWorkspaceRoutes(dependencies: Partial<WorkspaceRoutesDepen
       createWorkspace({
         id: requestedId || undefined,
         name: body.name?.trim() || 'Untitled Workspace',
-        libraryId: body.libraryId,
         filter: body.filter ?? {},
         sortOrder: body.sortOrder ?? 'newest',
       }),
@@ -127,7 +126,6 @@ export function createWorkspaceRoutes(dependencies: Partial<WorkspaceRoutesDepen
     const body = decoded.value;
     const workspace = updateWorkspace(c.req.param('id'), {
       name: body.name,
-      libraryId: body.libraryId,
       filter: body.filter,
       sortOrder: body.sortOrder,
     });
@@ -138,7 +136,8 @@ export function createWorkspaceRoutes(dependencies: Partial<WorkspaceRoutesDepen
     if (result === true) return c.json({ ok: true });
     if (result && typeof result === 'object' && 'ok' in result) {
       if (result.ok) return c.json({ ok: true });
-      return c.json({ error: result.error }, result.status);
+      const { error, failed } = result;
+      return c.json({ error, ...(failed && { failed }) }, result.status);
     }
     return c.json({ error: 'Workspace not found' }, 404);
   });

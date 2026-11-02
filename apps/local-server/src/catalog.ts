@@ -97,7 +97,6 @@ const CATALOG_WORKSPACE_AGGREGATE_COLUMNS = [
   'COUNT(*) AS image_count',
   'COALESCE(SUM(file_size_bytes), 0) AS total_file_size_bytes',
   'COUNT(file_size_bytes) AS known_file_size_count',
-  'GROUP_CONCAT(DISTINCT library_id) AS library_ids',
   'MIN(created_at) AS first_created_at',
   'MAX(created_at) AS latest_created_at',
 ].join(', ');
@@ -427,7 +426,6 @@ export function queryCatalogWorkspaceSummaries(
           summaries.image_count,
           summaries.total_file_size_bytes,
           summaries.known_file_size_count,
-          summaries.library_ids,
           summaries.first_created_at,
           summaries.latest_created_at,
           latest_image.${CATALOG_IMAGE_SUMMARY_COLUMNS.replaceAll(', ', ', latest_image.')}
@@ -458,10 +456,6 @@ export function queryCatalogWorkspaceSummaries(
       imageCount: row.image_count ?? 0,
       totalFileSizeBytes: row.total_file_size_bytes ?? 0,
       knownFileSizeCount: row.known_file_size_count ?? 0,
-      libraryIds:
-        typeof row.library_ids === 'string' && row.library_ids.length > 0
-          ? row.library_ids.split(',').filter(Boolean)
-          : [],
       firstCreatedAt: row.first_created_at ?? null,
       latestCreatedAt: row.latest_created_at ?? null,
       sampleFilePath: lastImage?.filePath ?? null,
@@ -502,36 +496,70 @@ export function listCatalogImageIds(filters: CatalogCommandFilter = {}) {
     .map((row: any) => String(row.id));
 }
 
+/**
+ * Updates favorite, tags or workspace. A move to another workspace keeps the image's tags
+ * (a tag missing there is created with the source color) and leaves every collection
+ * outside the new workspace. An unknown workspace throws.
+ */
 export function updateCatalogImage(
   id: string,
   patch: { isFavorite?: boolean; tags?: string[]; workspaceId?: string | null },
 ) {
-  const image = getCatalogImage(id);
+  const database = getDb();
+  const image = getCatalogImage(id, database);
   if (!image) return null;
-  getDb()
-    .query(`
-      UPDATE catalog_images
-      SET is_favorite = COALESCE(?, is_favorite),
-          tags = COALESCE(?, tags),
-          workspace_id = ?,
-          created_at = created_at
-      WHERE id = ?
-    `)
-    .run(
-      patch.isFavorite === undefined ? null : patch.isFavorite ? 1 : 0,
-      patch.tags === undefined ? null : JSON.stringify(patch.tags),
-      patch.workspaceId === undefined ? image.workspaceId : patch.workspaceId,
-      id,
-    );
-  const workspaceId = patch.workspaceId === undefined ? image.workspaceId : patch.workspaceId;
+  const from = image.workspaceId ?? 'default';
+  const to = patch.workspaceId === undefined ? from : (patch.workspaceId ?? 'default');
+  const moving = to !== from;
+  if (
+    moving &&
+    to !== 'default' &&
+    !database.query('SELECT 1 FROM workspaces WHERE id = ?').get(to)
+  ) {
+    throw new Error('Unknown workspace.');
+  }
+  const tags = patch.tags ?? image.tags;
   const previousTags = new Set(image.tags);
-  recordCatalogTagUse(
-    workspaceId ?? 'default',
-    (patch.tags ?? image.tags).filter(
-      (tag) => workspaceId !== image.workspaceId || !previousTags.has(tag),
-    ),
-  );
-  return getCatalogImage(id);
+  const write = () => {
+    database
+      .query(`
+        UPDATE catalog_images
+        SET is_favorite = COALESCE(?, is_favorite),
+            tags = COALESCE(?, tags),
+            workspace_id = ?
+        WHERE id = ?
+      `)
+      .run(
+        patch.isFavorite === undefined ? null : patch.isFavorite ? 1 : 0,
+        patch.tags === undefined ? null : JSON.stringify(patch.tags),
+        patch.workspaceId === undefined ? image.workspaceId : patch.workspaceId,
+        id,
+      );
+    if (moving) {
+      // The image keeps its tags: a missing tag is created in the destination with the source color.
+      if (tags.length) {
+        database
+          .query(`INSERT OR IGNORE INTO catalog_tags (workspace_id, name, color)
+            SELECT ?, name, color FROM catalog_tags
+            WHERE workspace_id = ? AND name IN (${tags.map(() => '?').join(', ')})`)
+          .run(to, from, ...tags);
+      }
+      // It leaves every collection outside its new workspace.
+      database
+        .query(`DELETE FROM catalog_collection_images WHERE image_id = ?
+          AND collection_id IN (SELECT id FROM catalog_collections WHERE workspace_id <> ?)`)
+        .run(id, to);
+    }
+    recordCatalogTagUse(
+      to,
+      tags.filter((tag) => moving || !previousTags.has(tag)),
+      database,
+    );
+  };
+  // A move writes three tables, so it commits as one unit.
+  if (moving) database.transaction(write)();
+  else write();
+  return getCatalogImage(id, database);
 }
 
 export function updateCatalogImageFileSize(id: string, fileSizeBytes: number) {
@@ -592,6 +620,8 @@ export function restoreCatalogImage(id: string) {
       toPublicAssetUrl(restoredPath, { libraryId: library.id, rootPath: library.path }),
       id,
     );
+  // A workspace delete removes its tag rows, so a restored image brings its tags back.
+  recordCatalogTagUse(image.workspaceId ?? 'default', image.tags);
   return getCatalogImage(id);
 }
 

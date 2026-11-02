@@ -88,7 +88,7 @@ function resolveRequestedLibraryPath(
   const libraryPath = request.libraryPath || existingLibraryDir || resolveDefaultLibraryPath();
   if (!isAbsolutePath(libraryPath)) {
     throw new OnboardingSetupError(400, {
-      error: 'Studio Library path must be absolute.',
+      error: 'Studio data folder path must be absolute.',
       code: 'invalid_library_path',
     });
   }

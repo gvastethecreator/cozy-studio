@@ -35,7 +35,6 @@ export async function installStyleBrowserFixture(context: BrowserContext, unmatc
   const workspace = {
     id: 'default',
     name: 'Performance fixture',
-    libraryId: null,
     filter: null,
     sortOrder: 'newest',
     createdAt: timestamp,

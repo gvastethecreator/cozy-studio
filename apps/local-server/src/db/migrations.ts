@@ -433,6 +433,33 @@ const DATABASE_MIGRATIONS = [
       database.run('UPDATE reference_import_receipts SET stored_sha256 = sha256');
     },
   },
+  {
+    version: 15,
+    name: 'drop-orphan-workspace-tags',
+    migrate(database: Database) {
+      // Tags of a deleted workspace. Keep them while a live image still uses that workspace id:
+      // the workspace strip recreates that workspace as "Imported", and its colors must survive.
+      database.run(`DELETE FROM catalog_tags
+        WHERE workspace_id <> 'default'
+          AND NOT EXISTS (SELECT 1 FROM workspaces WHERE workspaces.id = catalog_tags.workspace_id)
+          AND NOT EXISTS (SELECT 1 FROM catalog_images image
+            WHERE image.is_deleted = 0
+              AND COALESCE(image.workspace_id, 'default') = catalog_tags.workspace_id)`);
+    },
+  },
+  {
+    version: 16,
+    name: 'drop-cross-workspace-collection-members',
+    migrate(database: Database) {
+      // Every collection read already hides these rows, so no visible data changes.
+      database.run(`DELETE FROM catalog_collection_images
+        WHERE EXISTS (
+          SELECT 1 FROM catalog_collections collection
+          JOIN catalog_images image ON image.id = catalog_collection_images.image_id
+          WHERE collection.id = catalog_collection_images.collection_id
+            AND collection.workspace_id <> COALESCE(image.workspace_id, 'default'))`);
+    },
+  },
 ] as const;
 
 function backfillJobOperationalColumns(database: Database) {

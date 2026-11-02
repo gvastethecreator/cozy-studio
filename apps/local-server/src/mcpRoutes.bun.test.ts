@@ -287,7 +287,7 @@ describe('studio_import_reference', () => {
         { request_id: 'reference-mcp-import-again' },
       ]);
 
-      const listed = await call('studio_catalog', {});
+      const listed = await call('studio_catalog', { workspace_id: 'default' });
       expect(listed.status).toBe(200);
       expect(await listed.json()).toMatchObject({
         images: [

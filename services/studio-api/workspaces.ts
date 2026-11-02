@@ -8,7 +8,6 @@ export async function listWorkspaces() {
 export async function createWorkspace(input: {
   id?: string;
   name: string;
-  libraryId?: string | null;
   filter?: Record<string, unknown>;
   sortOrder?: StudioWorkspaceSortOrder;
 }) {
@@ -22,7 +21,6 @@ export async function updateWorkspace(
   id: string,
   patch: {
     name?: string;
-    libraryId?: string | null;
     filter?: Record<string, unknown>;
     sortOrder?: StudioWorkspaceSortOrder;
   },

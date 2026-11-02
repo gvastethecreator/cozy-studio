@@ -59,7 +59,7 @@ const COMPILED_STYLE_FIELDS = [
   'selectedStyleDraft',
 ];
 
-/** The catalog image with this id, or null. Ids such as `search` reach other catalog routes. */
+/** The catalog image with this id, or null. Ids such as `workspaces` reach other catalog routes. */
 async function getCatalogImage(get: HttpCall, imageId: string) {
   const response = await get(`/api/catalog/${imageId}`);
   const image = response.ok ? ((await response.json()) as CatalogImage) : null;
@@ -317,9 +317,9 @@ export function createMcpRoutes({
       if (Array.isArray(value)) return value as T[];
       throw readFailed(path);
     };
-    const unorganizedCount = (workspaceId?: string) =>
+    const unorganizedCount = (workspaceId: string) =>
       readJson(
-        `/api/catalog?${workspaceId ? `workspace_id=${workspaceId}&` : ''}unorganized=true&limit=1`,
+        `/api/catalog?workspace_id=${encodeURIComponent(workspaceId)}&unorganized=true&limit=1`,
       ).then((page) => (page as { total?: number } | null)?.total ?? 0);
     const query = (path: string) =>
       get(
@@ -337,12 +337,26 @@ export function createMcpRoutes({
           checkedAt?: string | null;
         } | null;
         const behind = update?.behind ?? 0;
-        const unorganized = await unorganizedCount();
+        // A failed workspace read counts nothing, so studio_status never fails on it.
+        const listed: unknown = await readJson('/api/workspaces');
+        const workspaces = Array.isArray(listed) ? (listed as StudioWorkspace[]) : [];
+        // ponytail: one count request per workspace; add a grouped unorganized route if workspaces reach the hundreds.
+        const unorganizedWorkspaces = (
+          await Promise.all(
+            workspaces.map(async ({ id, name }) => ({
+              id,
+              name,
+              count: await unorganizedCount(id),
+            })),
+          )
+        ).filter(({ count }) => count > 0);
+        const total = unorganizedWorkspaces.reduce((sum, { count }) => sum + count, 0);
+        const workspaceCount = unorganizedWorkspaces.length;
         return c.json({
           health: await health.json(),
           mcpAccess: settings.mcpAccess,
           mcpAccessLabel: STUDIO_MCP_ACCESS_LABELS[settings.mcpAccess],
-          library: { unorganized },
+          unorganized: { total, workspaces: unorganizedWorkspaces },
           update: update && {
             behind,
             latestCommit: update.latestCommit ?? null,
@@ -353,8 +367,8 @@ export function createMcpRoutes({
           ...(behind > 0 && {
             notice: `Studio is ${behind} commit${behind === 1 ? '' : 's'} behind origin/main. Tell the user an update is available and ask before applying it with studio_apply_update, or point them to Settings → Help & updates.`,
           }),
-          ...(unorganized > 0 && {
-            organizeNotice: `${unorganized} Library image${unorganized === 1 ? ' has' : 's have'} no tags or collection. Recommend organizing them: propose a scheme, apply only after the user confirms.`,
+          ...(total > 0 && {
+            organizeNotice: `${total} image${total === 1 ? '' : 's'} in ${workspaceCount} workspace${workspaceCount === 1 ? '' : 's'} ${total === 1 ? 'has' : 'have'} no tags or collection (see unorganized.workspaces). Recommend organizing them one workspace at a time: propose a scheme, apply only after the user confirms.`,
           }),
         });
       }

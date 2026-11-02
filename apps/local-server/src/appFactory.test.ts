@@ -54,7 +54,6 @@ vi.mock('./db/workspaces', () => ({
   ensureDefaultWorkspace: vi.fn(() => ({
     id: 'default',
     name: 'Default',
-    libraryId: null,
     filter: {},
     sortOrder: 'newest',
     createdAt: '2026-05-31T00:00:00.000Z',
@@ -204,7 +203,6 @@ function createFakeCatalogStore(overrides?: Partial<StudioCatalogStore>): Studio
         imageCount: 1,
         totalFileSizeBytes: 0,
         knownFileSizeCount: 0,
-        libraryIds: [image.libraryId],
         firstCreatedAt: image.createdAt,
         latestCreatedAt: image.createdAt,
         sampleFilePath: image.filePath,
@@ -445,7 +443,6 @@ describe('createStudioApp', () => {
     const injectedWorkspace = {
       id: 'workspace-injected',
       name: 'Injected Workspace',
-      libraryId: 'library-injected',
       filter: { favorite: true },
       sortOrder: 'newest' as const,
       createdAt: '2026-05-31T00:00:00.000Z',

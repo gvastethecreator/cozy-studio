@@ -76,7 +76,6 @@ describe('buildWorkspacesWithThumbs', () => {
           imageCount: 24,
           totalFileSizeBytes: 1024,
           knownFileSizeCount: 1,
-          libraryIds: ['library-1'],
           firstCreatedAt: '2026-05-25T08:00:00.000Z',
           latestCreatedAt: '2026-05-26T08:00:00.000Z',
           sampleFilePath: 'D:/library/assets/summary.png',
@@ -151,7 +150,6 @@ describe('buildWorkspacesWithThumbs', () => {
         imageCount: 65,
         totalFileSizeBytes: 5_242_880,
         knownFileSizeCount: 64,
-        libraryIds: ['library-1'],
         firstCreatedAt: '2026-05-20T00:00:00.000Z',
         latestCreatedAt: '2026-05-29T00:00:00.000Z',
         sampleFilePath: 'D:/studio/library/assets/summary-default.png',
@@ -176,7 +174,6 @@ describe('buildWorkspacesWithThumbs', () => {
       imageCount: 65,
       totalFileSizeBytes: 5_242_880,
       knownFileSizeCount: 64,
-      libraryIds: ['library-1'],
       locationPath: 'D:/studio/library/assets/summary-default.png',
       firstImageCreatedAt: '2026-05-20T00:00:00.000Z',
       latestImageCreatedAt: '2026-05-29T00:00:00.000Z',
@@ -191,7 +188,6 @@ describe('buildWorkspacesWithThumbs', () => {
         imageCount: 65,
         totalFileSizeBytes: 5_242_880,
         knownFileSizeCount: 64,
-        libraryIds: ['library-1'],
         firstCreatedAt: '2026-05-20T00:00:00.000Z',
         latestCreatedAt: '2026-05-29T00:00:00.000Z',
         sampleFilePath: 'D:/studio/library/assets/summary-default.png',
@@ -216,7 +212,6 @@ describe('buildWorkspacesWithThumbs', () => {
       imageCount: 65,
       totalFileSizeBytes: 5_242_880,
       knownFileSizeCount: 64,
-      libraryIds: ['library-1'],
     });
     expect(result[0].lastImage).toContain('/thumbs/summary-only-default.webp');
   });

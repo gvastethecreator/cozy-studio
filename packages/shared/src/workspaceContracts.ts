@@ -5,7 +5,6 @@ export type StudioWorkspaceSortOrder = 'newest' | 'oldest' | 'favorite';
 export interface StudioWorkspace {
   id: string;
   name: string;
-  libraryId: string | null;
   filter: Record<string, unknown>;
   sortOrder: StudioWorkspaceSortOrder;
   createdAt: string;

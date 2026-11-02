@@ -12,7 +12,6 @@ describe('shared Studio API schemas', () => {
     const workspace = {
       id: 'default',
       name: 'Default',
-      libraryId: null,
       filter: {},
       sortOrder: 'newest',
       createdAt: '2026-08-08T00:00:00.000Z',

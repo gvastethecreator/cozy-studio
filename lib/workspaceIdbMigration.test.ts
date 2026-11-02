@@ -18,7 +18,6 @@ describe('workspaceIdbMigration', () => {
       {
         id: 'current',
         name: 'Current',
-        libraryId: null,
         filter: {},
         sortOrder: 'newest',
         createdAt: '2026-01-01T00:00:00.000Z',
@@ -37,7 +36,6 @@ describe('workspaceIdbMigration', () => {
     const mapped = mapStudioWorkspaceToUi({
       id: 'ws-1',
       name: 'Concept',
-      libraryId: 'lib-1',
       filter: {},
       sortOrder: 'newest',
       createdAt: '2026-01-02T00:00:00.000Z',
@@ -65,13 +63,11 @@ describe('workspaceIdbMigration', () => {
       async (input: {
         id?: string;
         name: string;
-        libraryId?: string | null;
         filter?: Record<string, unknown>;
         sortOrder?: StudioWorkspaceSortOrder;
       }): Promise<StudioWorkspace> => ({
         id: input.id ?? 'created',
         name: input.name,
-        libraryId: null,
         filter: {},
         sortOrder: 'newest',
         createdAt: '2026-01-01T00:00:00.000Z',
@@ -84,7 +80,6 @@ describe('workspaceIdbMigration', () => {
         {
           id: 'default',
           name: 'Default',
-          libraryId: null,
           filter: {},
           sortOrder: 'newest',
           createdAt: '2026-01-01T00:00:00.000Z',
@@ -95,7 +90,6 @@ describe('workspaceIdbMigration', () => {
         {
           id: 'default',
           name: 'Default',
-          libraryId: null,
           filter: {},
           sortOrder: 'newest',
           createdAt: '2026-01-01T00:00:00.000Z',
@@ -104,7 +98,6 @@ describe('workspaceIdbMigration', () => {
         {
           id: 'local-only',
           name: 'Local Only',
-          libraryId: null,
           filter: {},
           sortOrder: 'newest',
           createdAt: '2026-01-01T00:00:00.000Z',

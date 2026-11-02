@@ -30,7 +30,7 @@ describe('database migrations', () => {
       transactionRolledBack: true,
       recoverableCheckpoint: true,
       summaryProjection: true,
-      schemaVersion: 14,
+      schemaVersion: 16,
       legacyComfyIsolated: true,
       remoteIdentityPreserved: true,
       completeJobHistory: true,

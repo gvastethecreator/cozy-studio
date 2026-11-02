@@ -343,19 +343,30 @@ describe('Studio MCP boundary', () => {
     runtimeBody = JSON.stringify(runtimePack);
 
     settings.mcpAccess = 'organize';
+    // The fake counts 3 unorganized images in every listed workspace.
+    const total = 3 * workspaces.length;
     expect(await (await call('studio_status')).json()).toMatchObject({
       mcpAccessLabel: 'Organize',
-      library: { unorganized: 3 },
-      organizeNotice: expect.stringContaining('3 Library images have no tags or collection.'),
+      unorganized: {
+        total,
+        workspaces: workspaces.map(({ id, name }) => ({ id, name, count: 3 })),
+      },
+      organizeNotice: expect.stringContaining(
+        `${total} images in ${workspaces.length} workspaces have no tags or collection`,
+      ),
     });
-    expect(requests.at(-1)?.path).toBe('/api/catalog?unorganized=true&limit=1');
+    expect(requests.slice(-workspaces.length).map(({ path }) => path)).toEqual(
+      workspaces.map(({ id }) => `/api/catalog?workspace_id=${id}&unorganized=true&limit=1`),
+    );
+    // A catalog read names its workspace, so a #tag search never spans workspaces.
+    expect((await call('studio_catalog', { q: '#pick' })).status).toBe(400);
     // Every image and tag change is checked before the first write.
     const writes = () => requests.filter(({ body }) => body);
     const writesBefore = writes().length;
-    // `search` answers from another catalog route, so it is not an image.
+    // `workspaces` answers from another catalog route, so it is not an image.
     for (const [imageIds, rejected] of [
       [['image-1', 'foreign'], 'foreign'],
-      [['image-1', 'search'], 'search'],
+      [['image-1', 'workspaces'], 'workspaces'],
       [['image-1', 'full'], 'full'],
     ] as const) {
       const response = await call('studio_organize_images', { ...organize, imageIds });

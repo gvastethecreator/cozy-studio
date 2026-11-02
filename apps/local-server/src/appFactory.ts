@@ -672,7 +672,14 @@ export async function createStudioApp(
     }),
   );
 
-  app.route('/api/workspaces', createWorkspaceRoutes(options.dependencies?.workspaceRoutes));
+  app.route(
+    '/api/workspaces',
+    createWorkspaceRoutes({
+      trashWorkspaceImages: (workspaceId) =>
+        catalogCommands.archiveByFilter({ workspaceId, isDeleted: false }),
+      ...options.dependencies?.workspaceRoutes,
+    }),
+  );
 
   app.route(
     '/api',

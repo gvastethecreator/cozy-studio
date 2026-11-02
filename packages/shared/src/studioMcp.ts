@@ -178,7 +178,7 @@ export const studioMcpTools = {
   studio_status: {
     access: 'read',
     description:
-      'Read Studio health, Agent access (mcpAccess: read, organize, or write = Full control; at off it returns 403), update status and how many Library images are unorganized. Call it first. When the result has a notice, tell the user an update is available and ask before applying it. When it has an organizeNotice (library.unorganized above zero), recommend organizing those images.',
+      'Read Studio health, Agent access (mcpAccess: read, organize, or write = Full control; at off it returns 403), update status and how many images are unorganized. Call it first. unorganized.total counts all workspaces; unorganized.workspaces lists each workspace with unorganized images (id, name, count). When the result has a notice, tell the user an update is available and ask before applying it. When it has an organizeNotice (unorganized.total above zero), recommend organizing those images one workspace at a time.',
     schema: empty,
   },
   studio_providers: {
@@ -244,24 +244,24 @@ export const studioMcpTools = {
   studio_job: {
     access: 'read',
     description:
-      'Read job status, error and result notices, such as a returned size that differs from the request. detail: true adds kind, provider, model, workspace, batch, attempt, the filing (libraryOrganization), the last 20 events and the Library images the job made; it never returns transcripts or provider payloads. Use studio_catalog with job_id to inspect generated results.',
+      'Read job status, error and result notices, such as a returned size that differs from the request. detail: true adds kind, provider, model, workspace, batch, attempt, the filing (libraryOrganization), the last 20 events and the Library images the job made; it never returns transcripts or provider payloads. Use studio_catalog with job_id and the workspace_id that detail: true returns.',
     schema: z.strictObject({ jobId: id, detail: z.boolean().default(false) }),
   },
   studio_batch: {
     access: 'read',
     description:
-      "Read a generation batch: status counts and each job's status and error. Completed images are already in the Library, filed in the batch's workspace with the tags and collection given to studio_generate; list them with studio_catalog batch_id. Retry failed jobs with studio_retry_batch.",
+      "Read a generation batch: status counts and each job's status and error. Completed images are already in the Library, filed in the batch's workspace with the tags and collection given to studio_generate; list them with studio_catalog workspace_id and batch_id. Retry failed jobs with studio_retry_batch.",
     schema: z.strictObject({ batchId: id }),
   },
   studio_catalog: {
     access: 'read',
     description:
-      'Search Library images (generated and imported) by text or #tag, workspace, collection, job, batch or recipe. unorganized: true returns images with no tags and no collection in their workspace. Use sort: "asc" to page through a whole workspace in a stable order. Each row has id, prompt, tags, thumbnailPath and filePath: open thumbnailPath to look at an image, filePath for full detail. Rows do not list collections; page collection_id for each collection instead. Image IDs work as studio_generate referenceIds.',
+      'Search the Library images (generated and imported) of one workspace by text or #tag, collection, job, batch or recipe. workspace_id is required: use the id from studio_workspaces, or the workspaceId that studio_generate, studio_batch or studio_job with detail: true returns. A search never spans workspaces. unorganized: true returns images with no tags and no collection in their workspace. Use sort: "asc" to page through a whole workspace in a stable order. Each row has id, prompt, tags, thumbnailPath and filePath: open thumbnailPath to look at an image, filePath for full detail. Rows do not list collections; page collection_id for each collection instead. Image IDs work as studio_generate referenceIds.',
     schema: z.strictObject({
       ...page,
       offset: z.number().int().min(0).default(0),
       q: z.string().max(2000).optional(),
-      workspace_id: id.optional(),
+      workspace_id: id,
       collection_id: id.optional(),
       job_id: id.optional(),
       batch_id: id.optional(),
@@ -339,7 +339,7 @@ export const studioMcpTools = {
   studio_import_reference: {
     access: 'write',
     description:
-      'Import an image into the Studio Library as a catalog reference. Needs Full control access. Reuse the same reference- requestId and identical input after a timeout. Returns a catalog image ID for studio_generate referenceIds. Does not accept filesystem paths or start a provider. Imports land in the Default workspace with the tag "imported reference"; when the user wants them filed, add them to a collection in Default with studio_organize_images.',
+      'Import an image into Studio as a catalog reference. Needs Full control access. Reuse the same reference- requestId and identical input after a timeout. Returns a catalog image ID for studio_generate referenceIds. Does not accept filesystem paths or start a provider. Imports land in the Default workspace with the tag "imported reference"; when the user wants them filed, add them to a collection in Default with studio_organize_images.',
     schema: referenceImportInput,
   },
   studio_import_reference_file: {

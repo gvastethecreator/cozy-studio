@@ -181,10 +181,10 @@ export function buildOnboardingProbe(facts: OnboardingFacts): OnboardingProbe {
       check(
         'studio_library',
         facts.studioLibraryReady,
-        'Studio Library',
+        'Studio data folder',
         facts.studioLibraryReady
           ? 'Assets and generations stay in this folder.'
-          : 'Create or repair the Studio Library folder.',
+          : 'Create or repair the Studio data folder.',
         studioLibraryPath || null,
       ),
       check(

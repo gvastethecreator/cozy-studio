@@ -103,7 +103,7 @@ export function collectGrokImagineJobIssues({
     issues.push({
       code: 'unresolved_grok_source',
       field: `sourceSpec.assets.${index}.localPath`,
-      message: 'Import the image into the Studio Library first.',
+      message: 'Import the image into Studio first.',
     });
   }
 

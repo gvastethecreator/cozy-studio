@@ -191,17 +191,6 @@ export function createCatalogRoutes({
     return c.json(catalogStore.queryCatalog(filters));
   });
 
-  routes.get('/search', (c) => {
-    const url = new URL(c.req.url);
-    return c.json(
-      catalogStore.queryCatalog({
-        q: url.searchParams.get('q'),
-        offset: Number(url.searchParams.get('offset') || 0),
-        limit: Number(url.searchParams.get('limit') || 50),
-      }),
-    );
-  });
-
   routes.get('/collections', (c) => {
     try {
       return c.json(
@@ -332,16 +321,21 @@ export function createCatalogRoutes({
           catalogStore.listTags(current.workspaceId ?? 'default').map((tag) => tag.name),
         );
       }
+      const workspaceId: string | null | undefined =
+        body.workspaceId === undefined || body.workspaceId === null
+          ? body.workspaceId
+          : validateCatalogCollectionWorkspaceId(body.workspaceId);
+      // An unknown workspace throws before anything is written.
+      const result = catalogCommands.update(c.req.param('id'), {
+        isFavorite: body.isFavorite,
+        tags,
+        workspaceId,
+      });
+      if (!result.ok) return jsonNotFound(c);
+      return c.json(result.image);
     } catch (error) {
       return c.json({ error: error instanceof Error ? error.message : 'Invalid tags' }, 400);
     }
-    const result = catalogCommands.update(c.req.param('id'), {
-      isFavorite: body.isFavorite,
-      tags,
-      workspaceId: body.workspaceId,
-    });
-    if (!result.ok) return jsonNotFound(c);
-    return c.json(result.image);
   });
 
   routes.delete('/:id', (c) => {

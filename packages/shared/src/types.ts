@@ -458,7 +458,6 @@ export interface CatalogWorkspaceSummary {
   imageCount: number;
   totalFileSizeBytes: number;
   knownFileSizeCount: number;
-  libraryIds: string[];
   firstCreatedAt: string | null;
   latestCreatedAt: string | null;
   sampleFilePath: string | null;

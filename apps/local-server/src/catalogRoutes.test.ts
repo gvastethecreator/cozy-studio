@@ -16,6 +16,7 @@ import {
 } from './catalogStore';
 import { recordCatalogTagUse } from './catalogTags';
 import { openTestDatabase } from './db/testDatabase';
+import { createWorkspaceInDb } from './db/workspaces';
 import { embedMetadata, extractMetadata } from './metadataEmbedder';
 
 const testDb = vi.hoisted(() => ({ current: undefined as Database | undefined }));
@@ -255,7 +256,8 @@ describe('catalog routes', () => {
 
   it('updates and restores Catalog Entries', async () => {
     const image = catalogImage({ id: 'image-99', isFavorite: false });
-    const routes = createRoutes(await createStore([image]));
+    const store = await createStore([image]);
+    const routes = createRoutes(store);
 
     const patched = await routes.request('/image-99', {
       method: 'PATCH',
@@ -263,7 +265,10 @@ describe('catalog routes', () => {
       headers: { 'Content-Type': 'application/json' },
     });
     const deleted = await routes.request('/image-99', { method: 'DELETE' });
+    // A workspace delete removes its tag rows; the restored image brings its tags back.
+    testDb.current!.run('DELETE FROM catalog_tags');
     const restored = await routes.request('/image-99/restore', { method: 'POST' });
+    expect(store.listTags('default').map((tag) => tag.name)).toContain('kept');
     const missing = await routes.request('/missing');
 
     await expect(patched.json()).resolves.toMatchObject({
@@ -280,6 +285,36 @@ describe('catalog routes', () => {
       isDeleted: false,
     });
     expect(missing.status).toBe(404);
+  });
+
+  it('moves an image with its tags, out of its old collections, only to a known workspace', async () => {
+    const store = await createStore([catalogImage({ workspaceId: 'default', tags: ['boss'] })]);
+    store.updateTag('default', 'boss', { color: '#fb7185' });
+    store.createCollection({ workspaceId: 'default', name: 'Bosses', imageIds: ['image-1'] });
+    createWorkspaceInDb(testDb.current!, { id: 'ws-b', name: 'B' });
+    const routes = createRoutes(store);
+    const move = (workspaceId: string) =>
+      routes.request('/image-1', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspaceId }),
+      });
+    const members = () =>
+      testDb.current!.query('SELECT image_id FROM catalog_collection_images').all();
+
+    const unknown = await move('missing');
+    expect(unknown.status).toBe(400);
+    await expect(unknown.json()).resolves.toEqual({ error: 'Unknown workspace.' });
+    expect(store.getCatalogImage('image-1')?.workspaceId).toBe('default');
+    expect(members()).toHaveLength(1);
+
+    const moved = await move('ws-b');
+    expect(moved.status).toBe(200);
+    await expect(moved.json()).resolves.toMatchObject({ workspaceId: 'ws-b', tags: ['boss'] });
+    expect(store.listTags('ws-b')).toEqual([
+      expect.objectContaining({ name: 'boss', color: '#fb7185', imageCount: 1 }),
+    ]);
+    expect(members()).toEqual([]);
   });
 
   it('rejects malformed or excessive tags before changing image metadata', async () => {
@@ -380,7 +415,6 @@ describe('catalog routes', () => {
         imageCount: 2,
         totalFileSizeBytes: 3072,
         knownFileSizeCount: 2,
-        libraryIds: ['library-1'],
         firstCreatedAt: '2026-05-24T00:00:00.000Z',
         latestCreatedAt: '2026-05-25T00:00:00.000Z',
         sampleFilePath: 'D:/library/outputs/default-new.png',
@@ -394,7 +428,6 @@ describe('catalog routes', () => {
         imageCount: 1,
         totalFileSizeBytes: 0,
         knownFileSizeCount: 0,
-        libraryIds: ['library-1'],
         firstCreatedAt: '2026-05-23T00:00:00.000Z',
         latestCreatedAt: '2026-05-23T00:00:00.000Z',
         sampleFilePath: 'D:/library/outputs/image-1.png',

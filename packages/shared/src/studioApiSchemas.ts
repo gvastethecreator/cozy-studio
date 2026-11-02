@@ -9,7 +9,6 @@ const StudioWorkspaceSortOrderSchema = Schema.Union([
 export const StudioWorkspaceSchema = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
-  libraryId: Schema.NullOr(Schema.String),
   filter: Schema.Record(Schema.String, Schema.Unknown),
   sortOrder: StudioWorkspaceSortOrderSchema,
   createdAt: Schema.String,
@@ -19,14 +18,12 @@ export const StudioWorkspaceSchema = Schema.Struct({
 export const CreateStudioWorkspaceRequestSchema = Schema.Struct({
   id: Schema.optional(Schema.String),
   name: Schema.optional(Schema.String),
-  libraryId: Schema.optional(Schema.NullOr(Schema.String)),
   filter: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
   sortOrder: Schema.optional(StudioWorkspaceSortOrderSchema),
 });
 
 export const UpdateStudioWorkspaceRequestSchema = Schema.Struct({
   name: Schema.optional(Schema.String),
-  libraryId: Schema.optional(Schema.NullOr(Schema.String)),
   filter: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
   sortOrder: Schema.optional(StudioWorkspaceSortOrderSchema),
 });

@@ -13,8 +13,8 @@ import {
   createLocalRunTaskSpecId,
   listQueuedGenerationAttachments,
   resolveLocalGenerationProviderId,
-  resolveGenerationExecutionOverride,
 } from './localGenerationRun';
+import { resolveGenerationExecutionOverride } from '../packages/shared/src/codexExecutionContract';
 
 describe('localGenerationRun', () => {
   it('keeps the request identity and reports disconnection when both batch acknowledgements are lost', async () => {
@@ -119,15 +119,14 @@ describe('localGenerationRun', () => {
   });
 
   it('uses the fixed HTTP contract while preserving app-server choices in the draft', () => {
-    expect(
-      resolveGenerationExecutionOverride('chatgpt', {
-        ...DEFAULT_GENERATION_CONFIG,
-        codexTransport: 'subscription_http',
-        executionModel: 'gpt-5.6-luna',
-        executionReasoningEffort: 'max',
-        executionSpeed: 'fast',
-      }),
-    ).toEqual({
+    const config: ImageGenerationConfig = {
+      ...DEFAULT_GENERATION_CONFIG,
+      codexTransport: 'subscription_http',
+      executionModel: 'gpt-5.6-luna',
+      executionReasoningEffort: 'max',
+      executionSpeed: 'fast',
+    };
+    expect(resolveGenerationExecutionOverride('chatgpt', config)).toEqual({
       model: 'gpt-6-sol',
       reasoningEffort: 'provider_default',
       serviceTier: null,

@@ -7,6 +7,7 @@ import {
   createDefaultStyleLayerFieldControls,
   createSelectedStylesGenerationPlan,
   createSelectedStyleLayer,
+  createSelectedStyleSlot,
   DEFAULT_SELECTED_STYLE_STRENGTH,
   type SelectedStyleSlot,
   type SelectedStyleLayer,
@@ -16,7 +17,16 @@ import {
 } from './styleLayerComposer';
 import { useLatestRef } from '../../hooks/useLatestRef';
 import { readSelectedStyleDraft, projectStyleCompositionDraft } from './styleCompositionDraft';
+import { loadStyleRuntimePack } from './stylesData';
 import * as Intentional from '../../packages/shared/src/styles/intentional-v1';
+
+// Style packs ship each preset's policy in runtime.json. A slot saved before that carries no
+// policy, so it is read from the installed pack.
+async function resolveIntentionalPolicy(slot: SelectedStyleSlot) {
+  if (slot.preset.intentional) return slot.preset.intentional;
+  const pack = await loadStyleRuntimePack(slot.packId);
+  return pack?.presets.find((preset) => preset.id === slot.preset.id)?.intentional ?? null;
+}
 
 interface StyleCompositionInput {
   config: ImageGenerationConfig;
@@ -54,13 +64,11 @@ export function useStyleComposition({
     () => readSelectedStyleDraft(config.recipeParams),
     [config.recipeParams],
   );
-  const savedMode = config.recipeParams?.intentionalMode ?? config.recipeParams?.styleReferenceMode;
-  const preferredMode =
-    savedMode === 'generate' || savedMode === 'preserve' || savedMode === 'reinterpret'
-      ? savedMode
-      : (defaultStyleReferenceMode ?? (intentionalStylesV1 ? 'generate' : 'preserve'));
-  const intentionalMode: Intentional.Mode =
-    !intentionalStylesV1 && preferredMode === 'generate' ? 'preserve' : preferredMode;
+  const intentionalMode = Intentional.resolveStyleMode({
+    saved: config.recipeParams?.intentionalMode ?? config.recipeParams?.styleReferenceMode,
+    defaultStyleReferenceMode,
+    intentionalStylesV1,
+  });
   const [compileIssues, setCompileIssues] = useState<Intentional.Issue[]>([]);
   const commitComposition = useCallback(
     (slots: SelectedStyleSlot[], mode: Intentional.Mode) => {
@@ -111,15 +119,7 @@ export function useStyleComposition({
         }
         return [
           ...current,
-          {
-            preset,
-            packId: presetPackId,
-            packName,
-            strength: clampStyleStrength(defaultStyleIntensity),
-            enabled: true,
-            fieldControls: createDefaultStyleLayerFieldControls(),
-            avoidRulesMode: 'merge',
-          },
+          createSelectedStyleSlot(preset, presetPackId, packName, defaultStyleIntensity),
         ];
       });
     },
@@ -155,33 +155,16 @@ export function useStyleComposition({
     let cancelled = false;
     void (async () => {
       try {
-        const { compileIntentionalStylePlan } = await import('./intentionalStyleCompile');
-        if (cancelled) return;
-        const compiled = await compileIntentionalStylePlan({
-          slots: selectedStyles,
-          prompt: config.prompt || '',
-          attachments: referenceImages,
-          mode: intentionalMode,
-          locks:
-            intentionalMode === 'preserve'
-              ? Intentional.PRESERVE_LOCKS
-              : intentionalMode === 'reinterpret'
-                ? Intentional.FREE_LAYOUT_LOCKS
-                : {
-                    identity: false,
-                    pose: false,
-                    camera: false,
-                    composition: false,
-                  },
-          variation: Intentional.NO_VARIATION,
-          permissions: { ...Intentional.NO_PERMISSIONS },
-          baseAvoidRules: config.negativePrompt
-            ? config.negativePrompt
-                .split(',')
-                .map((rule) => rule.trim())
-                .filter(Boolean)
-            : [],
-        });
+        const compiled = await Intentional.compileIntentionalStylePlan(
+          {
+            slots: selectedStyles,
+            prompt: config.prompt || '',
+            attachments: referenceImages,
+            mode: intentionalMode,
+            negativePrompt: config.negativePrompt,
+          },
+          { resolvePolicy: resolveIntentionalPolicy },
+        );
         if (cancelled) return;
         setCompileIssues(compiled.issues);
         updateConfig('recipeParams', {

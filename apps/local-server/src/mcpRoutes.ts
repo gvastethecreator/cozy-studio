@@ -2,13 +2,19 @@ import { createHash } from 'node:crypto';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { DEFAULT_GENERATION_CONFIG } from '../../../constants';
-import { RECIPE_DISCOVERY_CATALOG } from '../../../lib/recipeCatalog';
+import { RECIPE_DISCOVERY_CATALOG, searchRecipeCatalog } from '../../../lib/recipeCatalog';
 import { buildGenerationTaskSpecFromRecipe } from '../../../lib/recipeModules/taskSpec';
+import {
+  CODEX_HTTP_IMAGE_MODELS,
+  isCodexHttpImageModel,
+  resolveGenerationExecutionOverride,
+} from '../../../packages/shared/src/codexExecutionContract';
 import {
   studioMcpTools,
   STUDIO_MCP_ACCESS_LABELS,
   STUDIO_REFERENCE_IMPORT_MAX_BASE64_CHARS,
   canCallStudioMcpTool,
+  type StudioGenerationInput,
   type StudioMcpToolName,
   type StudioReferenceImportInput,
   type StudioReferenceFileImportInput,
@@ -22,12 +28,12 @@ import {
 } from '../../../packages/shared/src/catalogCollections';
 import { applyCatalogTagChanges, type CatalogTag } from '../../../packages/shared/src/catalogTags';
 import type { EditableStudioSettings } from '../../../packages/shared/src/studioSettings';
-import type { CatalogImage } from '../../../packages/shared/src/types';
+import type { CatalogImage, JobExecutionOptions } from '../../../packages/shared/src/types';
 import type { StudioWorkspace } from '../../../packages/shared/src/workspaceContracts';
 import type { ImageGenerationConfig, Attachment } from '../../../types';
+import { compileMcpStyles, findStyles, loadInstalledStylePacks } from './mcpStyles';
 import { ReferenceImportConflictError } from './referenceImport';
 
-type GenerateInput = ReturnType<typeof studioMcpTools.studio_generate.schema.parse>;
 type HttpCall = (path: string, payload?: unknown) => Promise<Response>;
 
 // Their runs coordinate many frames in the Studio UI (D6).
@@ -46,11 +52,28 @@ function workspaceIdForName(name: string) {
   return `ws-${createHash('sha256').update(name.toLowerCase()).digest('hex').slice(0, 12)}`;
 }
 
-/** Checks a studio_generate input and returns its batch items, or the 400 body. */
+/**
+ * Checks a studio_generate input and returns its batch items, or the 400 body. Without `create`
+ * (a plan), a workspace that does not exist yet is reported, not created.
+ */
 async function buildGenerationRequest(
-  input: GenerateInput,
-  { get, post }: { get: HttpCall; post: HttpCall },
-): Promise<{ error: string; imageId?: string } | { items: Record<string, unknown>[] }> {
+  input: StudioGenerationInput,
+  requestId: string,
+  {
+    get,
+    post,
+    settings,
+    create,
+  }: { get: HttpCall; post: HttpCall; settings: EditableStudioSettings; create: boolean },
+): Promise<
+  | { error: string; imageId?: string; issues?: unknown[] }
+  | {
+      items: Record<string, unknown>[];
+      workspace: { id: string; name: string; willCreate: boolean };
+      libraryOrganization: LibraryOrganization | null;
+      styles?: object;
+    }
+> {
   if (!input.workspaceId === !input.workspaceName)
     return {
       error:
@@ -66,7 +89,22 @@ async function buildGenerationRequest(
         'This workflow needs its run in the Studio UI (Workflows). studio_generate makes single images.',
     };
   if (COMPILED_STYLE_FIELDS.some((key) => Object.hasOwn(input.recipeParams ?? {}, key)))
-    return { error: 'Compiled style fields are not accepted in recipeParams.' };
+    return { error: 'Pass styles instead of compiled style fields.' };
+  if (input.styles && recipe && recipe.targetRecipeId !== 'styles')
+    return { error: 'styles uses the styles recipe. Leave recipeId out.' };
+  // Same scope as the Studio toolbar; MCP never falls back silently to another image model.
+  let execution: Partial<JobExecutionOptions> | undefined;
+  if (input.model && input.providerId === 'chatgpt') {
+    if (!isCodexHttpImageModel(input.model))
+      return {
+        error: `Unknown ChatGPT image model. Use one of: ${CODEX_HTTP_IMAGE_MODELS.map((option) => option.id).join(', ')}.`,
+      };
+    execution = resolveGenerationExecutionOverride('chatgpt', { codexImageModel: input.model });
+  } else if (input.model && input.providerId === 'codex') {
+    execution = resolveGenerationExecutionOverride('codex', { executionModel: input.model });
+  } else if (input.model) {
+    return { error: 'This provider uses its Settings default model.' };
+  }
   // Normalized before hashing, so #Cover and cover give the same batch.
   let libraryOrganization: LibraryOrganization | null;
   try {
@@ -92,23 +130,42 @@ async function buildGenerationRequest(
       strength: 1,
     });
   }
+  let recipeId = recipe?.targetRecipeId ?? null;
+  let recipeParams = recipe
+    ? { ...recipe.defaultParams, ...input.recipeParams }
+    : input.recipeParams;
+  let negativePrompt = input.negativePrompt;
+  let styles: object | undefined;
+  if (input.styles) {
+    const styled = await compileMcpStyles(get, {
+      styles: input.styles,
+      prompt: input.prompt,
+      negativePrompt,
+      references: attachments,
+      styleMode: input.styleMode,
+      settings,
+    });
+    if ('error' in styled) return styled;
+    recipeId = 'styles';
+    recipeParams = { ...input.recipeParams, ...styled.recipeParams };
+    negativePrompt = styled.negativePrompt ?? negativePrompt;
+    styles = styled.styles;
+  }
   let sourceSpec: ReturnType<typeof buildGenerationTaskSpecFromRecipe>;
   try {
     const config: ImageGenerationConfig = {
       ...DEFAULT_GENERATION_CONFIG,
       prompt: input.prompt,
-      negativePrompt: input.negativePrompt,
-      recipeId: recipe?.targetRecipeId ?? null,
-      recipeParams: recipe
-        ? { ...recipe.defaultParams, ...input.recipeParams }
-        : input.recipeParams,
+      negativePrompt,
+      recipeId,
+      recipeParams,
       attachments,
       aspectRatio: input.aspectRatio,
       imageSize: input.imageSize,
       batchCount: 1,
     };
     sourceSpec = buildGenerationTaskSpecFromRecipe({
-      id: input.requestId,
+      id: requestId,
       providerId: input.providerId,
       task: input.task,
       config,
@@ -121,37 +178,46 @@ async function buildGenerationRequest(
   if (libraryOrganization) sourceSpec.metadata.libraryOrganization = libraryOrganization;
 
   // The workspace is resolved last, so a rejected request creates no workspace.
-  let workspaceId = input.workspaceId;
-  if (workspaceId) {
-    if ((await get(`/api/workspaces/${workspaceId}`)).status === 404)
+  let workspace: Pick<StudioWorkspace, 'id' | 'name'> | undefined;
+  let willCreate = false;
+  if (input.workspaceId) {
+    const response = await get(`/api/workspaces/${input.workspaceId}`);
+    if (response.status === 404)
       return {
         error: 'Unknown workspaceId. Use studio_workspaces, or workspaceName to create one.',
       };
+    workspace = (await response.json().catch(() => undefined)) as typeof workspace;
   } else {
     const name = input.workspaceName!;
     const listed: unknown = await get('/api/workspaces')
       .then((response) => response.json())
       .catch(() => null);
-    workspaceId = (Array.isArray(listed) ? (listed as StudioWorkspace[]) : []).find(
-      (workspace) =>
-        String(workspace?.name ?? '')
+    workspace = (Array.isArray(listed) ? (listed as StudioWorkspace[]) : []).find(
+      (entry) =>
+        String(entry?.name ?? '')
           .trim()
           .toLowerCase() === name.toLowerCase(),
-    )?.id;
-    if (!workspaceId) {
-      workspaceId = workspaceIdForName(name);
+    );
+    if (!workspace) {
+      workspace = { id: workspaceIdForName(name), name };
+      willCreate = !create;
       // Idempotent by id: an existing workspace with this id is returned unchanged.
-      if (!(await post('/api/workspaces', { id: workspaceId, name })).ok)
+      if (create && !(await post('/api/workspaces', { id: workspace.id, name })).ok)
         return { error: 'Could not create the workspace.' };
     }
   }
+  const workspaceId = input.workspaceId ?? workspace!.id;
   return {
     items: Array.from({ length: input.count }, () => ({
       workspaceId,
       providerId: input.providerId,
       kind: sourceSpec.task,
       sourceSpec,
+      ...(execution && { execution }),
     })),
+    workspace: { id: workspaceId, name: workspace?.name ?? workspaceId, willCreate },
+    libraryOrganization,
+    ...(styles && { styles }),
   };
 }
 
@@ -265,8 +331,34 @@ export function createMcpRoutes({
       }
       case 'studio_providers':
         return get('/api/providers');
-      case 'studio_recipes':
-        return c.json({ recipes: RECIPE_DISCOVERY_CATALOG });
+      case 'studio_recipes': {
+        const { id: recipeId, q } = studioMcpTools.studio_recipes.schema.parse(args);
+        const uiOnly = (targetRecipeId: string) =>
+          UI_ONLY_RECIPES.has(targetRecipeId) ? { uiOnly: true } : {};
+        if (recipeId) {
+          const entry = RECIPE_DISCOVERY_CATALOG.find((recipe) => recipe.id === recipeId);
+          return entry
+            ? c.json({ ...entry, ...uiOnly(entry.targetRecipeId) })
+            : c.json({ error: 'Unknown recipe. Call studio_recipes without id.' }, 400);
+        }
+        return c.json({
+          recipes: searchRecipeCatalog({ query: q }, RECIPE_DISCOVERY_CATALOG).map((recipe) => ({
+            id: recipe.id,
+            title: recipe.title,
+            description: recipe.description,
+            targetRecipeId: recipe.targetRecipeId,
+            supportedTasks: recipe.supportedTasks,
+            supportedProviders: recipe.supportedProviders,
+            requiredParameterIds: recipe.requiredParameterIds,
+            ...uiOnly(recipe.targetRecipeId),
+          })),
+        });
+      }
+      case 'studio_find_styles': {
+        const { q, packId, limit } = studioMcpTools.studio_find_styles.schema.parse(args);
+        const packs = await loadInstalledStylePacks(get, packId ? new Set([packId]) : undefined);
+        return c.json({ styles: findStyles(packs, { q, limit }) });
+      }
       case 'studio_workspaces': {
         const { workspaceId } = studioMcpTools.studio_workspaces.schema.parse(args);
         if (!workspaceId) return get('/api/workspaces');
@@ -413,9 +505,72 @@ export function createMcpRoutes({
       }
       case 'studio_cancel':
         return post(`/api/jobs/${String(args.jobId)}/cancel`);
+      case 'studio_plan_generation': {
+        const input = studioMcpTools.studio_plan_generation.schema.parse(args);
+        const built = await buildGenerationRequest(input, 'batch-plan', {
+          get,
+          post,
+          settings,
+          create: false,
+        });
+        if ('error' in built) return c.json(built, 400);
+        // One item is enough: every item of a studio_generate call is identical.
+        const response = await post('/api/jobs/batches/plan', { items: built.items.slice(0, 1) });
+        const body = (await response.json().catch(() => null)) as {
+          error?: string;
+          code?: string;
+          items?: {
+            providerId: string;
+            kind: string;
+            recipeId: string;
+            prompt: string;
+            model: string;
+          }[];
+        } | null;
+        const plan = body?.items?.[0];
+        if (!response.ok || !plan)
+          return c.json({
+            ready: false,
+            blocker: {
+              error: body?.error ?? `Studio answered HTTP ${response.status}.`,
+              code: body?.code ?? null,
+            },
+          });
+        const { workspace, libraryOrganization } = built;
+        const collection = libraryOrganization?.collection ?? null;
+        const collections = collection
+          ? await list<CatalogCollection>(`/api/catalog/collections?workspace_id=${workspace.id}`)
+          : [];
+        return c.json({
+          ready: true,
+          jobCount: input.count,
+          providerId: plan.providerId,
+          model: plan.model,
+          task: plan.kind,
+          recipeId: plan.recipeId,
+          workspace,
+          filing: {
+            tags: libraryOrganization?.tags ?? [],
+            collection: collection && {
+              name: collection,
+              exists: collections.some(
+                ({ name }) => name.toLowerCase() === collection.toLowerCase(),
+              ),
+            },
+          },
+          providerPrompt: plan.prompt.slice(0, 4000),
+          promptChars: plan.prompt.length,
+          ...(built.styles && { styles: built.styles }),
+        });
+      }
       case 'studio_generate': {
         const input = studioMcpTools.studio_generate.schema.parse(args);
-        const built = await buildGenerationRequest(input, { get, post });
+        const built = await buildGenerationRequest(input, input.requestId, {
+          get,
+          post,
+          settings,
+          create: true,
+        });
         if ('error' in built) return c.json(built, 400);
         return post('/api/jobs/batches', { requestId: input.requestId, items: built.items });
       }

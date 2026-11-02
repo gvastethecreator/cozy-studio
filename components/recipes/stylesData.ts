@@ -1,4 +1,4 @@
-import type { StyleRuntimePack, StyleRuntimePreset } from './styles/runtimeTypes';
+import { normalizeStyleRuntimePack, type StyleRuntimePack } from './styles/runtimeTypes';
 import { loadStyleThumbnailPack } from '../../lib/styleThumbnailCatalog';
 import {
   fetchStylePackFile,
@@ -6,35 +6,6 @@ import {
   isHiddenStylePreset,
   isInstalledStylePack,
 } from '../../lib/installedStylePacks';
-
-const STYLE_VISUAL_DNA_KEYS = [
-  'aesthetic',
-  'subject_treatment',
-  'color_and_tone',
-  'lighting_and_shadow',
-  'texture_and_material',
-  'camera_and_composition',
-  'atmosphere_and_mood',
-  'rendering_and_quality',
-] as const;
-
-function normalizeStyleRuntimePreset(preset: StyleRuntimePreset): StyleRuntimePreset {
-  const normalizedStyle = Object.fromEntries(
-    STYLE_VISUAL_DNA_KEYS.map((key) => [key, preset.style[key]]),
-  ) as StyleRuntimePreset['style'];
-
-  return {
-    ...preset,
-    style: normalizedStyle,
-  };
-}
-
-function normalizeStyleRuntimePack(pack: StyleRuntimePack): StyleRuntimePack {
-  return {
-    ...pack,
-    presets: pack.presets.map(normalizeStyleRuntimePreset),
-  };
-}
 
 /** Installed style packs (ADR 0011), filled at startup before React mounts. */
 export const STYLE_RUNTIME_PACK_SUMMARIES = INSTALLED_STYLE_PACK_SUMMARIES;

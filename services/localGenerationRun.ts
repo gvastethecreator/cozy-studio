@@ -7,10 +7,7 @@ import type {
   CreateJobRequest,
   JobBatchSummary,
 } from '../packages/shared/src';
-import {
-  CODEX_HTTP_EXECUTION_DEFAULTS,
-  resolveCodexHttpImageModel,
-} from '../packages/shared/src/codexExecutionContract';
+import { resolveGenerationExecutionOverride } from '../packages/shared/src/codexExecutionContract';
 import { createThumbnail } from '../utils/imageUtils';
 import {
   buildGenerationVariationBrief,
@@ -154,36 +151,6 @@ export function resolveLocalGenerationProviderId({
   settings?: Pick<EditableStudioSettings, 'defaultProviderId'> | null;
 }): GenerationProviderId {
   return providerId ?? settings?.defaultProviderId ?? 'chatgpt';
-}
-
-export function resolveGenerationExecutionOverride(
-  providerId: GenerationProviderId,
-  config: Pick<
-    ImageGenerationConfig,
-    | 'executionModel'
-    | 'executionReasoningEffort'
-    | 'executionSpeed'
-    | 'codexImageModel'
-    | 'codexTransport'
-  >,
-) {
-  if (providerId !== 'codex' && providerId !== 'chatgpt') return undefined;
-  if (providerId === 'chatgpt') {
-    return {
-      ...CODEX_HTTP_EXECUTION_DEFAULTS,
-      providerOptions: {
-        chatgpt: {
-          imageModel: resolveCodexHttpImageModel(config.codexImageModel),
-        },
-      },
-    };
-  }
-  return {
-    model: config.executionModel,
-    reasoningEffort: config.executionReasoningEffort,
-    serviceTier: config.executionSpeed === 'standard' ? null : config.executionSpeed,
-    providerOptions: { codex: { transport: 'codex_app_server' as const } },
-  };
 }
 
 export function createLocalRunBatchId(now = Date.now, random = Math.random) {

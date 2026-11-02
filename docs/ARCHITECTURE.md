@@ -263,7 +263,9 @@ remote identity; it does not authorize a fresh provider submission.
 same accepted batch; reusing that identity for different content is a conflict. Lost HTTP
 acknowledgements retain the identity and trigger reconciliation, not a fresh generation.
 `job_batches` and `job_batch_members` define the requested membership. Older metadata-only
-batches retain their known IDs without an invented requested count.
+batches retain their known IDs without an invented requested count. `/api/jobs/batches/plan` runs
+the same intake and returns each item's provider, model and provider prompt. It creates no job or
+batch, calls no provider and rejects inline references, which intake would save into the Library.
 
 Queue reads batch counts from the backend, including partial results, cancelled items, and
 jobs that need review. Retry failed carries the observed attempt numbers and a request identity.

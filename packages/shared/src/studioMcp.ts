@@ -104,7 +104,32 @@ export const generationInput = z.strictObject({
     .default('1:1'),
   imageSize: z.enum(['512px', '1K', '2K', '4K']).default('1K'),
   count: z.number().int().min(1).max(16).default(1),
+  styles: z
+    .array(
+      z.strictObject({ packId: id, presetId: id, strength: z.number().min(0).max(1).optional() }),
+    )
+    .min(1)
+    .max(5)
+    .optional()
+    .describe(
+      'Installed style presets from studio_find_styles, compiled the way the Studio UI compiles them. Uses the styles recipe: leave recipeId out. strength defaults to the Settings style intensity.',
+    ),
+  styleMode: z
+    .enum(['generate', 'preserve', 'reinterpret'])
+    .optional()
+    .describe(
+      "How styles treat referenceIds: preserve keeps their layout, reinterpret restages them, generate ignores them (Intentional styles only). Defaults to the user's setting.",
+    ),
+  model: z
+    .string()
+    .min(1)
+    .max(200)
+    .optional()
+    .describe(
+      'Model for this call only, without changing Settings. chatgpt: a GPT Image model id such as gpt-image-2.5-flare. codex: a Codex model. Other providers use their Settings default.',
+    ),
 });
+export type StudioGenerationInput = z.infer<typeof generationInput>;
 
 const providerId = z.string().min(1).max(100);
 
@@ -156,8 +181,21 @@ export const studioMcpTools = {
   studio_recipes: {
     access: 'read',
     description:
-      'Discover generation recipes, supported providers, parameter schemas and defaults. Use recipe IDs and parameters with studio_generate.',
-    schema: empty,
+      'List generation recipes as summaries; q filters them. With id, return one recipe with its parameter schemas and defaults. uiOnly recipes run only in the Studio UI. Use recipe IDs and parameters with studio_generate.',
+    schema: z.strictObject({
+      id: z.string().min(1).max(100).optional(),
+      q: z.string().max(200).optional(),
+    }),
+  },
+  studio_find_styles: {
+    access: 'read',
+    description:
+      'Find installed style presets by id, name or category for studio_generate styles. Each result has packId, presetId, name, category, hasIntentionalPolicy and a short summary.',
+    schema: z.strictObject({
+      q: z.string().max(200).optional(),
+      packId: id.optional(),
+      limit: z.number().int().min(1).max(50).default(20),
+    }),
   },
   studio_workspaces: {
     access: 'read',
@@ -251,10 +289,16 @@ export const studioMcpTools = {
         'Do not add and remove the same tag or collection.',
       ),
   },
+  studio_plan_generation: {
+    access: 'read',
+    description:
+      'Preview a studio_generate call without spending anything: provider, model, job count, workspace, filing, styles and the prompt the provider would receive. Takes the studio_generate input without requestId. Creates no job, batch or workspace. ready: false names the blocker, such as a provider that is not signed in.',
+    schema: generationInput,
+  },
   studio_generate: {
     access: 'write',
     description:
-      "Queue image generation or editing (1-16 jobs) and file every output in the Library as it is saved. Filing is required: workspaceId (an existing workspace) or workspaceName (finds a workspace by name or creates it), tags (2-5 lowercase hashtags for subject, project and variant; [] only if the user asked for no tags) and collection (the project or set name, created if missing; null only for a one-off the user does not want collected). Reuse names from studio_workspaces with workspaceId. Uses the user's provider account and needs Full control access. providerId defaults to chatgpt, not the Settings default. After a timeout, retry with the same batch- requestId and identical input; never invent a new ID to retry. Poll studio_batch.",
+      "Queue image generation or editing (1-16 jobs) and file every output in the Library as it is saved. Filing is required: workspaceId (an existing workspace) or workspaceName (finds a workspace by name or creates it), tags (2-5 lowercase hashtags for subject, project and variant; [] only if the user asked for no tags) and collection (the project or set name, created if missing; null only for a one-off the user does not want collected). Reuse names from studio_workspaces with workspaceId. Uses the user's provider account and needs Full control access: unless the user asked for these images, preview with studio_plan_generation and ask first. providerId defaults to chatgpt, not the Settings default. styles applies installed presets the way the Studio UI does (find them with studio_find_styles); model picks a model for this call only. After a timeout, retry with the same batch- requestId and identical input; never invent a new ID to retry. Poll studio_batch.",
     schema: generationInput.extend({
       requestId: z
         .string()

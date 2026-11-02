@@ -176,6 +176,24 @@ export function createDefaultStyleLayerFieldControls(): StyleLayerFieldControls 
   }, {} as StyleLayerFieldControls);
 }
 
+/** A newly selected style at the given intensity, with every field on. */
+export function createSelectedStyleSlot(
+  preset: StyleRuntimePreset,
+  packId: string,
+  packName: string,
+  intensity: number,
+): SelectedStyleSlot {
+  return {
+    preset,
+    packId,
+    packName,
+    strength: clampStyleStrength(intensity),
+    enabled: true,
+    fieldControls: createDefaultStyleLayerFieldControls(),
+    avoidRulesMode: 'merge',
+  };
+}
+
 export function normalizeStyleLayerFieldControls(
   controls: SelectedStyleSlot['fieldControls'],
 ): StyleLayerFieldControls {

@@ -1,8 +1,31 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { Hono } from 'hono';
+import catalog from '../../../packages/shared/src/styles/intentional-v1/catalog.fixture.json';
 import { createDefaultEditableStudioSettings } from '../../../packages/shared/src/studioSettings';
 import { createMcpRoutes } from './mcpRoutes';
+
+const headshot = catalog.find(({ id }) => id === 'SP01-001')!;
+const runtimePack = {
+  id: headshot.packId,
+  name: headshot.packName,
+  description: '',
+  presets: [
+    {
+      id: headshot.id,
+      name: headshot.name,
+      category: 'Portrait',
+      style: headshot.snapshot.dna,
+      intentional: { policy: headshot.snapshot.policy, presetVersion: headshot.snapshot.version },
+    },
+  ],
+};
+const styleExtension = {
+  id: 'cozy.fixture',
+  kind: 'style-pack',
+  files: { runtime: 'runtime.json' },
+  stylePack: { id: headshot.packId },
+};
 
 describe('Studio MCP boundary', () => {
   it('enforces live access, validates arguments and routes generation through persistent intake', async () => {
@@ -59,6 +82,22 @@ describe('Studio MCP boundary', () => {
             return Response.json([
               { name: 'cover', color: null, imageCount: 2, lastUsedAt: '2026-11-01' },
             ]);
+          if (path === '/api/extensions') return Response.json({ extensions: [styleExtension] });
+          if (path === '/api/extensions/cozy.fixture/files/runtime.json')
+            return Response.json(runtimePack);
+          if (path === '/api/jobs/batches/plan') {
+            const [item] = body.items;
+            return body.items.length === 1 && item.providerId === 'chatgpt'
+              ? Response.json({
+                  items: [
+                    { ...item, recipeId: 'styles', prompt: 'Planned prompt', model: 'gpt-image-2' },
+                  ],
+                })
+              : Response.json(
+                  { error: 'Not ready', code: 'provider_unavailable' },
+                  { status: 400 },
+                );
+          }
           return Response.json({ ok: true });
         },
       }),
@@ -162,6 +201,111 @@ describe('Studio MCP boundary', () => {
     expect(requests.filter(({ path, body }) => path === '/api/workspaces' && body)).toHaveLength(1);
     expect(workspaces.at(-1)).toEqual({ id: namedId, name: 'Comic Book' });
     expect(namedBatch?.body).toMatchObject({ items: [{ workspaceId: namedId }, {}] });
+
+    // styles compile on the server as in the Studio UI; model applies to this call only.
+    const styles = [{ packId: headshot.packId, presetId: headshot.id }];
+    const styled = {
+      ...input,
+      requestId: 'batch-mcp-styled',
+      task: 'image_generate',
+      referenceIds: [],
+      styles,
+      styleMode: 'generate',
+      model: 'gpt-image-2',
+    };
+    for (const intentionalStylesV1 of [true, false]) {
+      settings.intentionalStylesV1 = intentionalStylesV1;
+      expect((await call('studio_generate', styled)).status).toBe(200);
+      expect(requests.at(-1)?.body).toMatchObject({
+        items: [
+          {
+            execution: { providerOptions: { chatgpt: { imageModel: 'gpt-image-2' } } },
+            sourceSpec: {
+              recipeId: 'styles',
+              recipeParams: intentionalStylesV1
+                ? { compilerVersion: expect.stringMatching(/^intentional-styles\//) }
+                : { mode: 'DIRECT_STYLE_SYNTHESIS', selectedStyles: [{ presetId: headshot.id }] },
+            },
+          },
+          {},
+        ],
+      });
+    }
+    const batchesBefore = requests.filter(({ path }) => path === '/api/jobs/batches').length;
+    for (const rejected of [
+      { ...styled, styles: [{ ...styles[0], presetId: 'missing' }] },
+      { ...styled, recipeId: 'remaster' },
+      { ...styled, model: 'gpt-image-9' },
+      { ...styled, providerId: 'grok' },
+    ])
+      expect((await call('studio_generate', rejected)).status).toBe(400);
+    expect(requests.filter(({ path }) => path === '/api/jobs/batches')).toHaveLength(batchesBefore);
+
+    // A plan runs at Read only and never queues a batch or creates a workspace.
+    settings.mcpAccess = 'read';
+    const {
+      requestId: _requestId,
+      workspaceId: _id,
+      ...planInput
+    } = {
+      ...styled,
+      workspaceName: 'Poster Run',
+      tags: ['#Poster'],
+    };
+    const planStart = requests.length;
+    expect(await (await call('studio_plan_generation', planInput)).json()).toEqual({
+      ready: true,
+      jobCount: 2,
+      providerId: 'chatgpt',
+      model: 'gpt-image-2',
+      task: 'image_generate',
+      recipeId: 'styles',
+      workspace: {
+        id: `ws-${createHash('sha256').update('poster run').digest('hex').slice(0, 12)}`,
+        name: 'Poster Run',
+        willCreate: true,
+      },
+      filing: { tags: ['poster'], collection: { name: 'Covers', exists: false } },
+      providerPrompt: 'Planned prompt',
+      promptChars: 14,
+      styles: { compiler: 'legacy', mode: 'preserve', issues: [] },
+    });
+    const { model: _model, ...unplannable } = { ...planInput, providerId: 'dry_run' };
+    expect(await (await call('studio_plan_generation', unplannable)).json()).toEqual({
+      ready: false,
+      blocker: { error: 'Not ready', code: 'provider_unavailable' },
+    });
+    const planned = requests.slice(planStart);
+    expect(planned.filter(({ path }) => path === '/api/jobs/batches/plan')).toHaveLength(2);
+    expect(planned.some(({ path }) => path === '/api/jobs/batches')).toBe(false);
+    expect(planned.some(({ path, body }) => path === '/api/workspaces' && body)).toBe(false);
+
+    const { recipes } = await (await call('studio_recipes')).json();
+    expect(recipes.find(({ id }: { id: string }) => id === 'sprite-atlas')).toMatchObject({
+      uiOnly: true,
+    });
+    expect(recipes.some((recipe: object) => 'parameters' in recipe)).toBe(false);
+    expect(
+      (await (await call('studio_recipes', { q: 'poses' })).json()).recipes.map(
+        ({ id }: { id: string }) => id,
+      ),
+    ).toContain('character-poses');
+    expect(await (await call('studio_recipes', { id: 'styles' })).json()).toHaveProperty(
+      'parameters',
+    );
+    expect(await (await call('studio_find_styles', { q: 'portrait' })).json()).toEqual({
+      styles: [
+        {
+          packId: headshot.packId,
+          presetId: headshot.id,
+          name: headshot.name,
+          category: 'Portrait',
+          hasIntentionalPolicy: true,
+          summary: headshot.snapshot.dna.aesthetic.slice(0, 160),
+        },
+      ],
+    });
+    settings.mcpAccess = 'write';
 
     expect(await (await call('studio_workspaces', { workspaceId: 'default' })).json()).toEqual({
       workspace: { id: 'default', name: 'Default' },

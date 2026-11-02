@@ -273,6 +273,26 @@ export function globalStylePresetId(extensionId: string, presetId: string) {
   return `${extensionId}/${presetId}`;
 }
 
+/**
+ * The style-pack extension that serves each pack id (the first source wins, matching the backend
+ * listing) and the copied presets each pack hides because their source pack is installed.
+ */
+export function resolveStylePackExtensions(extensions: readonly ExtensionManifest[]) {
+  const byPackId = new Map<string, ExtensionManifest>();
+  for (const extension of extensions) {
+    if (extension.kind !== 'style-pack' || byPackId.has(extension.stylePack.id)) continue;
+    byPackId.set(extension.stylePack.id, extension);
+  }
+  const hiddenPresetIds = new Map<string, Set<string>>();
+  for (const { stylePack } of byPackId.values()) {
+    const hidden = Object.entries(stylePack.copiedFrom ?? {})
+      .filter(([, source]) => source.packId !== stylePack.id && byPackId.has(source.packId))
+      .map(([presetId]) => presetId);
+    if (hidden.length > 0) hiddenPresetIds.set(stylePack.id, new Set(hidden));
+  }
+  return { byPackId, hiddenPresetIds };
+}
+
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string');
 }

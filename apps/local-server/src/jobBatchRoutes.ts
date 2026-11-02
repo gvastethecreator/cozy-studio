@@ -9,7 +9,8 @@ import type {
   PreparedPersistentJob,
 } from './persistentJobIntake';
 import { BatchRequestConflictError, type JobBatchStore } from './db/jobBatches';
-import { isRecord } from '../../../packages/shared/src/types';
+import { jobImageMetadata } from './providers/jobImageMetadata';
+import { isRecord, type Job } from '../../../packages/shared/src/types';
 
 function requestHash(value: unknown): string {
   const canonical = (item: unknown): unknown => {
@@ -83,6 +84,47 @@ export function createJobBatchRoutes({
     // SQLite commits every member before the first worker can start.
     if (result.created) await intake.dispatchJobs(result.batch.jobs);
     return c.json(result.batch, result.created ? 201 : 200);
+  });
+  // A dry run of batch intake for agents: it creates no job or batch and calls no provider.
+  routes.post('/plan', async (c) => {
+    const body: unknown = await c.req.json().catch(() => null);
+    if (
+      !isRecord(body) ||
+      !Array.isArray(body.items) ||
+      !body.items.length ||
+      body.items.length > 16
+    )
+      return c.json({ error: 'A plan needs between 1 and 16 items.' }, 400);
+    const plans = [];
+    for (const item of body.items) {
+      const decoded = Schema.decodeUnknownExit(CreateJobRequestBoundarySchema)(item);
+      if (Exit.isFailure(decoded)) return c.json({ error: 'Invalid batch item.' }, 400);
+      // Intake saves inline references into the Library, which a plan must never do.
+      if (decoded.value.references)
+        return c.json({ error: 'A plan cannot carry inline references.' }, 400);
+      const result = await intake.prepareJob(decoded.value as CreateJobRequest);
+      if (!result.ok) return c.json(result.error.body, result.error.status);
+      const { input, finalPrompt } = result.prepared;
+      const job: Job = {
+        ...input,
+        workspaceId: input.workspaceId ?? 'default',
+        status: 'queued',
+        originalPrompt: input.prompt,
+        expandedPrompt: null,
+        finalPromptUsed: finalPrompt,
+        error: null,
+        createdAt: '',
+        updatedAt: '',
+        completedAt: null,
+      };
+      plans.push({
+        providerId: input.providerId,
+        kind: input.kind,
+        recipeId: input.sourceSpec?.recipeId ?? null,
+        ...jobImageMetadata(job),
+      });
+    }
+    return c.json({ items: plans });
   });
   routes.post('/:id/retry', async (c) => {
     const raw: unknown = await c.req.json().catch(() => null);

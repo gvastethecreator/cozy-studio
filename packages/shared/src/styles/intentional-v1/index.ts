@@ -6,3 +6,4 @@ export * from './compiler.js';
 export * from './legacyAdapter.js';
 export * from './search.js';
 export * from './preview.js';
+export * from './plan.js';

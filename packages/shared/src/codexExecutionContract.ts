@@ -1,5 +1,10 @@
 import type { GenerationTaskSpec } from './generationContracts';
-import type { CodexModel, JobExecutionOptions } from './types';
+import type {
+  CodexModel,
+  CodexReasoningEffort,
+  CodexServiceTier,
+  JobExecutionOptions,
+} from './types';
 
 export type CodexExecutionTransport = 'codex_app_server' | 'subscription_http';
 export type CodexHttpImageModel = 'gpt-image-2.5-flare' | 'gpt-image-2.5-sunburst' | 'gpt-image-2';
@@ -100,6 +105,47 @@ export function isCodexHttpImageModel(value: unknown): value is CodexHttpImageMo
 
 export function resolveCodexHttpImageModel(value?: string | null): CodexHttpImageModel {
   return isCodexHttpImageModel(value) ? value : CODEX_HTTP_IMAGE_MODEL;
+}
+
+/** The model, reasoning and speed a run picks for the Codex or ChatGPT provider. */
+export interface GenerationExecutionChoice {
+  executionModel: string;
+  executionReasoningEffort: CodexReasoningEffort;
+  executionSpeed: CodexServiceTier;
+  codexImageModel?: string | null;
+}
+
+/**
+ * Execution options a Codex or ChatGPT job sends. Intake fills a choice that is left out from
+ * Studio Settings, then from the provider bootstrap; other providers send none.
+ */
+export function resolveGenerationExecutionOverride(
+  providerId: string,
+  choice: GenerationExecutionChoice,
+): JobExecutionOptions | undefined;
+export function resolveGenerationExecutionOverride(
+  providerId: string,
+  choice: Partial<GenerationExecutionChoice>,
+): Partial<JobExecutionOptions> | undefined;
+export function resolveGenerationExecutionOverride(
+  providerId: string,
+  choice: Partial<GenerationExecutionChoice>,
+): Partial<JobExecutionOptions> | undefined {
+  if (providerId === 'chatgpt') {
+    return {
+      ...CODEX_HTTP_EXECUTION_DEFAULTS,
+      providerOptions: {
+        chatgpt: { imageModel: resolveCodexHttpImageModel(choice.codexImageModel) },
+      },
+    };
+  }
+  if (providerId !== 'codex') return undefined;
+  return {
+    model: choice.executionModel,
+    reasoningEffort: choice.executionReasoningEffort,
+    serviceTier: choice.executionSpeed === 'standard' ? null : choice.executionSpeed,
+    providerOptions: { codex: { transport: 'codex_app_server' } },
+  };
 }
 
 export function getCodexHttpImageModelOption(value?: string | null): CodexHttpImageModelOption {

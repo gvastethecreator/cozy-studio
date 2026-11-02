@@ -48,6 +48,36 @@ export interface StyleRuntimePack {
   presets: StyleRuntimePreset[];
 }
 
+const STYLE_VISUAL_DNA_KEYS = [
+  'aesthetic',
+  'subject_treatment',
+  'color_and_tone',
+  'lighting_and_shadow',
+  'texture_and_material',
+  'camera_and_composition',
+  'atmosphere_and_mood',
+  'rendering_and_quality',
+] as const;
+
+/** Keeps only the visual DNA fields, so the UI and the server compile the same preset. */
+export function normalizeStyleRuntimePreset(preset: StyleRuntimePreset): StyleRuntimePreset {
+  const normalizedStyle = Object.fromEntries(
+    STYLE_VISUAL_DNA_KEYS.map((key) => [key, preset.style[key]]),
+  ) as StyleRuntimePreset['style'];
+
+  return {
+    ...preset,
+    style: normalizedStyle,
+  };
+}
+
+export function normalizeStyleRuntimePack(pack: StyleRuntimePack): StyleRuntimePack {
+  return {
+    ...pack,
+    presets: pack.presets.map(normalizeStyleRuntimePreset),
+  };
+}
+
 export function getStyleRuntimePresetDisplayName(
   preset: Pick<StyleRuntimePreset, 'name' | 'displayName'>,
 ) {

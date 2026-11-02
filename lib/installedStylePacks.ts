@@ -1,11 +1,12 @@
 // Style packs come from installed Cozy Extensions (ADR 0011). The app loads the list once at
 // startup, before React mounts, so style surfaces can read pack summaries synchronously.
-import type {
-  ExtensionManifest,
-  StylePackLanding,
-  StylePackLandingFolder,
-  StylePackSummary,
-  StylePresetSource,
+import {
+  resolveStylePackExtensions,
+  type ExtensionManifest,
+  type StylePackLanding,
+  type StylePackLandingFolder,
+  type StylePackSummary,
+  type StylePresetSource,
 } from '../packages/shared/src/extensions';
 import { compareStylePackIdsForDisplay } from '../components/recipes/styles/packOrdering';
 import {
@@ -18,36 +19,23 @@ import {
 /** Live list of installed style pack summaries in display order; filled in place at startup. */
 export const INSTALLED_STYLE_PACK_SUMMARIES: StylePackSummary[] = [];
 
-const extensionByPackId = new Map<string, ExtensionManifest>();
+let extensionByPackId = new Map<string, ExtensionManifest>();
 
 const packIdsWithCards = new Set<string>();
 
 // Copied presets, such as Essentials entries, hidden because their source pack is installed.
-const hiddenPresetIdsByPack = new Map<string, Set<string>>();
+let hiddenPresetIdsByPack = new Map<string, Set<string>>();
 
 export function registerInstalledStylePacks(
   extensions: readonly ExtensionManifest[],
   installedLayers: Readonly<Record<string, readonly string[]>> = {},
 ) {
-  extensionByPackId.clear();
+  ({ byPackId: extensionByPackId, hiddenPresetIds: hiddenPresetIdsByPack } =
+    resolveStylePackExtensions(extensions));
   packIdsWithCards.clear();
-  hiddenPresetIdsByPack.clear();
-  for (const extension of extensions) {
-    if (extension.kind !== 'style-pack') continue;
-    // Earlier sources win, matching the backend listing.
-    if (extensionByPackId.has(extension.stylePack.id)) continue;
-    extensionByPackId.set(extension.stylePack.id, extension);
+  for (const extension of extensionByPackId.values())
     if (installedLayers[extension.id]?.includes('cards'))
       packIdsWithCards.add(extension.stylePack.id);
-  }
-  for (const { stylePack } of extensionByPackId.values()) {
-    const hidden = Object.entries(stylePack.copiedFrom ?? {})
-      .filter(
-        ([, source]) => source.packId !== stylePack.id && extensionByPackId.has(source.packId),
-      )
-      .map(([presetId]) => presetId);
-    if (hidden.length > 0) hiddenPresetIdsByPack.set(stylePack.id, new Set(hidden));
-  }
   const summaries = [...extensionByPackId.values()]
     .map(({ stylePack }) => {
       const hiddenCount = hiddenPresetIdsByPack.get(stylePack.id)?.size ?? 0;

@@ -303,12 +303,12 @@ export function validateRecipeCatalog(catalog: RecipeCatalogEntry[] = RECIPE_CAT
 
 export function searchRecipeCatalog(
   filters: RecipeCatalogSearchFilters = {},
-  catalog: RecipeCatalogEntry[] = RECIPE_CATALOG,
+  catalog: readonly RecipeCatalogDisplayEntry[] = RECIPE_CATALOG,
 ) {
   const query = normalize(filters.query);
   const parameterId = normalize(filters.parameterId);
   const limit = filters.limit && filters.limit > 0 ? filters.limit : undefined;
-  const results: RecipeCatalogEntry[] = [];
+  const results: RecipeCatalogDisplayEntry[] = [];
 
   for (const entry of catalog) {
     const searchableText = [

@@ -471,20 +471,21 @@ describe('studio_import_reference', () => {
           expectedHeight: 2000,
         },
         {
-          width: 3200,
-          height: 1600,
+          // Wide and short keeps the 2048 px resize under test without slow full-size encodes.
+          width: 4096,
+          height: 256,
           alpha: 0.5,
           format: 'png',
           expectedWidth: 2048,
-          expectedHeight: 1024,
+          expectedHeight: 128,
         },
         {
-          width: 3000,
-          height: 1500,
+          width: 3072,
+          height: 192,
           alpha: 1,
           format: 'jpeg',
           expectedWidth: 2048,
-          expectedHeight: 1024,
+          expectedHeight: 128,
         },
       ] as const;
       for (const example of examples) {

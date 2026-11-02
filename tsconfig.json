@@ -9,12 +9,6 @@
     "moduleDetection": "force",
     "allowJs": true,
     "jsx": "react-jsx",
-    "paths": {
-      "@/*": ["./*"],
-      "motion/react": ["./lib/gsapMotion.tsx"],
-      "@shared": ["./packages/shared/src/index.ts"],
-      "@shared/*": ["./packages/shared/src/*"]
-    },
     "allowImportingTsExtensions": true,
     "noEmit": true
   }

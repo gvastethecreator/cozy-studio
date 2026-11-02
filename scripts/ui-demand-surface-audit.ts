@@ -62,12 +62,7 @@ export const uiDemandSurfaceRules: UiDemandSurfaceRule[] = [
   {
     id: 'startup-toolbar-no-static-motion',
     filePath: 'components/Toolbar.tsx',
-    forbidden: [
-      "from 'motion/react'",
-      'from "motion/react"',
-      "from './ui/GsapDropdown'",
-      'from "./ui/GsapDropdown"',
-    ],
+    forbidden: ["from './ui/GsapDropdown'", 'from "./ui/GsapDropdown"'],
     message: 'Toolbar must not pull a GSAP-backed motion surface into startup.',
   },
   {
@@ -87,19 +82,6 @@ export const uiDemandSurfaceRules: UiDemandSurfaceRule[] = [
     filePath: 'components/header/WorkspaceStrip.tsx',
     forbidden: ["from '../ui/GsapDropdown'", 'from "../ui/GsapDropdown"'],
     message: 'Workspace dropdown motion must load only after the user opens a menu.',
-  },
-  {
-    id: 'startup-viewport-no-static-motion',
-    filePath: 'components/shell/StudioViewport.tsx',
-    forbidden: ["from 'motion/react'", 'from "motion/react"'],
-    message: 'Viewport shell must use lightweight route transitions on startup.',
-  },
-  {
-    id: 'startup-operations-rail-no-static-motion',
-    filePath: 'components/studio/StudioOperationsRail.tsx',
-    forbidden: ["from 'motion/react'", 'from "motion/react"'],
-    message:
-      'Operations rail must not pull the GSAP-backed motion compatibility layer into startup.',
   },
   {
     id: 'operations-rail-no-static-queue-panel',

@@ -1,10 +1,6 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite-plus';
-
-const rootDir = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
   base: './',
@@ -58,12 +54,6 @@ export default defineConfig({
     },
   },
   plugins: [...react(), ...tailwindcss()] as never,
-  resolve: {
-    alias: {
-      '@': path.resolve(rootDir, '.'),
-      'motion/react': path.resolve(rootDir, 'lib/gsapMotion.tsx'),
-    },
-  },
   fmt: {
     semi: true,
     singleQuote: true,

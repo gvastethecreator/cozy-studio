@@ -40,7 +40,7 @@ describe('UI demand surface audit', () => {
     await writeRepoFile(
       rootDir,
       'components/Toolbar.tsx',
-      "import { MotionDiv } from 'motion/react';",
+      "import { GsapDropdown } from './ui/GsapDropdown';",
     );
     await writeRepoFile(
       rootDir,

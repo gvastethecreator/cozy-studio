@@ -58,5 +58,3 @@ export const CreateJobRequestBoundarySchema = Schema.Struct({
 });
 
 export type CreateJobRequestBoundary = typeof CreateJobRequestBoundarySchema.Type;
-export type CreateStudioWorkspaceRequest = typeof CreateStudioWorkspaceRequestSchema.Type;
-export type UpdateStudioWorkspaceRequest = typeof UpdateStudioWorkspaceRequestSchema.Type;

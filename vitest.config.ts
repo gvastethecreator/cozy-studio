@@ -1,18 +1,8 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
-const rootDir = fileURLToPath(new URL('.', import.meta.url));
-
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(rootDir, '.'),
-      'motion/react': path.resolve(rootDir, 'lib/gsapMotion.tsx'),
-    },
-  },
   test: {
     globals: true,
     setupFiles: ['./scripts/vitest-browser-setup.ts'],

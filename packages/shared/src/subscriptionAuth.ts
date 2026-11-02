@@ -15,15 +15,6 @@ export interface SubscriptionAuthPublicStatus {
   userCode: string | null;
 }
 
-export interface SubscriptionAuthStartResponse {
-  providerId: SubscriptionProviderId;
-  status: 'pending';
-  verificationUrl: string | null;
-  authorizationUrl: string | null;
-  userCode: string | null;
-  expiresAt: string;
-}
-
 export interface SubscriptionAuthUpdatedEventPayload {
   providerId: SubscriptionProviderId;
   status: SubscriptionAuthStatus;
@@ -32,12 +23,6 @@ export interface SubscriptionAuthUpdatedEventPayload {
 
 export function isSubscriptionProviderId(value: string): value is SubscriptionProviderId {
   return (SUBSCRIPTION_PROVIDER_IDS as readonly string[]).includes(value);
-}
-
-export function generationProviderIdForSubscription(providerId: SubscriptionProviderId) {
-  if (providerId === 'codex') return 'chatgpt';
-  if (providerId === 'xai') return 'grok';
-  return providerId;
 }
 
 export function subscriptionProviderIdForGeneration(

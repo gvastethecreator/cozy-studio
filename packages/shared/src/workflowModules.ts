@@ -107,10 +107,6 @@ export function isWorkflowModuleId(value: unknown): value is WorkflowModuleId {
   return typeof value === 'string' && MODULE_BY_ID.has(value);
 }
 
-export function getWorkflowModule(id: string): WorkflowModule | null {
-  return MODULE_BY_ID.get(id) ?? null;
-}
-
 /** The module that owns a recipe, or null for core recipes such as `styles`. */
 export function findWorkflowModuleForRecipe(recipeId: string | null | undefined) {
   if (!recipeId) return null;

@@ -692,10 +692,6 @@ export interface CreateSpriteAtlasRunRequest {
   qaMode?: 'standard' | 'strict';
 }
 
-export interface CreateSpriteAtlasRowJobRequest {
-  rowId: string;
-}
-
 export interface CreateSpriteAtlasRowJobsRequest {
   rowIds?: string[];
 }
@@ -747,12 +743,6 @@ export function isSpriteAtlasPresetId(value: string): value is SpriteAtlasPreset
 
 export function isSpriteAtlasFrameBudget(value: string): value is SpriteAtlasFrameBudget {
   return SPRITE_ATLAS_FRAME_BUDGETS.includes(value as SpriteAtlasFrameBudget);
-}
-
-export function isSpriteAtlasBackgroundRemoval(
-  value: string,
-): value is SpriteAtlasBackgroundRemoval {
-  return SPRITE_ATLAS_BACKGROUND_REMOVAL.includes(value as SpriteAtlasBackgroundRemoval);
 }
 
 export function isSpriteAtlasBlockedReasonKind(

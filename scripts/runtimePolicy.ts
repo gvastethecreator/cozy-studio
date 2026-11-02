@@ -59,10 +59,6 @@ export async function runWithScriptRetry<T>(
   return Effect.runPromise(withScriptRetry(factory, policyInput));
 }
 
-export async function sleepWithEffect(durationMs: number) {
-  await Effect.runPromise(Effect.sleep(Duration.millis(Math.max(0, durationMs))));
-}
-
 export function pollWithScriptTimeout<T>(
   poll: () => Effect.Effect<T, unknown>,
   options: Partial<ScriptPollingPolicy> & {

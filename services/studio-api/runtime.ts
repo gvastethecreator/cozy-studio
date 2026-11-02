@@ -3,7 +3,6 @@ import type {
   HealthResponse,
   OnboardingHostActionRequest,
   OnboardingHostActionResult,
-  OnboardingProbe,
   OnboardingSetupRequest,
   OnboardingSetupSuccessResponse,
   StudioReadinessEnvelope,
@@ -35,10 +34,6 @@ function invalidateRuntimeSnapshot() {
 
 export async function getStudioHealth(signal?: AbortSignal) {
   return request<HealthResponse>('/api/health', { signal });
-}
-
-export async function getOnboardingProbe() {
-  return request<OnboardingProbe>('/api/onboarding/probe');
 }
 
 export async function runOnboardingSetup(body: OnboardingSetupRequest) {
@@ -114,10 +109,6 @@ export async function refreshStudioReadiness({
   if (force) forcedReadinessRefreshInFlight = refreshRequest;
   else passiveReadinessRefreshInFlight = refreshRequest;
   return refreshRequest;
-}
-
-export async function getCodexRuntimeDoctor() {
-  return request<CodexRuntimeDoctorReport>('/api/runtime/doctor');
 }
 
 export async function startStudioAppServer() {

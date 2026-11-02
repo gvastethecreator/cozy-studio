@@ -6,7 +6,6 @@ const scannedRoots = ['apps/local-server/src', 'scripts'] as const;
 const ignoredPathParts = new Set(['node_modules', 'dist', 'logs', 'tmp']);
 const allowedFiles = new Set([
   'apps/local-server/src/library.ts',
-  'scripts/migrate-studio-library-layout.ts',
   'scripts/studio-library-layout-source-audit.ts',
 ]);
 

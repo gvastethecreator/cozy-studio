@@ -17,7 +17,7 @@ The application starts at `index.html`. It loads the Manrope font, `index.css`, 
 | `styles/studio-foundation.css`      | Tailwind theme extensions, base defaults, shared utilities, and CSS motion primitives       |
 | `styles/studio-workspace.css`       | Create and recipe composition, responsive rails, result tools, Library, and viewer surfaces |
 
-Vite uses the React and `@tailwindcss/vite` plugins. CSS is bundled eagerly into one stylesheet shared by lazy workflow routes. There is no CSS import in a recipe component, second Preflight, Sass pipeline, CSS Modules build, or runtime CSS-in-JS engine in the application. `motion/react` resolves to the local GSAP adapter; it is not an additional installed motion engine.
+Vite uses the React and `@tailwindcss/vite` plugins. CSS is bundled eagerly into one stylesheet shared by lazy workflow routes. There is no CSS import in a recipe component, second Preflight, Sass pipeline, CSS Modules build, or runtime CSS-in-JS engine in the application. Motion components come from the local GSAP adapter `lib/gsapMotion.tsx`; there is no additional installed motion engine.
 
 Import order is a contract. Workbench and workspace component rules are unlayered; the foundation retains its existing `base` and `utilities` layers. Unlayered normal rules outrank normal layered utilities. Do not move the component sheets into a new layer or reorder imports during routine cleanup.
 

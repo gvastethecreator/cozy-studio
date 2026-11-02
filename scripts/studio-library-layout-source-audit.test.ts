@@ -30,11 +30,6 @@ describe('studio library layout source audit', () => {
       'apps/local-server/src/library.ts',
       "const dbPath = path.join(libraryDir, 'library.sqlite');",
     );
-    await writeRepoFile(
-      rootDir,
-      'scripts/migrate-studio-library-layout.ts',
-      "const oldPath = path.join(libraryDir, 'assets');",
-    );
 
     const report = await createStudioLibraryLayoutSourceAuditReport(rootDir);
 

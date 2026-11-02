@@ -43,8 +43,6 @@ export const ONBOARDING_ACTION_IDS = [
   'spawn_grok_login',
 ] as const;
 
-export type OnboardingActionId = (typeof ONBOARDING_ACTION_IDS)[number];
-
 export type OnboardingCheckId =
   | 'bun'
   | 'codex_cli'

@@ -155,8 +155,6 @@ export interface LocalCodexSessionResponse {
   canRunLocalJobs: boolean;
 }
 
-export type CodexAccountStatusResponse = LocalCodexSessionResponse;
-
 export interface CodexRuntimeDoctorIssue {
   code: CodexRuntimeDoctorIssueCode;
   severity: 'error' | 'warning';

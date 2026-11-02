@@ -38,11 +38,7 @@ export function runProviderCliProcess(input: ProviderCliProcessInput) {
         const stop = () => {
           if (settled || stopped) return;
           stopped = true;
-          try {
-            terminateOwnedProcessTree(child);
-          } catch {
-            child.kill();
-          }
+          void terminateOwnedProcessTree(child);
         };
         signal.addEventListener('abort', stop, { once: true });
         const append = (target: 'stdout' | 'stderr', chunk: unknown) => {

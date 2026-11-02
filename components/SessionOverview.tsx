@@ -5,6 +5,7 @@ import { Activity, Database, MultiplePagesEmpty as Layers3, Terminal } from 'ico
 import type { ShellActivityJob as StudioJob } from '../lib/shellActivityJob';
 import type { LogEntry, Workspace } from '../types';
 import { cn } from '../lib/utils';
+import { formatDate, formatTime } from '../lib/i18n';
 
 interface SessionOverviewProps {
   workspaces: Workspace[];
@@ -99,7 +100,7 @@ export const SessionOverview: React.FC<SessionOverviewProps> = ({
                   {workspace.name || workspace.id.slice(0, 8)}
                 </span>
                 <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]">
-                  {new Date(workspace.createdAt).toLocaleDateString()}
+                  {formatDate(workspace.createdAt)}
                 </span>
               </div>
             ))
@@ -133,7 +134,7 @@ export const SessionOverview: React.FC<SessionOverviewProps> = ({
                       {job.status}
                     </span>
                     <span className="text-[length:var(--wbp-label)] tracking-normal text-[color:var(--wb-dim)]">
-                      {new Date(job.createdAt).toLocaleTimeString([], {
+                      {formatTime(job.createdAt, {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
@@ -199,7 +200,7 @@ export const SessionOverview: React.FC<SessionOverviewProps> = ({
             recentLogs.map((log) => (
               <div key={log.id} className="flex gap-2">
                 <span className="shrink-0 select-none text-[color:var(--wb-dim)]">
-                  {new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}
+                  {formatTime(log.timestamp, { hour12: false })}
                 </span>
                 <span className="wrap-break-word text-[color:var(--wb-muted)]">{log.message}</span>
               </div>

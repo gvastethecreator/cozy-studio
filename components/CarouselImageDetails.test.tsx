@@ -325,10 +325,10 @@ it('shows original metadata and active style badges, omitting missing file size'
     </CarouselImageDetails>,
   );
   expect(screen.getByText('2048 × 1536')).toBeDefined();
-  expect(screen.getByText('1.5 MiB')).toBeDefined();
+  expect(screen.getByText('1.5 MB')).toBeDefined();
   expect(screen.getByText('PNG')).toBeDefined();
   expect(screen.getByText('ChatGPT')).toBeDefined();
-  expect(screen.getByText(new Date(image.createdAt).toLocaleString())).toBeDefined();
+  expect(screen.getByText(new Date(image.createdAt).toLocaleString('en'))).toBeDefined();
   expect(screen.getByText('Woodcut').getAttribute('title')).toBe('Print');
   expect(screen.queryByText('Oil paint')).toBeNull();
   expect(screen.getByLabelText('Full image prompt').textContent).toContain(image.config.prompt);
@@ -336,7 +336,7 @@ it('shows original metadata and active style badges, omitting missing file size'
 
   const provider = screen.getByText('ChatGPT');
   const dimensions = screen.getByText('2048 × 1536');
-  const fileSize = screen.getByText('1.5 MiB');
+  const fileSize = screen.getByText('1.5 MB');
   view.rerender(
     <CarouselImageDetails
       workspaceId="default"

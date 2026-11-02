@@ -28,6 +28,6 @@ describe('TCG composition readiness', () => {
     expect(getTcgCompositionReadiness({ ...base, maskSources: {} }).canExport).toBe(false);
     expect(
       getTcgCompositionReadiness({ ...base, renderHealth: null, maskSources: {} }).selectedReasons,
-    ).toContain('Falta la máscara PNG foilMask.');
+    ).toContain('Missing PNG mask foilMask.');
   });
 });

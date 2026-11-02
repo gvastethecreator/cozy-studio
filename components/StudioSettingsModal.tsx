@@ -38,6 +38,8 @@ import {
   type StudioSettingsDomainId,
 } from '../lib/studioSettingsDomains';
 import { SettingsFormPanel } from './settings/SettingsFormPanel';
+import { t } from '../lib/i18n';
+import { en, type MessageKey } from '../lib/i18n/en';
 import { SettingsOutputSourcesPanel } from './settings/SettingsOutputSourcesPanel';
 import { SettingsExtensionsPanel } from './settings/SettingsExtensionsPanel';
 import {
@@ -91,27 +93,33 @@ const SETTINGS_SEARCH_ITEMS: {
   },
   {
     domain: 'general',
+    label: 'Language',
+    description: 'English or Spanish interface',
+    target: 'settings.language.label',
+  },
+  {
+    domain: 'general',
     label: 'Startup workflow',
     description: 'Choose what opens first',
-    target: 'Startup workflow',
+    target: 'settings.general.startupWorkflow',
   },
   {
     domain: 'general',
     label: 'Default style intensity',
     description: 'Strength of newly added styles',
-    target: 'Default style intensity',
+    target: 'settings.general.styleIntensity',
   },
   {
     domain: 'general',
     label: 'Default style reference mode',
     description: 'Preserve or reinterpret references',
-    target: 'Default style reference mode',
+    target: 'settings.general.referenceMode',
   },
   {
     domain: 'general',
     label: 'Detailed style instructions',
     description: 'Experimental style compiler',
-    target: 'Detailed style instructions',
+    target: 'settings.general.detailedInstructions',
   },
   {
     domain: 'appearance',
@@ -616,10 +624,12 @@ function SettingsDialogActions({
   );
 }
 
+/** `target` is a control's aria-label, or the message key of a translated one. */
 function focusSettingsControl(dialog: HTMLDialogElement | null, target: string) {
   const panel = dialog?.querySelector<HTMLElement>('.studio-settings-content');
+  const label = target in en ? t(target as MessageKey) : target;
   const control = target
-    ? panel?.querySelector<HTMLElement>(`[aria-label="${target}"]`)
+    ? panel?.querySelector<HTMLElement>(`[aria-label="${label}"]`)
     : panel?.querySelector<HTMLElement>('button, input, select');
   for (
     let ancestor = control?.parentElement;

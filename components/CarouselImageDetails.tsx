@@ -6,13 +6,7 @@ import { useCatalogOrganization } from '../hooks/useCatalogOrganization';
 import { getCatalogCollectionSelection } from '../services/studio-api/catalog';
 import type { CatalogCollectionSelection } from '../packages/shared/src';
 import { ImageOrganizationPicker } from './ImageOrganizationPicker';
-
-function formatFileSize(bytes: number | null | undefined) {
-  if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return 'Unknown';
-  if (bytes < 1024) return `${bytes} B`;
-  const unit = Math.min(4, Math.floor(Math.log2(bytes) / 10));
-  return `${(bytes / 1024 ** unit).toFixed(1)} ${['B', 'KiB', 'MiB', 'GiB', 'TiB'][unit]}`;
-}
+import { formatBytes, formatDateTime } from '../lib/i18n';
 
 export function CarouselImageDetails({
   image,
@@ -69,10 +63,10 @@ export function CarouselImageDetails({
     : [];
   const metadata = [
     ['Dimensions', image.width && image.height ? `${image.width} × ${image.height}` : null],
-    ['File size', image.fileSizeBytes == null ? null : formatFileSize(image.fileSizeBytes)],
+    ['File size', image.fileSizeBytes == null ? null : formatBytes(image.fileSizeBytes)],
     ['Format', image.mimeType?.split('/')[1]?.toUpperCase() || null],
     ['Provider', image.providerId ? resolveProviderShortLabel(image.providerId) : null],
-    ['Created', image.createdAt ? new Date(image.createdAt).toLocaleString() : null],
+    ['Created', image.createdAt ? formatDateTime(image.createdAt) : null],
   ];
 
   return (

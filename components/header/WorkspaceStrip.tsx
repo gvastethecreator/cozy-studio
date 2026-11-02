@@ -12,6 +12,7 @@ import { isDefaultWorkspace } from '../../lib/workspaceLifecycle';
 import type { Workspace } from '../../types';
 import Tooltip from '../Tooltip';
 import { DemandMountedGsapDropdown } from '../ui/DemandMountedGsapDropdown';
+import { formatBytes, formatDate, formatNumber, useT } from '../../lib/i18n';
 
 interface WorkspaceStripWorkspace extends Workspace {
   lastImage?: string;
@@ -63,7 +64,7 @@ const getWorkspaceDisplayName = (workspace: Workspace, label: string) =>
   workspace.name || `Workspace ${label}`;
 
 const formatWorkspaceImageCount = (count: number | undefined) => {
-  return (count ?? 0).toLocaleString();
+  return formatNumber(count ?? 0);
 };
 
 const formatWorkspaceStorage = (
@@ -72,17 +73,7 @@ const formatWorkspaceStorage = (
 ) => {
   if (!knownFileSizeCount) return 'Unknown';
 
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let value = totalFileSizeBytes ?? 0;
-  let unitIndex = 0;
-
-  while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024;
-    unitIndex += 1;
-  }
-
-  const precision = value >= 10 || unitIndex === 0 ? 0 : 1;
-  return `${value.toFixed(precision)} ${units[unitIndex]}`;
+  return formatBytes(totalFileSizeBytes ?? 0);
 };
 
 const formatWorkspaceDate = (value: string | number | undefined) => {
@@ -91,7 +82,7 @@ const formatWorkspaceDate = (value: string | number | undefined) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Unknown';
 
-  return date.toLocaleDateString(undefined, {
+  return formatDate(date, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -135,6 +126,8 @@ export function WorkspaceStrip({
     handleRenameSubmit,
   } = useWorkspaceMenus(onRenameWorkspace);
   const isCompact = layout === 'compact';
+  // Rendered under a memoized header: subscribe so dates and sizes follow the language.
+  useT();
 
   return (
     <div

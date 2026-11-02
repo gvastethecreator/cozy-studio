@@ -54,6 +54,7 @@ import {
 } from '../../services/studio-api/spriteAtlas';
 import { createStudioEventStream } from '../../services/studioEventSource';
 import { DemandMountedGsapDropdown } from '../ui/DemandMountedGsapDropdown';
+import { formatDateTime } from '../../lib/i18n';
 
 interface SpriteAtlasRecipeProps {
   images?: GeneratedImageWithConfig[];
@@ -170,24 +171,24 @@ function getRowCounts(rows: SpriteAtlasRowState[]) {
   );
 }
 
-const UPDATED_AT_FORMATTER = new Intl.DateTimeFormat(undefined, {
+const UPDATED_AT_FORMAT: Intl.DateTimeFormatOptions = {
   month: 'short',
   day: '2-digit',
   hour: '2-digit',
   minute: '2-digit',
-});
+};
 
 function formatUpdatedAt(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return UPDATED_AT_FORMATTER.format(date);
+  return formatDateTime(date, UPDATED_AT_FORMAT);
 }
 
 /** Row prompts share one long header, so label library images by row and time instead. */
 function formatSourceImageLabel(image: GeneratedImageWithConfig) {
   const rowId = image.config.recipeParams?.rowId;
   const date = new Date(image.createdAt);
-  const when = Number.isNaN(date.getTime()) ? '' : ` · ${UPDATED_AT_FORMATTER.format(date)}`;
+  const when = Number.isNaN(date.getTime()) ? '' : ` · ${formatDateTime(date, UPDATED_AT_FORMAT)}`;
   return `${typeof rowId === 'string' && rowId ? rowId : 'Library image'}${when}`;
 }
 

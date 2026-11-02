@@ -12,6 +12,7 @@ import {
 } from '../services/studio-api/imageConversion';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import Slider from './ui/Slider';
+import { formatBytes } from '../lib/i18n';
 
 type ConversionItem = {
   image: GeneratedImage;
@@ -25,12 +26,6 @@ type ConversionItem = {
 
 function imageName(image: GeneratedImage) {
   return image.localPath?.split(/[\\/]/).pop() || image.id;
-}
-
-function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function sizeChange(source: number, output: number) {

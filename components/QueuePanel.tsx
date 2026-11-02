@@ -31,6 +31,7 @@ import {
 import { QueueBatchCard } from './QueueBatchCard';
 import type { TerminalJobStatus } from '../packages/shared/src';
 import type { WorkerStatus } from '../packages/shared/src/workerContracts';
+import { formatDate, formatDateTime, useT } from '../lib/i18n';
 
 function formatWaitReason(wait: WorkerStatus['waiting'][number]) {
   switch (wait.reason) {
@@ -532,6 +533,8 @@ export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
     onCancelServerJob,
     onClose,
   }) => {
+    // Memoized: subscribe so job dates follow the language.
+    useT();
     const data = useQueuePanelData(results, serverJobs, onClose);
     const {
       setActiveResultId,
@@ -810,7 +813,7 @@ function JobStatusIcon({ status }: { status: StudioJob['status'] }) {
 function jobTimeLabel(job: StudioJob, nowMs: number, createdAtMs: number | null) {
   return job.status === 'running' || job.status === 'queued'
     ? formatDurationMs(createdAtMs === null ? null : nowMs - createdAtMs)
-    : new Date(job.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' });
+    : formatDate(job.createdAt, { month: 'short', day: 'numeric' });
 }
 
 const ServerJobItem: React.FC<{
@@ -864,7 +867,7 @@ const ServerJobItem: React.FC<{
           </span>
           <time
             dateTime={job.createdAt}
-            title={new Date(job.createdAt).toLocaleString()}
+            title={formatDateTime(job.createdAt)}
             className="shrink-0 tabular-nums text-[color:var(--wb-muted)]"
           >
             {jobTimeLabel(job, nowMs, createdAtMs)}

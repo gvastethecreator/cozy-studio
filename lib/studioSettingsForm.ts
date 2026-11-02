@@ -30,6 +30,7 @@ export const EXTERNAL_SCAN_PATH_HELP =
   'Find images to import. This does not change where new images are saved.';
 
 export interface StudioSettingsFormState {
+  language: EditableStudioSettings['language'];
   preferredWorkflow: PreferredWorkflow;
   outputDirectory: string;
   defaultProviderId: GenerationProviderId;
@@ -58,6 +59,7 @@ export function encodeSubfolderTokens(value: StudioOutputSubfolderToken[]) {
 
 export function createInitialStudioSettingsFormState(): StudioSettingsFormState {
   return {
+    language: 'en',
     defaultProviderId: 'chatgpt',
     preferredWorkflow: 'default',
     outputDirectory: '',
@@ -86,6 +88,7 @@ export function getStudioSettingsFormState(
   settings: EditableStudioSettings,
 ): StudioSettingsFormState {
   return {
+    language: settings.language,
     defaultProviderId: settings.defaultProviderId,
     preferredWorkflow: settings.preferredWorkflow ?? 'default',
     outputDirectory: settings.outputDirectory ?? '',
@@ -114,6 +117,7 @@ export function buildStudioSettingsPatch(
 ): EditableStudioSettingsPatch {
   const preferredOutputPath = formState.preferredOutputPath.trim();
   return {
+    language: formState.language,
     defaultProviderId: formState.defaultProviderId,
     preferredWorkflow: formState.preferredWorkflow,
     outputDirectory: formState.outputDirectory.trim() || null,

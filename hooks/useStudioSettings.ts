@@ -40,6 +40,7 @@ import {
   removeImportedOutputSourceFiles,
   summarizeImportOperationResult,
 } from '../lib/importOperation';
+import { setLanguage } from '../lib/i18n';
 
 interface UseStudioSettingsOptions {
   addToast?: (message: string, type?: Toast['type']) => void;
@@ -251,6 +252,7 @@ export function useStudioSettings({
         revisions.current.settings += 1;
         if (!isMountedRef.current) return false;
         setSettings(nextSettings);
+        setLanguage(nextSettings.language);
         addToast?.('Studio Settings saved', 'success');
         invalidateGenerationProviderReads();
         await refreshDomains(true, false);

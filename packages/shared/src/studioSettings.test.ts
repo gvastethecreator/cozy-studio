@@ -11,6 +11,7 @@ describe('studioSettings', () => {
   it('creates non-secret editable settings separate from bootstrap config', () => {
     expect(createDefaultEditableStudioSettings()).toEqual({
       schemaVersion: 'editable-studio-settings/v2',
+      language: 'en',
       preferredWorkflow: 'default',
       outputDirectory: null,
       outputDirectoryId: null,
@@ -71,6 +72,7 @@ describe('studioSettings', () => {
     const patch = sanitizeEditableStudioSettingsPatch({
       defaultProviderId: 'fal',
       apiKey: 'must-not-persist',
+      language: 'fr',
       toolsPanelSide: 'invalid',
       jobsPanelSide: null,
       disabledWorkflowModules: ['timeline', 'not-a-module', 'remaster', 'timeline'],
@@ -102,6 +104,7 @@ describe('studioSettings', () => {
       createDefaultEditableStudioSettings(),
       {
         defaultProviderId: 'comfy',
+        language: 'es',
         commandCenterCompactMode: true,
         notifyOnUpdates: true,
         clearReviewJobsOnStartup: true,
@@ -128,6 +131,7 @@ describe('studioSettings', () => {
     );
 
     expect(settings.defaultProviderId).toBe('comfy');
+    expect(settings.language).toBe('es');
     expect(settings.commandCenterCompactMode).toBe(true);
     expect(settings.notifyOnUpdates).toBe(true);
     expect(settings.clearReviewJobsOnStartup).toBe(true);

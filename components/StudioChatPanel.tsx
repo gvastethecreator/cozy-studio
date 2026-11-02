@@ -15,6 +15,7 @@ import { cn } from '../lib/utils';
 import { useLatestRef } from '../hooks/useLatestRef';
 import type { ShellActivityJob as StudioJob } from '../lib/shellActivityJob';
 import type { ImageGenerationConfig, LogEntry } from '../types';
+import { formatTime } from '../lib/i18n';
 
 type GenerateFromChat = (
   promptOverride?: string,
@@ -40,10 +41,6 @@ type ChatMessage = {
 };
 
 const RUNNING_STATUSES = new Set<StudioJob['status']>(['queued', 'running']);
-
-function formatTime(value: number) {
-  return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
 
 function getJobTime(job: StudioJob) {
   const updated = Date.parse(job.updatedAt);
@@ -205,7 +202,7 @@ export const StudioChatPanel: React.FC<StudioChatPanelProps> = ({
                       >
                         <p className="whitespace-pre-wrap text-sm leading-6">{message.text}</p>
                         <div className="mt-2 text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-dim)]">
-                          {formatTime(message.createdAt)}
+                          {formatTime(message.createdAt, { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
                     </div>

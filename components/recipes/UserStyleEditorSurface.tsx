@@ -35,6 +35,7 @@ import {
   createUserStyleVisualDna,
   mergeUserStyleDraftWithDisabledFields,
 } from './userStyleDraftBuilders';
+import { formatBytes } from '../../lib/i18n';
 
 type UserStyleEditorMode = 'create' | 'edit';
 
@@ -111,12 +112,6 @@ function getErrorMessage(error: unknown) {
 
 function taskLabel(task: UserStylePresetTask) {
   return task.replace(/_/g, ' ');
-}
-
-function formatFileSize(sizeBytes: number | undefined) {
-  if (!sizeBytes || sizeBytes < 1) return '';
-  if (sizeBytes < 1024 * 1024) return `${Math.round(sizeBytes / 1024)} KB`;
-  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function stripReferenceImage(item: ReferenceImageItem): CodexStyleReferenceImage {
@@ -782,7 +777,8 @@ function UserStyleEditorForm({
               <article key={image.id}>
                 <img src={image.previewUrl} alt={image.name} />
                 <p>
-                  {image.name} · {formatFileSize(image.sizeBytes)}
+                  {image.name}
+                  {image.sizeBytes ? ` · ${formatBytes(image.sizeBytes)}` : ''}
                 </p>
                 <div className="user-style-chip-list">
                   <button

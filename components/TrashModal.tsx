@@ -9,6 +9,7 @@ import {
   WarningCircle as AlertCircle,
 } from 'iconoir-react';
 import type { ArchivedImageGroup } from '../lib/studioCatalogTrashView';
+import { formatDateTime } from '../lib/i18n';
 
 interface TrashModalProps {
   isOpen: boolean;
@@ -136,7 +137,7 @@ export const TrashModal: React.FC<TrashModalProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-[length:var(--wbp-label)] font-semibold text-[color:var(--wb-muted)] tracking-normal">
-                          {new Date(group.createdAt).toLocaleString()}
+                          {formatDateTime(group.createdAt)}
                         </span>
                         <span className="size-1 rounded-full bg-[color:var(--wb-bar)]" />
                         <span className="text-[length:var(--wbp-label)] font-bold text-accent-500 tracking-normal">

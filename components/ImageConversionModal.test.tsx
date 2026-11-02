@@ -52,7 +52,7 @@ describe('ImageConversionModal', () => {
     fireEvent.change(screen.getByLabelText('JPG background'), { target: { value: '#ff0000' } });
     fireEvent.click(screen.getByRole('checkbox', { name: /Preserve image metadata/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Save copy' }));
-    await screen.findByText('2.0 KB → 1000 B (50% smaller)');
+    await screen.findByText('2 KB → 1,000 B (50% smaller)');
     expect(convert).toHaveBeenCalledWith('one', {
       ...DEFAULT_IMAGE_CONVERSION_OPTIONS,
       format: 'jpeg',
@@ -81,7 +81,7 @@ describe('ImageConversionModal', () => {
     await screen.findByRole('alert');
     expect(screen.getByRole('alert').textContent).toBe('Source image is missing.');
     fireEvent.click(screen.getByRole('button', { name: 'Retry failed images' }));
-    await screen.findByText('2.0 KB → 2.9 KB (50% larger)');
+    await screen.findByText('2 KB → 2.9 KB (50% larger)');
     expect(convert.mock.calls.map(([id]) => id)).toEqual(['one', 'two', 'two']);
     expect(screen.queryByRole('button', { name: 'Retry failed images' })).toBeNull();
   });

@@ -1,5 +1,6 @@
 import { TCG_FINISHES } from './tcgComponentModel';
 import type { TcgFinish, TcgLayout } from './tcgComponentModel';
+import { t } from '../../../lib/i18n';
 
 export const TCG_CARD_WIDTH = 720;
 export const TCG_CARD_HEIGHT = 1008;
@@ -81,7 +82,7 @@ export async function renderTcgComposition(input: TcgRenderInput): Promise<TcgRe
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext('2d');
-  if (!context) throw new Error('No se pudo crear el lienzo de composición.');
+  if (!context) throw new Error(t('tcg.error.createCanvas'));
 
   const requiredMaskKeys = getRequiredTcgMasks(input.finishId, input.layoutId);
   const missingMaskKeys = requiredMaskKeys.filter((key) => !input.masks[key]);
@@ -850,7 +851,7 @@ function drawImageOrPlaceholder(
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.fillText(
-      'Cargar ilustración',
+      t('tcg.canvas.uploadArt'),
       rect.x + rect.width / 2,
       rect.y + rect.height / 2,
       rect.width - 24,

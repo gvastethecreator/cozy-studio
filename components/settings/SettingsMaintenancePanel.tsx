@@ -9,11 +9,7 @@ import type {
   ToolingLogsPruneResult,
 } from '../../packages/shared/src/storageMaintenance';
 import { createStorageRepairPlanFromAudit } from '../../packages/shared/src/storageMaintenance';
-function formatBytes(value: number) {
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`;
-  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
-}
+import { formatBytes } from '../../lib/i18n';
 
 export interface SettingsMaintenancePanelProps {
   maintenance: {

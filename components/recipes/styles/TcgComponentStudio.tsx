@@ -12,6 +12,7 @@ import type { TcgFinish, TcgLayout, TcgRecipe } from './tcgComponentModel';
 import { getRequiredTcgArtworkCount, getRequiredTcgMasks } from './tcgCardRenderer';
 import type { TcgArtworkSource, TcgRenderInput } from './tcgCardRenderer';
 import { getTcgCompositionReadiness, useTcgCompositionPreview } from './useTcgCompositionPreview';
+import { t, useT } from '../../../lib/i18n';
 
 export interface TcgComponentStudioProps {
   query: string;
@@ -50,6 +51,7 @@ function useTcgComponentStudioController({
   onGenerateArtwork,
   isGenerating = false,
 }: TcgComponentStudioProps) {
+  useT();
   const initialRecipe = TCG_RECIPES[0];
   const [recipeId, setRecipeId] = useState<TcgRecipe['id']>(initialRecipe.id);
   const [finishId, setFinishId] = useState<TcgFinish['id']>(initialRecipe.finishId);
@@ -162,9 +164,7 @@ function useTcgComponentStudioController({
       const dataUrl = await readFileAsDataUrl(file);
       updateArtworkChoice(index, { kind: 'upload', dataUrl, fileName: file.name });
     } catch (error) {
-      setFileError(
-        error instanceof Error ? error.message : 'No se pudo leer el archivo de imagen.',
-      );
+      setFileError(error instanceof Error ? error.message : t('tcg.error.readImage'));
     }
   };
 
@@ -175,7 +175,7 @@ function useTcgComponentStudioController({
     setFileError('');
     try {
       if (!(await hasPngSignature(file)))
-        throw new Error(`${file.name}: la máscara debe ser un PNG válido.`);
+        throw new Error(t('tcg.error.maskNotPng', { file: file.name }));
       const dataUrl = await readFileAsDataUrl(file);
       setMaskAssets((current) => ({ ...current, [key]: { dataUrl, fileName: file.name } }));
     } catch (error) {
@@ -184,22 +184,20 @@ function useTcgComponentStudioController({
         delete next[key];
         return next;
       });
-      setFileError(error instanceof Error ? error.message : 'No se pudo leer la máscara PNG.');
+      setFileError(error instanceof Error ? error.message : t('tcg.error.readMask'));
     }
   };
 
   const handleGenerate = () => {
     if (!subjectPrompt.trim()) {
-      setGenerationError('Describe el sujeto para pedir la ilustración.');
+      setGenerationError(t('tcg.error.subjectRequired'));
       return;
     }
     setGenerationError('');
     try {
       onGenerateArtwork(buildTcgRecipeArtPrompt(recipeId, subjectPrompt.trim()));
     } catch (error) {
-      setGenerationError(
-        error instanceof Error ? error.message : 'No se pudo iniciar la generación.',
-      );
+      setGenerationError(error instanceof Error ? error.message : t('tcg.error.startGeneration'));
     }
   };
 
@@ -208,7 +206,7 @@ function useTcgComponentStudioController({
     if (!canvas || !canExport) return;
     canvas.toBlob((blob) => {
       if (!blob) {
-        setRenderError('El navegador no pudo exportar este lienzo como PNG.');
+        setRenderError(t('tcg.error.exportPng'));
         return;
       }
       const url = URL.createObjectURL(blob);
@@ -230,11 +228,11 @@ function useTcgComponentStudioController({
 
   const recipeResolution = resolveTcgRecipe(recipeId);
   const getArtworkSlotLabel = (index: number) => {
-    if (layoutId === 'TCG-L009') return index === 0 ? 'Cara A' : 'Cara B';
-    if (layoutId === 'TCG-L008') return `Panel ${index + 1} de 4`;
-    if (layoutId === 'TCG-L007') return `Panel ${index + 1} del díptico`;
-    if (layoutId === 'TCG-L006') return `Narrativa ${index + 1}`;
-    return 'Arte principal';
+    if (layoutId === 'TCG-L009') return t(index === 0 ? 'tcg.slot.faceA' : 'tcg.slot.faceB');
+    if (layoutId === 'TCG-L008') return t('tcg.slot.panelOfFour', { index: index + 1 });
+    if (layoutId === 'TCG-L007') return t('tcg.slot.diptychPanel', { index: index + 1 });
+    if (layoutId === 'TCG-L006') return t('tcg.slot.narrative', { index: index + 1 });
+    return t('tcg.slot.mainArt');
   };
 
   return {
@@ -307,11 +305,8 @@ function TcgComponentStudioView({ model }: { model: TcgComponentStudioViewModel 
   return (
     <div className="space-y-5" data-tcg-component-studio>
       <header className="space-y-1">
-        <h2 className="text-base font-semibold text-[color:var(--wb-ink)]">TCG Component Studio</h2>
-        <p className="text-xs leading-relaxed text-[color:var(--wb-muted)]">
-          Compone una carta desde arte, estructura, datos y acabado. Los efectos del lienzo son
-          aproximaciones digitales; no certifican un proceso ni una salida de imprenta.
-        </p>
+        <h2 className="text-base font-semibold text-[color:var(--wb-ink)]">{t('tcg.title')}</h2>
+        <p className="text-xs leading-relaxed text-[color:var(--wb-muted)]">{t('tcg.intro')}</p>
       </header>
 
       <div className="grid min-w-0 gap-5">
@@ -333,23 +328,26 @@ function TcgComponentStudioView({ model }: { model: TcgComponentStudioViewModel 
         className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-4"
       >
         <summary className="cursor-pointer text-sm font-semibold text-[color:var(--wb-ink)]">
-          Explorar componentes del atlas · 42 registros · {filteredCatalogCount} coinciden
+          {t('tcg.atlas.summary', {
+            total: TCG_FINISHES.length + TCG_LAYOUTS.length + TCG_RECIPES.length,
+            count: filteredCatalogCount,
+          })}
         </summary>
         {normalizedQuery && filteredCatalogCount === 0 ? (
           <p className="mt-3 text-xs text-[color:var(--wb-muted)]">
-            No hay acabados, layouts o recetas que coincidan con «{query}».
+            {t('tcg.atlas.noMatch', { query })}
           </p>
         ) : null}
         <div className="mt-3 grid gap-4 lg:grid-cols-3">
           <CatalogGroup
-            title="Acabados"
+            title={t('tcg.atlas.finishes')}
             count={TCG_FINISHES.length}
             entries={matchedFinishes}
             selectedId={finishId}
             onSelect={(id) => setFinishId(id as TcgFinish['id'])}
           />
           <CatalogGroup
-            title="Layouts"
+            title={t('tcg.atlas.layouts')}
             count={TCG_LAYOUTS.length}
             entries={matchedLayouts}
             selectedId={layoutId}
@@ -359,7 +357,7 @@ function TcgComponentStudioView({ model }: { model: TcgComponentStudioViewModel 
             }}
           />
           <CatalogGroup
-            title="Recetas"
+            title={t('tcg.atlas.recipes')}
             count={TCG_RECIPES.length}
             entries={matchedRecipes}
             selectedId={recipeId}
@@ -385,8 +383,9 @@ interface CatalogGroupProps {
 }
 
 function CatalogGroup({ title, count, entries, selectedId, onSelect }: CatalogGroupProps) {
+  const { t } = useT();
   return (
-    <section aria-label={`${title}, ${count} registros`} className="space-y-2">
+    <section aria-label={t('tcg.atlas.groupLabel', { title, count })} className="space-y-2">
       <h4 className="border-b border-[color:var(--wb-line)] pb-1 text-xs font-semibold text-[color:var(--wb-ink)]">
         {title} · {entries.length}/{count}
       </h4>
@@ -415,7 +414,9 @@ function CatalogGroup({ title, count, entries, selectedId, onSelect }: CatalogGr
 
 function getGeneratedImageLabel(image: GeneratedImageWithConfig, index: number) {
   const prompt = image.config.prompt?.trim();
-  const label = prompt ? prompt.replace(/\s+/g, ' ') : `Imagen ${index + 1}`;
+  const label = prompt
+    ? prompt.replace(/\s+/g, ' ')
+    : t('tcg.generatedImage', { index: index + 1 });
   return `${label.slice(0, 76)}${label.length > 76 ? '…' : ''}`;
 }
 
@@ -434,10 +435,10 @@ async function hasPngSignature(file: File): Promise<boolean> {
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error(`No se pudo leer ${file.name}.`));
+    reader.onerror = () => reject(new Error(t('tcg.error.readFile', { file: file.name })));
     reader.onload = () => {
       if (typeof reader.result === 'string') resolve(reader.result);
-      else reject(new Error(`El archivo ${file.name} no produjo una imagen válida.`));
+      else reject(new Error(t('tcg.error.notImage', { file: file.name })));
     };
     reader.readAsDataURL(file);
   });
@@ -474,6 +475,7 @@ function TcgRecipePicker({
     setFinishId,
     setLayoutId,
   } = model;
+  const { t } = useT();
 
   return (
     <section
@@ -482,15 +484,17 @@ function TcgRecipePicker({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 id="tcg-recipe-heading" className="text-sm font-semibold text-[color:var(--wb-ink)]">
-          Receta de arte
+          {t('tcg.recipe.heading')}
         </h3>
-        <span className="text-[10px] text-[color:var(--wb-dim)]">12 recetas</span>
+        <span className="text-[10px] text-[color:var(--wb-dim)]">
+          {t('tcg.recipe.count', { count: TCG_RECIPES.length })}
+        </span>
       </div>
       <label
         htmlFor="tcg-recipe"
         className="block text-xs font-medium text-[color:var(--wb-muted)]"
       >
-        Receta
+        {t('tcg.recipe.label')}
       </label>
       <select
         id="tcg-recipe"
@@ -508,21 +512,20 @@ function TcgRecipePicker({
         {selectedRecipe.summary}
       </p>
       <p className="text-[11px] leading-relaxed text-[color:var(--wb-dim)]">
-        La receta acota la influencia secundaria a «{selectedRecipe.secondaryScope}». El acabado y
-        el layout se aplican aquí después de generar la ilustración.
+        {t('tcg.recipe.scope', { scope: selectedRecipe.secondaryScope })}
       </p>
       <label
         htmlFor="tcg-subject"
         className="block text-xs font-medium text-[color:var(--wb-muted)]"
       >
-        Sujeto de la carta
+        {t('tcg.recipe.subject')}
       </label>
       <textarea
         id="tcg-subject"
         value={subjectPrompt}
         onChange={(event) => setSubjectPrompt(event.currentTarget.value)}
         rows={3}
-        placeholder="Describe el sujeto, acción y encuadre que quieres conservar."
+        placeholder={t('tcg.recipe.subjectPlaceholder')}
         className="w-full resize-y rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-3 py-2 text-sm text-[color:var(--wb-ink)] placeholder:text-[color:var(--wb-dim)]"
       />
       {generationError ? (
@@ -537,15 +540,16 @@ function TcgRecipePicker({
           disabled={isGenerating}
           className="rounded border border-[color:var(--wb-ink)] bg-[color:var(--wb-ink)] px-3 py-2 text-xs font-semibold text-[color:var(--wb-bg)] disabled:cursor-not-allowed disabled:opacity-55"
         >
-          {isGenerating ? 'Generando arte…' : 'Generar ilustración'}
+          {isGenerating ? t('tcg.recipe.generating') : t('tcg.recipe.generate')}
         </button>
-        <span className="text-[10px] text-[color:var(--wb-dim)]">
-          No añade marco, texto ni acabado al prompt de arte.
-        </span>
+        <span className="text-[10px] text-[color:var(--wb-dim)]">{t('tcg.recipe.promptNote')}</span>
       </div>
       <div className="flex flex-wrap items-start justify-between gap-2 border-t border-[color:var(--wb-line)] pt-3">
         <p className="max-w-xl text-[11px] leading-relaxed text-[color:var(--wb-muted)]">
-          Valores por receta: {recipeResolution.finish.name} · {recipeResolution.layout.name}.
+          {t('tcg.recipe.defaults', {
+            finish: recipeResolution.finish.name,
+            layout: recipeResolution.layout.name,
+          })}
         </p>
         <button
           type="button"
@@ -555,7 +559,7 @@ function TcgRecipePicker({
           }}
           className="rounded border border-[color:var(--wb-line)] px-2 py-1 text-[10px] font-medium text-[color:var(--wb-muted)] hover:text-[color:var(--wb-ink)]"
         >
-          Restaurar valores de receta
+          {t('tcg.recipe.restore')}
         </button>
       </div>
     </section>
@@ -591,6 +595,7 @@ function TcgLayoutControls({
     setFinishId,
     selectedFinish,
   } = model;
+  const { t } = useT();
 
   return (
     <section
@@ -602,15 +607,17 @@ function TcgLayoutControls({
           id="tcg-layout-finish-heading"
           className="text-sm font-semibold text-[color:var(--wb-ink)]"
         >
-          Estructura de carta
+          {t('tcg.layout.heading')}
         </h3>
-        <span className="text-[10px] text-[color:var(--wb-dim)]">12 layouts</span>
+        <span className="text-[10px] text-[color:var(--wb-dim)]">
+          {t('tcg.layout.count', { count: TCG_LAYOUTS.length })}
+        </span>
       </div>
       <label
         htmlFor="tcg-layout"
         className="block text-xs font-medium text-[color:var(--wb-muted)]"
       >
-        Layout
+        {t('tcg.layout.label')}
       </label>
       <select
         id="tcg-layout"
@@ -636,7 +643,7 @@ function TcgLayoutControls({
             htmlFor="tcg-panorama-columns"
             className="block text-xs font-medium text-[color:var(--wb-muted)]"
           >
-            Columnas de la grilla
+            {t('tcg.layout.gridColumns')}
           </label>
           <select
             id="tcg-panorama-columns"
@@ -644,26 +651,21 @@ function TcgLayoutControls({
             onChange={(event) => setPanoramaColumns(Number(event.currentTarget.value) as 2 | 3)}
             className="rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-2 py-1 text-xs text-[color:var(--wb-ink)]"
           >
-            <option value={2}>2 columnas</option>
-            <option value={3}>3 columnas</option>
+            <option value={2}>{t('tcg.layout.columns', { count: 2 })}</option>
+            <option value={3}>{t('tcg.layout.columns', { count: 3 })}</option>
           </select>
-          <p className="text-[10px] text-[color:var(--wb-dim)]">
-            La vista contiene cuatro cartas; los archivos de arte deben seleccionarse por separado.
-          </p>
+          <p className="text-[10px] text-[color:var(--wb-dim)]">{t('tcg.layout.panoramaNote')}</p>
         </div>
       ) : null}
       {layoutId === 'TCG-L009' ? (
-        <div
-          className="flex flex-wrap gap-2"
-          aria-label="Seleccionar cara para la vista y exportación"
-        >
+        <div className="flex flex-wrap gap-2" aria-label={t('tcg.layout.faceSelect')}>
           <button
             type="button"
             aria-pressed={activeFace === 0}
             onClick={() => setActiveFace(0)}
             className={faceButtonClass(activeFace === 0)}
           >
-            Cara A
+            {t('tcg.slot.faceA')}
           </button>
           <button
             type="button"
@@ -671,23 +673,27 @@ function TcgLayoutControls({
             onClick={() => setActiveFace(1)}
             className={faceButtonClass(activeFace === 1)}
           >
-            Cara B
+            {t('tcg.slot.faceB')}
           </button>
           <span className="self-center text-[10px] text-[color:var(--wb-dim)]">
-            La exportación descarga una cara a la vez.
+            {t('tcg.layout.faceExportNote')}
           </span>
         </div>
       ) : null}
       <div className="border-t border-[color:var(--wb-line)] pt-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-[color:var(--wb-ink)]">Acabado digital</h3>
-          <span className="text-[10px] text-[color:var(--wb-dim)]">18 acabados</span>
+          <h3 className="text-sm font-semibold text-[color:var(--wb-ink)]">
+            {t('tcg.finish.heading')}
+          </h3>
+          <span className="text-[10px] text-[color:var(--wb-dim)]">
+            {t('tcg.finish.count', { count: TCG_FINISHES.length })}
+          </span>
         </div>
         <label
           htmlFor="tcg-finish"
           className="mt-2 block text-xs font-medium text-[color:var(--wb-muted)]"
         >
-          Acabado
+          {t('tcg.finish.label')}
         </label>
         <select
           id="tcg-finish"
@@ -743,6 +749,7 @@ function TcgArtworkControls({
     updateCardField,
     layoutId,
   } = model;
+  const { t } = useT();
 
   return (
     <section
@@ -751,15 +758,14 @@ function TcgArtworkControls({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 id="tcg-artwork-heading" className="text-sm font-semibold text-[color:var(--wb-ink)]">
-          Archivos de arte
+          {t('tcg.art.heading')}
         </h3>
         <span className="text-[10px] text-[color:var(--wb-dim)]">
-          {selectedArtCount}/{requiredArtworkCount} listos
+          {t('tcg.art.ready', { selected: selectedArtCount, required: requiredArtworkCount })}
         </span>
       </div>
       <p className="text-[11px] leading-relaxed text-[color:var(--wb-muted)]">
-        Elige una imagen generada o carga un archivo local. Los layouts de varias piezas requieren
-        arte separado para cada panel o cara; no se infiere continuidad entre archivos.
+        {t('tcg.art.intro')}
       </p>
       {Array.from({ length: requiredArtworkCount }, (_, index) => {
         const choice = artworkChoices[index];
@@ -782,7 +788,7 @@ function TcgArtworkControls({
               htmlFor={`${slotId}-generated`}
               className="block text-[11px] font-medium text-[color:var(--wb-muted)]"
             >
-              Imagen generada
+              {t('tcg.art.generatedImage')}
             </label>
             <select
               id={`${slotId}-generated`}
@@ -794,9 +800,11 @@ function TcgArtworkControls({
               }}
               className="w-full rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] px-2 py-2 text-xs text-[color:var(--wb-ink)]"
             >
-              <option value="">Sin seleccionar</option>
+              <option value="">{t('tcg.art.none')}</option>
               {choice?.kind === 'upload' ? (
-                <option value="__uploaded__">Archivo local: {choice.fileName}</option>
+                <option value="__uploaded__">
+                  {t('tcg.art.localFile', { file: choice.fileName })}
+                </option>
               ) : null}
               {images.map((image, imageIndex) => (
                 <option key={`${image.id}-${imageIndex}`} value={image.id}>
@@ -808,7 +816,7 @@ function TcgArtworkControls({
               htmlFor={`${slotId}-file`}
               className="block text-[11px] font-medium text-[color:var(--wb-muted)]"
             >
-              o cargar imagen
+              {t('tcg.art.orUpload')}
             </label>
             <input
               id={`${slotId}-file`}
@@ -821,19 +829,19 @@ function TcgArtworkControls({
             />
             {choice?.kind === 'upload' ? (
               <p className="text-[10px] text-[color:var(--wb-dim)]">
-                Archivo local: {choice.fileName}
+                {t('tcg.art.localFile', { file: choice.fileName })}
               </p>
             ) : null}
             <details className="pt-1">
               <summary className="cursor-pointer text-[11px] font-medium text-[color:var(--wb-muted)]">
-                Editar datos de esta carta
+                {t('tcg.art.editData')}
               </summary>
               <div className="mt-2 space-y-2">
                 <label
                   htmlFor={`${slotId}-name`}
                   className="block text-[10px] font-medium text-[color:var(--wb-muted)]"
                 >
-                  Nombre
+                  {t('tcg.art.name')}
                 </label>
                 <input
                   id={`${slotId}-name`}
@@ -846,7 +854,7 @@ function TcgArtworkControls({
                   htmlFor={`${slotId}-type`}
                   className="block text-[10px] font-medium text-[color:var(--wb-muted)]"
                 >
-                  Tipo / grupo
+                  {t('tcg.art.type')}
                 </label>
                 <input
                   id={`${slotId}-type`}
@@ -859,7 +867,7 @@ function TcgArtworkControls({
                   htmlFor={`${slotId}-rules`}
                   className="block text-[10px] font-medium text-[color:var(--wb-muted)]"
                 >
-                  Reglas o texto de carta
+                  {t('tcg.art.rules')}
                 </label>
                 <textarea
                   id={`${slotId}-rules`}
@@ -875,9 +883,7 @@ function TcgArtworkControls({
         );
       })}
       {layoutId === 'TCG-L012' ? (
-        <p className="text-[10px] text-[color:var(--wb-dim)]">
-          Art Plate muestra solo la ilustración; los datos editados no se dibujan en ese layout.
-        </p>
+        <p className="text-[10px] text-[color:var(--wb-dim)]">{t('tcg.art.artPlateNote')}</p>
       ) : null}
     </section>
   );
@@ -892,6 +898,7 @@ function TcgMaskInputs({
   >;
 }): React.ReactElement {
   const { requiredMaskKeys, layoutId, handleMaskUpload, maskAssets, fileError } = model;
+  const { t } = useT();
 
   return (
     <section
@@ -900,22 +907,18 @@ function TcgMaskInputs({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 id="tcg-masks-heading" className="text-sm font-semibold text-[color:var(--wb-ink)]">
-          Máscaras requeridas
+          {t('tcg.mask.heading')}
         </h3>
         <span className="text-[10px] text-[color:var(--wb-dim)]">
           {requiredMaskKeys.length} PNG
         </span>
       </div>
       <p className="text-[11px] leading-relaxed text-[color:var(--wb-muted)]">
-        Carga un PNG real por cada capa que pide el acabado. Blanco aplica la máscara y negro la
-        excluye; los tonos grises modulan el efecto. Se ajusta al lienzo completo. No se generan
-        máscaras automáticamente.
+        {t('tcg.mask.intro')}
       </p>
       {layoutId === 'TCG-L005' ? (
         <p className="rounded border border-amber-700/30 bg-amber-50 px-2 py-1.5 text-[10px] leading-relaxed text-amber-950">
-          Frame Break requiere subjectMask y occlusionMask explícitas. Blanco en subjectMask recorta
-          la zona del sujeto que cruza el marco; blanco en occlusionMask retira esa zona del sujeto
-          superpuesto.
+          {t('tcg.mask.frameBreak')}
         </p>
       ) : null}
       <div className="grid gap-2 sm:grid-cols-2">
@@ -927,7 +930,7 @@ function TcgMaskInputs({
                 htmlFor={id}
                 className="block text-[11px] font-medium text-[color:var(--wb-ink)]"
               >
-                {key} · PNG obligatorio
+                {t('tcg.mask.required', { key })}
               </label>
               <input
                 id={id}
@@ -939,9 +942,11 @@ function TcgMaskInputs({
                 className="block w-full text-[10px] text-[color:var(--wb-muted)] file:mr-1 file:rounded file:border file:border-[color:var(--wb-line)] file:bg-[color:var(--wb-bg)] file:px-1.5 file:py-1 file:text-[10px] file:text-[color:var(--wb-ink)]"
               />
               {maskAssets[key] ? (
-                <p className="text-[10px] text-emerald-800">Cargada: {maskAssets[key].fileName}</p>
+                <p className="text-[10px] text-emerald-800">
+                  {t('tcg.mask.loaded', { file: maskAssets[key].fileName })}
+                </p>
               ) : (
-                <p className="text-[10px] text-[color:var(--wb-dim)]">Sin máscara.</p>
+                <p className="text-[10px] text-[color:var(--wb-dim)]">{t('tcg.mask.none')}</p>
               )}
             </div>
           );
@@ -971,6 +976,7 @@ function TcgCompositionPreview({
     rendering,
     renderError,
   } = model;
+  const { t } = useT();
   return (
     <section
       aria-labelledby="tcg-preview-heading"
@@ -978,37 +984,37 @@ function TcgCompositionPreview({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 id="tcg-preview-heading" className="text-sm font-semibold text-[color:var(--wb-ink)]">
-          Vista compuesta
+          {t('tcg.preview.heading')}
         </h3>
         <button
           type="button"
           onClick={exportPng}
           disabled={!canExport}
-          title={canExport ? 'Exportar la composición actual como PNG' : selectedReasons.join(' ')}
+          title={canExport ? t('tcg.preview.exportTitle') : selectedReasons.join(' ')}
           className="rounded border border-[color:var(--wb-ink)] px-3 py-2 text-xs font-semibold text-[color:var(--wb-ink)] disabled:cursor-not-allowed disabled:opacity-45"
         >
-          Exportar PNG
+          {t('tcg.preview.export')}
         </button>
       </div>
       <p className="text-[11px] leading-relaxed text-[color:var(--wb-muted)]">
         {layoutId === 'TCG-L007'
-          ? 'El archivo muestra dos cartas contiguas en un lienzo compartido.'
+          ? t('tcg.preview.diptych')
           : layoutId === 'TCG-L008'
-            ? 'El archivo contiene la grilla completa con los cuatro paneles.'
+            ? t('tcg.preview.panorama')
             : layoutId === 'TCG-L009'
-              ? `Previsualizando y exportando Cara ${activeFace === 0 ? 'A' : 'B'}.`
-              : 'La vista representa una composición digital del layout y el acabado seleccionados.'}
+              ? t('tcg.preview.face', { face: activeFace === 0 ? 'A' : 'B' })
+              : t('tcg.preview.default')}
       </p>
       <div className="flex min-h-64 items-center justify-center overflow-auto rounded border border-[color:var(--wb-line)] bg-[#20252b] p-3">
         <canvas
           ref={canvasRef}
-          aria-label="Vista previa de la composición de carta"
+          aria-label={t('tcg.preview.canvasLabel')}
           className="block h-auto max-h-[72vh] max-w-full rounded shadow-lg"
         />
       </div>
       {rendering ? (
         <p role="status" className="text-xs text-[color:var(--wb-muted)]">
-          Actualizando vista…
+          {t('tcg.preview.updating')}
         </p>
       ) : null}
       {renderError ? (
@@ -1022,7 +1028,7 @@ function TcgCompositionPreview({
           className="space-y-1 rounded border border-[color:var(--wb-line)] bg-[color:var(--wb-bg)] p-3"
         >
           <p className="text-xs font-medium text-[color:var(--wb-ink)]">
-            Completa los recursos para habilitar la exportación.
+            {t('tcg.preview.completeAssets')}
           </p>
           <ul className="list-inside list-disc space-y-0.5 text-[10px] text-[color:var(--wb-muted)]">
             {selectedReasons.map((reason) => (
@@ -1032,8 +1038,7 @@ function TcgCompositionPreview({
         </div>
       ) : null}
       <p className="text-[10px] leading-relaxed text-[color:var(--wb-dim)]">
-        Archivo de composición para revisión en pantalla. No certifica medidas, capas, respuesta UV,
-        troquel ni compatibilidad con una imprenta.
+        {t('tcg.preview.disclaimer')}
       </p>
     </section>
   );

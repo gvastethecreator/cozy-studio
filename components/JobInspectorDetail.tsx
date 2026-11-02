@@ -31,6 +31,7 @@ import { cn } from '../lib/utils';
 import { getStudioApiBase } from '../services/studio-api/http';
 import { readLatestSubscriptionHttpDiagnostic } from '../lib/subscriptionHttpDiagnosticView';
 import { SubscriptionHttpDiagnosticNotice } from './SubscriptionHttpDiagnosticNotice';
+import { formatDateTime, formatNumber } from '../lib/i18n';
 
 interface JobInspectorDetailProps {
   detail: JobDetailResponse;
@@ -71,7 +72,7 @@ function toneForTimeline(item: JobInspectorTimelineItem) {
 }
 
 function formatTokenCount(value: number | null | undefined) {
-  return value == null ? '—' : value.toLocaleString();
+  return value == null ? '—' : formatNumber(value);
 }
 
 function findTiming(
@@ -89,7 +90,7 @@ function truncateHeadline(value: string, maxLength = 140) {
 
 function formatTimestamp(value: string | null) {
   if (!value) return 'No timestamp';
-  return new Date(value).toLocaleString([], {
+  return formatDateTime(value, {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
@@ -882,8 +883,8 @@ function JobInspectorHeader({
 
 function executionFacts(detail: JobDetailResponse) {
   return [
-    ['Created', new Date(detail.job.createdAt).toLocaleString()],
-    ['Completed', detail.job.completedAt ? new Date(detail.job.completedAt).toLocaleString() : '—'],
+    ['Created', formatDateTime(detail.job.createdAt)],
+    ['Completed', detail.job.completedAt ? formatDateTime(detail.job.completedAt) : '—'],
     ['Model', detail.job.execution?.model || 'default'],
     ...(detail.job.providerId === 'codex'
       ? [

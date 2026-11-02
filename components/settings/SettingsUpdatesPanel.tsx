@@ -9,6 +9,7 @@ import {
   restartStudio,
 } from '../../services/studio-api/updates';
 import { ConfirmationModal } from '../ConfirmationModal';
+import { formatDateTime } from '../../lib/i18n';
 
 function useRepositoryUpdates() {
   const [status, setStatus] = useState<RepositoryUpdateStatus | null>(null);
@@ -142,9 +143,7 @@ function UpdateStatusSummary({
       {status?.currentCommit && (
         <p className="studio-muted text-xs">
           Installed: {status.currentCommit.slice(0, 8)}
-          {status.checkedAt
-            ? ` · Last checked: ${new Date(status.checkedAt).toLocaleString()}`
-            : ''}
+          {status.checkedAt ? ` · Last checked: ${formatDateTime(status.checkedAt)}` : ''}
         </p>
       )}
       {!updating && displayedError && (

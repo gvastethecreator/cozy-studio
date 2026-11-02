@@ -7,6 +7,9 @@ const EDITABLE_STUDIO_SETTINGS_VERSION = 'editable-studio-settings/v2' as const;
 
 export type StudioMcpAccess = 'off' | 'read' | 'write';
 
+/** UI language. English is the default and the source dictionary. */
+export type StudioLanguage = 'en' | 'es';
+
 export type StudioOutputMode = 'studio_library' | 'external_source';
 export type StudioOutputSubfolderToken =
   | 'workspace'
@@ -29,6 +32,7 @@ export interface StudioOutputOrganizationSettings {
 }
 
 export interface EditableStudioSettings {
+  language: StudioLanguage;
   preferredWorkflow: PreferredWorkflow;
   outputDirectory: string | null;
   outputDirectoryId: string | null;
@@ -62,6 +66,7 @@ export type EditableProviderDefaultsPatch = Record<
 >;
 
 export interface EditableStudioSettingsPatch {
+  language?: StudioLanguage;
   preferredWorkflow?: PreferredWorkflow;
   outputDirectory?: string | null;
   defaultProviderId?: GenerationProviderId;
@@ -188,6 +193,7 @@ function sanitizeProviderDefaultsPatch(value: unknown): EditableProviderDefaults
 export function createDefaultEditableStudioSettings(): EditableStudioSettings {
   return {
     schemaVersion: EDITABLE_STUDIO_SETTINGS_VERSION,
+    language: 'en',
     preferredWorkflow: 'default',
     outputDirectory: null,
     outputDirectoryId: null,
@@ -229,6 +235,7 @@ export function sanitizeEditableStudioSettingsPatch(value: unknown): EditableStu
   if (!isRecord(value)) return {};
 
   const patch: EditableStudioSettingsPatch = {};
+  if (value.language === 'en' || value.language === 'es') patch.language = value.language;
   if (value.toolsPanelSide === 'left' || value.toolsPanelSide === 'right')
     patch.toolsPanelSide = value.toolsPanelSide;
   if (value.jobsPanelSide === 'left' || value.jobsPanelSide === 'right')
@@ -389,6 +396,7 @@ export function mergeEditableStudioSettingsPatch(
 
   return {
     schemaVersion: EDITABLE_STUDIO_SETTINGS_VERSION,
+    language: patch.language ?? current.language ?? 'en',
     preferredWorkflow: patch.preferredWorkflow ?? current.preferredWorkflow ?? 'default',
     outputDirectory:
       patch.outputDirectory !== undefined

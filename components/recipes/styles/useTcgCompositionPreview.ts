@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { TcgArtworkSource, TcgRenderInput } from './tcgCardRenderer';
 import { renderTcgComposition } from './tcgCardRenderer';
+import { t, useT } from '../../../lib/i18n';
 
 export interface TcgRenderHealth {
   input: TcgRenderInput;
@@ -47,12 +48,10 @@ export function getTcgCompositionReadiness({
     invalidMasks.length === 0 &&
     invalidArt.length === 0;
   const selectedReasons = [
-    ...outstandingMasks.map((key) => `Falta la máscara PNG ${key}.`),
-    ...invalidMasks.map((key) => `No se pudo leer la máscara ${key}.`),
-    ...invalidArt.map((index) => `No se pudo cargar el arte ${index + 1}.`),
-    ...(missingArtSlots > 0
-      ? [`Falta(n) ${missingArtSlots} archivo(s) de arte para este layout.`]
-      : []),
+    ...outstandingMasks.map((key) => t('tcg.reason.missingMask', { key })),
+    ...invalidMasks.map((key) => t('tcg.reason.invalidMask', { key })),
+    ...invalidArt.map((index) => t('tcg.reason.invalidArt', { index: index + 1 })),
+    ...(missingArtSlots > 0 ? [t('tcg.reason.missingArt', { count: missingArtSlots })] : []),
   ];
   return { selectedArtCount, canExport, selectedReasons };
 }
@@ -62,6 +61,8 @@ export function useTcgCompositionPreview(renderInput: TcgRenderInput) {
   const [renderError, setRenderError] = useState('');
   const [rendering, setRendering] = useState(false);
   const [renderHealth, setRenderHealth] = useState<TcgRenderHealth | null>(null);
+  // The empty art slot draws a translated label on the canvas.
+  const { language } = useT();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -76,7 +77,7 @@ export function useTcgCompositionPreview(renderInput: TcgRenderInput) {
           canvas.width = result.width;
           canvas.height = result.height;
           const context = canvas.getContext('2d');
-          if (!context) throw new Error('No se pudo dibujar la vista previa.');
+          if (!context) throw new Error(t('tcg.error.drawPreview'));
           context.clearRect(0, 0, result.width, result.height);
           context.drawImage(result.canvas, 0, 0);
           setRenderHealth({
@@ -89,9 +90,7 @@ export function useTcgCompositionPreview(renderInput: TcgRenderInput) {
         })
         .catch((error: unknown) => {
           if (cancelled) return;
-          setRenderError(
-            error instanceof Error ? error.message : 'No se pudo renderizar la composición.',
-          );
+          setRenderError(error instanceof Error ? error.message : t('tcg.error.renderComposition'));
           setRenderHealth(null);
           setRendering(false);
         });
@@ -100,7 +99,7 @@ export function useTcgCompositionPreview(renderInput: TcgRenderInput) {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [renderInput]);
+  }, [renderInput, language]);
 
   return { canvasRef, renderError, setRenderError, rendering, renderHealth };
 }

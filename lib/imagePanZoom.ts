@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useLatestRef } from '../hooks/useLatestRef';
 import { prefersReducedMotion } from './motionPreference';
 
 const LERP_FACTOR = 0.32;
@@ -10,8 +11,12 @@ function lerp(start: number, end: number, factor: number) {
   return start + (end - start) * factor;
 }
 
-export function clampImagePanZoomScale(scale: number, minScale = IMAGE_PAN_ZOOM_MIN_SCALE) {
-  return Math.min(Math.max(scale, minScale), IMAGE_PAN_ZOOM_MAX_SCALE);
+export function clampImagePanZoomScale(
+  scale: number,
+  minScale = IMAGE_PAN_ZOOM_MIN_SCALE,
+  maxScale = IMAGE_PAN_ZOOM_MAX_SCALE,
+) {
+  return Math.min(Math.max(scale, minScale), maxScale);
 }
 
 // Pixels per DOM_DELTA_PIXEL, DOM_DELTA_LINE and DOM_DELTA_PAGE unit.
@@ -49,12 +54,14 @@ export function nextImageWheelScale(
   event: Pick<WheelEvent, 'deltaY' | 'deltaMode' | 'ctrlKey'>,
   minScale = IMAGE_PAN_ZOOM_MIN_SCALE,
   sensitivity = wheelZoomSensitivity,
+  maxScale = IMAGE_PAN_ZOOM_MAX_SCALE,
 ) {
   const delta = normalizeImageWheelDelta(event);
   if (delta === 0) return scale;
   return clampImagePanZoomScale(
     scale * Math.exp(-delta * WHEEL_ZOOM_PER_PX * sensitivity),
     minScale,
+    maxScale,
   );
 }
 
@@ -73,8 +80,17 @@ export function imageFitScale(
   );
 }
 
-export function useImagePanZoom(enabled: boolean, imageKey?: string) {
+/**
+ * `actualScale` returns the scale that shows the content at 1:1. Without it that is 1, as for
+ * one image laid out at its natural size; a grid of fitted cells is above 1 for a large original.
+ */
+export function useImagePanZoom(
+  enabled: boolean,
+  imageKey?: string,
+  actualScale?: (viewport: HTMLDivElement) => number,
+) {
   const viewportRef = useRef<HTMLDivElement>(null);
+  const actualScaleRef = useLatestRef(actualScale);
   const contentRef = useRef<HTMLImageElement>(null);
   const target = useRef({ x: 0, y: 0, scale: IMAGE_PAN_ZOOM_ACTUAL_SCALE });
   const current = useRef({ x: 0, y: 0, scale: IMAGE_PAN_ZOOM_ACTUAL_SCALE });
@@ -84,6 +100,13 @@ export function useImagePanZoom(enabled: boolean, imageKey?: string) {
   const isDragging = useRef(false);
   const rafId = useRef<number | null>(null);
   const [scale, setScale] = useState(IMAGE_PAN_ZOOM_ACTUAL_SCALE);
+
+  // The variable lets several wrappers inside one viewport follow the same transform.
+  const paint = useCallback(({ x, y, scale: nextScale }: typeof current.current) => {
+    const transform = `translate(-50%, -50%) translate3d(${x}px, ${y}px, 0) scale(${nextScale})`;
+    if (contentRef.current) contentRef.current.style.transform = transform;
+    viewportRef.current?.style.setProperty('--pan-zoom-transform', transform);
+  }, []);
 
   const animate = useCallback(() => {
     rafId.current = null;
@@ -104,30 +127,39 @@ export function useImagePanZoom(enabled: boolean, imageKey?: string) {
       current.current = { ...target.current };
     }
 
-    if (contentRef.current) {
-      contentRef.current.style.transform = `translate(-50%, -50%) translate3d(${current.current.x}px, ${current.current.y}px, 0) scale(${current.current.scale})`;
-    }
+    paint(current.current);
     setScale(current.current.scale);
-  }, [enabled]);
+  }, [enabled, paint]);
 
   const startAnimation = useCallback(() => {
     if (rafId.current === null && enabled) rafId.current = requestAnimationFrame(animate);
   }, [animate, enabled]);
 
+  const readActualScale = useCallback(() => {
+    const viewport = viewportRef.current;
+    return (viewport && actualScaleRef.current?.(viewport)) || IMAGE_PAN_ZOOM_ACTUAL_SCALE;
+  }, [actualScaleRef]);
+
+  // 1:1 and the usual zoom range above it stay reachable when an original is fitted far down.
+  const scaleBounds = useCallback(() => {
+    const actual = readActualScale();
+    return [
+      Math.min(IMAGE_PAN_ZOOM_MIN_SCALE, fitScale.current * 0.2, actual * 0.2),
+      IMAGE_PAN_ZOOM_MAX_SCALE * Math.max(1, actual),
+    ] as const;
+  }, [readActualScale]);
+
   const setZoom = useCallback(
     (nextScale: number, point = { x: 0, y: 0 }) => {
       autoFit.current = false;
-      const clampedScale = clampImagePanZoomScale(
-        nextScale,
-        Math.min(IMAGE_PAN_ZOOM_MIN_SCALE, fitScale.current * 0.2),
-      );
+      const clampedScale = clampImagePanZoomScale(nextScale, ...scaleBounds());
       const ratio = clampedScale / target.current.scale;
       target.current.x = point.x - (point.x - target.current.x) * ratio;
       target.current.y = point.y - (point.y - target.current.y) * ratio;
       target.current.scale = clampedScale;
       startAnimation();
     },
-    [startAnimation],
+    [scaleBounds, startAnimation],
   );
 
   const reset = useCallback(() => {
@@ -159,15 +191,14 @@ export function useImagePanZoom(enabled: boolean, imageKey?: string) {
     } else fitScale.current = IMAGE_PAN_ZOOM_ACTUAL_SCALE;
     target.current = { x: 0, y: 0, scale: fitScale.current };
     current.current = { ...target.current };
-    if (contentRef.current)
-      contentRef.current.style.transform = `translate(-50%, -50%) translate3d(0px, 0px, 0) scale(${fitScale.current})`;
+    paint(current.current);
     if (viewportRef.current) viewportRef.current.style.cursor = '';
     setScale(fitScale.current);
-  }, []);
+  }, [paint]);
 
   const zoomIn = useCallback(() => setZoom(target.current.scale * 1.25), [setZoom]);
   const zoomOut = useCallback(() => setZoom(target.current.scale / 1.25), [setZoom]);
-  const actualSize = useCallback(() => setZoom(IMAGE_PAN_ZOOM_ACTUAL_SCALE), [setZoom]);
+  const actualSize = useCallback(() => setZoom(readActualScale()), [readActualScale, setZoom]);
 
   const handlePointerDown = useCallback(
     (event: React.PointerEvent) => {
@@ -241,24 +272,29 @@ export function useImagePanZoom(enabled: boolean, imageKey?: string) {
 
     const handleWheel = (event: WheelEvent) => {
       if (event.deltaY === 0) return;
+      // An overflowing scroll wrapper keeps the plain wheel for scrolling; Ctrl+wheel and
+      // trackpad pinch (which sets ctrlKey) still zoom.
+      const scroller = viewport.closest<HTMLElement>('[data-pan-zoom-scroll]');
+      if (!event.ctrlKey && scroller && scroller.scrollHeight > scroller.clientHeight) return;
       event.preventDefault();
-      const rect = viewport.getBoundingClientRect();
-      setZoom(
-        nextImageWheelScale(
-          target.current.scale,
-          event,
-          Math.min(IMAGE_PAN_ZOOM_MIN_SCALE, fitScale.current * 0.2),
-        ),
-        {
-          x: event.clientX - rect.left - rect.width / 2,
-          y: event.clientY - rect.top - rect.height / 2,
-        },
+      // In a compare grid the hovered item, caption included, zooms around the pointer in its
+      // own cell; one image uses the viewport.
+      const item = Array.from(viewport.children).find((child) =>
+        child.contains(event.target as Node),
       );
+      const rect = (
+        item?.querySelector('[data-pan-zoom-cell]') ?? viewport
+      ).getBoundingClientRect();
+      const [minScale, maxScale] = scaleBounds();
+      setZoom(nextImageWheelScale(target.current.scale, event, minScale, undefined, maxScale), {
+        x: event.clientX - rect.left - rect.width / 2,
+        y: event.clientY - rect.top - rect.height / 2,
+      });
     };
 
     viewport.addEventListener('wheel', handleWheel, { passive: false });
     return () => viewport.removeEventListener('wheel', handleWheel);
-  }, [enabled, setZoom]);
+  }, [enabled, scaleBounds, setZoom]);
 
   return {
     viewportRef,

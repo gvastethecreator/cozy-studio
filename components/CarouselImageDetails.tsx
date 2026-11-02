@@ -7,6 +7,7 @@ import { getCatalogCollectionSelection } from '../services/studio-api/catalog';
 import type { CatalogCollectionSelection } from '../packages/shared/src';
 import { ImageOrganizationPicker } from './ImageOrganizationPicker';
 import { formatBytes, formatDateTime } from '../lib/i18n';
+import { readAppliedStyles } from '../utils/catalogImageGenerationConfig';
 
 export function CarouselImageDetails({
   image,
@@ -49,18 +50,7 @@ export function CarouselImageDetails({
       cancelled = true;
     };
   }, [workspaceId, image.id, hidden, revision, availableCollections]);
-  const selectedStyles = image.config.recipeParams?.selectedStyles;
-  const styles = Array.isArray(selectedStyles)
-    ? selectedStyles.filter(
-        (style) =>
-          style &&
-          typeof style === 'object' &&
-          !Array.isArray(style) &&
-          style.enabled !== false &&
-          typeof style.presetName === 'string' &&
-          style.presetName.trim(),
-      )
-    : [];
+  const styles = readAppliedStyles(image.config);
   const metadata = [
     ['Dimensions', image.width && image.height ? `${image.width} × ${image.height}` : null],
     ['File size', image.fileSizeBytes == null ? null : formatBytes(image.fileSizeBytes)],
@@ -160,7 +150,7 @@ export function CarouselImageDetails({
           <div className="flex flex-wrap gap-1.5">
             {styles.map((style, index) => (
               <span
-                key={`${style.presetId ?? style.presetName}-${index}`}
+                key={`${style.presetName}-${index}`}
                 title={typeof style.packName === 'string' ? style.packName : undefined}
                 className="image-metadata-enter rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] px-2 py-1 text-xs text-[color:var(--wb-ink)]"
               >

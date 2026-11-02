@@ -10,6 +10,7 @@
   "include": [
     "scripts/core-assets-browser-smoke.ts",
     "scripts/verify-responsive-mobile.ts",
-    "scripts/verify-styles-browser-gate.ts"
+    "scripts/verify-styles-browser-gate.ts",
+    "scripts/vitest-browser-setup.ts"
   ]
 }

@@ -11,6 +11,7 @@
   "exclude": [
     "scripts/**/*.test.ts",
     "scripts/core-assets-browser-smoke.ts",
+    "scripts/vitest-browser-setup.ts",
     "scripts/verify-responsive-mobile.ts",
     "scripts/measure-style-workflow.ts",
     "scripts/verify-style-editing.ts",

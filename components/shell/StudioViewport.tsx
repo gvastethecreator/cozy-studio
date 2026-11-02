@@ -1,13 +1,13 @@
 import React, { Suspense, useCallback, useEffect } from 'react';
 
 import type { AppPageView } from '../../hooks/useHashRouter';
-import type { StudioPageController } from '../../lib/buildStudioPageController';
 import type { RecipeAliasId } from '../../lib/recipeAliases';
 import type { RecipeId } from '../../types';
 import { useWorkspaceState } from '../../contexts/GlobalContext';
 import { useGenerationChrome, useGenerationDraft } from '../../contexts/GenerationContext';
 import { ErrorBoundary } from '../ErrorBoundary';
 import type { RecipePageProps, RecipePageRuntimeProps } from '../RecipePage';
+import type { StudioGridSurfaceProps } from '../studio/StudioGridSurface';
 import { preloadRecipeComponent } from '../../lib/recipeRouteModules';
 import { LazySurfaceFallback } from '../ui/LazySurfaceFallback';
 import {
@@ -48,7 +48,7 @@ interface StudioViewportProps {
   activeRecipe: RecipeId | null;
   activeRecipeAliasId: RecipeAliasId | null;
   recipePageProps: RecipePageRuntimeProps;
-  studioPageController: StudioPageController;
+  studioGridProps: StudioGridSurfaceProps;
   onSelectRecipe: (recipeId: RecipeId, aliasId?: RecipeAliasId | null) => void;
 }
 
@@ -91,7 +91,7 @@ export const StudioViewport: React.FC<StudioViewportProps> = ({
   activeRecipe,
   activeRecipeAliasId,
   recipePageProps,
-  studioPageController,
+  studioGridProps,
   onSelectRecipe,
 }) => {
   const routeKey = resolveStudioViewportRouteKey(routeView, activeRecipe, activeRecipeAliasId);
@@ -146,7 +146,7 @@ export const StudioViewport: React.FC<StudioViewportProps> = ({
               activeRecipeAliasId={activeRecipeAliasId}
             />
           ) : routeView === 'studio' ? (
-            <StudioPage {...studioPageController.grid} />
+            <StudioPage {...studioGridProps} />
           ) : (
             <RecipesView onPreviewRecipe={handlePreviewRecipe} onSelectRecipe={onSelectRecipe} />
           )}

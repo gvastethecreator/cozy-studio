@@ -6,6 +6,8 @@ import type { HeaderToolbarProps } from '../components/HeaderToolbar';
 import type { StudioOverlayController } from '../components/AppOverlays';
 import type { RecipePageRuntimeProps } from '../components/RecipePage';
 import type { GenerationToolbarRuntimeArgs } from '../components/shell/StudioGenerationDock';
+import type { StudioGridSurfaceProps } from '../components/studio/StudioGridSurface';
+import type { StudioOperationsRailProps } from '../components/studio/StudioOperationsRail';
 import type { RecipeAliasId } from '../lib/recipeAliases';
 import type { RecipeId } from '../types';
 import { useRuntimeLogActions, useToastUi, useWorkspaceState } from '../contexts/GlobalContext';
@@ -43,11 +45,7 @@ import {
   resolveImageEditorRequiresMask,
 } from '../lib/grokImagineUiPolicy';
 import { runWorkspaceSwitchLifecycle } from '../lib/workspaceLifecycle';
-import {
-  buildStudioPageController,
-  buildStudioViewportController,
-  type StudioPageController,
-} from '../lib/buildStudioPageController';
+import { buildStudioGenerationPlaceholders } from '../lib/studioGenerationPlaceholders';
 import { materializeCatalogEntryImageWithConfig } from '../lib/studioCatalogImageAdapter';
 import { resolveStudioCarouselImage } from '../lib/studioCarouselImage';
 import type { LogEntry } from '../types';
@@ -83,7 +81,7 @@ export interface StudioShellController {
     activeRecipe: RecipeId | null;
     activeRecipeAliasId: RecipeAliasId | null;
     recipePageProps: RecipePageRuntimeProps;
-    studioPageController: StudioPageController;
+    studioGridProps: StudioGridSurfaceProps;
     onSelectRecipe: (recipeId: RecipeId, aliasId?: RecipeAliasId | null) => void;
   };
   generationDock: {
@@ -94,6 +92,7 @@ export interface StudioShellController {
     isDragging: boolean;
     toolbarArgs: GenerationToolbarRuntimeArgs;
   };
+  operationsRail: StudioOperationsRailProps;
   overlays: StudioOverlayController;
 }
 
@@ -705,100 +704,105 @@ export function useStudioShell(): StudioShellController {
     ],
   );
 
-  const studioPageController = useMemo(
-    () =>
-      buildStudioPageController({
-        debug: {
-          workspaces,
-          mergedLogs: studioRuntime.activity.mergedLogs,
-          catalogVisualGroupCount,
-        },
-        grid: {
-          isModalOpen: modal.isModalOpen,
-          allImages,
-          imagesWithConfig,
-          selectedImageIds,
-          selectedImages,
-          activeWorkspaceId,
-          openModal: handleOpenModal,
-          handleSelectionChange,
-          handleGenerate,
-          handleAddToContext: handleUseAsReference,
-          handleUseAsSource,
-          handleLoadRecipe,
-          handleDelete,
-          handleToggleFavorite,
-          isGenerating: pipeline.isGenerating,
-          transitioningImageId: modal.transitioningImageId,
-          activeModalImageId: modal.activeCarouselId,
-          handleSelectAll,
-          handleDeselectAll,
-          handleDeleteSelected,
-          handleClearWorkspace,
-          previewRatio: viewState.preview.ratio,
-          generationAspectRatio: config.aspectRatio,
-          isInteractingWithToolbar: ui.isInteractingWithToolbar,
-          libraryFilters,
-          onLibraryFiltersChange: setLibraryFilters,
-          onCreate: () => handleViewChange('recipes'),
-          catalogTotal: activeCatalog.total,
-          catalogHasMore: activeCatalog.hasMore,
-          isCatalogLoading: activeCatalog.isLoading,
-          catalogError: activeCatalog.error?.message ?? null,
-          loadMoreCatalog: () => activeCatalog.loadMore(),
-          refreshCatalog: () => void activeCatalog.refresh(),
-        },
-        operations: {
-          isQueueOpen: viewState.queue.isOpen,
-          setIsQueueOpen: viewState.queue.setIsOpen,
-          queueResults,
-          studioJobs: studioRuntime.activity.studioJobs,
-          selectedStudioJobId: activitySession.selection.selectedStudioJobId,
-          retryPersistentJob: activitySession.selection.retryJob,
-          cancelPersistentJob: activitySession.selection.cancelJob,
-          onInspectJob: activitySession.selection.inspectJob,
-        },
-      }),
-    [
-      historyCatalog,
-      historySelectedId,
-      selectHistoryImage,
+  const studioGridProps = useMemo<StudioGridSurfaceProps>(() => {
+    const placeholders = buildStudioGenerationPlaceholders({
+      studioJobs: studioRuntime.activity.studioJobs,
+      activeWorkspaceId,
+      fallbackAspectRatio: config.aspectRatio,
+    });
+    return {
       libraryFilters,
-      setLibraryFilters,
-      handleViewChange,
-      workspaces,
-      studioRuntime.activity.mergedLogs,
-      catalogVisualGroupCount,
-      modal.isModalOpen,
+      onLibraryFiltersChange: setLibraryFilters,
+      onCreate: () => handleViewChange('recipes'),
+      activeWorkspaceId,
       allImages,
       imagesWithConfig,
       selectedImageIds,
       selectedImages,
-      activeWorkspaceId,
-      handleOpenModal,
+      openModal: handleOpenModal,
       handleSelectionChange,
       handleGenerate,
-      handleUseAsReference,
+      handleAddToContext: handleUseAsReference,
       handleUseAsSource,
       handleLoadRecipe,
       handleDelete,
       handleToggleFavorite,
-      pipeline.isGenerating,
-      modal.transitioningImageId,
-      modal.activeCarouselId,
+      transitioningImageId: modal.transitioningImageId,
+      activeModalImageId: modal.activeCarouselId,
       handleSelectAll,
       handleDeselectAll,
       handleDeleteSelected,
       handleClearWorkspace,
-      viewState.preview.ratio,
-      config.aspectRatio,
-      ui.isInteractingWithToolbar,
-      activeCatalog.total,
-      activeCatalog.hasMore,
-      activeCatalog.isLoading,
-      activeCatalog.error,
-      activeCatalog.loadMore,
-      activeCatalog.refresh,
+      chrome: {
+        isModalOpen: modal.isModalOpen,
+        isInteractingWithToolbar: ui.isInteractingWithToolbar,
+        previewRatio: viewState.preview.ratio,
+        generationAspectRatio: config.aspectRatio,
+      },
+      generation: {
+        isGenerating: pipeline.isGenerating || placeholders.length > 0,
+        placeholders,
+      },
+      catalog: {
+        total: activeCatalog.total,
+        hasMore: activeCatalog.hasMore,
+        isLoading: activeCatalog.isLoading,
+        error: activeCatalog.error?.message ?? null,
+        loadMore: () => activeCatalog.loadMore(),
+        refresh: () => void activeCatalog.refresh(),
+      },
+    };
+  }, [
+    libraryFilters,
+    setLibraryFilters,
+    handleViewChange,
+    modal.isModalOpen,
+    allImages,
+    imagesWithConfig,
+    selectedImageIds,
+    selectedImages,
+    activeWorkspaceId,
+    handleOpenModal,
+    handleSelectionChange,
+    handleGenerate,
+    handleUseAsReference,
+    handleUseAsSource,
+    handleLoadRecipe,
+    handleDelete,
+    handleToggleFavorite,
+    pipeline.isGenerating,
+    modal.transitioningImageId,
+    modal.activeCarouselId,
+    handleSelectAll,
+    handleDeselectAll,
+    handleDeleteSelected,
+    handleClearWorkspace,
+    viewState.preview.ratio,
+    config.aspectRatio,
+    ui.isInteractingWithToolbar,
+    activeCatalog.total,
+    activeCatalog.hasMore,
+    activeCatalog.isLoading,
+    activeCatalog.error,
+    activeCatalog.loadMore,
+    activeCatalog.refresh,
+    studioRuntime.activity.studioJobs,
+  ]);
+
+  const operationsRail = useMemo<StudioOperationsRailProps>(
+    () => ({
+      isModalOpen: modal.isModalOpen,
+      isQueueOpen: viewState.queue.isOpen,
+      setIsQueueOpen: viewState.queue.setIsOpen,
+      queueResults,
+      studioJobs: studioRuntime.activity.studioJobs,
+      selectedStudioJobId: activitySession.selection.selectedStudioJobId,
+      retryPersistentJob: activitySession.selection.retryJob,
+      cancelPersistentJob: activitySession.selection.cancelJob,
+      onInspectJob: activitySession.selection.inspectJob,
+    }),
+    [
+      modal.isModalOpen,
       viewState.queue.isOpen,
       viewState.queue.setIsOpen,
       queueResults,
@@ -888,40 +892,6 @@ export function useStudioShell(): StudioShellController {
       viewState.overlays.settings.open,
       codexAvailableTransports,
       codexDefaultTransport,
-    ],
-  );
-
-  const viewportController = useMemo(
-    () =>
-      buildStudioViewportController({
-        navigation: {
-          routeView: route.view,
-          direction,
-          activeRecipe: recipe.activeRecipe,
-          activeRecipeAliasId: route.activeRecipeAliasId,
-          onSelectRecipe: handleRecipeSelection,
-        },
-        recipe: {
-          recipePageProps,
-          studioPageController,
-        },
-        dock: {
-          isModalOpen: modal.isModalOpen,
-          isDragging,
-          toolbarArgs,
-        },
-      }),
-    [
-      route.view,
-      direction,
-      recipe.activeRecipe,
-      route.activeRecipeAliasId,
-      handleRecipeSelection,
-      recipePageProps,
-      studioPageController,
-      modal.isModalOpen,
-      isDragging,
-      toolbarArgs,
     ],
   );
 
@@ -1042,11 +1012,24 @@ export function useStudioShell(): StudioShellController {
         isOpen: isSupportOpen,
         close: () => setSupportOpen(false),
       },
-      viewport: viewportController.viewport,
-      generationDock: {
-        ...viewportController.generationDock,
-        isUiChromeSuppressed,
+      viewport: {
+        routeView: route.view,
+        direction,
+        activeRecipe: recipe.activeRecipe,
+        activeRecipeAliasId: route.activeRecipeAliasId,
+        recipePageProps,
+        studioGridProps,
+        onSelectRecipe: handleRecipeSelection,
       },
+      generationDock: {
+        isModalOpen: modal.isModalOpen,
+        isUiChromeSuppressed,
+        currentView: route.view,
+        activeRecipe: recipe.activeRecipe,
+        isDragging,
+        toolbarArgs,
+      },
+      operationsRail,
       overlays: overlayController,
     }),
     [
@@ -1064,7 +1047,17 @@ export function useStudioShell(): StudioShellController {
       studioRuntime.status.diagnostics.providerUsage,
       studioSettings.data.settingsDomain.settings,
       isSupportOpen,
-      viewportController,
+      route.view,
+      direction,
+      recipe.activeRecipe,
+      route.activeRecipeAliasId,
+      recipePageProps,
+      studioGridProps,
+      handleRecipeSelection,
+      modal.isModalOpen,
+      isDragging,
+      toolbarArgs,
+      operationsRail,
       overlayController,
     ],
   );

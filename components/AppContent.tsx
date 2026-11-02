@@ -232,12 +232,12 @@ function AppWorkspace({ model }: { model: AppWorkbenchModel }) {
         history: isWorkspace ? shell.history : undefined,
         imageActions: {
           workspaceId: shell.headerToolbar.props.activeWorkspaceId,
-          onLoadConfig: shell.viewport.studioPageController.grid.handleLoadRecipe,
+          onLoadConfig: shell.viewport.studioGridProps.handleLoadRecipe,
           onRegenerate: (config) =>
-            shell.viewport.studioPageController.grid.handleGenerate(config.prompt, config, {
+            shell.viewport.studioGridProps.handleGenerate(config.prompt, config, {
               preventModal: true,
             }),
-          onDelete: shell.viewport.studioPageController.grid.handleDelete,
+          onDelete: shell.viewport.studioGridProps.handleDelete,
         },
         latestResultId: workflowImages.find(
           (image) => (image.config.recipeId ?? null) === (activeRecipe ?? null),
@@ -252,8 +252,8 @@ function AppWorkspace({ model }: { model: AppWorkbenchModel }) {
               history={shell.history}
               selectedId={shell.historySelection.id}
               onSelectId={shell.historySelection.setId}
-              onToggleFavorite={shell.viewport.studioPageController.grid.handleToggleFavorite}
-              onUseAsSource={shell.viewport.studioPageController.grid.handleUseAsSource}
+              onToggleFavorite={shell.viewport.studioGridProps.handleToggleFavorite}
+              onUseAsSource={shell.viewport.studioGridProps.handleUseAsSource}
             />
           </Suspense>
         ),
@@ -347,8 +347,8 @@ function AppWorkbench({ model }: { model: AppWorkbenchModel }) {
             hasGenerationDock={hasGenerationDock}
             GenerationDock={StudioGenerationDock}
             generationDockProps={shell.generationDock}
-            onToggleFavorite={shell.viewport.studioPageController.grid.handleToggleFavorite}
-            onUseAsSource={shell.viewport.studioPageController.grid.handleUseAsSource}
+            onToggleFavorite={shell.viewport.studioGridProps.handleToggleFavorite}
+            onUseAsSource={shell.viewport.studioGridProps.handleUseAsSource}
             images={stageImages}
             history={shell.history}
             selectedId={shell.historySelection.id}
@@ -372,10 +372,7 @@ function AppWorkbench({ model }: { model: AppWorkbenchModel }) {
           <StudioViewport {...shell.viewport} />
         </div>
       )}
-      <StudioOperationsRail
-        {...shell.viewport.studioPageController.operations}
-        hasGenerationDock={hasGenerationDock}
-      />
+      <StudioOperationsRail {...shell.operationsRail} hasGenerationDock={hasGenerationDock} />
       <div ref={setOverlayTarget} className="studio-recipe-overlay" />
     </div>
   );

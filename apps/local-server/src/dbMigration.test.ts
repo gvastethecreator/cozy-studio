@@ -37,6 +37,7 @@ describe('database migrations', () => {
       executionPolicyPreserved: true,
       atomicBatchRecovery: true,
       durableOutputGenerations: true,
+      preMigrationBackup: true,
     });
   });
 });

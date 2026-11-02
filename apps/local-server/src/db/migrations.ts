@@ -1,4 +1,6 @@
 import { Database } from 'bun:sqlite';
+import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
+import path from 'node:path';
 import type { GenerationTaskSpec } from '../../../../packages/shared/src';
 import { resolveJobWorkspaceId } from '../../../../packages/shared/src/workspaceContracts';
 import { getDb } from './connection';
@@ -653,6 +655,54 @@ function rebuildCodexThreadsWithoutRequiredProject(database: Database) {
 
 export const LATEST_DATABASE_SCHEMA_VERSION = DATABASE_MIGRATIONS.at(-1)?.version ?? 0;
 
+/** Folder beside the database file that holds the copies made before a migration. */
+const PRE_MIGRATION_BACKUP_DIR = path.join('state', 'pre-migration');
+const PRE_MIGRATION_BACKUP_LIMIT = 3;
+
+/**
+ * Copies an existing file database before pending migrations change it. VACUUM INTO writes one
+ * consistent file that includes committed WAL pages. In-memory and new databases are skipped.
+ * Studio never restores a copy by itself: a restore replaces the Library and needs the user.
+ */
+function writePreMigrationBackup(database: Database, fromVersion: number) {
+  const databasePath = database.filename;
+  if (!databasePath || databasePath === ':memory:') return;
+  const hasData = database
+    .query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name <> 'schema_migrations'")
+    .get();
+  if (!hasData) return;
+
+  const backupDir = path.join(path.dirname(databasePath), PRE_MIGRATION_BACKUP_DIR);
+  const baseName = path.parse(databasePath).name;
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  // Timestamp first, so name order is time order for the retention below.
+  const backupPath = path.join(backupDir, `${baseName}-${stamp}-schema-v${fromVersion}.sqlite`);
+  try {
+    mkdirSync(backupDir, { recursive: true });
+    database.query('VACUUM INTO ?').run(backupPath);
+  } catch (error) {
+    if (existsSync(backupPath)) rmSync(backupPath, { force: true });
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Studio did not update the database from schema v${fromVersion} to v${LATEST_DATABASE_SCHEMA_VERSION}: ` +
+        `the backup copy ${backupPath} failed (${reason}). The database is unchanged. ` +
+        'Free disk space or fix access to that folder, then start Studio again.',
+      { cause: error },
+    );
+  }
+
+  const backups = readdirSync(backupDir)
+    .filter((name) => name.startsWith(`${baseName}-`) && /-schema-v\d+\.sqlite$/.test(name))
+    .sort();
+  for (const name of backups.slice(0, -PRE_MIGRATION_BACKUP_LIMIT)) {
+    try {
+      rmSync(path.join(backupDir, name), { force: true });
+    } catch {
+      // A locked old copy only uses disk space; the next migrating start removes it.
+    }
+  }
+}
+
 export function migrateDatabase(database: Database) {
   database.run(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -669,6 +719,9 @@ export function migrateDatabase(database: Database) {
       }>
     ).map((row) => row.version),
   );
+  if (DATABASE_MIGRATIONS.some((migration) => !appliedVersions.has(migration.version))) {
+    writePreMigrationBackup(database, Math.max(0, ...appliedVersions));
+  }
   const requiresForeignKeySafeRebuild = !appliedVersions.has(5);
   const foreignKeysWereEnabled =
     (

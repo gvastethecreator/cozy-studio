@@ -1,5 +1,5 @@
 import { Database } from 'bun:sqlite';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
@@ -255,6 +255,81 @@ function inspectOutputGenerations() {
     return getOutputGeneration('workflow:animation-sequence', sequenceDb) === 12;
   } finally {
     sequenceDb.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+function inspectPreMigrationBackup() {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'studio-pre-migration-'));
+  const backupDir = path.join(root, 'state', 'pre-migration');
+  const latest = LATEST_DATABASE_SCHEMA_VERSION;
+  const latestApplied = (db: Database) =>
+    (db.query('SELECT MAX(version) AS version FROM schema_migrations').get() as { version: number })
+      .version;
+  const listBackups = () => readdirSync(backupDir).sort();
+  const db = new Database(path.join(root, 'studio.sqlite'));
+  let failingDb: Database | null = null;
+  try {
+    db.run('PRAGMA journal_mode = WAL');
+    migrateDatabase(db);
+    // A new database has nothing to protect.
+    if (existsSync(backupDir)) return false;
+
+    createJob({ id: 'backup-sentinel', kind: 'image_generate', prompt: 'owl' }, db);
+    mkdirSync(backupDir, { recursive: true });
+    for (const day of ['01', '02', '03']) {
+      writeFileSync(
+        path.join(backupDir, `studio-2026-01-${day}T00-00-00-000Z-schema-v1.sqlite`),
+        '',
+      );
+    }
+    writeFileSync(path.join(backupDir, 'notes.txt'), 'kept');
+    db.query('DELETE FROM schema_migrations WHERE version = ?').run(latest);
+    migrateDatabase(db);
+    const backups = listBackups();
+    const newest = backups.filter((name) => name !== 'notes.txt').at(-1) ?? '';
+    // The sentinel job is still in the WAL; VACUUM INTO must include it.
+    const copy = new Database(path.join(backupDir, newest), { readonly: true });
+    const copyVersion = latestApplied(copy);
+    const copyHasSentinel = Boolean(getJob('backup-sentinel', copy));
+    copy.close();
+    migrateDatabase(db);
+
+    // A failed backup stops the migration and leaves the database unchanged.
+    const failingRoot = path.join(root, 'failing');
+    mkdirSync(failingRoot);
+    failingDb = new Database(path.join(failingRoot, 'studio.sqlite'));
+    migrateDatabase(failingDb);
+    writeFileSync(path.join(failingRoot, 'state'), 'not a folder');
+    failingDb.query('DELETE FROM schema_migrations WHERE version = ?').run(latest);
+    let failure = '';
+    try {
+      migrateDatabase(failingDb);
+    } catch (error) {
+      failure = error instanceof Error ? error.message : String(error);
+    }
+
+    return (
+      /^studio-\d{4}-\d{2}-\d{2}T[\d-]+Z-schema-v\d+\.sqlite$/.test(newest) &&
+      newest.endsWith(`-schema-v${latest - 1}.sqlite`) &&
+      copyVersion === latest - 1 &&
+      copyHasSentinel &&
+      latestApplied(db) === latest &&
+      // Retention keeps the newest 3 copies, ignores other files, and an up-to-date start adds none.
+      JSON.stringify(listBackups()) ===
+        JSON.stringify([
+          'notes.txt',
+          'studio-2026-01-02T00-00-00-000Z-schema-v1.sqlite',
+          'studio-2026-01-03T00-00-00-000Z-schema-v1.sqlite',
+          newest,
+        ]) &&
+      failure.includes(`Studio did not update the database from schema v${latest - 1}`) &&
+      failure.includes('The database is unchanged.') &&
+      latestApplied(failingDb) === latest - 1
+    );
+  } finally {
+    db.close();
+    failingDb?.close();
     rmSync(root, { recursive: true, force: true });
   }
 }
@@ -739,6 +814,7 @@ try {
       completeJobHistory: inspectJobHistory(),
       atomicBatchRecovery: await inspectJobBatches(),
       durableOutputGenerations: inspectOutputGenerations(),
+      preMigrationBackup: inspectPreMigrationBackup(),
       executionPolicyPreserved:
         getJob('job-workspace-only', database)?.execution?.providerOptions?.codex?.image?.size ===
           '1536x864' &&

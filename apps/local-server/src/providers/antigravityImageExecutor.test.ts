@@ -275,5 +275,6 @@ describe('Antigravity image executor', () => {
     ).rejects.toMatchObject({ name: 'AbortError' });
     setTimeout(() => controller.abort(), 25);
     await cancelled;
-  });
+    // Each Windows termination runs taskkill.exe, which costs 0.2-0.6 s idle and seconds under load.
+  }, 20_000);
 });

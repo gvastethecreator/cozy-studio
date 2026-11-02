@@ -84,11 +84,7 @@ function runAsyncProcess(command: string, args: string[]): Promise<SpawnResultLi
       resolve(result);
     };
     const timeout = setTimeout(() => {
-      try {
-        terminateOwnedProcessTree(child);
-      } catch {
-        // The probe may have exited between the deadline and termination.
-      }
+      void terminateOwnedProcessTree(child);
       finish({ status: null, stdout, stderr, error: new Error('Codex probe timed out') });
     }, PROBE_TIMEOUT_MS);
 

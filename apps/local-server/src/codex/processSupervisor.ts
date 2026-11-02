@@ -153,11 +153,7 @@ export async function stopAppServer() {
   appServerProcess = null;
   diagnostics.pid = null;
 
-  try {
-    terminateOwnedProcessTree(currentProcess);
-  } catch {
-    // Ignore kill failures for already-terminated processes.
-  }
+  void terminateOwnedProcessTree(currentProcess);
 
   try {
     await currentProcess.exited;

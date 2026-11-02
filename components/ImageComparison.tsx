@@ -143,7 +143,9 @@ export function ImageComparison({
 }) {
   const dialog = useDialogFocus(true, onClose);
   const [single, setSingle] = useState(false);
-  const [shown, setShown] = useState(0);
+  const [shownIndex, setShown] = useState(0);
+  // Images can leave while the dialog is open; keep the shown index inside the list.
+  const shown = Math.min(shownIndex, images.length - 1);
   const [pickId, setPickId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [details, setDetails] = useState<Record<string, CatalogImage>>({});
@@ -260,7 +262,7 @@ export function ImageComparison({
           {single
             ? 'Switch images to compare them at the same zoom and position.'
             : 'All images share one zoom and position.'}{' '}
-          Scroll to zoom; drag to pan.
+          Scroll to zoom (Ctrl+scroll when the grid scrolls); drag to pan.
         </p>
         {same.length > 0 && (
           <p className="line-clamp-2 text-xs" title={sameText}>
@@ -268,7 +270,7 @@ export function ImageComparison({
           </p>
         )}
         {/* Rows never shrink below a usable cell and its caption; this wrapper scrolls instead. */}
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div data-pan-zoom-scroll className="min-h-0 flex-1 overflow-y-auto">
           <div
             ref={zoom.viewportRef}
             {...zoom.viewportProps}

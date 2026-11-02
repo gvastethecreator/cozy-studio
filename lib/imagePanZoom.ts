@@ -272,6 +272,10 @@ export function useImagePanZoom(
 
     const handleWheel = (event: WheelEvent) => {
       if (event.deltaY === 0) return;
+      // An overflowing scroll wrapper keeps the plain wheel for scrolling; Ctrl+wheel and
+      // trackpad pinch (which sets ctrlKey) still zoom.
+      const scroller = viewport.closest<HTMLElement>('[data-pan-zoom-scroll]');
+      if (!event.ctrlKey && scroller && scroller.scrollHeight > scroller.clientHeight) return;
       event.preventDefault();
       // In a compare grid the hovered item, caption included, zooms around the pointer in its
       // own cell; one image uses the viewport.

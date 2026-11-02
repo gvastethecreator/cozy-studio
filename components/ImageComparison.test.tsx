@@ -28,20 +28,21 @@ it('compares originals in a grid at one zoom and position, picks a favorite and 
   };
   const close = vi.fn();
   const favorite = vi.fn();
-  render(
+  const compared = [
+    first,
+    {
+      ...first,
+      id: 'b',
+      src: '/b-thumb.png',
+      sourceUrl: '/b.png',
+      width: 2048,
+      isFavorite: true,
+    },
+    { ...first, id: 'c', src: '/c.png' },
+  ];
+  const { rerender } = render(
     <ImageComparison
-      images={[
-        first,
-        {
-          ...first,
-          id: 'b',
-          src: '/b-thumb.png',
-          sourceUrl: '/b.png',
-          width: 2048,
-          isFavorite: true,
-        },
-        { ...first, id: 'c', src: '/c.png' },
-      ]}
+      images={compared}
       workspaceId="ws"
       onToggleFavorite={favorite}
       onClose={close}
@@ -104,6 +105,21 @@ it('compares originals in a grid at one zoom and position, picks a favorite and 
   expect(cells[0].hidden).toBe(true);
   expect(cells[1].hidden).toBe(false);
   expect(transform()).toBe(zoomed);
+  // When the shown image leaves while the dialog is open, the last remaining image shows.
+  fireEvent.click(screen.getByRole('button', { name: 'Show image 3' }));
+  rerender(
+    <ImageComparison
+      images={compared.slice(0, 2)}
+      workspaceId="ws"
+      onToggleFavorite={favorite}
+      onClose={close}
+    />,
+  );
+  const remaining = screen.getAllByRole('figure', { hidden: true });
+  expect(remaining.map((cell) => cell.hidden)).toEqual([true, false]);
+  expect(screen.getByRole('button', { name: 'Show image 2' }).getAttribute('aria-pressed')).toBe(
+    'true',
+  );
 
   fireEvent(screen.getByRole('dialog'), new Event('cancel', { cancelable: true }));
   expect(close).toHaveBeenCalledOnce();

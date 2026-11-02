@@ -710,7 +710,11 @@ function writePreMigrationBackup(database: Database, fromVersion: number) {
     mkdirSync(backupDir, { recursive: true });
     database.query('VACUUM INTO ?').run(backupPath);
   } catch (error) {
-    if (existsSync(backupPath)) rmSync(backupPath, { force: true });
+    try {
+      if (existsSync(backupPath)) rmSync(backupPath, { force: true });
+    } catch {
+      // A locked partial copy must not hide the backup error below.
+    }
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(
       `Studio did not update the database from schema v${fromVersion} to v${LATEST_DATABASE_SCHEMA_VERSION}: ` +

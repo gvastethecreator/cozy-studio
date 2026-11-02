@@ -167,6 +167,11 @@ export const en = {
   'onboarding.stylePacks.reload': 'Reload Studio',
   'onboarding.stylePacks.get': 'Get style packs',
   'onboarding.stylePacks.open': 'Open style packs',
+  'onboarding.askAgent': 'Ask your agent',
+  'onboarding.askAgent.done': 'Prompt copied',
+  'onboarding.askAgent.copied':
+    'Paste it into Claude Code, Codex or any coding agent opened in the Cozy Studio folder.',
+  'onboarding.askAgent.failed': 'Could not copy. Open Check setup to copy the prompt by hand.',
   'stylePacks.notice.title': 'No style packs yet',
   'stylePacks.notice.titleInstalling': 'Installing Essentials',
   'stylePacks.notice.titleInstalled': 'Essentials is installed',

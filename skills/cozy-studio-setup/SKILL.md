@@ -26,7 +26,7 @@ A stored Codex setting alone does not request the Codex app-server route.
 
 ## Onboarding loop
 
-Copy prompt and Ask Codex on the welcome surface use this skill as the Setup Prompt
+Ask your agent and Copy prompt on the welcome surface copy this skill as the Setup Prompt
 (`COZY_STUDIO_SETUP_SKILL_PATH` in `lib/onboardingSetupPrompt.ts`). Keep that
 ownership. Do not move the prompt body into the renderer.
 
@@ -45,7 +45,8 @@ The product loop is detect, consent, mutate, stream, re-validate. One primary CT
    any existing session unless its shutdown is authorized.
 6. Ready: Open Studio.
 
-Ask Codex is an extra path when Codex CLI exists. Grok Imagine is an optional provider
+Ask your agent copies the Setup Prompt for any coding agent; it does not need Codex CLI.
+`bun run studio:onboard --ask-codex` still opens Codex with it. Grok Imagine is an optional provider
 row, never a Studio installer.
 
 Default Studio Library is `Library` inside the private Cozy Studio app-data folder

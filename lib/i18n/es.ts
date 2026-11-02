@@ -173,6 +173,11 @@ export const es: Dictionary = {
   'onboarding.stylePacks.reload': 'Recargar Studio',
   'onboarding.stylePacks.get': 'Conseguir paquetes',
   'onboarding.stylePacks.open': 'Abrir paquetes',
+  'onboarding.askAgent': 'Pregunta a tu agente',
+  'onboarding.askAgent.done': 'Prompt copiado',
+  'onboarding.askAgent.copied':
+    'Pégalo en Claude Code, Codex o cualquier agente de código abierto en la carpeta de Cozy Studio.',
+  'onboarding.askAgent.failed': 'No se pudo copiar. Abre Check setup para copiar el prompt a mano.',
   'stylePacks.notice.title': 'Aún no hay paquetes de estilos',
   'stylePacks.notice.titleInstalling': 'Instalando Essentials',
   'stylePacks.notice.titleInstalled': 'Essentials está instalado',

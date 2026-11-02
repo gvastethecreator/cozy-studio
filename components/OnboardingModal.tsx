@@ -25,7 +25,6 @@ import {
   COZY_STUDIO_SETUP_SKILL_PATH,
 } from '../lib/onboardingSetupPrompt';
 import {
-  ONBOARDING_ASK_CODEX_LABEL,
   type HealthResponse,
   type LocalCodexSessionResponse,
   type OnboardingCheck,
@@ -44,7 +43,6 @@ import {
   inAppSetupCloudProvider,
   resolveInAppSetupDraftPath,
 } from '../lib/onboardingInAppSetup';
-import { shouldShowAskCodex } from '../lib/onboardingHostActions';
 import {
   grokRowNeedsInstall,
   grokRowNeedsLogin,
@@ -57,7 +55,7 @@ import {
 } from '../services/studio-api/settings';
 import { listInstalledExtensions } from '../services/studio-api/extensions';
 import { cancelSubscriptionAuth, startSubscriptionAuth } from '../services/studio-api/auth';
-import { runOnboardingHostAction, runOnboardingSetup } from '../services/studio-api/runtime';
+import { runOnboardingSetup } from '../services/studio-api/runtime';
 import { createStudioEventStream } from '../services/studioEventSource';
 import {
   appendOnboardingLogLine,
@@ -601,10 +599,11 @@ function SetupPromptCard({ prompt }: { prompt: string }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold tracking-normal text-[color:var(--wb-ink)] ">
-            Codex setup handoff
+            Setup prompt for your agent
           </p>
           <p className="mt-2 text-sm leading-6 text-[color:var(--wb-muted)] xl:mt-1  ">
-            Prepared prompt for the repo-local setup skill.
+            Paste it into any coding agent opened in this folder. It runs the repo-local setup
+            skill.
           </p>
         </div>
         <button
@@ -938,8 +937,6 @@ function useOnboardingSetup({
   const [confirmCloudSync, setConfirmCloudSync] = React.useState(false);
   const [setupBusy, setSetupBusy] = React.useState(false);
   const [setupError, setSetupError] = React.useState<string | null>(null);
-  const [hostBusy, setHostBusy] = React.useState(false);
-  const [hostError, setHostError] = React.useState<string | null>(null);
   const [logLines, setLogLines] = React.useState<OnboardingLogLine[]>([]);
   const [lastProbePath, setLastProbePath] = React.useState<string | null>(null);
   const setupPrompt = React.useMemo(
@@ -1005,33 +1002,6 @@ function useOnboardingSetup({
     }
   }, [confirmCloudSync, consent, libraryPathDraft, onRefresh]);
 
-  const runHostAction = React.useCallback(
-    async (action: 'codex_login' | 'ask_codex' | 'grok_login') => {
-      setHostBusy(true);
-      setHostError(null);
-      try {
-        const result = await runOnboardingHostAction({
-          consent: true,
-          action,
-          prompt: action === 'ask_codex' ? setupPrompt : null,
-        });
-        if (!result.ok) {
-          setHostError(result.error ?? `Run this in the repo root: ${result.command}`);
-        }
-        onRefresh();
-      } catch (caught) {
-        setHostError(
-          caught instanceof StudioApiError || caught instanceof Error
-            ? caught.message
-            : 'Could not open a visible terminal.',
-        );
-      } finally {
-        setHostBusy(false);
-      }
-    },
-    [onRefresh, setupPrompt],
-  );
-
   return {
     libraryPathDraft,
     setLibraryPathDraft,
@@ -1041,12 +1011,9 @@ function useOnboardingSetup({
     setConfirmCloudSync,
     setupBusy,
     setupError,
-    hostBusy,
-    hostError,
     logLines,
     setupPrompt,
     runSetup,
-    runHostAction,
   };
 }
 
@@ -1247,12 +1214,9 @@ function OnboardingActions({
   isReady,
   handlePrimaryCta,
   onClose,
-  showAskCodex,
-  runHostAction,
-  hostBusy,
+  setupPrompt,
   showLegacyStartAppServer,
   onStartAppServer,
-  hostError,
 }: {
   primaryAction: ReturnType<typeof resolveOnboardingPrimaryAction> | null;
   isStartingAppServer: boolean;
@@ -1261,13 +1225,21 @@ function OnboardingActions({
   isReady: boolean;
   handlePrimaryCta: () => void;
   onClose: () => void;
-  showAskCodex: boolean;
-  runHostAction: ReturnType<typeof useOnboardingSetup>['runHostAction'];
-  hostBusy: boolean;
+  setupPrompt: string;
   showLegacyStartAppServer: boolean;
   onStartAppServer: () => void;
-  hostError: string | null;
 }) {
+  const { t } = useT();
+  // Any coding agent (Claude Code, Codex, Cursor…) can run the setup skill from this prompt.
+  const [promptCopy, setPromptCopy] = React.useState<'idle' | 'copied' | 'failed'>('idle');
+  const askAgent = async () => {
+    try {
+      await navigator.clipboard.writeText(setupPrompt);
+      setPromptCopy('copied');
+    } catch {
+      setPromptCopy('failed');
+    }
+  };
   return (
     <footer className="onboarding-footer shrink-0 border-t border-[color:var(--wb-line)] px-5 py-4 sm:px-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1289,17 +1261,20 @@ function OnboardingActions({
               Explore first
             </button>
           )}
-          {showAskCodex && !isReady ? (
+          {!isReady && (
             <button
               type="button"
-              onClick={() => void runHostAction('ask_codex')}
-              disabled={hostBusy}
-              className="inline-flex items-center justify-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-5 py-3 text-sm font-semibold text-[color:var(--wb-ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)] disabled:cursor-not-allowed disabled:opacity-60 xl:px-4 xl:py-2.5"
+              onClick={() => void askAgent()}
+              className="studio-ghost-control onboarding-start"
             >
-              <ProviderBrandMark providerId="codex" size="xs" />
-              {hostBusy ? 'Opening terminal' : ONBOARDING_ASK_CODEX_LABEL}
+              {promptCopy === 'copied' ? (
+                <ClipboardCheck width={16} height={16} aria-hidden="true" />
+              ) : (
+                <Clipboard width={16} height={16} aria-hidden="true" />
+              )}
+              {promptCopy === 'copied' ? t('onboarding.askAgent.done') : t('onboarding.askAgent')}
             </button>
-          ) : null}
+          )}
           {showLegacyStartAppServer ? (
             <button
               type="button"
@@ -1312,15 +1287,20 @@ function OnboardingActions({
             </button>
           ) : null}
         </div>
-        {hostError ? (
-          <p className="rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-500/8 px-3 py-2 text-sm leading-6 text-[color:var(--wb-danger)]   ">
-            {hostError}
-          </p>
-        ) : (
+        {promptCopy === 'idle' ? (
           <div className="hidden items-center gap-2 text-sm text-[color:var(--wb-muted)] md:flex">
             <Folder width={15} height={15} />
             Files stay on this device.
           </div>
+        ) : (
+          <p
+            role="status"
+            className={`max-w-sm text-sm text-balance ${promptCopy === 'failed' ? 'text-[color:var(--wb-danger)]' : 'text-[color:var(--wb-muted)]'}`}
+          >
+            {promptCopy === 'copied'
+              ? t('onboarding.askAgent.copied')
+              : t('onboarding.askAgent.failed')}
+          </p>
         )}
       </div>
     </footer>
@@ -1431,16 +1411,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = (props) => {
     onOpenStylePacks,
   } = props;
   const setup = useOnboardingSetup(props);
-  const {
-    libraryPathDraft,
-    consent,
-    confirmCloudSync,
-    setupBusy,
-    hostBusy,
-    hostError,
-    runSetup,
-    runHostAction,
-  } = setup;
+  const { libraryPathDraft, consent, confirmCloudSync, setupBusy, runSetup } = setup;
   const isChecking = status === 'checking';
   const isReady = status === 'ready';
   const isStartingAppServer = status === 'starting';
@@ -1460,7 +1431,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = (props) => {
     libraryPath: libraryPathDraft,
     confirmCloudSync,
   });
-  const showAskCodex = shouldShowAskCodex(probe?.facts);
 
   const runtimeLabel = isDesktopRuntime ? 'Desktop runtime' : 'Web runtime';
   const headline = isReady ? 'Ready for your next idea.' : 'Make yourself at home.';
@@ -1628,12 +1598,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = (props) => {
               isReady={isReady}
               handlePrimaryCta={handlePrimaryCta}
               onClose={onClose}
-              showAskCodex={showAskCodex}
-              runHostAction={runHostAction}
-              hostBusy={hostBusy}
+              setupPrompt={setup.setupPrompt}
               showLegacyStartAppServer={showLegacyStartAppServer}
               onStartAppServer={onStartAppServer}
-              hostError={hostError}
             />
           </MotionDiv>
         </dialog>

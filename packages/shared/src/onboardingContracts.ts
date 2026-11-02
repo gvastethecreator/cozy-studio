@@ -306,8 +306,6 @@ export interface OnboardingSetupSuccessResponse extends OnboardingSetupResult {
 
 export type OnboardingHostActionId = 'codex_login' | 'ask_codex' | 'grok_login';
 
-export const ONBOARDING_ASK_CODEX_LABEL = 'Ask Codex';
-
 export interface OnboardingHostActionRequest {
   consent: boolean;
   action: OnboardingHostActionId | null;

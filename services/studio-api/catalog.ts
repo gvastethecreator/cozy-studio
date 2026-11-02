@@ -1,17 +1,18 @@
-import type {
-  CatalogBatchCommandResult,
-  CatalogCollection,
-  CatalogCollectionPatch,
-  CatalogCollectionSelection,
-  CatalogTagChanges,
-  CatalogTag,
-  CatalogTagPatch,
-  CatalogCommandFilter,
-  CatalogImage,
-  CatalogPage,
-  CatalogSortOption,
-  CatalogWorkspaceSummary,
-  StudioLibrary,
+import {
+  CATALOG_PURGE_CONFIRMATION,
+  type CatalogBatchCommandResult,
+  type CatalogCollection,
+  type CatalogCollectionPatch,
+  type CatalogCollectionSelection,
+  type CatalogTagChanges,
+  type CatalogTag,
+  type CatalogTagPatch,
+  type CatalogCommandFilter,
+  type CatalogImage,
+  type CatalogPage,
+  type CatalogSortOption,
+  type CatalogWorkspaceSummary,
+  type StudioLibrary,
 } from '../../packages/shared/src';
 import { request } from './http';
 
@@ -88,12 +89,6 @@ export async function deleteCatalogImage(imageId: string) {
 export async function restoreCatalogImage(imageId: string) {
   return request<CatalogImage>(`/api/catalog/${encodeURIComponent(imageId)}/restore`, {
     method: 'POST',
-  });
-}
-
-export async function purgeCatalogImage(imageId: string) {
-  return request<CatalogImage>(`/api/catalog/${encodeURIComponent(imageId)}/permanent`, {
-    method: 'DELETE',
   });
 }
 
@@ -181,6 +176,6 @@ export async function deleteCatalogCollection(collectionId: string) {
 export async function purgeCatalogByFilter(filter: CatalogCommandFilter) {
   return request<CatalogBatchCommandResult>('/api/catalog/commands/purge', {
     method: 'POST',
-    body: JSON.stringify(filter),
+    body: JSON.stringify({ ...filter, confirm: CATALOG_PURGE_CONFIRMATION }),
   });
 }

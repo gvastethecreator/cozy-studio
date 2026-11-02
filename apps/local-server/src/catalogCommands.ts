@@ -26,11 +26,10 @@ export interface CreateCatalogCommandsDependencies {
 
 function resultFor(
   image: CatalogImage | null,
-  eventType: 'catalog.updated' | 'catalog.deleted',
   publishEvent: CreateCatalogCommandsDependencies['publishEvent'],
 ): CatalogCommandResult {
   if (!image) return { ok: false, reason: 'not_found' };
-  publishEvent(eventType, image);
+  publishEvent('catalog.updated', image);
   return { ok: true, image };
 }
 
@@ -112,16 +111,13 @@ export function createCatalogCommands({
 
   return {
     update(id: string, patch: CatalogUpdatePatch) {
-      return resultFor(updateCatalogImage(id, patch), 'catalog.updated', publishEvent);
+      return resultFor(updateCatalogImage(id, patch), publishEvent);
     },
     softDelete(id: string) {
-      return resultFor(softDeleteCatalogImage(id), 'catalog.updated', publishEvent);
+      return resultFor(softDeleteCatalogImage(id), publishEvent);
     },
     restore(id: string) {
-      return resultFor(restoreCatalogImage(id), 'catalog.updated', publishEvent);
-    },
-    purge(id: string) {
-      return resultFor(purgeCatalogImage(id), 'catalog.deleted', publishEvent);
+      return resultFor(restoreCatalogImage(id), publishEvent);
     },
     archiveByFilter(filters: CatalogCommandFilter) {
       if (!hasScopeFilter(filters)) {
@@ -149,7 +145,7 @@ export function createCatalogCommands({
     purgeByFilter(filters: CatalogCommandFilter) {
       return runBatchCommand({
         action: 'purge',
-        filters: { ...filters, isDeleted: filters.isDeleted ?? true },
+        filters: { ...filters, isDeleted: true },
         run: purgeCatalogImage,
       });
     },

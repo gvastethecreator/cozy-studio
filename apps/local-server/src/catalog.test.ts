@@ -6,7 +6,7 @@ import type { Database } from 'bun:sqlite';
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildCatalogWorkspaceClause } from './catalogWorkspaceClause';
-import { queryCatalog, updateCatalogImage } from './catalog';
+import { purgeCatalogImage, queryCatalog, updateCatalogImage } from './catalog';
 import {
   applyCatalogTagChanges,
   formatCatalogSearchTag,
@@ -124,6 +124,11 @@ describe('buildCatalogWorkspaceClause', () => {
           database,
         ).images.map((image) => image.id),
       ).toEqual(['old']);
+      expect(purgeCatalogImage('new')).toBeNull();
+      expect(purgeCatalogImage('deleted')?.id).toBe('deleted');
+      expect(
+        sqlite.prepare("SELECT id FROM catalog_images WHERE id IN ('new', 'deleted')").all(),
+      ).toEqual([{ id: 'new' }]);
     } finally {
       testDb.current = undefined;
       sqlite.close();

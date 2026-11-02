@@ -1,14 +1,15 @@
-import type {
-  CodexRuntimeDoctorReport,
-  HealthResponse,
-  OnboardingHostActionRequest,
-  OnboardingHostActionResult,
-  OnboardingSetupRequest,
-  OnboardingSetupSuccessResponse,
-  StudioReadinessEnvelope,
-  StudioReadinessRefreshReason,
-  StudioResetResponse,
-  StudioRuntimeSnapshotResponse,
+import {
+  STUDIO_RESET_CONFIRMATION,
+  type CodexRuntimeDoctorReport,
+  type HealthResponse,
+  type OnboardingHostActionRequest,
+  type OnboardingHostActionResult,
+  type OnboardingSetupRequest,
+  type OnboardingSetupSuccessResponse,
+  type StudioReadinessEnvelope,
+  type StudioReadinessRefreshReason,
+  type StudioResetResponse,
+  type StudioRuntimeSnapshotResponse,
 } from '../../packages/shared/src';
 import { request } from './http';
 
@@ -122,5 +123,8 @@ export async function startStudioAppServer() {
 }
 
 export async function resetStudioData() {
-  return request<StudioResetResponse>('/api/studio/reset', { method: 'POST' });
+  return request<StudioResetResponse>('/api/studio/reset', {
+    method: 'POST',
+    body: JSON.stringify({ confirm: STUDIO_RESET_CONFIRMATION }),
+  });
 }

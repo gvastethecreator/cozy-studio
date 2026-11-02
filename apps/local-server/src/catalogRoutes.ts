@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import {
   applyCatalogTagChanges,
+  CATALOG_PURGE_CONFIRMATION,
   CATALOG_SORT_OPTIONS,
   validateCatalogCollectionImageIds,
   validateCatalogCollectionName,
@@ -33,7 +34,6 @@ interface CatalogCommandsBoundary {
   ): CatalogCommandResult;
   softDelete(id: string): CatalogCommandResult;
   restore(id: string): CatalogCommandResult;
-  purge(id: string): CatalogCommandResult;
   archiveByFilter(filters: CatalogCommandFilter): CatalogBatchCommandResult;
   restoreByFilter(filters: CatalogCommandFilter): CatalogBatchCommandResult;
   purgeByFilter(filters: CatalogCommandFilter): CatalogBatchCommandResult;
@@ -87,9 +87,18 @@ function catalogFiltersFromUrl(url: string) {
   };
 }
 
-async function readCatalogCommandFilter(request: { json: () => Promise<unknown> }) {
-  const raw = await readJsonRecord(request);
+async function readCatalogCommandFilter(
+  request: { json: () => Promise<unknown> },
+  action: 'archive' | 'restore' | 'purge',
+) {
+  const { confirm, ...raw } = await readJsonRecord(request);
+  if (action === 'purge' && confirm !== CATALOG_PURGE_CONFIRMATION) {
+    throw new Error(
+      `Send {"confirm":"${CATALOG_PURGE_CONFIRMATION}"} to permanently delete trashed images.`,
+    );
+  }
   if (
+    (action !== 'purge' && confirm !== undefined) ||
     Object.keys(raw).some((key) => !['ids', 'workspaceId', 'batchId', 'isDeleted'].includes(key)) ||
     Object.keys(raw).length === 0 ||
     (raw.ids !== undefined &&
@@ -281,7 +290,9 @@ export function createCatalogRoutes({
   for (const action of ['archive', 'restore', 'purge'] as const) {
     routes.post(`/commands/${action}`, async (c) => {
       try {
-        return c.json(catalogCommands[`${action}ByFilter`](await readCatalogCommandFilter(c.req)));
+        return c.json(
+          catalogCommands[`${action}ByFilter`](await readCatalogCommandFilter(c.req, action)),
+        );
       } catch (error) {
         return c.json(collectionError(error), 400);
       }
@@ -326,12 +337,6 @@ export function createCatalogRoutes({
 
   routes.delete('/:id', (c) => {
     const result = catalogCommands.softDelete(c.req.param('id'));
-    if (!result.ok) return jsonNotFound(c);
-    return c.json(result.image);
-  });
-
-  routes.delete('/:id/permanent', (c) => {
-    const result = catalogCommands.purge(c.req.param('id'));
     if (!result.ok) return jsonNotFound(c);
     return c.json(result.image);
   });
@@ -618,7 +623,8 @@ export function createMemoryCatalogStore(
       return updated;
     },
     purgeCatalogImage: (id) => {
-      const image = byId.get(id) ?? null;
+      const image = byId.get(id);
+      if (!image?.isDeleted) return null;
       byId.delete(id);
       return image;
     },

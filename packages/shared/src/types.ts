@@ -466,6 +466,10 @@ export interface CatalogCommandFilter {
   isDeleted?: boolean;
 }
 
+// Body `confirm` tokens for the two destructive routes (D11).
+export const CATALOG_PURGE_CONFIRMATION = 'purge-trash';
+export const STUDIO_RESET_CONFIRMATION = 'reset-studio';
+
 export interface CatalogBatchCommandResult {
   ok: true;
   action: 'archive' | 'restore' | 'purge';

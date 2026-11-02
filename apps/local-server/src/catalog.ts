@@ -568,7 +568,8 @@ export function restoreCatalogImage(id: string) {
 
 export function purgeCatalogImage(id: string) {
   const image = getCatalogImage(id);
-  if (!image) return null;
+  // Only trashed images can be purged; this guard covers every caller.
+  if (!image?.isDeleted) return null;
 
   for (const filePath of [image.filePath, image.thumbnailPath]) {
     if (filePath && existsSync(filePath)) {

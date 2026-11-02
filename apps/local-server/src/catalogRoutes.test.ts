@@ -4,7 +4,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
 
-import type { CatalogImage } from '../../../packages/shared/src';
+import { CATALOG_PURGE_CONFIRMATION, type CatalogImage } from '../../../packages/shared/src';
 import { createCatalogRoutes, createMemoryCatalogStore } from './catalogRoutes';
 import { createCatalogCommands } from './catalogCommands';
 import type { QueryCatalogFilters, StudioCatalogStore } from './catalogStore';
@@ -350,7 +350,8 @@ describe('catalog routes', () => {
 
   it('rejects malformed batch filters without broadening their selection', async () => {
     const image = catalogImage({ id: 'trashed-image', isDeleted: true });
-    const store = createMemoryCatalogStore([image]);
+    const live = catalogImage({ id: 'live-image' });
+    const store = createMemoryCatalogStore([image, live]);
     const routes = createRoutes(store);
     for (const action of ['archive', 'restore', 'purge']) {
       for (const body of [
@@ -371,12 +372,22 @@ describe('catalog routes', () => {
         expect(store.getCatalogImage(image.id)?.isDeleted).toBe(true);
       }
     }
+    for (const body of [
+      '{"isDeleted":true}',
+      '{"isDeleted":false}',
+      '{"isDeleted":true,"confirm":"reset-studio"}',
+    ]) {
+      const response = await routes.request('/commands/purge', { method: 'POST', body });
+      expect(response.status, `purge: ${body}`).toBe(400);
+      expect(store.getCatalogImage(image.id)?.isDeleted).toBe(true);
+    }
     const response = await routes.request('/commands/purge', {
       method: 'POST',
-      body: JSON.stringify({ isDeleted: true }),
+      body: JSON.stringify({ isDeleted: false, confirm: CATALOG_PURGE_CONFIRMATION }),
     });
     expect(response.status).toBe(200);
     expect(store.getCatalogImage(image.id)).toBeNull();
+    expect(store.getCatalogImage(live.id)?.isDeleted).toBe(false);
   });
 
   it('creates a collection from workspace images and forwards it as a catalog filter', async () => {

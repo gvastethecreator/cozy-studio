@@ -67,7 +67,7 @@ describe('catalogCommands', () => {
     expect(events).toEqual([]);
   });
 
-  it('uses deletion-specific events only for permanent purge', () => {
+  it('publishes catalog.updated for single-image archive and restore', () => {
     const events: string[] = [];
     const image = catalogImage();
     const commands = createCatalogCommands({
@@ -81,8 +81,7 @@ describe('catalogCommands', () => {
 
     expect(commands.softDelete('image-1')).toEqual({ ok: true, image });
     expect(commands.restore('image-1')).toEqual({ ok: true, image });
-    expect(commands.purge('image-1')).toEqual({ ok: true, image });
-    expect(events).toEqual(['catalog.updated', 'catalog.updated', 'catalog.deleted']);
+    expect(events).toEqual(['catalog.updated', 'catalog.updated']);
   });
 
   it('runs full-scope catalog commands from filter-selected ids', () => {

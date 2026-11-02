@@ -385,6 +385,15 @@ function useToolbarController(props: ToolbarProps) {
 
   const currentSizes = executionImageSizeOptions;
 
+  // Context-only workflows render their own Generate button; hand them the provider block.
+  const generateBlockMessage = mode === 'context-only' ? (generateBlock?.message ?? null) : null;
+  const { setGenerateBlock } = workbench;
+  useEffect(() => {
+    if (!setGenerateBlock) return;
+    setGenerateBlock(generateBlockMessage);
+    return () => setGenerateBlock(null);
+  }, [setGenerateBlock, generateBlockMessage]);
+
   const btnClass =
     'studio-ghost-control h-10 min-h-10 w-full touch-manipulation sm:w-auto flex items-center justify-center gap-2 px-3 text-[length:var(--wbp-label)] font-semibold leading-none tracking-normal transition-[color,background-color,border-color,opacity,transform] hover:text-[color:var(--wb-ink)] active:scale-95 disabled:opacity-30 group whitespace-nowrap cursor-pointer';
   const iconBtnClass =

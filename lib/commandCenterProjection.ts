@@ -5,6 +5,7 @@ import type {
 } from '../packages/shared/src';
 import type { GenerationProviderId } from '../packages/shared/src/generationContracts';
 import { summarizeGrokProviderStatusLine } from './grokImagineUiPolicy';
+import { t } from './i18n';
 import type { StudioRuntimeStatusItem, StudioStatusTone } from './studioDiagnostics';
 
 export interface CommandCenterRuntimeProjection {
@@ -49,10 +50,21 @@ export interface BuildStudioCommandCenterProjectionArgs {
   isQueueOpen: boolean;
 }
 
+/** Ready only when the backend is up and the selected provider can generate. */
 export function summarizeCommandCenterRuntimeStatus(
   statusItems: StudioRuntimeStatusItem[],
+  provider: CommandCenterProviderProjection,
 ): CommandCenterRuntimeProjection {
-  if (statusItems.length === 0) {
+  const backend = statusItems.find((item) => item.key === 'backend');
+  if (backend?.tone === 'danger') {
+    return {
+      label: 'Attention',
+      tone: 'danger',
+      tooltip: `${backend.label}: ${backend.value}`,
+    };
+  }
+
+  if (!backend || provider.status === 'unknown') {
     return {
       label: 'Checking',
       tone: 'warning',
@@ -60,28 +72,18 @@ export function summarizeCommandCenterRuntimeStatus(
     };
   }
 
-  const danger = statusItems.find((item) => item.tone === 'danger');
-  if (danger) {
+  if (!provider.canExecute) {
     return {
       label: 'Attention',
       tone: 'danger',
-      tooltip: `${danger.label}: ${danger.value}`,
-    };
-  }
-
-  const warning = statusItems.find((item) => item.tone === 'warning');
-  if (warning) {
-    return {
-      label: 'Standby',
-      tone: 'warning',
-      tooltip: `${warning.label}: ${warning.value}`,
+      tooltip: `${provider.label}: ${provider.statusDetail}. ${provider.tooltip}`,
     };
   }
 
   return {
     label: 'Ready',
     tone: 'success',
-    tooltip: 'Runtime ready.',
+    tooltip: t('status.providerReady', { provider: provider.label }),
   };
 }
 
@@ -144,8 +146,9 @@ function buildProviderProjection({
       : status === 'not_configured' || preflight?.canAttemptExecution === false
         ? 'danger'
         : 'warning';
-  const diagnostics = preflight?.diagnostics.length ? ` ${preflight.diagnostics.join(' ')}` : '';
   const detail = capability?.detail ?? 'Provider capability status is still loading.';
+  const extraDiagnostics = preflight?.diagnostics.filter((line) => line !== detail) ?? [];
+  const diagnostics = extraDiagnostics.length ? ` ${extraDiagnostics.join(' ')}` : '';
   const statusDetail =
     providerId === 'grok'
       ? summarizeGrokProviderStatusLine({
@@ -160,7 +163,13 @@ function buildProviderProjection({
           : 'Ready'
         : status === 'unknown'
           ? 'Checking runtime'
-          : 'Needs setup';
+          : providerId === 'chatgpt'
+            ? t(
+                capability?.subscriptionAuthState === 'refresh_failed'
+                  ? 'onboarding.status.expired'
+                  : 'onboarding.status.notSignedIn',
+              )
+            : 'Needs setup';
 
   return {
     id: providerId,
@@ -186,16 +195,17 @@ export function buildStudioCommandCenterProjection({
 }: BuildStudioCommandCenterProjectionArgs): StudioCommandCenterProjection {
   const activeProviderId = settings?.defaultProviderId ?? 'chatgpt';
   const compactMode = Boolean(settings?.commandCenterCompactMode);
+  const provider = buildProviderProjection({
+    providerId: activeProviderId,
+    compactMode,
+    providerCapabilities,
+    providerRuntimePreflight,
+  });
 
   return {
     compactMode,
-    runtimeStatus: summarizeCommandCenterRuntimeStatus(statusItems),
-    provider: buildProviderProjection({
-      providerId: activeProviderId,
-      compactMode,
-      providerCapabilities,
-      providerRuntimePreflight,
-    }),
+    runtimeStatus: summarizeCommandCenterRuntimeStatus(statusItems, provider),
+    provider,
     providerOptions: QUICK_SWITCH_PROVIDER_IDS.map((providerId) =>
       buildProviderProjection({
         providerId,

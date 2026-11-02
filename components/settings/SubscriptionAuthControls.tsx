@@ -13,6 +13,7 @@ import {
 } from '../../services/studio-api/auth';
 import { createStudioEventStream } from '../../services/studioEventSource';
 import { subscriptionAuthPillClass } from '../../lib/providerBrand';
+import { t } from '../../lib/i18n';
 import {
   subscriptionAuthOpenLabel,
   subscriptionAuthStatusLabel,
@@ -252,9 +253,12 @@ function SubscriptionAccountAction({
 export function SubscriptionAuthControls({
   providerId,
   compact = false,
+  optional = false,
 }: {
   providerId: SubscriptionProviderId;
   compact?: boolean;
+  /** The provider already runs another way (CLI or key), so signing in is extra. */
+  optional?: boolean;
 }) {
   const {
     status,
@@ -293,7 +297,9 @@ export function SubscriptionAuthControls({
             <span
               className={`settings-account-status ${subscriptionAuthPillClass(status?.status)}`}
             >
-              {statusLabel}
+              {optional && status?.status === 'logged_out'
+                ? t('settings.providers.signInOptional')
+                : statusLabel}
             </span>
             {status?.accountLabel && (
               <span className="settings-account-name">{status.accountLabel}</span>

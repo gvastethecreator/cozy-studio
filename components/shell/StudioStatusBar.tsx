@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { LayoutRight as SidebarRight } from 'iconoir-react';
 
 import type { UseCatalogResult } from '../../hooks/useCatalogPage';
@@ -37,12 +37,28 @@ export function StudioStatusBar({
   const queueCount = commandCenter.queue.activeCount;
   const reviewCount = commandCenter.queue.reviewCount;
   const queueLabel = `${queueCount} active, ${reviewCount} need review`;
+  const selected = commandCenter.provider;
+  const options = commandCenter.providerOptions.some((provider) => provider.id === selected.id)
+    ? commandCenter.providerOptions
+    : [selected, ...commandCenter.providerOptions];
+  // A pill that was active stays while readiness refreshes; its dot shows the current state.
+  const [seenActive, setSeenActive] = useState<ReadonlySet<string>>(() => new Set());
+  const newlyActive = options.filter(
+    (provider) => provider.status === 'active' && !seenActive.has(provider.id),
+  );
+  if (newlyActive.length > 0)
+    setSeenActive(new Set([...seenActive, ...newlyActive.map((provider) => provider.id)]));
 
   return (
     <footer className="studio-status-bar studio-bar" aria-label="Studio status">
       <ul className="studio-status-providers m-0 list-none p-0" aria-label="Provider status">
-        {commandCenter.providerOptions
-          .filter((provider) => provider.status === 'active')
+        {options
+          .filter(
+            (provider) =>
+              provider.status === 'active' ||
+              provider.id === selected.id ||
+              seenActive.has(provider.id),
+          )
           .map((provider) => {
             const usage =
               provider.id === 'codex'
@@ -53,16 +69,20 @@ export function StudioStatusBar({
             const weeklyLimit = usage?.limits.find((limit) => /weekly/i.test(limit.label));
             const pillClassName = cn(
               'studio-status-provider',
-              provider.id === commandCenter.provider.id && 'is-active',
+              provider.id === selected.id && 'is-active',
             );
             const content = (
               <>
                 <ProviderBrandMark providerId={provider.id} size="xs" />
                 <span className="studio-status-provider-label">{provider.shortLabel}</span>
-                {weeklyLimit && (
-                  <span className="studio-status-provider-usage">
-                    {Math.round(weeklyLimit.availablePercent)}% left
-                  </span>
+                {provider.id === selected.id && !provider.canExecute ? (
+                  <span className="studio-status-provider-usage">{provider.statusDetail}</span>
+                ) : (
+                  weeklyLimit && (
+                    <span className="studio-status-provider-usage">
+                      {Math.round(weeklyLimit.availablePercent)}% left
+                    </span>
+                  )
                 )}
                 <span
                   aria-hidden="true"

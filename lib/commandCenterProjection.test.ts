@@ -57,7 +57,7 @@ describe('buildStudioCommandCenterProjection', () => {
     expect(projection.runtimeStatus).toEqual({
       label: 'Ready',
       tone: 'success',
-      tooltip: 'Runtime ready.',
+      tooltip: 'Google image API is ready to generate.',
     });
     expect(projection.provider).toEqual(
       expect.objectContaining({
@@ -122,6 +122,52 @@ describe('buildStudioCommandCenterProjection', () => {
     expect(projection.provider.canExecute).toBe(false);
     expect(projection.provider.tooltip).toContain('Runtime endpoint is missing.');
     expect(projection.queue).toEqual({ activeCount: 0, reviewCount: 614, isOpen: true });
+  });
+
+  it('is not ready when the selected ChatGPT provider is signed out, even if other CLIs are', () => {
+    const projection = buildStudioCommandCenterProjection({
+      settings: { defaultProviderId: 'chatgpt', commandCenterCompactMode: false },
+      providerCapabilities: {
+        providers: [
+          {
+            providerId: 'chatgpt',
+            label: 'ChatGPT',
+            runtimeKind: 'subscription_http',
+            status: 'not_configured',
+            isDefault: true,
+            hasAdapter: true,
+            canExecute: false,
+            secretState: 'missing',
+            subscriptionAuthState: 'logged_out',
+            detail: 'Sign in with ChatGPT in Studio Settings.',
+          },
+          {
+            providerId: 'codex',
+            label: 'Codex app-server',
+            runtimeKind: 'codex_app_server',
+            status: 'active',
+            isDefault: false,
+            hasAdapter: true,
+            canExecute: true,
+            secretState: 'not_required',
+            subscriptionAuthState: 'not_applicable',
+            detail: 'Codex is ready.',
+          },
+        ],
+      },
+      providerRuntimePreflight: null,
+      statusItems: [
+        { key: 'backend', label: 'Backend', value: 'Connected', detail: 'ok', tone: 'success' },
+        { key: 'codexCli', label: 'Codex CLI', value: 'Ready', detail: 'ok', tone: 'success' },
+      ],
+      activeJobCount: 0,
+      reviewJobCount: 0,
+      isQueueOpen: false,
+    });
+
+    expect(projection.runtimeStatus).toMatchObject({ label: 'Attention', tone: 'danger' });
+    expect(projection.runtimeStatus.tooltip).toContain('ChatGPT: Not signed in');
+    expect(projection.provider).toMatchObject({ canExecute: false, statusDetail: 'Not signed in' });
   });
 
   it('names the Grok login action when the local CLI is blocked', () => {

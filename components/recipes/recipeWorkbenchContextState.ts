@@ -35,6 +35,9 @@ export const RecipeWorkbenchContext = createContext<{
   setPrompt?: (prompt: WorkflowPrompt | null) => void;
   primaryAction?: WorkflowAction | null;
   setPrimaryAction?: (action: WorkflowAction | null) => void;
+  /** Why the selected provider cannot run this workflow; set by the context-only composer. */
+  generateBlock?: string | null;
+  setGenerateBlock?: (message: string | null) => void;
   stylesOpen?: boolean;
   catalogExpanded?: boolean;
   openStyles?: (expanded?: boolean) => void;

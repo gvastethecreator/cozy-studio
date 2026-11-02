@@ -120,6 +120,50 @@ describe('StudioStatusBar', () => {
     expect(onToggleQueue).toHaveBeenCalled();
   });
 
+  it('always shows the selected provider and keeps pills while readiness refreshes', () => {
+    const chatgpt = {
+      ...commandCenter.provider,
+      id: 'chatgpt' as const,
+      label: 'ChatGPT',
+      shortLabel: 'ChatGPT',
+      status: 'not_configured' as const,
+      canExecute: false,
+      statusDetail: 'Not signed in',
+    };
+    const props = {
+      providerUsage: {},
+      isQueueOpen: false,
+      onToggleQueue: vi.fn(),
+      onOpenDashboard: vi.fn(),
+      onOpenOnboarding: vi.fn(),
+    };
+    const { rerender } = render(
+      <StudioStatusBar
+        {...props}
+        commandCenter={{
+          ...commandCenter,
+          provider: chatgpt,
+          providerOptions: [chatgpt, ...commandCenter.providerOptions],
+        }}
+      />,
+    );
+    expect(screen.getByLabelText('ChatGPT: Not signed in').textContent).toContain('Not signed in');
+
+    const refreshing = { ...commandCenter.providerOptions[0]!, status: 'unknown' as const };
+    rerender(
+      <StudioStatusBar
+        {...props}
+        commandCenter={{
+          ...commandCenter,
+          provider: chatgpt,
+          providerOptions: [chatgpt, refreshing, commandCenter.providerOptions[1]!],
+        }}
+      />,
+    );
+    expect(screen.getByLabelText('Codex: Ready')).toBeTruthy();
+    expect(screen.getByLabelText('ChatGPT: Not signed in')).toBeTruthy();
+  });
+
   it('shows the image total and recovery action in the status bar', () => {
     const loadMore = vi.fn().mockResolvedValue(undefined);
     const refresh = vi.fn().mockResolvedValue(undefined);

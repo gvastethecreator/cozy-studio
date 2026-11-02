@@ -22,6 +22,13 @@ export const es: Dictionary = {
   'settings.language.heading': 'Idioma',
   'settings.language.label': 'Idioma de la interfaz',
   'settings.language.hint': 'Los prompts, los paquetes de estilos y tu contenido no se traducen.',
+  'settings.providers.signInOptional': 'Sesión opcional',
+  'settings.providers.defaultNotReady':
+    '{provider} todavía no puede generar. Configúralo más abajo o elige otro proveedor.',
+  'settings.providers.googleSetup':
+    'Inicia sesión con Google aquí abajo o añade una clave de API de Google.',
+  'settings.providers.grokSetup':
+    'Inicia sesión con xAI aquí abajo, define XAI_API_KEY o instala Grok Build e inicia sesión allí.',
 
   'tcg.title': 'TCG Component Studio',
   'tcg.intro':
@@ -187,4 +194,6 @@ export const es: Dictionary = {
     'Studio carga los estilos al arrancar, así que recarga una vez para verlos.',
   'stylePacks.notice.empty':
     'Los estilos vienen de paquetes de estilos. Instala uno para llenar este catálogo.',
+  'status.providerReady': '{provider} está listo para generar.',
+  'characterLab.notReady': 'No está listo',
 };

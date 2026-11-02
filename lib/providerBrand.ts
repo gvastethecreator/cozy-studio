@@ -26,7 +26,8 @@ export function providerReadyPillClass({
   if (canExecute) return 'border-emerald-500/20 bg-emerald-500/12 text-[color:var(--wb-success)]';
   if (status === 'planned')
     return 'border-amber-500/20 bg-amber-500/12 text-[color:var(--wb-warning)]';
-  return 'border-[color:var(--wb-border)] bg-[color-mix(in_srgb,var(--wb-ink)_5%,transparent)] text-[color:var(--wb-muted)]';
+  // Plain text: a filled grey chip next to the Sign in button reads as a second button.
+  return 'border-transparent text-[color:var(--wb-muted)]';
 }
 
 export function subscriptionAuthPillClass(status: string | null | undefined) {

@@ -353,7 +353,19 @@ export function getJobStatus(id: string, db?: Database) {
     error: string | null;
     updated_at: string;
   } | null;
-  return row && { id: row.id, status: row.status, error: row.error, updatedAt: row.updated_at };
+  if (!row) return null;
+  const notices = getDb(db)
+    .query(
+      "SELECT message FROM job_events WHERE job_id = ? AND type IN ('asset.dimensions.info', 'asset.transparency.warning') ORDER BY id",
+    )
+    .all(id) as { message: string }[];
+  return {
+    id: row.id,
+    status: row.status,
+    error: row.error,
+    updatedAt: row.updated_at,
+    notices: notices.map((notice) => notice.message),
+  };
 }
 
 export const JOB_SUMMARY_COLUMNS = `id, attempt, attempt_queued_at, workspace_id, recipe_id, batch_id, aspect_ratio,

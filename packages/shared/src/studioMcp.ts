@@ -156,7 +156,8 @@ export const studioMcpTools = {
     }),
   },
   studio_job: {
-    description: 'Read job status. Use studio_catalog with job_id to inspect generated results.',
+    description:
+      'Read job status, error and result notices, such as a returned size that differs from the request. Use studio_catalog with job_id to inspect generated results.',
     schema: z.strictObject({ jobId: id }),
   },
   studio_batch: {

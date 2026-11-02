@@ -238,7 +238,10 @@ export interface Job {
 }
 
 /** Observation never loads the job prompt, assets, or provider transcript. */
-export type JobStatusSnapshot = Pick<Job, 'id' | 'status' | 'error' | 'updatedAt'>;
+export type JobStatusSnapshot = Pick<Job, 'id' | 'status' | 'error' | 'updatedAt'> & {
+  /** Differences between the saved result and the request, such as size or transparency. */
+  notices?: string[];
+};
 
 /** Non-secret identity persisted before sending any remote execution request. */
 export interface ComfyRemoteExecution {

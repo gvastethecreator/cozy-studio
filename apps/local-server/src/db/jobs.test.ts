@@ -1,6 +1,35 @@
+import { DatabaseSync } from 'node:sqlite';
+import type { Database } from 'bun:sqlite';
 import { describe, expect, it, vi } from 'vitest';
 
-import { listJobSummariesFromDb, mapJobRow } from './jobs';
+import { getJobStatus, listJobSummariesFromDb, mapJobRow } from './jobs';
+
+describe('getJobStatus', () => {
+  it('returns result notices so a completed size mismatch is visible without review', () => {
+    const sqlite = new DatabaseSync(':memory:');
+    const db = { query: (sql: string) => sqlite.prepare(sql) } as unknown as Database;
+    sqlite.exec(`
+      CREATE TABLE jobs (id TEXT, status TEXT, error TEXT, updated_at TEXT);
+      CREATE TABLE job_events (id INTEGER PRIMARY KEY, job_id TEXT, type TEXT, message TEXT);
+      INSERT INTO jobs VALUES ('job-1', 'completed', NULL, '2026-11-02T00:00:00.000Z');
+      INSERT INTO job_events (job_id, type, message) VALUES
+        ('job-1', 'asset.created', 'Asset imported.'),
+        ('job-1', 'asset.dimensions.info', 'Requested image size 1024x1024; provider returned 1024x1536. Original dimensions preserved.'),
+        ('job-2', 'asset.dimensions.info', 'Another job.');
+    `);
+
+    expect(getJobStatus('job-1', db)).toEqual({
+      id: 'job-1',
+      status: 'completed',
+      error: null,
+      updatedAt: '2026-11-02T00:00:00.000Z',
+      notices: [
+        'Requested image size 1024x1024; provider returned 1024x1536. Original dimensions preserved.',
+      ],
+    });
+    expect(getJobStatus('missing', db)).toBeNull();
+  });
+});
 
 describe('listJobSummariesFromDb', () => {
   it('uses projected columns without reading the Generation Task Spec', () => {

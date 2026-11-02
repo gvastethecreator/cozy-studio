@@ -15,6 +15,7 @@ import {
 } from '../lib/workbenchAmbient';
 import { useLocalStorage } from './useLocalStorage';
 import { MOTION_CHANGE_EVENT, type MotionPreference } from '../lib/motionPreference';
+import { setImageWheelZoomSensitivity } from '../lib/imagePanZoom';
 
 const STORAGE_KEY = 'cozy-studio-accent-palette';
 
@@ -217,6 +218,7 @@ export interface AppearancePreferences {
   appearance: WorkbenchAppearance;
   accent: string;
   motion: MotionPreference;
+  zoomSensitivity: number;
 }
 type ThemeContextValue = {
   preferences: AppearancePreferences;
@@ -236,6 +238,10 @@ function useThemeState(): ThemeContextValue {
   const [storedMotion, setStoredMotion] = useLocalStorage<MotionPreference>(
     'cozy-studio-motion',
     'system',
+  );
+  const [storedZoomSensitivity, setStoredZoomSensitivity] = useLocalStorage<number>(
+    'cozy-studio-zoom-sensitivity',
+    1,
   );
   const [storedPalette, setStoredPalette] = useLocalStorage<string>(
     STORAGE_KEY,
@@ -268,27 +274,35 @@ function useThemeState(): ThemeContextValue {
 
   const appearance = preview?.appearance ?? storedAppearance;
   const motion = preview?.motion ?? storedMotion;
+  const zoomSensitivity = preview?.zoomSensitivity ?? storedZoomSensitivity;
   const savedPreferences = useMemo(
-    () => ({ appearance: storedAppearance, accent: storedPalette, motion: storedMotion }),
-    [storedAppearance, storedPalette, storedMotion],
+    () => ({
+      appearance: storedAppearance,
+      accent: storedPalette,
+      motion: storedMotion,
+      zoomSensitivity: storedZoomSensitivity,
+    }),
+    [storedAppearance, storedPalette, storedMotion, storedZoomSensitivity],
   );
   const preferences = useMemo(
-    () => ({ appearance, accent: palette.name, motion }),
-    [appearance, palette.name, motion],
+    () => ({ appearance, accent: palette.name, motion, zoomSensitivity }),
+    [appearance, palette.name, motion, zoomSensitivity],
   );
   const commitPreferences = useCallback(
     (value: AppearancePreferences) => {
       setAppearance(value.appearance);
       setStoredPalette(value.accent);
       setStoredMotion(value.motion);
+      setStoredZoomSensitivity(value.zoomSensitivity);
       setPreview(null);
     },
-    [setAppearance, setStoredPalette, setStoredMotion],
+    [setAppearance, setStoredPalette, setStoredMotion, setStoredZoomSensitivity],
   );
   useLayoutEffect(() => {
     document.documentElement.dataset.motion = motion;
     window.dispatchEvent(new Event(MOTION_CHANGE_EVENT));
   }, [motion]);
+  useLayoutEffect(() => setImageWheelZoomSensitivity(zoomSensitivity), [zoomSensitivity]);
 
   const cycleTheme = useCallback(() => {
     setStoredPalette((current) => {

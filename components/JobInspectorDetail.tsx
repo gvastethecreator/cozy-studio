@@ -197,18 +197,28 @@ function JobStatusBanner({
   }
 
   const alphaWarning = detail.events.find((event) => event.type === 'asset.transparency.warning');
-  if (alphaWarning)
-    return (
-      <section role="status" className="studio-warning-notice">
-        <strong>Transparency was not returned</strong>
-        <p>
-          The provider returned an opaque image. Your original result is preserved; no background
-          removal was applied.
-        </p>
-      </section>
-    );
+  const sizeNote = detail.events.find((event) => event.type === 'asset.dimensions.info');
+  if (!alphaWarning && !sizeNote) return null;
 
-  return null;
+  return (
+    <div className="space-y-4">
+      {alphaWarning ? (
+        <section role="status" className="studio-warning-notice">
+          <strong>Transparency was not returned</strong>
+          <p>
+            The provider returned an opaque image. Your original result is preserved; no background
+            removal was applied.
+          </p>
+        </section>
+      ) : null}
+      {sizeNote ? (
+        <section role="status" className="studio-warning-notice">
+          <strong>Size differs from the request</strong>
+          <p>{sizeNote.message}</p>
+        </section>
+      ) : null}
+    </div>
+  );
 }
 
 function TimelineIcon({ item }: { item: JobInspectorTimelineItem }) {

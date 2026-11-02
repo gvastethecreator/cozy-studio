@@ -141,6 +141,12 @@ const SETTINGS_SEARCH_ITEMS: {
   },
   {
     domain: 'appearance',
+    label: 'Zoom sensitivity',
+    description: 'Scroll and pinch zoom speed in image previews',
+    target: 'settings.appearance.zoomSensitivity',
+  },
+  {
+    domain: 'appearance',
     label: 'Tools panel position',
     description: 'Left or right side',
     target: 'Tools panel position',

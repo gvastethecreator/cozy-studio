@@ -29,6 +29,9 @@ export const es: Dictionary = {
     'Inicia sesión con Google aquí abajo o añade una clave de API de Google.',
   'settings.providers.grokSetup':
     'Inicia sesión con xAI aquí abajo, define XAI_API_KEY o instala Grok Build e inicia sesión allí.',
+  'settings.appearance.zoomSensitivity': 'Sensibilidad del zoom',
+  'settings.appearance.zoomSensitivityHint':
+    'Qué tan rápido hacen zoom la rueda o el pellizco en las vistas previas de imágenes.',
 
   'tcg.title': 'TCG Component Studio',
   'tcg.intro':

@@ -117,13 +117,17 @@ export const generationInput = z.strictObject({
   count: z.number().int().min(1).max(16).default(1),
   styles: z
     .array(
-      z.strictObject({ packId: id, presetId: id, strength: z.number().min(0).max(1).optional() }),
+      z.strictObject({
+        packId: id,
+        presetId: id,
+        strength: z.number().min(0.1).max(1).optional(),
+      }),
     )
     .min(1)
     .max(5)
     .optional()
     .describe(
-      'Installed style presets from studio_find_styles, compiled the way the Studio UI compiles them. Uses the styles recipe: leave recipeId out. strength defaults to the Settings style intensity.',
+      'Installed style presets from studio_find_styles, compiled the way the Studio UI compiles them. Uses the styles recipe: leave recipeId out. strength (0.1 to 1) defaults to the Settings style intensity. For a baseline without style, leave styles out.',
     ),
   styleMode: z
     .enum(['generate', 'preserve', 'reinterpret'])
@@ -154,7 +158,7 @@ export const studioMcpSettingsPatch = z
       .array(z.enum(WORKFLOW_MODULES.map(({ id }) => id)))
       .max(WORKFLOW_MODULES.length)
       .optional(),
-    defaultStyleIntensity: z.number().min(0).max(1).optional(),
+    defaultStyleIntensity: z.number().min(0.1).max(1).optional(),
     defaultStyleReferenceMode: z.enum(['preserve', 'reinterpret']).optional(),
     intentionalStylesV1: z.boolean().optional(),
     outputOrganization: z
@@ -269,7 +273,7 @@ export const studioMcpTools = {
   studio_organize_images: {
     access: 'organize',
     description:
-      'Organize up to 100 existing images in one workspace: add or remove tags, add the images to a collection by name (created if missing) or remove them from one. Needs Organize or Full control access. Propose the scheme to the user first (which images get which tags and collection) and call this only after they confirm. Every image must be live and in workspaceId, and every tag change must fit, or nothing changes. Safe to repeat: tags and members already present stay as they are. Never deletes, archives or moves images.',
+      'Organize up to 100 existing images in one workspace: add or remove tags, add the images to a collection by name (created if missing) or remove them from one. Needs Organize or Full control access. Propose the scheme to the user first (which images get which tags and collection) and call this only after they confirm. Every image must be live and in workspaceId, and every tag change must fit, or nothing changes. Safe to repeat: tags and members already present stay as they are. The result lists the ids each change touched (tags.added and tags.removed map each tag name to its image ids): to undo, send the inverse change for those ids only, one call per tag. Never deletes, archives or moves images.',
     schema: z
       .strictObject({
         workspaceId: id,
@@ -358,7 +362,7 @@ export const studioMcpTools = {
   studio_update_settings: {
     access: 'write',
     description:
-      'Change agent-safe Studio Settings: language (en or es), preferredWorkflow, disabledWorkflowModules, defaultStyleIntensity (0-1), defaultStyleReferenceMode, intentionalStylesV1, outputOrganization and notifyOnUpdates. Needs Full control access. Provider settings, the output folder, Agent access and import folders stay user-only; use the studio_generate model field to pick a model for one call. Returns the saved settings.',
+      'Change agent-safe Studio Settings: language (en or es), preferredWorkflow, disabledWorkflowModules, defaultStyleIntensity (0.1 to 1), defaultStyleReferenceMode, intentionalStylesV1, outputOrganization and notifyOnUpdates. Needs Full control access. Provider settings, the output folder, Agent access and import folders stay user-only; use the studio_generate model field to pick a model for one call. Returns the saved settings.',
     schema: studioMcpSettingsPatch,
   },
   studio_available_extensions: {

@@ -101,9 +101,9 @@ Every input object is strict: an unknown field rejects the call.
 - `addToCollection`, `removeFromCollection`: a collection name, 1 to 80 characters. A case-insensitive match uses the existing collection. `addToCollection` creates the collection when it is missing.
 - Set at least one change. Do not add and remove the same tag or collection.
 
-Studio checks the whole call before the first write. Every image must be live and in `workspaceId`, every image must stay within 32 tags, and `removeFromCollection` must name a collection in that workspace. When a check fails, the call returns 400 and changes nothing; image checks also return the `imageIds` at fault. Then Studio updates the tags of each image that changes and updates the collections. The result is `{workspaceId, imageCount, tags: {added, removed}, collection: {id, name, created, imageCount} | null, removedFrom: {id, name} | null}`.
+Studio checks the whole call before the first write. Every image must be live and in `workspaceId`, every image must stay within 32 tags, and `removeFromCollection` must name a collection in that workspace. When a check fails, the call returns 400 and changes nothing; image checks also return the `imageIds` at fault. Then Studio updates the tags of each image that changes and updates the collections. The result is `{workspaceId, imageCount, tags: {added, removed}, collection: {id, name, created, imageCount, addedImageIds} | null, removedFrom: {id, name, removedImageIds} | null}`. `tags.added` and `tags.removed` map each stored tag name to the images that gained or lost that tag, for example `{"pick": ["img-a1"]}`. `addedImageIds` lists the images that were not in the collection before the call. `removedImageIds` lists the images that were in the collection before the call.
 
-The writes are separate requests, not one transaction. If a call fails partway, repeat it: tags and members that are already present stay as they are. The inverse call (`removeTags`, `removeFromCollection`) undoes a call.
+The writes are separate requests, not one transaction. If a call fails partway, repeat it: tags and members that are already present stay as they are. To undo a call, send the inverse change only for the ids that the result lists: `removeTags` for `addTags`, `addTags` for `removeTags`, `removeFromCollection` for `addToCollection` and `addToCollection` for `removeFromCollection`. Send one call for each tag, with the ids listed for that tag. The other images had that tag or membership before the call.
 
 Imported references land in the Default workspace with the tag `imported reference`, so they never count as unorganized. In the Studio UI, the **Unorganized** toolbar filter shows the same images as `unorganized: true`.
 
@@ -124,7 +124,7 @@ Imported references land in the Default workspace with the tag `imported referen
 | `referenceIds`                 | Up to 16 catalog image IDs. File paths are not generation inputs.                                                                                                                                                                         |
 | `aspectRatio`, `imageSize`     | Default `1:1` and `1K`. `imageSize` is `512px`, `1K`, `2K` or `4K`.                                                                                                                                                                       |
 | `count`                        | 1 to 16, default 1. Each job gets the same input.                                                                                                                                                                                         |
-| `styles`                       | 1 to 5 `{packId, presetId, strength?}` from `studio_find_styles`. Uses the styles recipe, so leave `recipeId` out. `strength` (0 to 1) defaults to the Settings style intensity.                                                          |
+| `styles`                       | 1 to 5 `{packId, presetId, strength?}` from `studio_find_styles`. Uses the styles recipe, so leave `recipeId` out. `strength` (0.1 to 1) defaults to the Settings style intensity. For a baseline without style, leave `styles` out.      |
 | `styleMode`                    | `generate`, `preserve` or `reinterpret`. Defaults to the Settings reference mode. With Intentional styles on, `preserve` needs `referenceIds`.                                                                                            |
 | `model`                        | One call only; Settings do not change. `chatgpt`: `gpt-image-2.5-flare`, `gpt-image-2.5-sunburst` or `gpt-image-2`. `codex`: a Codex model. Other providers return 400.                                                                   |
 
@@ -153,7 +153,7 @@ Studio stores the filing in `sourceSpec.metadata.libraryOrganization` and applie
 - `language`: `en` or `es`.
 - `preferredWorkflow`: a workflow id.
 - `disabledWorkflowModules`: workflow module ids.
-- `defaultStyleIntensity`: 0 to 1.
+- `defaultStyleIntensity`: 0.1 to 1.
 - `defaultStyleReferenceMode`: `preserve` or `reinterpret`.
 - `intentionalStylesV1`: true or false.
 - `outputOrganization`: `{subfolderTokens?, fileNameTemplate?}`. Up to 6 tokens from `workspace`, `date`, `provider`, `model`, `recipe` and `workflow`. The template has 1 to 120 characters.

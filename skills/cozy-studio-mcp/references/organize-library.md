@@ -118,7 +118,14 @@ Done when the counts match the scheme, or you told the user the reason for each 
 
 ### Undo
 
-Send the inverse call for the same `imageIds`: `removeTags` with the stored names, or `removeFromCollection` with the collection name. A collection that a call created stays, empty. Agent tools cannot delete a collection or rename a tag. The user does that in Studio (see the manual path).
+Send the inverse call only for the ids that the result lists. The other images had that tag or membership before the call, so leave them as they are.
+
+- Added tags: for each tag name in `tags.added`, one call with `removeTags` set to that name, for the ids listed under it.
+- Removed tags: for each tag name in `tags.removed`, one call with `addTags` set to that name, for the ids listed under it.
+- Added to a collection: `removeFromCollection` with the collection name, for `collection.addedImageIds`.
+- Removed from a collection: `addToCollection` with the collection name, for `removedFrom.removedImageIds`.
+
+A collection that a call created stays, empty. Agent tools cannot delete a collection or rename a tag. The user does that in Studio (see the manual path).
 
 ## Imported images
 

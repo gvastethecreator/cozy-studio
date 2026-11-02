@@ -1,5 +1,5 @@
-import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
+import { createHash, randomUUID } from 'node:crypto';
+import { constants, copyFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -18,6 +18,7 @@ import {
 } from '../../../packages/shared/src/outputSources';
 import { resolveLibraryPathFromRoot } from './library';
 import { isPathInside } from './pathContainment';
+import { reserveOutputPath } from './outputDestination';
 import { ensureThumbnailVariant as ensureThumbnailVariantDefault } from './libraryAssetVariants';
 import type { StudioSettingsStorage } from './studioSettingsStore';
 import { isAbsolutePlatformPath } from './platformHome';
@@ -370,8 +371,14 @@ export async function importExternalOutputSourceFiles({
         continue;
       }
 
-      const destination = path.join(destinationDir, toSafeAssetFileName(source.id, relativePath));
-      copyFile(sourceFile, destination);
+      // A re-import of the same path gets a new name; an existing Library file is never replaced.
+      const destination = reserveOutputPath(
+        destinationDir,
+        path.join(destinationDir, toSafeAssetFileName(source.id, relativePath)),
+        resolveLibraryPathFromRoot(libraryDir, 'state', 'output-reservations'),
+        `external-import:${randomUUID()}`,
+      );
+      copyFile(sourceFile, destination, constants.COPYFILE_EXCL);
       let thumbnailPath: string | null = null;
 
       try {

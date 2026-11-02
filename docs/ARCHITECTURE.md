@@ -201,7 +201,7 @@ Heavy or optional UI mounts only when it is visible or the user asks for it.
 
 - Recipe pages are route-lazy. Style catalog search, Style Pack data, YAML parsing, ZIP export and Three.js load on demand.
 - Settings, diagnostics and provider internals open from explicit surfaces.
-- `ui:chunks:verify` and the source audits in `architecture:source:verify` guard against eager imports.
+- `bun run lint` (the `no-restricted-imports` overrides in `vite.config.ts`) and `ui:chunks:verify` guard against eager imports.
 
 ## Checks and automation
 

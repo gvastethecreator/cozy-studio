@@ -53,6 +53,7 @@ describe('Studio MCP boundary', () => {
       ),
     };
     const collections: object[] = [];
+    const members = new Set<string>();
     let workspacesDown = false;
     let runtimeBody = JSON.stringify(runtimePack);
     const app = new Hono().route(
@@ -68,6 +69,7 @@ describe('Studio MCP boundary', () => {
           if (path === '/api/catalog/collections?workspace_id=default')
             return Response.json(collections);
           if (path === '/api/catalog/collections') {
+            body.imageIds?.forEach((imageId: string) => members.add(imageId));
             collections.push({
               id: 'collection-1',
               workspaceId: 'default',
@@ -77,7 +79,13 @@ describe('Studio MCP boundary', () => {
             });
             return Response.json(collections[0], { status: 201 });
           }
-          if (path.startsWith('/api/catalog/collections/')) return Response.json(collections[0]);
+          if (path.startsWith('/api/catalog/collections/')) {
+            body?.addImageIds?.forEach((imageId: string) => members.add(imageId));
+            body?.removeImageIds?.forEach((imageId: string) => members.delete(imageId));
+            return Response.json(collections[0]);
+          }
+          const member = /^\/api\/catalog\?id=([^&]+)&collection_id=/.exec(path);
+          if (member) return Response.json({ images: [], total: Number(members.has(member[1])) });
           if (path.startsWith('/api/catalog?')) return Response.json({ images: [], total: 3 });
           if (path === '/api/workspaces')
             return init?.method === 'POST'
@@ -371,8 +379,14 @@ describe('Studio MCP boundary', () => {
     expect(await (await call('studio_organize_images', organize)).json()).toEqual({
       workspaceId: 'default',
       imageCount: 2,
-      tags: { added: ['pick'], removed: [] },
-      collection: { id: 'collection-1', name: 'Picks', created: true, imageCount: 2 },
+      tags: { added: { pick: ['image-1'] }, removed: {} },
+      collection: {
+        id: 'collection-1',
+        name: 'Picks',
+        created: true,
+        imageCount: 2,
+        addedImageIds: ['image-1', 'image-2'],
+      },
       removedFrom: null,
     });
     // image-2 already has the tag, so only image-1 is patched.
@@ -383,14 +397,37 @@ describe('Studio MCP boundary', () => {
         body: { workspaceId: 'default', name: 'Picks', imageIds: ['image-1', 'image-2'] },
       },
     ]);
-    const repeated = await call('studio_organize_images', {
-      ...organize,
-      addToCollection: 'picks',
+    const repeated = await (
+      await call('studio_organize_images', {
+        ...organize,
+        addTags: ['#Pick', 'v2'],
+        addToCollection: 'picks',
+      })
+    ).json();
+    // image-2 changes for v2 only, so an undo of pick must keep its earlier pick tag.
+    expect(repeated.tags).toEqual({
+      added: { pick: ['image-1'], v2: ['image-1', 'image-2'] },
+      removed: {},
     });
-    expect(await repeated.json()).toMatchObject({ collection: { created: false } });
+    // Both images are members already, so an undo must not remove either of them.
+    expect(repeated).toMatchObject({ collection: { created: false, addedImageIds: [] } });
     expect(requests.at(-1)).toEqual({
       path: '/api/catalog/collections/collection-1',
       body: { addImageIds: ['image-1', 'image-2'] },
+    });
+    // reference-1 never had the tag or the membership, so only image-2 is listed as removed.
+    const removed = await call('studio_organize_images', {
+      workspaceId: 'default',
+      imageIds: ['image-2', 'reference-1'],
+      removeTags: ['pick'],
+      removeFromCollection: 'Picks',
+    });
+    expect(await removed.json()).toEqual({
+      workspaceId: 'default',
+      imageCount: 2,
+      tags: { added: {}, removed: { pick: ['image-2'] } },
+      collection: null,
+      removedFrom: { id: 'collection-1', name: 'Picks', removedImageIds: ['image-2'] },
     });
     expect(await (await call('studio_workspaces', { workspaceId: 'default' })).json()).toEqual({
       workspace: { id: 'default', name: 'Default' },

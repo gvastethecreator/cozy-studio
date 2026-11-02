@@ -22,7 +22,7 @@ Rules:
 - `language`: `en` or `es`. [Creation & startup > Language]
 - `preferredWorkflow`: `default`, `remaster`, `character-poses`, `character-sprites`, `character-scenes`, `character-variants`, `character-transforms`, `character`, `character-lab`, `camera`, `cinematic`, `timeline`, `animation-sequence`, `spritesheet` or `sprite-atlas`. [Creation & startup > Startup workflow]
 - `disabledWorkflowModules`: module ids from the tool schema, for example `camera` or `sprite-atlas`. The list replaces the saved list. Create (`default`) is not a module and stays on. [Styles & workflows > Workflow modules]
-- `defaultStyleIntensity`: 0 to 1, the `strength` of styles that do not set one. [Creation & startup > Default style intensity]
+- `defaultStyleIntensity`: 0.1 to 1, the `strength` of styles that do not set one. [Creation & startup > Default style intensity]
 - `defaultStyleReferenceMode`: `preserve` or `reinterpret`. [Creation & startup > Default style reference mode]
 - `intentionalStylesV1`: `true` or `false`. It picks the style compiler: see [styles-and-packs.md](styles-and-packs.md). [Creation & startup > Detailed style instructions]
 - `outputOrganization.subfolderTokens`: up to 6 of `workspace`, `date`, `provider`, `model`, `recipe` and `workflow`, in folder order. The list replaces the saved list. `[]` means no subfolders. [Files & naming > Folder structure]

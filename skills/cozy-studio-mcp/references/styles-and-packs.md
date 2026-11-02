@@ -20,7 +20,7 @@ Studio compiles `styles` on the server with the same functions and Settings as t
 
 Pass `styles` to `studio_generate` or `studio_plan_generation`:
 
-- `styles: [{packId, presetId, strength?}]`, one to five presets. `strength` is 0 to 1. It defaults to the Settings style intensity (`defaultStyleIntensity`, 0.75 unless the user changed it).
+- `styles: [{packId, presetId, strength?}]`, one to five presets. `strength` is 0.1 to 1. It defaults to the Settings style intensity (`defaultStyleIntensity`, 0.75 unless the user changed it). For a baseline without style, leave `styles` out.
 - `styles` runs the styles recipe. Leave `recipeId` out.
 - `styleMode` sets how styles treat `referenceIds`. It defaults to the Settings `defaultStyleReferenceMode`, `preserve` unless the user changed it.
 
@@ -66,7 +66,7 @@ These tools need Full control access.
    - Done when `studio_extensions` lists the pack at the new version and `studio_find_styles` with its `stylePack.id` as `packId` returns presets.
 
 3. Remove.
-   - `studio_remove_extension` with `{extensionId}` deletes a downloaded pack and its layers from disk. Built-in and local packs cannot be removed. Follow **Ask before destructive tools** in [SKILL.md](../SKILL.md).
+   - `studio_remove_extension` with `{extensionId}` deletes a downloaded pack and its layers from disk. Built-in and local packs cannot be removed. Follow **Ask before destructive steps** in [SKILL.md](../SKILL.md).
    - A new Studio with no packs installs the Essentials pack (`cozy.pack-00`) once. After the user removes it, it stays removed.
    - Done when `studio_extensions` no longer lists the pack.
 

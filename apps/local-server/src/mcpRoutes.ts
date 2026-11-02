@@ -308,11 +308,14 @@ export function createMcpRoutes({
         .then((response) => response.json())
         .catch(() => null);
     // A failed read stops the call before any write: an empty list would hide existing names.
+    const readFailed = (path: string) => {
+      const error = `Could not read ${path}. Nothing changed. Call studio_status, then retry.`;
+      return new HTTPException(500, { res: c.json({ error }, 500) });
+    };
     const list = async <T>(path: string) => {
       const value: unknown = await readJson(path);
       if (Array.isArray(value)) return value as T[];
-      const error = `Could not read ${path}. Nothing changed. Call studio_status, then retry.`;
-      throw new HTTPException(500, { res: c.json({ error }, 500) });
+      throw readFailed(path);
     };
     const unorganizedCount = (workspaceId?: string) =>
       readJson(
@@ -481,12 +484,24 @@ export function createMcpRoutes({
           : [];
         // PATCH checks each image's own tags (at most 32), so check them all here first.
         const retagged: string[] = [];
+        // Per tag, the images that gain or lose it, so an undo touches only those images.
+        const added: Record<string, string[]> = {};
+        const removed: Record<string, string[]> = {};
+        const record = (
+          byTag: Record<string, string[]>,
+          from: string[],
+          to: string[],
+          id: string,
+        ) => from.filter((tag) => !to.includes(tag)).forEach((tag) => (byTag[tag] ??= []).push(id));
         const rejected: string[] = [];
         let tagError = '';
         for (const image of tagChanges ? (images as CatalogImage[]) : []) {
           try {
             const tags = applyCatalogTagChanges(image.tags, tagChanges!, knownTags);
-            if (tags.join('\n') !== image.tags.join('\n')) retagged.push(image.id);
+            if (tags.join('\n') === image.tags.join('\n')) continue;
+            retagged.push(image.id);
+            record(added, tags, image.tags, image.id);
+            record(removed, image.tags, tags, image.id);
           } catch (error) {
             rejected.push(image.id);
             tagError = error instanceof Error ? error.message : 'Invalid tags.';
@@ -495,8 +510,11 @@ export function createMcpRoutes({
         if (rejected.length)
           return c.json({ error: `${tagError} Nothing changed.`, imageIds: rejected }, 400);
         let addName: string | undefined;
+        let removeName: string | undefined;
         try {
           addName = input.addToCollection && validateCatalogCollectionName(input.addToCollection);
+          removeName =
+            input.removeFromCollection && validateCatalogCollectionName(input.removeFromCollection);
         } catch (error) {
           return c.json({ error: error instanceof Error ? error.message : 'Invalid name' }, 400);
         }
@@ -506,20 +524,33 @@ export function createMcpRoutes({
         const byName = (name: string) =>
           collections.find((collection) => collection.name.toLowerCase() === name.toLowerCase());
         const target = addName ? byName(addName) : undefined;
-        const removeFrom = input.removeFromCollection
-          ? byName(input.removeFromCollection)
-          : undefined;
-        if (input.removeFromCollection && !removeFrom)
+        const removeFrom = removeName ? byName(removeName) : undefined;
+        if (removeName && !removeFrom)
           return c.json(
             {
               error: 'removeFromCollection is not a collection in this workspace. Nothing changed.',
             },
             400,
           );
+        // Members before the writes, so the result lists only the images this call changed.
+        const membersOf = async (collectionId: string) => {
+          const members = new Set<string>();
+          await Promise.all(
+            imageIds.map(async (imageId) => {
+              const path = `/api/catalog?id=${imageId}&collection_id=${collectionId}&limit=1`;
+              const total = ((await readJson(path)) as { total?: unknown } | null)?.total;
+              if (typeof total !== 'number') throw readFailed(path);
+              if (total) members.add(imageId);
+            }),
+          );
+          return members;
+        };
+        const alreadyIn = target ? await membersOf(target.id) : new Set<string>();
+        const wasIn = removeFrom ? await membersOf(removeFrom.id) : new Set<string>();
 
-        // ponytail: up to 100 per-image PATCHes, not one transaction; every step is idempotent,
-        // so a repeated call converges. Add POST /api/catalog/commands/organize if partial
-        // failures show up.
+        // ponytail: up to 100 per-image reads and PATCHes, not one transaction; every step is
+        // idempotent, so a repeated call converges. Add POST /api/catalog/commands/organize if
+        // partial failures show up.
         for (const imageId of retagged) {
           const response = await send('PATCH', `/api/catalog/${imageId}`, tagChanges);
           if (!response.ok) return response;
@@ -538,6 +569,7 @@ export function createMcpRoutes({
             name: saved.name,
             created: !target,
             imageCount: saved.imageCount,
+            addedImageIds: imageIds.filter((imageId) => !alreadyIn.has(imageId)),
           };
         }
         if (removeFrom) {
@@ -549,12 +581,15 @@ export function createMcpRoutes({
         return c.json({
           workspaceId,
           imageCount: imageIds.length,
-          tags: {
-            added: addTags ? applyCatalogTagChanges([], { addTags }, knownTags) : [],
-            removed: removeTags ?? [],
-          },
+          tags: { added, removed },
           collection,
-          removedFrom: removeFrom ? { id: removeFrom.id, name: removeFrom.name } : null,
+          removedFrom: removeFrom
+            ? {
+                id: removeFrom.id,
+                name: removeFrom.name,
+                removedImageIds: imageIds.filter((imageId) => wasIn.has(imageId)),
+              }
+            : null,
         });
       }
       case 'studio_cancel':

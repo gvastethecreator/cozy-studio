@@ -1,5 +1,13 @@
-import { describe, expect, it } from 'vitest';
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { describe, expect, it, onTestFinished } from 'vitest';
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -326,13 +334,36 @@ describe('outputSources', () => {
         tags: ['external-output-source', 'comfy', registration.source.id],
       });
       expect(catalogImages[0].filePath).toContain(path.join('outputs', 'external'));
+
+      // The source app reuses the file name; a re-import keeps the first Library file.
+      writeFileSync(path.join(sourceDir, 'hero.webp'), 'new pixels');
+      const reimport = await importExternalOutputSourceFiles({
+        storage,
+        sourceId: registration.source.id,
+        libraryDir,
+        input: { files: ['hero.webp'] },
+        ensureThumbnailVariant: async (filePath) => `${filePath}.thumb.webp`,
+        registerCatalogImage(input) {
+          const image = { ...catalogImages[0], id: 'catalog-2', filePath: input.filePath };
+          catalogImages.push(image);
+          return image;
+        },
+      });
+      expect(reimport).toMatchObject({
+        ok: true,
+        result: { imported: [{ sourceFile: 'hero.webp', catalogId: 'catalog-2' }], skipped: [] },
+      });
+      expect(catalogImages[1].filePath).not.toBe(catalogImages[0].filePath);
+      expect(readFileSync(catalogImages[0].filePath, 'utf8')).toBe('webp');
+      expect(readFileSync(catalogImages[1].filePath, 'utf8')).toBe('new pixels');
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
   });
 
   it('keeps same-name nested imports from overwriting each other', async () => {
-    const root = path.join(process.cwd(), 'tmp', 'output-source-import-collision');
+    const root = mkdtempSync(path.join(tmpdir(), 'cozy-studio-output-import-collision-'));
+    onTestFinished(() => rmSync(root, { recursive: true, force: true }));
     const sourceDir = path.join(root, 'source');
     const libraryDir = path.join(root, 'library');
     const catalogImages: CatalogImage[] = [];
@@ -356,7 +387,6 @@ describe('outputSources', () => {
       copyFile: ((_source, destination) => {
         copiedDestinations.push(String(destination));
       }) as typeof copyFileSync,
-      makeDir: (() => undefined) as typeof mkdirSync,
       statPath: (() => ({ isFile: () => true, size: 5 })) as unknown as typeof statSync,
       ensureThumbnailVariant: async (filePath) => `${filePath}.thumb.webp`,
       registerCatalogImage(input) {

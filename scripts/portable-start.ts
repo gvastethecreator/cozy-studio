@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync } from 'node:fs';
 import path from 'node:path';
 import { parseListeningUrl, portableServerArgv, resolvePortableLibraryDir } from './portableLaunch';
 import { readBootstrapEnv, resolveStudioDataRoot } from '../apps/local-server/src/config';
@@ -50,7 +50,7 @@ export async function runPortableStart(dependencies: PortableStartDependencies =
   env.STUDIO_LIBRARY_DIR = resolvePortableLibraryDir({
     studioLibraryDir: env.STUDIO_LIBRARY_DIR,
     portable,
-    unpackRoot: cwd,
+    unpackRoot: existsSync(path.join(cwd, 'portable.json')) ? path.dirname(cwd) : cwd,
     homeDefault: path.join(resolveStudioDataRoot(env), 'Library'),
   });
 
@@ -107,7 +107,11 @@ export async function runPortableStart(dependencies: PortableStartDependencies =
     throw new Error('local-server did not report a listening URL before the deadline.');
   }
 
-  (dependencies.openBrowser ?? defaultOpenBrowser)(url);
+  const pendingUpdate = path.join(cwd, '.update-pending');
+  if (existsSync(pendingUpdate)) unlinkSync(pendingUpdate);
+  if (env.STUDIO_PORTABLE_RESTART !== '1') {
+    (dependencies.openBrowser ?? defaultOpenBrowser)(url);
+  }
   return { url, libraryDir: env.STUDIO_LIBRARY_DIR, child };
 }
 

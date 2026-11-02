@@ -16,7 +16,7 @@ elif command -v bun >/dev/null 2>&1; then
   STUDIO_BUN="$(command -v bun)"
 else
   echo "Cozy Studio needs Bun. Install it from https://bun.sh/docs/installation then run this launcher again."
-  if [ -z "${STUDIO_PORTABLE_NONINTERACTIVE:-}" ]; then
+  if [ "${STUDIO_MANAGED_RESTART:-}" != 1 ] && [ -z "${STUDIO_PORTABLE_NONINTERACTIVE:-}" ]; then
     read -r -p "Press Enter to close."
   fi
   exit 1
@@ -24,10 +24,15 @@ fi
 
 export STUDIO_PORTABLE=1
 
-if ! "$STUDIO_BUN" run scripts/portable-start.ts; then
+status=0
+"$STUDIO_BUN" run scripts/portable-start.ts || status=$?
+if [ "$status" -eq 75 ]; then
+  exit 75
+fi
+if [ "$status" -ne 0 ]; then
   echo "Cozy Studio failed to start."
-  if [ -z "${STUDIO_PORTABLE_NONINTERACTIVE:-}" ]; then
+  if [ "${STUDIO_MANAGED_RESTART:-}" != 1 ] && [ -z "${STUDIO_PORTABLE_NONINTERACTIVE:-}" ]; then
     read -r -p "Press Enter to close."
   fi
-  exit 1
+  exit "$status"
 fi

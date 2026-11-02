@@ -40,7 +40,7 @@ if (import.meta.main) {
     port: configuredPort,
     maxRequestBodySize: Math.max(LOCAL_EXTENSION_BODY_LIMIT, LIBRARY_ARCHIVE_MAX_BYTES + 64 * 1024),
     onPortConflict(attemptedPort, nextPort) {
-      if (process.env.STUDIO_MANAGED_RESTART === '1') {
+      if (process.env.STUDIO_MANAGED_RESTART === '1' && process.env.STUDIO_PORTABLE !== '1') {
         throw new Error(
           `Studio backend port ${attemptedPort} is already in use. Close the conflicting server and restart Studio. The managed launcher must keep its configured API port.`,
         );

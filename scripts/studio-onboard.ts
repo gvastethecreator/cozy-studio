@@ -62,9 +62,10 @@ export async function loadStudioOnboardProbe(options?: {
   fetchImpl?: typeof fetch;
   fallback?: () => OnboardingProbe | Promise<OnboardingProbe>;
 }): Promise<OnboardingProbe> {
-  const apiBase = (options?.apiBase ?? process.env.VITE_STUDIO_API_BASE ?? 'http://127.0.0.1:17223')
-    .trim()
-    .replace(/\/+$/, '');
+  // A blank value counts as unset, as in services/studioRuntime.ts.
+  const apiBase = (
+    (options?.apiBase ?? process.env.VITE_STUDIO_API_BASE)?.trim() || 'http://127.0.0.1:17223'
+  ).replace(/\/+$/, '');
   const fetchImpl = options?.fetchImpl ?? fetch;
   const fallback = options?.fallback ?? readLocalOnboardingProbe;
 

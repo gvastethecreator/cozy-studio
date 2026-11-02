@@ -689,7 +689,7 @@ export function createAnimationSequenceService({
         throw new Error('Cannot export GIF without a frame at the contract size.');
       }
 
-      const buffer = encodeGif({
+      const buffer = await encodeGif({
         width: run.contract.dimensions.width,
         height: run.contract.dimensions.height,
         frames: gifFrames,

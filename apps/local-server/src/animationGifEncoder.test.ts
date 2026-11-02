@@ -21,7 +21,7 @@ describe('animationGifEncoder', () => {
   it('keeps binary alpha at 128 and clears previous frames without trails', async () => {
     const first = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 127, 0, 0, 255, 128]);
     const next = new Uint8Array([255, 0, 0, 0, 0, 255, 0, 255, 0, 0, 255, 0]);
-    const gif = encodeGif({
+    const gif = await encodeGif({
       width: 3,
       height: 1,
       transparent: true,
@@ -42,7 +42,7 @@ describe('animationGifEncoder', () => {
 
   it('keeps black and neutral grey exact when transparency has its own slot', async () => {
     const frame = new Uint8Array([0, 0, 0, 255, 128, 128, 128, 255, 255, 255, 255, 0]);
-    const gif = encodeGif({
+    const gif = await encodeGif({
       width: 3,
       height: 1,
       transparent: true,
@@ -52,13 +52,15 @@ describe('animationGifEncoder', () => {
     const { data } = await sharp(gif).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
     expect([...data.subarray(0, 8)]).toEqual([0, 0, 0, 255, 128, 128, 128, 255]);
     expect(data[11]).toBe(0);
+    // A sequence that does not loop plays once: no NETSCAPE loop block.
+    expect(gif.includes(Buffer.from('NETSCAPE2.0', 'ascii'))).toBe(false);
   });
 
-  it('encodes multiple RGBA frames into a GIF89a buffer', () => {
+  it('encodes multiple RGBA frames into a GIF89a buffer', async () => {
     const red = new Uint8Array([255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255]);
     const blue = new Uint8Array([0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255]);
 
-    const gif = encodeGif({
+    const gif = await encodeGif({
       width: 2,
       height: 2,
       loop: true,
@@ -76,13 +78,15 @@ describe('animationGifEncoder', () => {
   it('encodes nontrivial frames that animated GIF decoders can read', async () => {
     const width = 48;
     const height = 32;
-    const frameCount = 2;
-    const gif = encodeGif({
+    // A repeated frame stays a frame of its own.
+    const frameCount = 3;
+    const gif = await encodeGif({
       width,
       height,
       loop: true,
       frames: [
         { rgba: createGradientFrame(width, height, 0), delayCentiseconds: 8 },
+        { rgba: createGradientFrame(width, height, 61), delayCentiseconds: 8 },
         { rgba: createGradientFrame(width, height, 61), delayCentiseconds: 8 },
       ],
     });
@@ -94,7 +98,7 @@ describe('animationGifEncoder', () => {
       pageHeight: height,
       pages: frameCount,
       loop: 0,
-      delay: [80, 80],
+      delay: [80, 80, 80],
     });
 
     const { data, info } = await sharp(gif, { animated: true })

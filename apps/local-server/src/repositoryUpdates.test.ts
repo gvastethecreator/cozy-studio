@@ -1,8 +1,8 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
 import { createRepositoryUpdates } from './repositoryUpdates';
 import { createRepositoryUpdateRoutes } from './repositoryUpdateRoutes';
@@ -23,33 +23,45 @@ afterEach(async () => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
 });
 
-function fixture() {
-  const base = mkdtempSync(join(tmpdir(), 'studio-update-'));
-  roots.push(base);
-  const remote = join(base, 'remote');
-  const root = join(base, 'studio');
+const git = (cwd: string, ...args: string[]) =>
+  execFileSync(
+    'git',
+    [
+      '-c',
+      'user.name=Studio Test',
+      '-c',
+      'user.email=studio@example.invalid',
+      '-c',
+      'commit.gpgsign=false',
+      '-c',
+      'core.hooksPath=',
+      ...args,
+    ],
+    { cwd, encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] },
+  ).trim();
+
+// Build the remote and its clone once; each test gets its own copy.
+let template: string;
+beforeAll(() => {
+  template = mkdtempSync(join(tmpdir(), 'studio-update-template-'));
+  const remote = join(template, 'remote');
   mkdirSync(remote);
-  const git = (cwd: string, ...args: string[]) =>
-    execFileSync(
-      'git',
-      [
-        '-c',
-        'user.name=Studio Test',
-        '-c',
-        'user.email=studio@example.invalid',
-        '-c',
-        'commit.gpgsign=false',
-        '-c',
-        'core.hooksPath=',
-        ...args,
-      ],
-      { cwd, encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] },
-    ).trim();
   git(remote, 'init', '-b', 'main');
   writeFileSync(join(remote, 'app.txt'), 'v1');
   git(remote, 'add', '.');
   git(remote, 'commit', '-m', 'initial');
-  git(base, 'clone', remote, root);
+  git(template, 'clone', remote, join(template, 'studio'));
+  // A relative origin makes every copy fetch from its own remote.
+  git(join(template, 'studio'), 'remote', 'set-url', 'origin', '../remote');
+});
+afterAll(() => rmSync(template, { recursive: true, force: true }));
+
+function fixture() {
+  const base = mkdtempSync(join(tmpdir(), 'studio-update-'));
+  roots.push(base);
+  cpSync(template, base, { recursive: true });
+  const remote = join(base, 'remote');
+  const root = join(base, 'studio');
   function advance(contents = 'v2') {
     writeFileSync(join(remote, 'app.txt'), contents);
     git(remote, 'commit', '-am', 'update');

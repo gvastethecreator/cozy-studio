@@ -85,8 +85,24 @@ export const StudioGridSurface: React.FC<StudioGridSurfaceProps> = ({
 }) => {
   const { addToast } = useToastUi();
   const exportLock = useRef(false);
-  // Images in selection order at open time; the live grid entry wins so favorite marks stay current.
-  const [comparison, setComparison] = useState<GeneratedImageWithConfig[] | null>(null);
+  // Images in selection order at open, the ones the grid showed then and the grid size then.
+  const [comparison, setComparison] = useState<{
+    images: GeneratedImageWithConfig[];
+    inGrid: Set<string>;
+    gridSize: number;
+  } | null>(null);
+  // A refresh reloads only the first page, so a missing image counts as archived, deleted or
+  // moved only when the grid showed it at open and still holds as many entries, or all of them.
+  // ponytail: grid membership only. A grid loaded past its first page misses removals, and a
+  // batch landing mid-comparison can push an image off the page; ask the server if that matters.
+  const gridComplete = !catalog.hasMore || imagesWithConfig.length >= (comparison?.gridSize ?? 0);
+  const comparedImages = comparison?.images.flatMap((image) => {
+    // The live grid entry wins so favorite marks stay current.
+    const live = imagesWithConfig.find((entry) => entry.id === image.id);
+    if (live) return [live];
+    return gridComplete && comparison.inGrid.has(image.id) ? [] : [image];
+  });
+  if (comparedImages && comparedImages.length < 2) setComparison(null);
   const [exportState, setExportState] = useState<{
     message: string;
     running: boolean;
@@ -217,7 +233,15 @@ export const StudioGridSurface: React.FC<StudioGridSurfaceProps> = ({
             isExporting={exportState?.running}
             onCompareSelected={() => {
               if (selectedImages.length >= 2 && selectedImages.length <= COMPARE_MAX_IMAGES)
-                setComparison(selectedImages);
+                setComparison({
+                  images: selectedImages,
+                  inGrid: new Set(
+                    selectedImages
+                      .filter((image) => imagesWithConfig.some((entry) => entry.id === image.id))
+                      .map((image) => image.id),
+                  ),
+                  gridSize: imagesWithConfig.length,
+                });
             }}
             onImageClick={openModal}
             onSelectionChange={handleSelectionChange}
@@ -245,11 +269,9 @@ export const StudioGridSurface: React.FC<StudioGridSurfaceProps> = ({
           />
         </ErrorBoundary>
       </div>
-      {comparison && (
+      {comparedImages && comparedImages.length >= 2 && (
         <ImageComparison
-          images={comparison.map(
-            (image) => imagesWithConfig.find((entry) => entry.id === image.id) ?? image,
-          )}
+          images={comparedImages}
           workspaceId={activeWorkspaceId}
           onToggleFavorite={handleToggleFavorite}
           onClose={() => setComparison(null)}

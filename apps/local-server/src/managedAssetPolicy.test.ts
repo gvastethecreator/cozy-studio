@@ -72,6 +72,9 @@ describe('managed generation asset policy', () => {
       expect(isManagedGenerationAssetPath(path.join(link, 'secret.png'), context)).toBe(false);
       // A file that does not exist yet still resolves through the link's real target.
       expect(isManagedGenerationAssetPath(path.join(link, 'not-yet.png'), context)).toBe(false);
+      // A dangling link cannot prove where it points, so it fails closed.
+      rmSync(outsideRoot, { recursive: true, force: true });
+      expect(isManagedGenerationAssetPath(path.join(link, 'secret.png'), context)).toBe(false);
     } finally {
       rmSync(root, { recursive: true, force: true });
       rmSync(outsideRoot, { recursive: true, force: true });

@@ -1,11 +1,24 @@
-import { realpathSync } from 'node:fs';
+import { lstatSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 
 function comparable(value: string) {
   return process.platform === 'win32' ? value.toLowerCase() : value;
 }
 
-/** Resolves symlinks and junctions. A missing tail stays under the real path of its deepest existing parent. */
+function entryExists(filePath: string) {
+  try {
+    lstatSync(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolves symlinks and junctions. A missing tail stays under the real path of its deepest existing
+ * parent. Returns null when an existing entry cannot be resolved (a dangling or looping link, or no
+ * access), so callers can fail closed.
+ */
 function realPathOf(filePath: string) {
   const missing: string[] = [];
   let current = path.resolve(filePath);
@@ -13,6 +26,7 @@ function realPathOf(filePath: string) {
     try {
       return path.join(realpathSync(current), ...missing);
     } catch {
+      if (entryExists(current)) return null;
       const parent = path.dirname(current);
       if (parent === current) return path.join(current, ...missing);
       missing.unshift(path.basename(current));
@@ -43,5 +57,9 @@ export function isPathInside(
 ) {
   const written = isInsideResolved(path.resolve(root), path.resolve(target), allowRoot);
   if (written === eitherView) return written;
-  return isInsideResolved(realPathOf(root), realPathOf(target), allowRoot);
+  const realRoot = realPathOf(root);
+  const realTarget = realPathOf(target);
+  // An unresolvable link fails closed: outside for an allow check, inside for a block check.
+  if (realRoot === null || realTarget === null) return eitherView;
+  return isInsideResolved(realRoot, realTarget, allowRoot);
 }

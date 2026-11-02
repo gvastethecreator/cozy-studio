@@ -135,7 +135,7 @@ export default defineConfig({
               patterns: [
                 {
                   regex:
-                    '(^|/)(providerInputCompiler|externalProviderResults|(google|fal|openaiImages|replicate|comfy|grokImagine|grokImagineHttp|grokRuntime|antigravityImage|chatgptResponsesImage)Executor)$',
+                    '(^|/)(providerInputCompiler|externalProviderResults|(google|fal|openaiImages|replicate|comfy|grokImagine|grokImagineHttp|grokRuntime|antigravityImage|chatgptResponsesImage)Executor)(\.[cm]?[jt]sx?)?$',
                   message:
                     'Keep provider compilers and concrete executors behind apps/local-server/src/providers/.',
                 },
@@ -157,12 +157,12 @@ export default defineConfig({
             {
               patterns: [
                 {
-                  regex: '(^|/)providerInputCompiler$',
+                  regex: '(^|/)providerInputCompiler(\.[cm]?[jt]sx?)?$',
                   message: 'Recipe surfaces collect UI params only; providers compile inputs.',
                 },
                 {
                   regex:
-                    '(^|/)(lib/recipeModules(/index|/taskSpec)?|packages/shared/src(/index|/generationContracts)?)$',
+                    '(^|/)(lib/recipeModules(/index|/taskSpec)?|packages/shared/src(/index|/generationContracts)?)(\.[cm]?[jt]sx?)?$',
                   importNames: [
                     'buildGenerationTaskSpecFromRecipe',
                     'createGenerationTaskSpec',
@@ -184,7 +184,8 @@ export default defineConfig({
             {
               patterns: [
                 {
-                  regex: '(^|/)(catalogImageGenerationConfig|useIndexedDBStorage|GlobalContext)$',
+                  regex:
+                    '(^|/)(catalogImageGenerationConfig|useIndexedDBStorage|GlobalContext)(\.[cm]?[jt]sx?)?$',
                   message:
                     'Catalog View and useCatalog query Catalog Entries directly, not export adapters or retired browser batch state.',
                 },
@@ -219,7 +220,7 @@ export default defineConfig({
                 },
                 {
                   regex:
-                    '(^|/)(ui/GsapDropdown|studio/StudioGridSurface|RecipesView|RecipePage|QueuePanel)$',
+                    '(^|/)(ui/GsapDropdown|studio/StudioGridSurface|RecipesView|RecipePage|QueuePanel)(\.[cm]?[jt]sx?)?$',
                   importNamePattern: '.',
                   allowTypeImports: true,
                   message:

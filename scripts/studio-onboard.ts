@@ -60,7 +60,7 @@ export function resolveStudioOnboardConsent(input: {
 export async function loadStudioOnboardProbe(options?: {
   apiBase?: string;
   fetchImpl?: typeof fetch;
-  fallback?: () => OnboardingProbe;
+  fallback?: () => OnboardingProbe | Promise<OnboardingProbe>;
 }): Promise<OnboardingProbe> {
   const apiBase = (options?.apiBase ?? process.env.VITE_STUDIO_API_BASE ?? 'http://127.0.0.1:17223')
     .trim()

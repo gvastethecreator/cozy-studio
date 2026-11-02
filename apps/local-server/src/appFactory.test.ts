@@ -91,8 +91,8 @@ vi.mock('./animationSequenceRunReconciler', async (importOriginal) => {
   };
 });
 
-vi.mock('./grokRuntimeDoctor', () => ({
-  readGrokRuntimeDoctor: vi.fn(() => ({
+vi.mock('./grokRuntimeDoctor', () => {
+  const report = {
     status: 'ready',
     canRunJobs: true,
     checkedAt: '2026-08-08T00:00:00.000Z',
@@ -106,11 +106,15 @@ vi.mock('./grokRuntimeDoctor', () => ({
     recommendedAction: 'Grok Imagine is ready.',
     issues: [],
     candidates: [],
-  })),
-}));
+  };
+  return {
+    readGrokRuntimeDoctor: vi.fn(() => report),
+    loadGrokRuntimeDoctor: vi.fn(async () => report),
+  };
+});
 
-vi.mock('./antigravityRuntimeDoctor', () => ({
-  readAntigravityRuntimeDoctor: vi.fn(() => ({
+vi.mock('./antigravityRuntimeDoctor', () => {
+  const report = {
     status: 'blocked',
     canRunJobs: false,
     checkedAt: '2026-09-02T00:00:00.000Z',
@@ -130,8 +134,12 @@ vi.mock('./antigravityRuntimeDoctor', () => ({
       },
     ],
     candidates: [],
-  })),
-}));
+  };
+  return {
+    readAntigravityRuntimeDoctor: vi.fn(() => report),
+    loadAntigravityRuntimeDoctor: vi.fn(async () => report),
+  };
+});
 
 type StudioStoreOverrides = Partial<StudioJobStore & StudioAssetStore & StudioLogStore>;
 

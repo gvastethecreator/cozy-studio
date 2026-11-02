@@ -1,5 +1,5 @@
 import { runProviderCliProcess } from './providerCliProcess';
-import { providerSync, type ProviderEffect } from './providerEffect';
+import { providerPromise, providerSync, type ProviderEffect } from './providerEffect';
 import { Effect, Result } from 'effect';
 import { providerOperation } from './providerEffect';
 import {
@@ -25,7 +25,7 @@ import {
   resolveAntigravityHome,
 } from '../antigravityExecutable';
 import {
-  readAntigravityRuntimeDoctor,
+  loadAntigravityRuntimeDoctor,
   type AntigravityRuntimeDoctorReport,
 } from '../antigravityRuntimeDoctor';
 import { resolveLibraryPath, resolveLibraryPathFromRoot } from '../library';
@@ -66,7 +66,9 @@ export interface RunAntigravityCliInput {
 export interface AntigravityImageExecutorDependencies {
   env?: NodeJS.ProcessEnv;
   runCli?: (input: RunAntigravityCliInput) => ProviderEffect<AntigravityCliRunResult>;
-  readRuntimeDoctor?: () => AntigravityRuntimeDoctorReport;
+  readRuntimeDoctor?: () =>
+    | AntigravityRuntimeDoctorReport
+    | Promise<AntigravityRuntimeDoctorReport>;
   resolveExecutable?: typeof resolveAntigravityExecutable;
   resolveHome?: typeof resolveAntigravityHome;
   resolveDefaultLibraryPath?: typeof resolveLibraryPath;
@@ -360,7 +362,7 @@ function configuredTimeoutMs(env: NodeJS.ProcessEnv) {
 export function createAntigravityImageExecutor({
   env = process.env,
   runCli = runAntigravityCliProcess,
-  readRuntimeDoctor = readAntigravityRuntimeDoctor,
+  readRuntimeDoctor = loadAntigravityRuntimeDoctor,
   resolveExecutable = resolveAntigravityExecutable,
   resolveHome = resolveAntigravityHome,
   resolveDefaultLibraryPath = resolveLibraryPath,
@@ -381,7 +383,7 @@ export function createAntigravityImageExecutor({
         if (input.payload.output.count !== 1) {
           throw new Error('Antigravity requires exactly one output image per Job.');
         }
-        const runtime = readRuntimeDoctor();
+        const runtime = yield* providerPromise(async () => readRuntimeDoctor());
         if (!runtime.canRunJobs) {
           throw new Error(`Antigravity runtime is not ready: ${runtime.recommendedAction}`);
         }

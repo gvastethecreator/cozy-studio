@@ -4,25 +4,28 @@ import {
   type OnboardingProbe,
 } from '../../../packages/shared/src';
 import { getSettings, hasEnvLocalFile } from './config';
-import { readCodexRuntimeDoctor } from './codexRuntimeDoctor';
-import { grokOnboardingFactsFromDoctor, readGrokRuntimeDoctor } from './grokRuntimeDoctor';
+import { loadCodexRuntimeDoctor } from './codexRuntimeDoctor';
+import { grokOnboardingFactsFromDoctor, loadGrokRuntimeDoctor } from './grokRuntimeDoctor';
 import { inspectLibrary } from './library';
 import { isAppServerRunning } from './codex/processSupervisor';
 import { getSubscriptionAuthStore, isSubscriptionLoggedIn } from './auth/store';
 import { readXaiApiKey } from './auth/tokens';
 
-export function readLocalOnboardingProbe(): OnboardingProbe {
+export async function readLocalOnboardingProbe(): Promise<OnboardingProbe> {
   const bunVersion =
     typeof globalThis === 'object' && 'Bun' in globalThis
       ? ((globalThis as { Bun?: { version?: string } }).Bun?.version ?? null)
       : null;
   const settings = getSettings();
   const library = inspectLibrary();
-  const doctor = readCodexRuntimeDoctor();
+  const [doctor, grokDoctor] = await Promise.all([
+    loadCodexRuntimeDoctor(),
+    loadGrokRuntimeDoctor(),
+  ]);
   const studioLibraryReady =
     library.exists && library.writable && library.missingFolders.length === 0;
 
-  const grok = grokOnboardingFactsFromDoctor(readGrokRuntimeDoctor());
+  const grok = grokOnboardingFactsFromDoctor(grokDoctor);
   let codexSignedIn = false;
   let grokSignedIn = false;
   try {

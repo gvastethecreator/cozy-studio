@@ -181,8 +181,13 @@ const TASKS: Record<string, TaskDefinition> = {
     ],
   },
   validate: {
-    description: 'Main PR quality gate: architecture, check, test, build.',
+    description: 'Main PR quality gate: installed deps, architecture, check, test, build.',
     steps: [
+      {
+        label: 'Installed Deps Verify',
+        command: 'bun',
+        args: ['run', 'scripts/verify-installed-deps.ts'],
+      },
       {
         label: 'Architecture Source Verify',
         command: 'bun',

@@ -3,7 +3,6 @@ import { readFile } from 'node:fs/promises';
 import { Hono, type Context } from 'hono';
 import type {
   CatalogImage,
-  CreateSpriteAtlasRowJobsRequest,
   CreateSpriteAtlasRunRequest,
   ImportSpriteAtlasRowRequest,
 } from '../../../packages/shared/src';
@@ -96,41 +95,6 @@ export function createSpriteAtlasRoutes({
     }
     const run = await spriteAtlas.createRun(body as CreateSpriteAtlasRunRequest);
     return c.json(run, 201);
-  });
-
-  routes.post('/runs/:id/row-jobs', async (c) => {
-    const body = await readJsonBody(c);
-    if ('__invalidJson' in body) {
-      return c.json({ error: 'Invalid request body', code: 'invalid_json' }, 400);
-    }
-    const rowId = typeof body.rowId === 'string' ? body.rowId : '';
-    if (!rowId) return c.json({ error: 'rowId is required', code: 'invalid_request_body' }, 400);
-    try {
-      const job = await spriteAtlas.createRowJob(c.req.param('id'), rowId);
-      if (!job) return c.json({ error: 'Sprite Atlas row not found' }, 404);
-      return c.json(job, 201);
-    } catch (error) {
-      return c.json(actionError(error), 409);
-    }
-  });
-
-  routes.post('/runs/:id/row-jobs/batch', async (c) => {
-    const body = await readJsonBody(c);
-    if ('__invalidJson' in body) {
-      return c.json({ error: 'Invalid request body', code: 'invalid_json' }, 400);
-    }
-    const input = body as CreateSpriteAtlasRowJobsRequest;
-    if (input.rowIds !== undefined && !Array.isArray(input.rowIds)) {
-      return c.json({ error: 'rowIds must be an array', code: 'invalid_request_body' }, 400);
-    }
-    const rowIds = input.rowIds?.filter((rowId) => typeof rowId === 'string' && rowId.trim());
-    try {
-      const result = await spriteAtlas.createRowJobs(c.req.param('id'), rowIds);
-      if (!result) return c.json({ error: 'Sprite Atlas run not found' }, 404);
-      return c.json(result, 201);
-    } catch (error) {
-      return c.json(actionError(error), 409);
-    }
   });
 
   routes.post('/runs/:id/import-row', async (c) => {

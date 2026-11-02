@@ -77,14 +77,16 @@ describe('animationGifEncoder', () => {
     const width = 48;
     const height = 32;
     const frameCount = 2;
+    // Frame 0 is fully opaque; the transparent strip in frame 1 must still decode as transparent.
+    const strip = createGradientFrame(width, height, 61);
+    for (let offset = width * 8 * 4; offset < width * 24 * 4; offset += 4) strip[offset + 3] = 0;
+    const frames = [createGradientFrame(width, height, 0), strip];
     const gif = encodeGif({
       width,
       height,
+      transparent: true,
       loop: true,
-      frames: [
-        { rgba: createGradientFrame(width, height, 0), delayCentiseconds: 8 },
-        { rgba: createGradientFrame(width, height, 61), delayCentiseconds: 8 },
-      ],
+      frames: frames.map((rgba) => ({ rgba, delayCentiseconds: 8 })),
     });
 
     const metadata = await sharp(gif, { animated: true }).metadata();
@@ -98,9 +100,12 @@ describe('animationGifEncoder', () => {
     });
 
     const { data, info } = await sharp(gif, { animated: true })
+      .ensureAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
-    expect(info).toMatchObject({ width, height: height * frameCount });
+    expect(info).toMatchObject({ width, height: height * frameCount, channels: 4 });
     expect(data).toHaveLength(width * height * frameCount * info.channels);
+    const alphaOf = (rgba: Uint8Array) => [...rgba.filter((_, index) => index % 4 === 3)];
+    expect(alphaOf(data)).toEqual(frames.flatMap(alphaOf));
   });
 });

@@ -21,6 +21,7 @@ import path from 'node:path';
 import { resolveGrokExecutable, resolveGrokHome } from '../grokExecutable';
 import { loadGrokRuntimeDoctor, type GrokRuntimeDoctorReport } from '../grokRuntimeDoctor';
 import { resolveLibraryPath, resolveLibraryPathFromRoot } from '../library';
+import { isPathInside } from '../pathContainment';
 import type {
   ExternalProviderExecutionContext,
   ExternalProviderExecutor,
@@ -80,14 +81,6 @@ export function runGrokCliProcess(input: RunGrokCliInput): ProviderEffect<GrokCl
   });
 }
 
-function isInside(root: string, target: string) {
-  const relative = path.relative(root, target);
-  return (
-    relative === '' ||
-    (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative))
-  );
-}
-
 function resolveManagedSourceFiles(payload: GrokImagineCompiledPayload, libraryRoot: string) {
   const sourceFiles = payload.assets.map((asset) => {
     if (asset.hasInlineData) {
@@ -108,7 +101,7 @@ function resolveManagedSourceFiles(payload: GrokImagineCompiledPayload, libraryR
     }
     const realRoot = realpathSync(libraryRoot);
     const realSource = realpathSync(source);
-    if (!isInside(realRoot, realSource)) {
+    if (!isPathInside(realRoot, realSource)) {
       throw new Error(`Grok Imagine source image is outside the Job Studio Library: ${source}.`);
     }
     return { ...asset, localPath: realSource };

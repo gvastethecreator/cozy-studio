@@ -29,6 +29,7 @@ import {
   type AntigravityRuntimeDoctorReport,
 } from '../antigravityRuntimeDoctor';
 import { resolveLibraryPath, resolveLibraryPathFromRoot } from '../library';
+import { isPathInside } from '../pathContainment';
 import type {
   ExternalProviderExecutionContext,
   ExternalProviderExecutor,
@@ -95,14 +96,6 @@ export function runAntigravityCliProcess(
   });
 }
 
-function isInside(root: string, target: string) {
-  const relative = path.relative(root, target);
-  return (
-    relative === '' ||
-    (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative))
-  );
-}
-
 function normalizeComparablePath(value: string) {
   const normalized = path.normalize(value);
   return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
@@ -117,7 +110,7 @@ function assertOwnedTemporaryDirectory(candidate: string) {
     !info.isDirectory() ||
     info.isSymbolicLink() ||
     !path.basename(resolved).startsWith(TEMPORARY_DIRECTORY_PREFIX) ||
-    !isInside(realTemporaryRoot, realCandidate)
+    !isPathInside(realTemporaryRoot, realCandidate)
   ) {
     throw new Error('Antigravity temporary workspace is not a Studio-owned directory.');
   }
@@ -163,7 +156,7 @@ function stageManagedSources(
       throw new Error(`Antigravity source image must be PNG, JPEG, GIF, or WebP: ${sourcePath}.`);
     }
     const realSourcePath = realpathSync(sourcePath);
-    if (!isInside(realLibraryRoot, realSourcePath)) {
+    if (!isPathInside(realLibraryRoot, realSourcePath)) {
       throw new Error(`Antigravity source image is outside the Job Studio Library: ${sourcePath}.`);
     }
     const stagedPath = path.join(
@@ -322,7 +315,7 @@ function resolveArtifactDirectory(home: string, conversationId: string) {
   if (!existsSync(artifactDirectory)) return artifactDirectory;
   const realBrainDirectory = realpathSync(brainDirectory);
   const realArtifactDirectory = realpathSync(artifactDirectory);
-  if (!isInside(realBrainDirectory, realArtifactDirectory)) {
+  if (!isPathInside(realBrainDirectory, realArtifactDirectory)) {
     throw new Error('Antigravity artifact directory escaped its configured brain directory.');
   }
   return realArtifactDirectory;
@@ -342,7 +335,7 @@ function listArtifactImages(artifactDirectory: string) {
         pending.push(target);
       } else if (entry.isFile() && IMAGE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
         const realTarget = realpathSync(target);
-        if (!isInside(realRoot, realTarget)) {
+        if (!isPathInside(realRoot, realTarget)) {
           throw new Error('Antigravity artifact image escaped its conversation directory.');
         }
         images.push(realTarget);

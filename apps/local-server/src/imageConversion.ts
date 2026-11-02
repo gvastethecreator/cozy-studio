@@ -13,6 +13,7 @@ import type { StudioLibrary } from './libraries';
 import { catalogImageMetadata, jobImageMetadata } from './providers/jobImageMetadata';
 import { embedMetadata, extractMetadata, type ImageGenMetadata } from './metadataEmbedder';
 import { reserveOutputPath } from './outputDestination';
+import { isPathInside } from './pathContainment';
 import { authoringSharp } from './sharpAuthoringAdapter';
 
 export class ImageConversionError extends Error {
@@ -43,11 +44,6 @@ type ConversionOutput =
       outputBytes: number;
       mimeType: string;
     };
-
-function isInside(root: string, filePath: string) {
-  const relative = path.relative(root, filePath);
-  return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
-}
 
 async function sourceMetadata(image: CatalogImage, getJob: ImageConversionDependencies['getJob']) {
   const embedded = await extractMetadata(image.filePath);
@@ -83,7 +79,7 @@ export function createImageConversion({
     let sourcePath: string;
     try {
       sourcePath = await realpath(source.filePath);
-      if (!isInside(await realpath(library.path), sourcePath)) {
+      if (!isPathInside(await realpath(library.path), sourcePath)) {
         throw new ImageConversionError('The image must stay inside its registered library.', 400);
       }
     } catch (error) {
@@ -181,7 +177,7 @@ export function createImageConversion({
       await mkdir(output.rootPath, { recursive: true });
       const root = await realpath(output.rootPath);
       const registeredRoot = await realpath(outputLibrary.path);
-      if (root !== registeredRoot && !isInside(registeredRoot, root)) {
+      if (!isPathInside(registeredRoot, root, { allowRoot: true })) {
         throw new ImageConversionError('The output must stay inside its registered library.', 400);
       }
       const destinationPath = reserveOutputPath(

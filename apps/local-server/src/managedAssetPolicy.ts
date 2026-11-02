@@ -1,13 +1,9 @@
 import { existsSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import type { GenerationTaskSpec, JobLibraryContext } from '../../../packages/shared/src';
+import { isPathInside } from './pathContainment';
 
 const MANAGED_ASSET_ROOTS = [['outputs'], ['.studio', 'references'], ['.studio', 'masks']] as const;
-
-function isInside(rootPath: string, candidatePath: string) {
-  const relative = path.relative(rootPath, candidatePath);
-  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
-}
 
 function canonicalPath(filePath: string) {
   return existsSync(filePath) ? realpathSync(filePath) : path.resolve(filePath);
@@ -19,20 +15,20 @@ export function isManagedGenerationAssetPath(filePath: string, libraryContext: J
     const candidate = canonicalPath(filePath);
     if (
       registered.outputOnly
-        ? isInside(root, candidate)
+        ? isPathInside(root, candidate)
         : MANAGED_ASSET_ROOTS.some((segments) =>
-            isInside(canonicalPath(path.join(root, ...segments)), candidate),
+            isPathInside(canonicalPath(path.join(root, ...segments)), candidate),
           )
     )
       return true;
   }
   const libraryRoot = canonicalPath(libraryContext.rootPath);
   const candidate = canonicalPath(filePath);
-  if (!isInside(libraryRoot, candidate)) return false;
+  if (!isPathInside(libraryRoot, candidate)) return false;
 
   return MANAGED_ASSET_ROOTS.some((segments) => {
     const managedRoot = canonicalPath(path.join(libraryRoot, ...segments));
-    return isInside(managedRoot, candidate);
+    return isPathInside(managedRoot, candidate);
   });
 }
 

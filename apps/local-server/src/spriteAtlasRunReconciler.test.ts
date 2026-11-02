@@ -85,9 +85,13 @@ async function setup() {
     getJob: (jobId) => jobs.get(jobId) ?? null,
     getCatalogImageByJobId: (jobId) => images.get(imageByJob.get(jobId) ?? '') ?? null,
   });
+  // 16 px cells keep layout guides and provider images small. spriteAtlasRoutes.test.ts keeps
+  // the 1024 px to 128 px normalization.
   const run = await service.createRun({
     title: 'courier',
     presetId: 'platformer-character',
+    cellWidth: 16,
+    cellHeight: 16,
   });
 
   function setJob(id: string, status: Job['status'], rowId = 'idle', overrides: Partial<Job> = {}) {
@@ -96,8 +100,8 @@ async function setup() {
     return job;
   }
 
-  /** Completes a job with a Catalog image. A 768 px square with a 128 px band normalizes idle. */
-  async function finishWithImage(id: string, rowId = 'idle', size = 768, bandHeight = 128) {
+  /** Completes a job with a Catalog image. A 96 px square with a 16 px band normalizes idle. */
+  async function finishWithImage(id: string, rowId = 'idle', size = 96, bandHeight = 16) {
     const filePath = path.join(root, `${id}.png`);
     await writeProviderImage(filePath, size, bandHeight);
     images.set(`image-${id}`, { id: `image-${id}`, filePath } as CatalogImage);
@@ -129,10 +133,10 @@ describe('sprite atlas run participant', () => {
     expect(imported).toMatchObject({
       status: 'raw_imported',
       catalogImageId: 'image-job-a',
-      normalization: { normalized: true, sourceSize: { w: 768, h: 768 }, kernel: 'nearest' },
+      normalization: { normalized: true, sourceSize: { w: 96, h: 96 }, kernel: 'nearest' },
     });
     const strip = await sharp(imported.rawPath!).metadata();
-    expect([strip.width, strip.height]).toEqual([768, 128]);
+    expect([strip.width, strip.height]).toEqual([96, 16]);
     expect((await service.getRun(run.id))?.anchor).toEqual({
       rowId: 'idle',
       sha256: imported.sourceSha256,
@@ -206,7 +210,7 @@ describe('sprite atlas run participant', () => {
   it('keeps the previous strip when normalization blocks, then accepts a later sibling', async () => {
     const { root, service, participant, run, setJob, finishWithImage, row } = await setup();
     const firstPath = path.join(root, 'first.png');
-    await writeProviderImage(firstPath, 768, 128);
+    await writeProviderImage(firstPath, 96, 16);
     await service.importRow(run.id, { rowId: 'idle', sourcePath: firstPath });
     const previous = await row();
     const previousBytes = readFileSync(previous.rawPath!);

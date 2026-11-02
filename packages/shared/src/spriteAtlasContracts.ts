@@ -144,10 +144,6 @@ export interface SpriteAtlasRunPaths {
   layoutGuidesDir: string;
   rawDir: string;
   framesDir: string;
-  handoffInboxDir: string;
-  handoffOutboxDir: string;
-  handoffStatusDir: string;
-  handoffLogsDir: string;
   atlasPath: string;
   manifestPath: string;
   qaReportPath: string;
@@ -690,15 +686,9 @@ export interface CreateSpriteAtlasRunRequest {
   transparent?: boolean;
   chromaKey?: string;
   qaMode?: 'standard' | 'strict';
-}
-
-export interface CreateSpriteAtlasRowJobsRequest {
-  rowIds?: string[];
-}
-
-export interface CreateSpriteAtlasRowJobsResponse {
-  jobs: SpriteAtlasRowHandoffJob[];
-  run: SpriteAtlasRun;
+  /** Cell size in px, at least 16. Defaults to the preset cell. */
+  cellWidth?: number;
+  cellHeight?: number;
 }
 
 export interface SpriteAtlasRowPromptResponse {
@@ -721,20 +711,6 @@ export function isSpriteAtlasIdleRow(rowId: string) {
 export function normalizeSpriteAtlasBackgroundRemoval(value: string): SpriteAtlasBackgroundRemoval {
   if (value === 'chroma') return 'chroma';
   return 'alpha';
-}
-
-export interface SpriteAtlasRowHandoffJob {
-  jobId: string;
-  runId: string;
-  rowId: string;
-  status: 'ready';
-  requestPath: string;
-  promptPath: string;
-  layoutGuidePath: string;
-  identityAnchorPath: string | null;
-  expectedOutputPath: string;
-  outboxPattern: string;
-  createdAt: string;
 }
 
 export function isSpriteAtlasPresetId(value: string): value is SpriteAtlasPresetId {

@@ -17,6 +17,7 @@ import {
   type RegisterExternalOutputSourceInput,
 } from '../../../packages/shared/src/outputSources';
 import { resolveLibraryPathFromRoot } from './library';
+import { isPathInside } from './pathContainment';
 import { ensureThumbnailVariant as ensureThumbnailVariantDefault } from './libraryAssetVariants';
 import type { StudioSettingsStorage } from './studioSettingsStore';
 import { isAbsolutePlatformPath } from './platformHome';
@@ -79,11 +80,6 @@ function normalizePath(sourcePath: string) {
   return path.resolve(sourcePath);
 }
 
-function isInside(parentPath: string, candidatePath: string) {
-  const relative = path.relative(parentPath, candidatePath);
-  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
-}
-
 function inferProviderId(sourcePath: string): GenerationProviderId | null {
   const normalized = sourcePath.replace(/\\/g, '/').toLowerCase();
   if (normalized.includes('/.codex/')) return 'codex';
@@ -139,10 +135,7 @@ function toSafeAssetFileName(sourceId: string, relativePath: string) {
 
 function resolveSourceFile(sourceRoot: string, relativePath: string) {
   const resolved = path.resolve(sourceRoot, relativePath);
-  if (!isInside(sourceRoot, resolved) || resolved === sourceRoot) {
-    return null;
-  }
-  return resolved;
+  return isPathInside(sourceRoot, resolved) ? resolved : null;
 }
 
 function splitEnvPaths(value: string | undefined) {
@@ -208,7 +201,10 @@ export function detectExternalOutputSourceCandidates({
     seen.add(id);
 
     const exists = safeExists(normalizedPath, pathExists);
-    const isInsideStudioLibrary = isInside(libraryPath, normalizedPath);
+    const isInsideStudioLibrary = isPathInside(libraryPath, normalizedPath, {
+      allowRoot: true,
+      eitherView: true,
+    });
     const providerId = inferProviderId(normalizedPath);
     candidates.push({
       id,
@@ -245,7 +241,9 @@ export function registerExternalOutputSource({
     return { ok: false as const, reason: 'path_must_be_absolute' as const };
   }
   const normalizedPath = normalizePath(sanitized.path);
-  if (isInside(normalizePath(libraryDir), normalizedPath)) {
+  if (
+    isPathInside(normalizePath(libraryDir), normalizedPath, { allowRoot: true, eitherView: true })
+  ) {
     return { ok: false as const, reason: 'inside_studio_library' as const };
   }
   if (!safeExists(normalizedPath, pathExists)) {

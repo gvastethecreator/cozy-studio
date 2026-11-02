@@ -1,7 +1,7 @@
 import { isManagedGenerationAssetPath } from './managedAssetPolicy';
 import { captureWorkflowOutput } from './outputDestination';
 import { createHash, randomUUID } from 'node:crypto';
-import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { authoringSharp, writePngFromSvg } from './sharpAuthoringAdapter';
 import {
@@ -9,13 +9,11 @@ import {
   createSpriteAtlasPresetSummaries,
   isSpriteAtlasBlockedReasonKind,
   isSpriteAtlasIdleRow,
-  type CreateSpriteAtlasRowJobsResponse,
   type CreateSpriteAtlasRunRequest,
   type ImportSpriteAtlasRowRequest,
   type SpriteAtlasBlockedReason,
   type SpriteAtlasBlockedReasonKind,
   type SpriteAtlasQaReport,
-  type SpriteAtlasRowHandoffJob,
   type SpriteAtlasRowNormalization,
   type SpriteAtlasRowPromptResponse,
   type SpriteAtlasRowState,
@@ -24,6 +22,15 @@ import {
 } from '../../../packages/shared/src/spriteAtlasContracts';
 import type { CatalogImage, Job, JobLibraryContext } from '../../../packages/shared/src/types';
 import { resolveLibraryPathFromRoot } from './library';
+import { isPathInside } from './pathContainment';
+import {
+  createRunLock,
+  fileExists,
+  listRunRecords,
+  readRunRecord,
+  safeSegment,
+  writeJson,
+} from './runFolderStore';
 
 export class SpriteAtlasActionError extends Error {
   readonly status = 409;
@@ -41,8 +48,6 @@ export interface SpriteAtlasService {
   listRuns(): Promise<SpriteAtlasRun[]>;
   getRun(runId: string): Promise<SpriteAtlasRun | null>;
   createRun(input: CreateSpriteAtlasRunRequest): Promise<SpriteAtlasRun>;
-  createRowJob(runId: string, rowId: string): Promise<SpriteAtlasRowHandoffJob | null>;
-  createRowJobs(runId: string, rowIds?: string[]): Promise<CreateSpriteAtlasRowJobsResponse | null>;
   readRowPrompt(runId: string, rowId: string): Promise<SpriteAtlasRowPromptResponse | null>;
   importRow(runId: string, input: ImportSpriteAtlasRowRequest): Promise<SpriteAtlasRun | null>;
   compose(runId: string): Promise<SpriteAtlasRun | null>;
@@ -88,13 +93,6 @@ export interface CreateSpriteAtlasServiceOptions {
   getCatalogImage?: (imageId: string) => CatalogImage | null;
   createId?: () => string;
   now?: () => string;
-}
-
-function isPathInside(parentPath: string, childPath: string) {
-  const parent = path.resolve(parentPath);
-  const child = path.resolve(childPath);
-  const relative = path.relative(parent, child);
-  return Boolean(relative) && !relative.startsWith('..') && !path.isAbsolute(relative);
 }
 
 function blockedReason(
@@ -180,18 +178,8 @@ export function spriteAtlasFramePath(run: SpriteAtlasRun, rowId: string, frameNu
   );
 }
 
-function safeSegment(value: string) {
-  return (
-    value
-      .trim()
-      .replace(/[^a-zA-Z0-9_.-]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'item'
-  );
-}
-
 function createRunPaths(libraryDir: string, runId: string): SpriteAtlasRunPaths {
   const runDir = resolveLibraryPathFromRoot(libraryDir, 'state', 'sprite-atlas', runId);
-  const handoffDir = path.join(runDir, 'codex-handoff');
   return {
     runDir,
     requestPath: path.join(runDir, 'sprite-request.json'),
@@ -200,10 +188,6 @@ function createRunPaths(libraryDir: string, runId: string): SpriteAtlasRunPaths 
     layoutGuidesDir: path.join(runDir, 'references', 'layout-guides'),
     rawDir: path.join(runDir, 'raw'),
     framesDir: path.join(runDir, 'frames'),
-    handoffInboxDir: path.join(handoffDir, 'inbox'),
-    handoffOutboxDir: path.join(handoffDir, 'outbox'),
-    handoffStatusDir: path.join(handoffDir, 'status'),
-    handoffLogsDir: path.join(handoffDir, 'logs'),
     atlasPath: path.join(runDir, 'atlas.png'),
     manifestPath: path.join(runDir, 'manifest.json'),
     qaReportPath: path.join(runDir, 'qa', 'report.json'),
@@ -218,43 +202,8 @@ async function ensureRunDirs(paths: SpriteAtlasRunPaths) {
     mkdir(paths.layoutGuidesDir, { recursive: true }),
     mkdir(paths.rawDir, { recursive: true }),
     mkdir(paths.framesDir, { recursive: true }),
-    mkdir(paths.handoffInboxDir, { recursive: true }),
-    mkdir(paths.handoffOutboxDir, { recursive: true }),
-    mkdir(paths.handoffStatusDir, { recursive: true }),
-    mkdir(paths.handoffLogsDir, { recursive: true }),
     mkdir(path.dirname(paths.qaReportPath), { recursive: true }),
   ]);
-}
-
-async function fileExists(filePath: string | null | undefined) {
-  if (!filePath) return false;
-  try {
-    const result = await stat(filePath);
-    return result.isFile();
-  } catch {
-    return false;
-  }
-}
-
-async function readJson<T>(filePath: string): Promise<T | null> {
-  try {
-    return JSON.parse(await readFile(filePath, 'utf8')) as T;
-  } catch {
-    return null;
-  }
-}
-
-/** Writes a temp file and renames it, so a reader never sees a partial JSON file. */
-async function writeJson(filePath: string, value: unknown) {
-  await mkdir(path.dirname(filePath), { recursive: true });
-  const tempPath = `${filePath}.${randomUUID()}.tmp`;
-  try {
-    await writeFile(tempPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
-    await rename(tempPath, filePath);
-  } catch (error) {
-    await rm(tempPath, { force: true });
-    throw error;
-  }
 }
 
 /**
@@ -605,19 +554,8 @@ export function createSpriteAtlasService({
   createId = randomUUID,
   now = () => new Date().toISOString(),
 }: CreateSpriteAtlasServiceOptions): SpriteAtlasService {
-  const runLocks = new Map<string, Promise<unknown>>();
-
   /** Serializes every read-modify-write of one run's status.json. */
-  function withRunLock<T>(runId: string, work: () => Promise<T>): Promise<T> {
-    const key = safeSegment(runId);
-    const result = (runLocks.get(key) ?? Promise.resolve()).then(work);
-    const tail = result.catch(() => undefined);
-    runLocks.set(key, tail);
-    void tail.then(() => {
-      if (runLocks.get(key) === tail) runLocks.delete(key);
-    });
-    return result;
-  }
+  const withRunLock = createRunLock();
 
   async function saveRun(run: SpriteAtlasRun) {
     const updated = {
@@ -630,82 +568,13 @@ export function createSpriteAtlasService({
   }
 
   async function getRun(runId: string) {
-    const safeRunId = safeSegment(runId);
-    const paths = createRunPaths(readLibraryDir(), safeRunId);
-    const stored =
-      (await readJson<SpriteAtlasRun>(paths.statusPath)) ??
-      (await readJson<SpriteAtlasRun>(
-        resolveLibraryPathFromRoot(
-          readLibraryDir(),
-          'outputs',
-          'sprite-atlas',
-          safeRunId,
-          'status.json',
-        ),
-      ));
+    const stored = await readRunRecord<SpriteAtlasRun>(
+      readLibraryDir(),
+      'sprite-atlas',
+      safeSegment(runId),
+      'status.json',
+    );
     return stored ? normalizeRun(stored) : null;
-  }
-
-  async function writeRowJob(run: SpriteAtlasRun, row: SpriteAtlasRowState, timestamp: string) {
-    const jobId = safeSegment(`atlas-row-${row.id}-${createId()}`);
-    const job: SpriteAtlasRowHandoffJob = {
-      jobId,
-      runId: run.id,
-      rowId: row.id,
-      status: 'ready',
-      requestPath: run.paths.requestPath,
-      promptPath: row.promptPath,
-      layoutGuidePath: row.layoutGuidePath,
-      identityAnchorPath: run.rows.find((item) => item.id === run.anchor?.rowId)?.rawPath ?? null,
-      expectedOutputPath: path.join(run.paths.rawDir, `${safeSegment(row.id)}.png`),
-      outboxPattern: `${jobId}-${safeSegment(row.id)}.png`,
-      createdAt: timestamp,
-    };
-
-    await writeJson(path.join(run.paths.handoffInboxDir, `${jobId}.json`), job);
-    row.status = 'handoff_ready';
-    row.jobId = jobId;
-    row.dispatch = null;
-    row.blocked = null;
-    row.updatedAt = timestamp;
-    return job;
-  }
-
-  async function createRowJobsForRun(
-    run: SpriteAtlasRun,
-    rowIds: string[] | undefined,
-    options: { force: boolean },
-  ): Promise<CreateSpriteAtlasRowJobsResponse> {
-    const requestedRows = rowIds?.length ? new Set(rowIds) : null;
-    const timestamp = now();
-    const jobs: SpriteAtlasRowHandoffJob[] = [];
-
-    const rowsToWrite = run.rows.filter((row) => {
-      if (requestedRows && !requestedRows.has(row.id)) return false;
-      if (options.force) return true;
-      const alreadyHandled =
-        row.status === 'handoff_ready' ||
-        row.status === 'generating' ||
-        row.status === 'raw_imported' ||
-        row.status === 'extracted';
-      return !alreadyHandled && !row.jobId && !row.rawPath;
-    });
-    if (run.contract.workflowLane === 'animation' && !run.anchor) {
-      const waiting = rowsToWrite.filter((row) => !isSpriteAtlasIdleRow(row.id));
-      if (waiting.length > 0) {
-        throw new SpriteAtlasActionError(
-          'anchor_required',
-          `Import an idle row before queueing ${waiting.map((row) => row.id).join(', ')}.`,
-        );
-      }
-    }
-    jobs.push(...(await Promise.all(rowsToWrite.map((row) => writeRowJob(run, row, timestamp)))));
-    if (rowsToWrite.length > 0) reopenRunForRows(run);
-
-    return {
-      jobs,
-      run: await saveRun(run),
-    };
   }
 
   /** Imports an image into a row in memory and on disk. The caller saves the run. */
@@ -717,10 +586,7 @@ export function createSpriteAtlasService({
     const timestamp = now();
     if (isSafeBlockedReason(input.blocked)) {
       const jobId = row.jobId || safeSegment(`blocked-${row.id}-${createId()}`);
-      await writeJson(
-        path.join(run.paths.handoffOutboxDir, `${jobId}-blocked.json`),
-        input.blocked,
-      );
+      await writeJson(path.join(run.paths.rawDir, `${jobId}-blocked.json`), input.blocked);
       row.status = 'blocked';
       row.blocked = input.blocked;
       row.updatedAt = timestamp;
@@ -845,24 +711,8 @@ export function createSpriteAtlasService({
     listPresets() {
       return createSpriteAtlasPresetSummaries();
     },
-    async listRuns() {
-      const roots = ['state', 'outputs'].map((section) =>
-        resolveLibraryPathFromRoot(readLibraryDir(), section, 'sprite-atlas'),
-      );
-      const groups = await Promise.all(
-        roots.map((root) => readdir(root, { withFileTypes: true }).catch(() => [])),
-      );
-      const ids = [
-        ...new Set(
-          groups.flatMap((entries) =>
-            entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name),
-          ),
-        ),
-      ];
-      const runs = await Promise.all(ids.map(getRun));
-      return runs
-        .flatMap((run) => (run ? [run] : []))
-        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    listRuns() {
+      return listRunRecords(readLibraryDir(), 'sprite-atlas', getRun);
     },
     getRun,
     async createRun(input) {
@@ -914,23 +764,6 @@ export function createSpriteAtlasService({
         ]),
       );
       return saveRun(run);
-    },
-    createRowJob(runId, rowId) {
-      return withRunLock(runId, async () => {
-        const run = await getRun(runId);
-        if (!run) return null;
-        const row = run.rows.find((item) => item.id === rowId);
-        if (!row) return null;
-        const result = await createRowJobsForRun(run, [rowId], { force: true });
-        return result.jobs[0] ?? null;
-      });
-    },
-    createRowJobs(runId, rowIds) {
-      return withRunLock(runId, async () => {
-        const run = await getRun(runId);
-        if (!run) return null;
-        return createRowJobsForRun(run, rowIds, { force: false });
-      });
     },
     async readRowPrompt(runId, rowId) {
       const run = await getRun(runId);

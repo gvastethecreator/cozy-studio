@@ -105,6 +105,7 @@ import { createEventStreamRoutes } from './eventStreamRoutes';
 import { createLibraryRoutes } from './libraryRoutes';
 import { createReferenceRoutes } from './referenceRoutes';
 import { createUserStyleRoutes } from './userStyleRoutes';
+import { createExtensionHubStore, type ExtensionHubStore } from './extensionHubStore';
 import { createExtensionRoutes } from './extensionRoutes';
 import { createStyleAuthoringRoutes } from './styleAuthoringRoutes';
 import {
@@ -200,6 +201,7 @@ export interface CreateStudioAppOptions {
     userStyleStore?: UserStyleStore;
     extensionStore?: ExtensionStore;
     extensionSourceClient?: ExtensionSourceClient;
+    extensionHubStore?: ExtensionHubStore;
     settingsStorage?: StudioSettingsStorage;
     worker?: Pick<
       WorkerController,
@@ -408,6 +410,7 @@ export async function createStudioApp(
         client: options.dependencies?.extensionSourceClient ?? createGitHubExtensionSourceClient(),
         sources: resolveRemoteExtensionSources(),
         installDir: resolveExtensionInstallDir(),
+        hub: options.dependencies?.extensionHubStore ?? createExtensionHubStore(),
       },
       defaultPackId: process.env.STUDIO_DEFAULT_STYLE_PACK?.trim() || 'cozy.pack-00',
     }),

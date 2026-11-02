@@ -7,7 +7,8 @@ import sharp from 'sharp';
 import { embedMetadata } from './metadataEmbedder';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createExtensionRoutes } from './extensionRoutes';
-import type { ExtensionSourceClient } from './extensionSources';
+import { createExtensionHubStore } from './extensionHubStore';
+import { ExtensionSourceError, type ExtensionSourceClient } from './extensionSources';
 import { createExtensionStore } from './extensionStore';
 
 const manifest = {
@@ -116,6 +117,7 @@ describe('remote extension install', () => {
     const zip = new JSZip();
     zip.file('extension.json', JSON.stringify({ ...manifest, version: '1.1.0' }));
     zip.file('pack.json', '{"version":"1.1.0"}');
+    zip.file('thumbnails/SP14-142-01.webp', 'variant-thumb');
     const archive = await zip.generateAsync({ type: 'uint8array' });
     const cardsZip = new JSZip();
     cardsZip.file('SP14-142.webp', 'full-card');
@@ -156,13 +158,73 @@ describe('remote extension install', () => {
       },
     };
     const store = createExtensionStore([installDir, builtin]);
+    const hub = createExtensionHubStore(
+      path.join(installDir, '..', `${path.basename(installDir)}-hub.json`),
+    );
     const routes = createExtensionRoutes({
       store,
-      remote: { client, sources: [{ id: 'cozy-styles', repo: 'owner/cozy-styles' }], installDir },
+      remote: {
+        client,
+        sources: [{ id: 'cozy-styles', repo: 'owner/cozy-styles' }],
+        installDir,
+        hub,
+        // The hub answers like the GitHub source, but only for its password.
+        createHubClient: ({ password }) => ({
+          ...client,
+          fetchIndex: async (hubSource) => {
+            if (password !== 'right') throw new ExtensionSourceError('HTTP 401', 401);
+            return client.fetchIndex(hubSource);
+          },
+        }),
+      },
       defaultPackId,
     });
-    return { routes, installDir };
+    return { routes, installDir, hub };
   }
+
+  it('unlocks a private hub with its password, installs from it and forgets it', async () => {
+    const { routes, installDir, hub } = await createRemoteRoutes({ localPack: false });
+    const unlock = (url: string, password: string) =>
+      routes.request('/hub', { method: 'PUT', body: JSON.stringify({ url, password }) });
+    try {
+      expect(await (await routes.request('/hub')).json()).toEqual({ configured: false, url: null });
+      expect((await unlock('http://hub.example.com', 'right')).status).toBe(400);
+      expect((await unlock('https://hub.example.com', 'wrong')).status).toBe(401);
+      expect(hub.read()).toBeNull();
+
+      const unlocked = await unlock('https://hub.example.com/some/path', 'right');
+      expect(await unlocked.json()).toEqual({
+        configured: true,
+        url: 'https://hub.example.com',
+        packs: 1,
+      });
+      expect(await (await routes.request('/hub')).json()).toEqual({
+        configured: true,
+        url: 'https://hub.example.com',
+      });
+      const available = await (await routes.request('/available')).json();
+      expect(available.sources[1]).toMatchObject({
+        id: 'cozy-hub',
+        label: 'Private hub · hub.example.com',
+        extensions: [{ id: 'cozy.pack-14' }],
+      });
+
+      const install = await routes.request('/install', {
+        method: 'POST',
+        body: JSON.stringify({ sourceId: 'cozy-hub', id: 'cozy.pack-14', layers: ['cards'] }),
+      });
+      expect(install.status).toBe(200);
+      // The cards layer holds only main cards; a variant falls back to its thumbnail.
+      const variant = await routes.request('/cozy.pack-14/files/cards/SP14-142-01.webp');
+      expect(await variant.text()).toBe('variant-thumb');
+
+      expect((await routes.request('/hub', { method: 'DELETE' })).status).toBe(204);
+      expect((await (await routes.request('/available')).json()).sources).toHaveLength(1);
+    } finally {
+      hub.clear();
+      await rm(installDir, { recursive: true, force: true });
+    }
+  });
 
   it('installs the default pack once when Studio has no style pack', async () => {
     const { routes, installDir } = await createRemoteRoutes({

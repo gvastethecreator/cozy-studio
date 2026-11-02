@@ -26,6 +26,35 @@ export function resolveRemoteExtensionSources(
   return repos.map((repo) => ({ id: repo, repo }));
 }
 
+/** A private Cozy hub: its URL and password, which the user enters in Settings > Extensions. */
+export interface ExtensionHub {
+  url: string;
+  password: string;
+}
+
+/** The hub serves the GitHub-shaped `cozy/private` repository under `/gh`. */
+export const HUB_SOURCE: RemoteExtensionSource = { id: 'cozy-hub', repo: 'cozy/private' };
+
+/** The hub origin, or null. Plain http is allowed only for a hub on this machine. */
+export function normalizeHubUrl(value: string) {
+  try {
+    const url = new URL(value.trim());
+    const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+    if (url.protocol !== 'https:' && !(url.protocol === 'http:' && local)) return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+export function createHubSourceClient(hub: ExtensionHub, fetchImpl: typeof fetch = fetch) {
+  return createGitHubExtensionSourceClient({
+    fetchImpl,
+    apiBase: `${hub.url}/gh`,
+    token: hub.password,
+  });
+}
+
 export class ExtensionSourceError extends Error {
   readonly status: number | null;
   constructor(message: string, status: number | null = null) {
@@ -58,6 +87,7 @@ export function createGitHubExtensionSourceClient({
   const headers = (accept: string) => ({
     Accept: accept,
     'X-GitHub-Api-Version': '2022-11-28',
+    'X-Cozy-Client': 'cozy-studio',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   });
 

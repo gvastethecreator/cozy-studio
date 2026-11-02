@@ -238,7 +238,8 @@ function ensurePrivateDirectory(directoryPath: string) {
   }
 }
 
-function atomicWrite(filePath: string, contents: string) {
+/** Writes a private 0600 file through a temp file and rename, in a 0700 directory. */
+export function atomicWrite(filePath: string, contents: string) {
   ensurePrivateDirectory(path.dirname(filePath));
   const tempPath = `${filePath}.${process.pid}.${Date.now().toString(36)}.${Math.random()
     .toString(16)

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Heart, HeartSolid } from 'iconoir-react';
 import { useDialogFocus } from '../hooks/useDialogFocus';
-import { imageFitScale, useImagePanZoom } from '../lib/imagePanZoom';
+import { useImagePanZoom } from '../lib/imagePanZoom';
 import { resolveProviderShortLabel } from '../lib/commandCenterProjection';
 import { getCatalogImageDetail } from '../services/studio-api/catalog';
 import {
@@ -60,14 +60,10 @@ const CompareCell = React.memo(function CompareCell({
 }) {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   return (
-    <figure
-      hidden={hidden}
-      aria-label={`Image ${number}`}
-      className="flex min-h-0 min-w-0 flex-col gap-2"
-    >
+    <figure hidden={hidden} aria-label={`Image ${number}`} className="flex min-w-0 flex-col gap-2">
       <div
         data-pan-zoom-cell
-        className={`relative min-h-0 flex-1 overflow-hidden rounded bg-black/40 ${picked ? 'ring-2 ring-[color:var(--wb-accent)]' : ''}`}
+        className={`relative min-h-32 flex-1 touch-none overflow-hidden rounded bg-black/40 ${picked ? 'ring-2 ring-[color:var(--wb-accent)]' : ''}`}
       >
         {/* ponytail: originals in every cell; load thumbnails at fit if 9 large originals stall. */}
         <div
@@ -152,7 +148,15 @@ export function ImageComparison({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [details, setDetails] = useState<Record<string, CatalogImage>>({});
   const idsKey = images.map((image) => image.id).join(':');
-  const zoom = useImagePanZoom(true, `${idsKey}:${single}`);
+  const reference = single ? shown : 0;
+  // Actual size is 1:1 for the reference original (the first, or the shown one) in its fitted cell.
+  const zoom = useImagePanZoom(true, `${idsKey}:${single}`, (viewport) => {
+    const cell = viewport.querySelectorAll<HTMLElement>('[data-pan-zoom-cell]')[reference];
+    const image = cell?.querySelector('img');
+    return cell?.clientWidth && cell.clientHeight && image?.naturalWidth
+      ? Math.max(image.naturalWidth / cell.clientWidth, image.naturalHeight / cell.clientHeight)
+      : 1;
+  });
   const title = `Compare ${images.length} images`;
 
   useEffect(() => {
@@ -194,18 +198,6 @@ export function ImageComparison({
     },
     [onToggleFavorite],
   );
-
-  const reference = single ? shown : 0;
-  const actualSize = () => {
-    const cell =
-      zoom.viewportRef.current?.querySelectorAll<HTMLElement>('[data-pan-zoom-cell]')[reference];
-    const image = cell?.querySelector('img');
-    if (!cell || !image?.naturalWidth) return;
-    zoom.setZoom(
-      1 /
-        imageFitScale(image.naturalWidth, image.naturalHeight, cell.clientWidth, cell.clientHeight),
-    );
-  };
 
   const pickIndex = images.findIndex((image) => image.id === pickId);
   const columns = single
@@ -275,25 +267,28 @@ export function ImageComparison({
             <span className="font-semibold">Same in all:</span> {sameText}
           </p>
         )}
-        <div
-          ref={zoom.viewportRef}
-          {...zoom.viewportProps}
-          role="group"
-          tabIndex={0}
-          aria-label="Comparison images. Plus and minus zoom, arrows pan, zero fits."
-          className={`grid min-h-0 flex-1 auto-rows-fr gap-3 overflow-hidden rounded outline-offset-2 touch-none ${columns}`}
-        >
-          {images.map((image, index) => (
-            <CompareCell
-              key={image.id}
-              image={image}
-              number={index + 1}
-              caption={captions[index]}
-              picked={image.id === pickId}
-              hidden={single && index !== shown}
-              onPick={pick}
-            />
-          ))}
+        {/* Rows never shrink below a usable cell and its caption; this wrapper scrolls instead. */}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div
+            ref={zoom.viewportRef}
+            {...zoom.viewportProps}
+            role="group"
+            tabIndex={0}
+            aria-label="Comparison images. Plus and minus zoom, arrows pan, zero fits."
+            className={`grid min-h-full auto-rows-[minmax(min-content,1fr)] gap-3 rounded -outline-offset-2 ${columns}`}
+          >
+            {images.map((image, index) => (
+              <CompareCell
+                key={image.id}
+                image={image}
+                number={index + 1}
+                caption={captions[index]}
+                picked={image.id === pickId}
+                hidden={single && index !== shown}
+                onPick={pick}
+              />
+            ))}
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button
@@ -325,7 +320,7 @@ export function ImageComparison({
           <button
             type="button"
             className="studio-ghost-control rounded px-3 py-2"
-            onClick={actualSize}
+            onClick={zoom.actualSize}
           >
             Actual size
           </button>

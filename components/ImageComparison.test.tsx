@@ -67,6 +67,25 @@ it('compares originals in a grid at one zoom and position, picks a favorite and 
   fireEvent.click(screen.getByRole('button', { name: 'Zoom in comparison' }));
   await waitFor(() => expect(transform()).toContain('scale(1.25)'));
 
+  // 1:1 for a 4096 px original in a 200 × 100 cell is 40.96× the fit, above the old 15× cap.
+  const [firstBox, secondBox] = cells.map((cell) => cell.querySelector('[data-pan-zoom-cell]')!);
+  Object.defineProperties(firstBox, { clientWidth: { value: 200 }, clientHeight: { value: 100 } });
+  Object.defineProperties(images[0], {
+    naturalWidth: { value: 4096 },
+    naturalHeight: { value: 4096 },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Actual size' }));
+  await waitFor(() => expect(transform()).toContain('scale(40.96)'));
+  // A wheel over a caption zooms around the pointer in that caption's cell, here its center.
+  secondBox.getBoundingClientRect = () =>
+    ({ left: 100, top: 0, width: 100, height: 100 }) as DOMRect;
+  fireEvent.wheel(cells[1].querySelector('figcaption')!, {
+    deltaY: -100,
+    clientX: 150,
+    clientY: 50,
+  });
+  await waitFor(() => expect(transform()).toContain('translate3d(0px, 0px, 0) scale(45.2'));
+
   fireEvent.click(screen.getByRole('button', { name: 'Pick image 1' }));
   fireEvent.click(screen.getByRole('button', { name: 'Pick image 2' }));
   expect(favorite).toHaveBeenCalledOnce();

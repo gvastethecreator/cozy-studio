@@ -89,7 +89,6 @@ const STAGE_LABELS: Record<SpriteAtlasRun['status'], string> = {
 
 const ROW_STATUS_LABELS: Record<SpriteAtlasRowStatus, string> = {
   planned: 'Planned',
-  handoff_ready: 'Handoff',
   generating: 'Queued',
   raw_imported: 'Imported',
   blocked: 'Blocked',
@@ -99,7 +98,6 @@ const ROW_STATUS_LABELS: Record<SpriteAtlasRowStatus, string> = {
 const ROW_STATUS_FILTERS = [
   'all',
   'planned',
-  'handoff_ready',
   'raw_imported',
   'blocked',
   'extracted',
@@ -118,7 +116,7 @@ function getRowTone(row: SpriteAtlasRowState) {
   if (row.status === 'raw_imported' || row.status === 'extracted') {
     return 'border-emerald-500/2 bg-emerald-500/10 text-[color:var(--wb-success)] ';
   }
-  if (row.status === 'handoff_ready' || row.status === 'generating') {
+  if (row.status === 'generating') {
     return 'border-sky-500/2 bg-sky-500/10 text-[color:var(--wb-info)] ';
   }
   return 'border-[color:var(--wb-line)] bg-white/[0.035] text-[color:var(--wb-ink)]';
@@ -162,7 +160,6 @@ function getRowCounts(rows: SpriteAtlasRowState[]) {
     },
     {
       planned: 0,
-      handoff_ready: 0,
       generating: 0,
       raw_imported: 0,
       blocked: 0,
@@ -410,7 +407,6 @@ function useSpriteAtlasRecipeController({
       (row) =>
         !row.jobId &&
         !row.rawPath &&
-        row.status !== 'handoff_ready' &&
         row.status !== 'generating' &&
         row.status !== 'raw_imported' &&
         row.status !== 'extracted',
@@ -1531,8 +1527,7 @@ function AtlasRunOutput({
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 border-b border-[color:var(--wb-line)] p-3">
-        <Metric label="Handoff" value={String(rowCounts.handoff_ready)} />
+      <div className="grid grid-cols-3 gap-2 border-b border-[color:var(--wb-line)] p-3">
         <Metric label="Imported" value={String(rowCounts.raw_imported)} />
         <Metric label="Blocked" value={String(rowCounts.blocked)} />
         <Metric label="Open" value={String(missingJobRows.length)} />

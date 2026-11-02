@@ -270,13 +270,37 @@ describe('sprite atlas run participant', () => {
     expect((await row()).catalogImageId).toBe('image-job-a');
   });
 
-  it('recovers a legacy generating row and records a job accepted before a restart', async () => {
-    const { participant, run, setJob, finishWithImage, row } = await setup();
+  it('recovers legacy rows and records a job accepted before a restart', async () => {
+    const { root, participant, run, setJob, finishWithImage, row } = await setup();
     await participant.recordDispatch([setJob('job-idle', 'queued')]);
     // Runs before backend reconciliation kept only the job id on the row.
     const stored = JSON.parse(readFileSync(run.paths.statusPath, 'utf8')) as SpriteAtlasRun;
     delete (stored.rows[0] as Partial<SpriteAtlasRun['rows'][number]>).dispatch;
+    const handoffRow = stored.rows[2]!;
+    Object.assign(handoffRow, {
+      status: 'handoff_ready',
+      jobId: 'handoff-legacy',
+      dispatch: undefined,
+    });
+    const importedHandoffRow = stored.rows[3]!;
+    await finishWithImage('handoff-imported', importedHandoffRow.id);
+    const rawPath = path.join(root, 'handoff-imported.png');
+    const rawImage = readFileSync(rawPath);
+    Object.assign(importedHandoffRow, {
+      status: 'handoff_ready',
+      jobId: 'handoff-imported',
+      rawPath,
+      dispatch: undefined,
+    });
     writeFileSync(run.paths.statusPath, JSON.stringify(stored));
+    const storedText = readFileSync(run.paths.statusPath, 'utf8');
+    expect(await row(handoffRow.id)).toMatchObject({
+      status: 'planned',
+      jobId: null,
+      dispatch: null,
+      rawPath: null,
+    });
+    expect(readFileSync(run.paths.statusPath, 'utf8')).toBe(storedText);
     await finishWithImage('job-idle');
 
     await participant.recover([setJob('job-run', 'queued', 'run')]);
@@ -285,5 +309,12 @@ describe('sprite atlas run participant', () => {
       status: 'generating',
       dispatch: { jobIds: ['job-run'] },
     });
+    expect(await row(importedHandoffRow.id)).toMatchObject({
+      status: 'raw_imported',
+      jobId: 'handoff-imported',
+      rawPath,
+      dispatch: null,
+    });
+    expect(readFileSync(rawPath)).toEqual(rawImage);
   });
 });

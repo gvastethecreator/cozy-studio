@@ -106,15 +106,14 @@ Done when the counts match the scheme, or you told the user the reason for each 
 
 ### Errors
 
-| Result                                                                                           | Cause                                                 | Action                                                                                                |
-| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| 400 `Every image must be live and in workspaceId. Nothing changed.` with `imageIds`              | Those images are deleted or are in another workspace. | Remove them from the call, tell the user, then send the call again.                                   |
-| 400 `<tag error> Nothing changed.` with `imageIds`, for example `Use an array of up to 32 tags.` | The tag change does not fit those images.             | Change the tags for those images, or remove them from the call.                                       |
-| 400 collection name error without `imageIds`                                                     | `addToCollection` is not a valid name.                | Use up to 80 characters and no control characters.                                                    |
-| 400 `removeFromCollection is not a collection in this workspace. Nothing changed.`               | The collection name is wrong.                         | Read the names with `studio_workspaces` and `workspaceId`.                                            |
-| 400 `Unknown workspaceId.` from `studio_workspaces`                                              | No workspace has that id.                             | Call `studio_workspaces` without arguments for the ids.                                               |
-| 500 `Could not read <path>. Nothing changed. Call studio_status, then retry.`                    | Studio could not read the existing names.             | Call `studio_status`, then send the call again.                                                       |
-| Any other failure, for example 404 `Catalog image not found`                                     | A write failed. The earlier writes of the call stay.  | Call `studio_status`, then send the same call again. Tags and members that exist stay. Tell the user. |
+| Result                                                                                           | Cause                                                 | Action                                                              |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------------- |
+| 400 `Every image must be live and in workspaceId. Nothing changed.` with `imageIds`              | Those images are deleted or are in another workspace. | Remove them from the call, tell the user, then send the call again. |
+| 400 `<tag error> Nothing changed.` with `imageIds`, for example `Use an array of up to 32 tags.` | The tag change does not fit those images.             | Change the tags for those images, or remove them from the call.     |
+| 400 collection name error without `imageIds`                                                     | `addToCollection` is not a valid name.                | Use up to 80 characters and no control characters.                  |
+| 400 `removeFromCollection is not a collection in this workspace. Nothing changed.`               | The collection name is wrong.                         | Read the names with `studio_workspaces` and `workspaceId`.          |
+| 400 `Unknown workspaceId.` from `studio_workspaces`                                              | No workspace has that id.                             | Call `studio_workspaces` without arguments for the ids.             |
+| Any other failure                                                                                | The call is one transaction, so nothing changed.      | Call `studio_status`, then send the same call again.                |
 
 ### Undo
 
@@ -124,8 +123,6 @@ Send the inverse call only for the ids that the result lists. The other images h
 - Removed tags: for each tag name in `tags.removed`, one call with `addTags` set to that name, for the ids listed under it.
 - Added to a collection: `removeFromCollection` with the collection name, for `collection.addedImageIds`.
 - Removed from a collection: `addToCollection` with the collection name, for `removedFrom.removedImageIds`.
-
-If a call failed partway and you repeated it, the repeat lists only what it changed itself. Undo the rest from your step 2 working file, or tell the user what the failed attempt already wrote.
 
 A collection that a call created stays, empty. Agent tools cannot delete a collection or rename a tag. The user does that in Studio (see the manual path).
 

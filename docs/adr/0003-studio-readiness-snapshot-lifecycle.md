@@ -1,6 +1,10 @@
 # ADR 0003: Studio Readiness snapshot lifecycle
 
-Status: Accepted
+## Status
+
+Accepted
+
+## Decision
 
 Studio Readiness is one backend-owned, non-secret snapshot. Health, onboarding, diagnostics summaries, and job intake consume it. Reads return immediately from the latest snapshot. Slow Codex Runtime Doctor work refreshes asynchronously through one single-flight lifecycle. `/api/runtime/doctor` remains the explicit deep diagnostic command.
 

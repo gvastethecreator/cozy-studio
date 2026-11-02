@@ -1,6 +1,10 @@
 # ADR 0004: Revisioned Studio event synchronization
 
-Status: Accepted
+## Status
+
+Accepted
+
+## Decision
 
 Studio state changes carry monotonic Studio Event Revisions. Each SSE client receives them through a bounded serialized writer. Reconnect correctness comes from revision continuity plus scoped snapshot reconciliation. Full historical replay is added only when a concrete recovery requirement exceeds what durable state snapshots can prove.
 

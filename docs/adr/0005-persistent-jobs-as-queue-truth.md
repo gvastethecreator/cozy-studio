@@ -1,6 +1,10 @@
 # ADR 0005: Persistent Jobs as queue truth
 
-Status: Accepted
+## Status
+
+Accepted
+
+## Decision
 
 Persistent Job Intake records the complete executable queue before work begins. The UI projects progress from Persistent Jobs plus Catalog Entries. The browser submits directly through the generation pipeline. It does not own a parallel queue lifecycle.
 

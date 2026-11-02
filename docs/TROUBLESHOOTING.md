@@ -1,79 +1,88 @@
 # Troubleshooting
 
-## Settings refresh and imports
+Start with the fast diagnostics. Then find your symptom below. Each section gives the check and the fix. Provider setup steps are in the [user guide](USER_GUIDE.md#providers).
 
-Settings keeps unsaved edits when you refresh diagnostics. Save is available after you change a field and enter a nonempty output filename template. A failed provider diagnostic can appear beside successfully loaded or saved settings; it does not mean the settings write failed.
-
-In External Output Sources, scan a registered source before choosing files. Select all applies to the files returned by that scan. Files that fail to import remain selected so you can retry; files that import successfully leave the list. The file list scrolls and includes every result returned by the scan.
+Paths that start with `.studio/` are inside the Studio Library folder, not in the checkout. [Platform support](PLATFORMS.md#default-paths) lists where the Library is on each OS.
 
 ## Fast diagnostics
 
 1. Run `bun run studio:onboard --probe` or use the in-app onboarding checklist.
-2. Run `bun run studio:init` when Bootstrap Configuration or the Studio Library still needs repair.
-3. Reuse the running Studio instance. If no instance is running, start both UI and backend with `bun run dev`.
+2. Run `bun run studio:init` when the Bootstrap Configuration or the Studio Library still needs repair.
+3. Use the running Studio instance if there is one. If none is running, start the UI and backend with `bun run dev`.
 4. Run `bun run providers:preflight` for the selected provider. Use `bun run runtime:doctor` only for the Codex route.
 5. Open `http://localhost:17223/api/health` (or your configured API port).
-6. If a quality gate failed, run `bun run tooling:logs` and inspect `*.latest.log`.
 
-## First-run onboarding
+## Setup and Library
 
-The welcome surface shows the selected connection, images folder and setup status. Sign in with ChatGPT from the welcome screen or Settings → Accounts & models. Setup details expand when work is needed and collapse when Studio is ready. Codex CLI, its login and app-server matter only when you choose the Codex route. A setup request authorizes ordinary initialization; reuse a healthy instance and preserve existing paths and data.
+### First run is not finished
 
-Headless equivalent:
+Sign in with ChatGPT from the welcome screen or Settings → Accounts & models. Setup details expand when work is needed and collapse when Studio is ready. Codex CLI, its login and app-server matter only when you choose the Codex route.
+
+To run setup from a terminal:
 
 ```bash
 bun run studio:onboard --probe
 bun run studio:onboard --setup
 ```
 
-Mutating steps need an explicit yes. On a TTY the command asks `[y/N]`. Agents that already have user authority can pass `--yes`. A no leaves disk unchanged.
+Mutating steps need an explicit yes. On a TTY the command asks `[y/N]`. Agents that already have user authority can pass `--yes`. A no leaves the disk unchanged.
 
-Default Studio Library is `Library` inside the private Cozy Studio app-data folder (`%LOCALAPPDATA%\Cozy Studio` on Windows). Generated images go to Pictures/Cozy Studio. To keep or choose another library folder, set an absolute path in `.env.local`:
+### The Library is in the wrong folder
+
+The default Studio Library is `Library` inside the private Cozy Studio app-data folder (`%LOCALAPPDATA%\Cozy Studio` on Windows). To keep or choose another Library folder, set an absolute path in `.env.local`:
 
 ```env
 STUDIO_LIBRARY_DIR=D:\Cozy Studio Library
 ```
 
-Then run `bun run studio:init`. Existing `STUDIO_LIBRARY_DIR` is kept. The app does not auto-migrate an older library.
+Then run `bun run studio:init`. Studio keeps an existing `STUDIO_LIBRARY_DIR`. It does not migrate an older library automatically.
 
-External folder to scan is an import source, not the generation destination. Generate writes to the images folder chosen in onboarding or Settings → Files & naming, which is Pictures/Cozy Studio on a new library.
+### New images are not in the folder I expected
 
-## Common startup problems
+External folder to scan is an import source, not the generation destination. Generate writes to the images folder chosen in onboarding or Settings → Files & naming, which is Pictures/Cozy Studio on a new library. A new destination applies to new jobs; existing files do not move.
+
+### A provider check fails next to saved settings
+
+A failed provider diagnostic can show beside settings that loaded or saved correctly. It does not mean that the settings write failed. Refreshing diagnostics keeps your unsaved edits.
+
+## ChatGPT
+
+### ChatGPT HTTP generation is rejected
+
+A connected session only confirms authentication. The job diagnostics name the cause: exhausted quota, a temporary rate limit, an expired session, missing access or a service failure. They keep a sanitized provider message and `Retry-After` when the provider sends it. A generic HTTP 429 or "rate limit" message is a temporary limit, not proof that the subscription is exhausted.
+
+Studio does not switch a failed job to another provider. If a submission was interrupted or its result is uncertain, the job goes to review. Inspect it before you generate again.
+
+## Codex route
+
+These problems affect only the Codex provider. They do not block an authenticated ChatGPT connection.
 
 ### `codex` is missing or does not respond
 
-Symptoms: `codexCli.available: false`. Jobs using the Codex provider do not start. This does not block an authenticated ChatGPT HTTP connection.
+Symptoms: `codexCli.available: false`, and jobs that use the Codex provider do not start.
 
-Make sure that the selected CLI path and `PATH` are correct. Restart the terminal after you install Codex. Then run `bun run runtime:doctor`.
-
-CLI metadata helps diagnosis. Missing app-server support or CLI authentication blocks the Codex route only. Do not block setup for a hardcoded tool release.
+Make sure that the selected CLI path and `PATH` are correct. Restart the terminal after you install Codex. Then run:
 
 ```bash
 bun run runtime:doctor
 ```
 
-The doctor reports the selected executable, CLI metadata, app-server support, and the recommended action. It does not print secrets.
+The doctor reports the selected executable, CLI metadata, app-server support and the recommended action. It does not print secrets. A changed version string alone is not a setup failure.
 
-### Cozy Studio stopped working after a Codex update
+### Studio stopped working after a Codex update
 
-Symptoms: a checkout that worked before the update no longer starts jobs. `app-server` fails to bind. Runtime Doctor reports a path inside `node_modules/.../vendor`.
+Symptoms: a checkout that worked before the update no longer starts jobs, `app-server` fails to bind, or Runtime Doctor reports a path inside `node_modules/.../vendor`.
 
-1. Stop the old `bun run dev` process and start it again. Managed shutdown closes the UI, the backend, and the owned `codex app-server` process tree.
-2. Run `bun run runtime:doctor`. Make sure that it selects a supported desktop, npm, Bun, or PATH launcher with `app-server` capability.
-3. Open `http://localhost:17223/api/health`. `checks.onboardingReady` is true after the Library is ready and either Studio ChatGPT Sign in or Codex CLI + app-server + Local Codex Session is ready.
-4. If a custom `STUDIO_CODEX_CLI_PATH` or `CODEX_CLI_PATH` is set, point it at a stable launcher. Never pin a release-specific vendor path.
-
-The normal readiness path probes the selected launcher first. It scans fallback candidates only when that launcher fails. A changed version string alone is not a setup failure.
+1. Stop the old `bun run dev` process and start it again. Managed shutdown closes the UI, the backend and the owned `codex app-server` process tree.
+2. Run `bun run runtime:doctor`. Make sure that it selects a supported desktop, npm, Bun or PATH launcher with `app-server` capability.
+3. Open `http://localhost:17223/api/health`. `checks.onboardingReady` is true when the Library is ready and either Studio ChatGPT Sign in or Codex CLI + app-server + Local Codex Session is ready.
+4. If you set `STUDIO_CODEX_CLI_PATH` or `CODEX_CLI_PATH`, point it at a stable launcher. Never pin a release-specific vendor path.
 
 ### An old `codex` install is selected
 
-Symptoms: jobs fail with WebSocket connection errors. `runtime:doctor` reports `codex_cli_legacy`. The selected CLI lacks `codex app-server`. Health shows `codexRuntime.status: blocked`.
+Symptoms: jobs fail with WebSocket connection errors, `runtime:doctor` reports `codex_cli_legacy`, and health shows `codexRuntime.status: blocked`. The selected CLI does not have `codex app-server`.
 
-Remove or update old npm shims under the user npm directory. Make sure that the OpenAI Codex desktop CLI binary is selected. Then restart `bun run dev:server`.
-
-A common Windows case: `C:\Users\<you>\AppData\Roaming\npm\codex.cmd` points to an unrelated legacy npm package named `codex`. OpenAI Codex is missing or lower in `PATH`. The setup UI shows the selected executable, the failing command, top candidates, and copyable repair commands.
-
-Repair:
+A common Windows case: `C:\Users\<you>\AppData\Roaming\npm\codex.cmd` points to an unrelated old npm package named `codex`, and OpenAI Codex is missing or later in `PATH`. The setup UI shows the selected executable, the failing command, the top candidates and repair commands that you can copy.
 
 ```bash
 npm uninstall -g codex
@@ -81,33 +90,29 @@ codex login
 bun run runtime:doctor
 ```
 
-If Codex is still missing after you remove the old shim, install or update the current OpenAI Codex CLI through the supported channel. Then run `bun run runtime:doctor` again.
+If Codex is still missing after you remove the old shim, install or update the current OpenAI Codex CLI through its supported channel. Then run `bun run runtime:doctor` again and restart `bun run dev:server`.
 
 ### `codex app-server` is not available
 
-Symptoms: the backend starts but generations do not progress. `appServer.running: false`.
+Symptoms: the backend starts but generations do not progress, and `appServer.running: false`.
 
-Make sure that app-server support is present, the Codex session is signed in, and the WebSocket port is free.
+Make sure that app-server support is present, the Codex session is signed in and the WebSocket port is free.
 
 ### Codex session expired
 
-Symptoms: Codex CLI exists but jobs fail with permission or authorization errors.
+Symptoms: Codex CLI exists, but jobs fail with permission or authorization errors.
 
-For the Codex provider, run `codex login` and complete its ChatGPT authentication flow, then restart the existing Studio runtime if needed. Studio’s separate ChatGPT provider signs in through Settings → Accounts & models; that does not repair a Codex CLI session.
+Run `codex login`, complete its ChatGPT authentication, and restart the Studio runtime if necessary. Studio's ChatGPT provider signs in separately through Settings → Accounts & models. That sign-in does not repair a Codex CLI session.
 
-Studio ChatGPT Sign in uses the Codex device-code flow. OpenAI does not document this as a supported Studio API. The provider selector separates ChatGPT HTTP from Codex app-server and captures the provider contract when the job is accepted. ChatGPT uses the existing credential store, so splitting providers does not require another login. If the selected route is unavailable, Studio blocks the job with the route-specific setup action instead of silently switching accounts.
+If the selected route is unavailable, Studio blocks the job and shows the setup action for that route. It does not switch accounts silently.
 
-Luna Reserve belongs to the signed-in Codex app-server session. When the regular Codex bucket is exhausted, select `GPT-Reserve` and the desired reasoning mode, such as `MAX`. Recommended image jobs use Studio Settings Sign in and the ChatGPT provider instead. That HTTP path does not create Codex turns, so it does not spend the Codex app-server usage bucket. It can still hit the ChatGPT HTTP usage limit. This separation does not establish an independent subscription quota, and does not provide public OpenAI API credits. An API-key route requires separate OpenAI API credentials and billing.
+### Codex usage is exhausted
 
-### ChatGPT HTTP generation is rejected
+Luna Reserve belongs to the signed-in Codex app-server session. When the regular Codex usage is exhausted, select `GPT-Reserve` and a reasoning mode such as `MAX`. For ordinary image jobs, use the ChatGPT provider instead. The [user guide](USER_GUIDE.md#chatgpt-recommended) explains how the two routes use your plan.
 
-A connected session only confirms authentication. Structured provider error codes distinguish exhausted quota, temporary rate limits, expired sessions, missing access, and service failures. A generic HTTP 429 or “rate limit” message is a temporary limit, not proof that the subscription is exhausted. Job diagnostics retain a sanitized provider message and `Retry-After` when supplied.
+## Grok Imagine is missing or blocked
 
-New ChatGPT jobs capture HTTP settings under `providerOptions.chatgpt`; new Codex jobs capture app-server settings under `providerOptions.codex`. Existing jobs keep their captured contracts, including historical Codex HTTP jobs. No provider switch occurs after failure. Interrupted or ambiguous submissions require review rather than automatic resubmission.
-
-### Grok Imagine is missing or blocked
-
-Symptoms: the Grok Settings card shows `not_configured`, or Grok Jobs fail before execution.
+Symptoms: the Grok Settings card shows `not_configured`, or Grok jobs fail before they run.
 
 ```bash
 grok version
@@ -115,53 +120,40 @@ grok models
 bun run providers:preflight -- --provider=grok
 ```
 
-The preflight must report `canAttempt=true`. Sign in with xAI from Studio Settings, set `XAI_API_KEY` in `.env.local`, or run `grok login` and complete browser authentication.
+The preflight must report `canAttempt=true`. If it does not, sign in with xAI from Studio Settings, set `XAI_API_KEY` in `.env.local`, or run `grok login`.
 
-Some SuperGrok tiers return HTTP 403 after a successful xAI Sign in. That is an entitlement gate, not a bad token. Studio uses the signed-in Grok Build CLI only when the explicit HTTP fallback policy allows it. An uncertain submission must not be sent again through another transport.
+- **HTTP 403 after a successful xAI Sign in:** some SuperGrok tiers do not include this access. The token is good. Studio uses the Grok Build CLI only when the explicit HTTP fallback policy allows it, and it never resends an uncertain submission through another route.
+- **The wrong binary is selected:** set `STUDIO_GROK_CLI_PATH` to the stable native Grok executable and restart the backend.
+- **A stored model is rejected:** HTTP generation uses `grok-imagine-image-2.0` unless `GROK_IMAGE_MODEL` or Settings store a current `grok-imagine-*` ID. If the stored model is not in the `grok models` list, Studio rejects the job before it is queued.
 
-If Studio selects the wrong binary, set `STUDIO_GROK_CLI_PATH` to the stable native Grok executable and restart the backend.
-
-`grok models` on Grok Build 1.0.4 prints `Default model:` plus a `*` default and `-` other models. HTTP generation uses `grok-imagine-image-2.0` unless `GROK_IMAGE_MODEL` or Settings store a current `grok-imagine-*` id. If a stored Settings model is missing from the list, intake rejects the job before enqueue.
-
-Grok Jobs reject these cases before enqueue:
+Studio also rejects these Grok jobs before they are queued:
 
 - unresolved remote references
-- source files outside the Job captured Studio Library
+- source files outside the Studio Library that the job captured
 - more than five CLI source images or three HTTP edit source images
 - unsupported explicit aspect ratios
 - output counts other than one
 
-Import the reference into the Library, or choose a supported ratio (`1:1`, `16:9`, `9:16`, `4:3`, or `3:4`) and retry.
-The Generate dock names the same blocks.
+Import the reference into the Library, or choose a supported ratio (`1:1`, `16:9`, `9:16`, `4:3` or `3:4`), and retry. The Generate dock names the same blocks.
 
-Default supports Grok, including its optional styles. Other workflows must declare Grok support in their Recipe Module and have a compiler fixture.
-Grok treats a styles recipe run with managed references as image editing.
-A run without references is direct image generation.
-Studio creates one Persistent Job per requested batch image.
-Each Grok session still produces exactly one image.
+## Google Nano Banana is missing or blocked
 
-### Google Nano Banana is missing or blocked
-
-Symptoms: the Google Settings card shows `not_configured`, Sign in cannot start, or a Google Job is rejected before execution.
+Symptoms: the Google Settings card shows `not_configured`, Sign in cannot start, or Studio rejects a Google job before it runs.
 
 ```bash
 bun run providers:preflight -- --provider=google
 ```
 
-Use one of these credential paths:
+The preflight names the missing field without showing its value. Check the credential steps in the [user guide](USER_GUIDE.md#google-nano-banana-untested). The Google Cloud project must have the Generative Language API turned on.
 
-- Set `GOOGLE_API_KEY` or `GEMINI_API_KEY` to a restricted Gemini API key.
-- Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_CLOUD_PROJECT_ID`, then connect Google from Studio Settings. Add `GOOGLE_OAUTH_CLIENT_SECRET` only when your Desktop app client requires it.
+- **An old model override fails:** remove a `gemini-2.5-flash-image` override and retry.
+- **The browser cannot return to Studio after Google sign-in:** the callback uses `127.0.0.1` on a temporary port. Allow local loopback traffic, cancel the pending sign-in and retry. A state mismatch closes that sign-in.
 
-The Google Cloud project must have the Generative Language API enabled. OAuth users also need permission to consume services in the billing project. The preflight reports the missing field without returning its value.
+Studio does not reuse credentials from Antigravity, Gemini CLI, a browser profile or another token store.
 
-New Google jobs default to `gemini-nano-banana-2.1` (1K, 2K or 4K). Studio also supports `gemini-3.1-flash-lite-image` (1K), `gemini-3.1-flash-image` (512px through 4K), and `gemini-3-pro-image` (1K through 4K). Saved jobs retain their selected model. Remove an old `gemini-2.5-flash-image` override before retrying. See [Google's image model guide](https://ai.google.dev/gemini-api/docs/image-generation).
+## Antigravity is missing or blocked
 
-The OAuth callback binds to `127.0.0.1` on a temporary port. If the browser cannot return to Studio, allow local loopback traffic, cancel the pending login, and retry. A state mismatch closes that login. Studio does not reuse credentials from Antigravity, Gemini CLI, a browser profile, or another token store.
-
-### Antigravity is missing or blocked
-
-Symptoms: the Antigravity Settings card shows `not_configured`, or the Job fails before the CLI starts.
+Symptoms: the Antigravity Settings card shows `not_configured`, or the job fails before the CLI starts.
 
 ```bash
 agy --version
@@ -169,15 +161,15 @@ agy models
 bun run providers:preflight -- --provider=antigravity
 ```
 
-Studio requires a current CLI with the headless stream, sandbox, model, and permission controls. Open `agy` interactively and complete Google authentication when `agy models` reports an authentication error. Set `STUDIO_ANTIGRAVITY_CLI_PATH` to an absolute native executable path only when normal discovery selects the wrong binary.
+Studio needs a current CLI with the headless stream, sandbox, model and permission controls. If `agy models` reports an authentication error, open `agy` and complete Google authentication. Set `STUDIO_ANTIGRAVITY_CLI_PATH` to an absolute native executable path only when normal discovery selects the wrong binary.
 
-Antigravity Jobs allow one `generate_image` call and one output image. Managed edit sources must already be inside the Job's captured Studio Library. Studio stages copies in its temporary workspace, does not pass other provider keys to the CLI, and does not delete Antigravity's artifact history.
+Edit sources must already be inside the Studio Library that the job captured. A ready preflight proves the CLI, login, flags and model discovery. It does not prove image credits or account access; only a live generation does.
 
-A ready preflight proves CLI, login, flags, and model discovery. It does not prove image credits or account entitlement. A live generation remains the final external-account check.
+## Startup
 
 ### Only the UI is running
 
-Symptoms: `dev:ui` opens but jobs and assets do not sync.
+Symptoms: `dev:ui` opens, but jobs and assets do not sync.
 
 Use `bun run dev`, or run `dev:server` and `dev:ui` in parallel.
 
@@ -185,87 +177,53 @@ Use `bun run dev`, or run `dev:server` and `dev:ui` in parallel.
 
 Symptoms: Vite or Bun reports `listen` errors.
 
-Change `STUDIO_SERVER_PORT` or `STUDIO_CODEX_WS_PORT` in `.env.local`.
-`bun run dev` returns the first failing child exit code.
-On Windows it terminates wrapper process trees so Vite or Codex children do not keep the ports after a failed start.
+Change `STUDIO_SERVER_PORT` or `STUDIO_CODEX_WS_PORT` in `.env.local`. `bun run dev` returns the exit code of the first child that fails. On Windows, it stops the wrapper process trees, so Vite or Codex children do not keep the ports after a failed start.
+
+### `bun install` stalls on Windows
+
+Symptoms: Bun stops responding after it extracts dependencies.
+
+Stop that install and retry with `bun install --backend copyfile`. Use the same backend with `--frozen-lockfile` when you validate that checkout. Do not change the package manager or edit the lockfile by hand.
 
 ### `studio:init` reports a foreign-key failure
 
 Symptoms: SQLite reports `FOREIGN KEY constraint failed` while a migration rebuilds `jobs` or another parent table.
 
-Current migrations preserve child rows and validate `foreign_key_check` before they commit. Stop the local server. Update the checkout and dependencies. Then run:
+Current migrations keep child rows and check `foreign_key_check` before they commit. Stop the local server, update the checkout, and then run:
 
 ```bash
 bun install --frozen-lockfile
 bun run studio:init
 ```
 
-Do not delete `.studio/studio.sqlite` inside the Studio Library folder to bypass the error. If it still fails, keep the database plus its `-wal` and `-shm` files together. Report the exact stack. Restore from a copy only after the server is stopped.
+Do not delete `.studio/studio.sqlite` to get past the error. If it still fails, keep the database and its `-wal` and `-shm` files together, and report the exact stack. Restore from a copy only after the server is stopped.
 
-## When terminal output is too short
+## Storage and logs
 
-If `check`, `lint`, `test`, or `build` fails and the terminal output is truncated:
+### The Library uses too much disk space
 
-1. Run `bun run tooling:logs`.
-2. Inspect the matching `*.latest.log`.
-3. Include the failed command and relevant sanitized excerpt in issue or pull request notes. Remove credentials, private prompts and personal paths.
+Run `bun run storage:audit`. It reports SQLite size, WAL and SHM files, logs, transcripts, references, historical inline payloads, missing thumbnails, duplicate references and compactable payloads. It does not print private content. In the app, Settings → Advanced & maintenance runs the same audit and the plans below.
 
-The full test task caps Vitest at eight workers to avoid Windows filesystem and process contention. Set `VITEST_MAX_WORKERS` to a positive integer only when you need a different local limit.
-
-## Studio Library problems
-
-If the default Cozy Studio library folder is wrong for this machine, set an absolute `STUDIO_LIBRARY_DIR` in `.env.local`. Then run:
-
-```bash
-bun run studio:init
-```
-
-## Storage and heavy logs
-
-Run `bun run storage:audit` to review SQLite size, WAL/SHM files, logs, transcripts, references, historical inline payloads, missing thumbnails, duplicate references, and compactable payloads.
-The command does not print private content.
-
-From the app, open Settings → Advanced & maintenance. You can run audit, compaction plans, thumbnail backfill plans, and tooling-log pruning through `/api/maintenance`.
-
-`storage:compact` is dry-run by default. To write historical compaction, stop the local server and run:
+`storage:compact` only plans by default. To write the historical compaction, stop the local server and run:
 
 ```bash
 bun run storage:compact -- --write --confirm=compact-inline-payloads
 ```
 
-Backend logs rotate under `.studio/logs/history` inside the Studio Library folder. `/api/logs` and the activity panel show a recent window, not an infinite historical file.
+### Old images have no thumbnails
 
-Tooling logs keep one `.latest.log` per task and prune timestamped runs automatically. To clean them by hand:
-
-```bash
-bun run tooling:logs:prune
-```
-
-To warm missing historical thumbnails without writing first:
+To plan the backfill without writing, run:
 
 ```bash
 bun run storage:thumbnails:backfill
 ```
 
-To write a planned thumbnail batch:
+To write a planned batch, run:
 
 ```bash
 bun run storage:thumbnails:backfill -- --limit=1000 --write --confirm=backfill-thumbnails
 ```
 
-## Useful commands
+### I cannot find older log lines
 
-```bash
-bun run studio:onboard
-bun run studio:init
-bun run dev:server
-bun run dev:ui
-bun run runtime:doctor
-bun run providers:preflight
-bun run validate:fast
-bun run storage:audit
-bun run storage:thumbnails:backfill
-bun run check
-bun run test
-bun run build
-```
+Backend logs rotate under `.studio/logs/history`. `/api/logs` and the activity panel show a recent window, not the full history.

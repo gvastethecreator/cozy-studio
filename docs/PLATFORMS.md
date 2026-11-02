@@ -12,13 +12,19 @@ Studio runs a local Bun server and opens a browser. Windows, macOS and Linux sha
 | macOS portable                 | `scripts/Cozy Studio.command` |
 | Linux portable                 | `scripts/Cozy Studio.sh`      |
 
-Portable and built-app modes require `dist/`; source checkouts produce it with `bun run build`. Launchers resolve the app folder from their own location, not the terminal's current folder. On macOS a downloaded script may need executable permission; use the command in [PORTABLE.txt](../PORTABLE.txt).
+Portable and built-app modes need `dist/`. A source checkout makes it with `bun run build`. Launchers find the app folder from their own location, not from the terminal's current folder. If browser opening is not available, use the printed loopback URL.
 
-Each portable ZIP targets one OS and CPU: `windows-x64`, `windows-arm64`, `linux-x64`, `linux-arm64`, `macos-x64` or `macos-arm64`. Windows includes `runtime/bun.exe`; Linux and macOS include `runtime/bun`. Launchers prefer this binary and add its directory to child-process `PATH`. The ZIP includes the matching production dependencies, license notices, executable Unix permissions and a `portable.json` target record. Linux requires glibc 2.28 or newer, not musl/Alpine; macOS requires version 13 or newer. x64 builds require SSE4.2.
+Portable wrappers set `STUDIO_PORTABLE=1`. Without an explicit Library path, the Library is stored inside the app folder. This does not move existing data or change where credentials are stored. [PORTABLE.txt](../PORTABLE.txt) explains how to launch a ZIP.
 
-Build with `bun run build` followed by `bun run portable:build <target>`. Omitting the target uses the host OS and CPU. The builder installs production dependencies with explicit OS/CPU selection and prints the archive and checksum paths under `.scratch/portable/`. Cross-built packages need native execution checks on their target OS and CPU. The production ZIP omits package-manager CLI shims generated for the build host; Studio starts through its bundled runtime and launcher.
+## Portable ZIP requirements
 
-Portable wrappers set `STUDIO_PORTABLE=1`. Without an explicit Library path, that stores the Library inside the app folder. It does not move existing data or change where credentials are stored. If browser opening is unavailable, use the printed loopback URL.
+No portable ZIPs are published yet. [Tooling](TOOLING.md) explains how to build one. Each ZIP targets one OS and CPU: `windows-x64`, `windows-arm64`, `linux-x64`, `linux-arm64`, `macos-x64` or `macos-arm64`.
+
+- Linux needs glibc 2.28 or newer. musl and Alpine are not supported.
+- macOS needs version 13 or newer.
+- x64 builds need SSE4.2.
+
+The ZIP includes its Bun runtime (`runtime/bun.exe` on Windows, `runtime/bun` on Linux and macOS), the matching production dependencies, license notices and a `portable.json` target record. Launchers prefer this runtime and add its folder to `PATH` for child processes.
 
 ## Default paths
 
@@ -29,7 +35,7 @@ Portable wrappers set `STUDIO_PORTABLE=1`. Without an explicit Library path, tha
 | Studio sign-in credentials | App-data root, `auth/studio-oauth.json`          | App-data root, `auth/studio-oauth.json`             | `$XDG_STATE_HOME/cozy-studio/auth/studio-oauth.json` |
 | Generated images           | Windows Pictures Known Folder plus `Cozy Studio` | `~/Pictures/Cozy Studio`                            | XDG Pictures directory plus `Cozy Studio`            |
 
-Linux defaults are `~/.local/share` for XDG data and `~/.local/state` for XDG state. Relative XDG base directories are ignored. Pictures uses `XDG_PICTURES_DIR`, then `user-dirs.dirs` under the XDG config directory, then `~/Pictures`. A Pictures directory disabled by pointing it at HOME requires an explicit image destination. Studio parses that file as data; it never executes its shell contents.
+Linux defaults are `~/.local/share` for XDG data and `~/.local/state` for XDG state. Relative XDG base directories are ignored. Pictures uses `XDG_PICTURES_DIR`, then `user-dirs.dirs` under the XDG config directory, then `~/Pictures`. If XDG turns off Pictures by setting it to your home folder, set `STUDIO_IMAGES_DIR`. Studio reads `user-dirs.dirs` as data; it never runs its shell contents.
 
 Windows honors redirected Pictures folders, including network paths. If Windows cannot report that location, Studio asks for `STUDIO_IMAGES_DIR` instead of guessing. `LOCALAPPDATA` must be fully qualified; a path such as `\\AppData` cannot select an arbitrary current drive.
 
@@ -42,11 +48,11 @@ Windows honors redirected Pictures folders, including network paths. If Windows 
 - Existing Libraries and credential files are never migrated automatically. Changing an environment variable selects another location; it does not copy the old contents.
 - Keep the Library writable by the current user. Do not repair permission errors by running Studio as administrator or root. Inspect the selected path first.
 
-The path owners are `platformHome.ts`, `platformDirectories.ts`, `config.ts`, `platformPaths.ts` and `auth/store.ts` under `apps/local-server/src/`. Fix a resolution defect there rather than adding a UI-specific path rule.
+For contributors: `platformHome.ts`, `platformDirectories.ts`, `config.ts`, `platformPaths.ts` and `auth/store.ts` under `apps/local-server/src/` own path resolution. Fix a resolution defect there, not with a UI-specific path rule.
 
 ## Report a platform failure
 
-Include the OS version, CPU architecture, Bun version, launch mode, selected provider, reproduction steps and exact error. Run `bun run studio:onboard --probe` for a read-only setup report; its `host` field includes OS, architecture, Bun and Node runtime versions. For a Codex failure, also use `bun run runtime:doctor`; for another provider, use `bun run providers:preflight`.
+Follow the [bug report steps](../CONTRIBUTING.md#report-a-bug). For a platform failure, also include the OS version, CPU architecture and launch mode. Run `bun run studio:onboard --probe` for a read-only setup report; its `host` field includes the OS, architecture, Bun and Node versions. For a Codex failure, also run `bun run runtime:doctor`. For another provider, run `bun run providers:preflight`.
 
 The probe can contain account-related status and personal paths. Redact usernames, private directories and account identifiers before posting it. Never attach `.env.local`, the credential file, SQLite databases or complete transcripts. Use the [private security channel](../SECURITY.md) for exposure of credentials or files.
 

@@ -6,13 +6,25 @@ Cozy Studio uses **Bun** as package manager and backend runtime. Use `bun` or `b
 
 The repository and CI pin Bun `1.4.2` through `packageManager` and the workflow setup step. Use `bun install` for a local dependency refresh. Use `bun install --frozen-lockfile` for reproducible validation and CI.
 
-`bun run portable:build [target]` builds a portable ZIP after `bun run build`. Targets are `windows-x64`, `windows-arm64`, `linux-x64`, `linux-arm64`, `macos-x64` and `macos-arm64`; the default matches the build host. It verifies the official pinned Bun release SHA-256, includes that target's unmodified executable and notices, and installs production dependencies with explicit OS/CPU options into an isolated folder under `.scratch/portable/`. Native install scripts are disabled for cross-platform safety; the required prebuilt Sharp binary must be present. Each archive has its own launcher, executable permissions, target record and SHA-256. These are local artifacts; this command does not publish a release or include user Library data or credentials.
+`bun run portable:build [target]` builds a portable ZIP after `bun run build`. Targets are `windows-x64`, `windows-arm64`, `linux-x64`, `linux-arm64`, `macos-x64` and `macos-arm64`; the default matches the build host. It verifies the official pinned Bun release SHA-256, includes that target's unmodified executable and notices, and installs production dependencies with explicit OS/CPU options into an isolated folder under `.scratch/portable/`. Native install scripts are disabled for cross-platform safety; the required prebuilt Sharp binary must be present. Each archive has its own launcher, executable permissions, target record and SHA-256. The ZIP leaves out the package-manager CLI shims of the build host.
+
+These ZIPs are local artifacts. The command does not publish a release, and it does not include user Library data, credentials or `.env.local`. A cross-built ZIP needs a native startup check on its target OS and CPU. [Platform support](PLATFORMS.md) lists the OS requirements, and `PORTABLE.txt` inside the ZIP explains how to launch it.
 
 The Studio application is one Bun package. The separate `landing/` site has its own package and lockfile. Nested `apps/*` and `packages/*` folders are source boundaries, not separate package manifests, until real `package.json` files exist.
 
 `tsconfig.json` is the aggregate compatibility config that `vp check` uses. Environment truth lives in `tsconfig.web.json`, `apps/local-server/tsconfig.json`, `packages/shared/tsconfig.json`, `tsconfig.scripts.json`, and `tsconfig.browser-scripts.json`.
 
 Tooling logs stay in `logs/tooling/`. The incremental server typecheck cache stays in `.cache/`; neither belongs in the source tree.
+
+## When terminal output is too short
+
+If `check`, `lint`, `test` or `build` fails and the terminal output is cut off:
+
+1. Run `bun run tooling:logs`.
+2. Open the matching `*.latest.log`.
+3. Put the failed command and a relevant, sanitized excerpt in the issue or pull request. Remove credentials, private prompts and personal paths.
+
+Each task keeps one `.latest.log`, and timestamped runs are pruned automatically. To clean them by hand, run `bun run tooling:logs:prune`.
 
 ## Canonical scripts
 
@@ -38,17 +50,15 @@ Use one validation level per integration. Each broader gate includes the narrowe
 
 `bun run test` runs the complete Vitest suite. Native Bun cases use `bun:sqlite` and `Bun.Image` and are excluded from Vitest; `bun run test:bun` runs them. `validate` runs both.
 
+The full test task limits Vitest to eight workers, to avoid Windows filesystem and process contention. Set `VITEST_MAX_WORKERS` to a positive integer only when you need a different local limit.
+
 The UI build checks chunk budgets. Keep optional surfaces demand-loaded and preserve the 500,000-byte main-entry limit; a smaller entry alone does not prove faster startup.
 
 ## Dependency maintenance
 
-Follow the scoped update workflow in [Dependencies](DEPENDENCIES.md). Keep unrelated packages unchanged.
+Follow the scoped update workflow in [Dependencies](DEPENDENCIES.md). It also lists the pinned packages. Keep unrelated packages unchanged.
 
-Effect is pinned to `4.0.5`. Keep domain cancellation separate from fiber interruption in tests: the Comfy executor must report unconfirmed cancellation, and the worker must retain `needs_review` when an interrupted job has no confirmed remote cancellation. A raw interrupted fiber does not promise to return the domain error from its cleanup.
-
-Studio and the landing use Pretext `1.0.0`. The landing bundles its public entry instead of copying private implementation files. Its VGPU `0.6.0` shaders are prepared during the build with the matching `@vgpu/wgsl` version. Rebuild the tracked vendor output when updating these packages; do not retain stale output after a failed build. See the [Pretext release notes](https://github.com/chenglou/pretext/releases/tag/v1.0.0) and [VGPU migration guide](https://github.com/vercel-labs/vgpu/blob/v0.6.0/docs/migrations/0.6.0.docs.md).
-
-If Bun stalls after extracting dependencies on Windows, stop that install and retry with `bun install --backend copyfile`. Use the same backend with `--frozen-lockfile` when validating that checkout. This avoids changing the package manager or the lockfile by hand.
+If `bun install` stalls on Windows, see [Troubleshooting](TROUBLESHOOTING.md).
 
 ## CI
 

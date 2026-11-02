@@ -273,7 +273,7 @@ export const studioMcpTools = {
   studio_organize_images: {
     access: 'organize',
     description:
-      'Organize up to 100 existing images in one workspace: add or remove tags, add the images to a collection by name (created if missing) or remove them from one. Needs Organize or Full control access. Propose the scheme to the user first (which images get which tags and collection) and call this only after they confirm. Every image must be live and in workspaceId, and every tag change must fit, or nothing changes. Safe to repeat: tags and members already present stay as they are. The result lists the ids each change touched (tags.added and tags.removed map each tag name to its image ids): to undo, send the inverse change for those ids only, one call per tag. Never deletes, archives or moves images.',
+      'Organize up to 100 existing images in one workspace: add or remove tags, add the images to a collection by name (created if missing) or remove them from one. Needs Organize or Full control access. Propose the scheme to the user first (which images get which tags and collection) and call this only after they confirm. The call is one transaction: every image must be live and in workspaceId, and every tag change must fit, or nothing changes. Safe to repeat: tags and members already present stay as they are. The result lists the ids each change touched (tags.added and tags.removed map each tag name to its image ids): to undo, send the inverse change for those ids only, one call per tag. Never deletes, archives or moves images.',
     schema: z
       .strictObject({
         workspaceId: id,

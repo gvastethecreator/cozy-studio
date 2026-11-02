@@ -6,7 +6,7 @@ import type { Database } from 'bun:sqlite';
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildCatalogWorkspaceClause } from './catalogWorkspaceClause';
-import { purgeCatalogImage, queryCatalog, updateCatalogImage } from './catalog';
+import { purgeCatalogImage, queryCatalog } from './catalog';
 import {
   applyCatalogTagChanges,
   formatCatalogSearchTag,
@@ -77,16 +77,21 @@ describe('buildCatalogWorkspaceClause', () => {
           queryCatalog({ workspaceId: 'default', sort }, database).images.map((image) => image.id),
         ).toEqual(expected[sort]);
       }
-      updateCatalogImage('old', {
-        tags: applyCatalogTagChanges(['imported reference', 'ACCIÓN'], {
+      const setTags = (id: string, tags: string[]) =>
+        sqlite
+          .prepare('UPDATE catalog_images SET tags = ? WHERE id = ?')
+          .run(JSON.stringify(tags), id);
+      setTags(
+        'old',
+        applyCatalogTagChanges(['imported reference', 'ACCIÓN'], {
           addTags: ['jefe', 'bosque', 'pixel_art', 'acción'],
         }),
-      });
-      updateCatalogImage('middle', { tags: ['jefe'] });
-      updateCatalogImage('tie', { tags: ['jefe', 'bosque'] });
-      updateCatalogImage('new', { tags: ['jefecito', 'pixelXart'] });
-      updateCatalogImage('other', { tags: ['jefe', 'bosque'] });
-      updateCatalogImage('deleted', { tags: ['jefe', 'bosque'] });
+      );
+      setTags('middle', ['jefe']);
+      setTags('tie', ['jefe', 'bosque']);
+      setTags('new', ['jefecito', 'pixelXart']);
+      setTags('other', ['jefe', 'bosque']);
+      setTags('deleted', ['jefe', 'bosque']);
       expect(sqlite.prepare('SELECT tags FROM catalog_images WHERE id = ?').get('old')).toEqual({
         tags: '["imported reference","ACCIÓN","jefe","bosque","pixel_art","acción"]',
       });
@@ -117,7 +122,7 @@ describe('buildCatalogWorkspaceClause', () => {
           (image) => image.id,
         ),
       ).toEqual(['old']);
-      updateCatalogImage('old', { tags: ['ACCIÓN'] });
+      setTags('old', ['ACCIÓN']);
       expect(
         queryCatalog(
           { workspaceId: 'default', q: formatCatalogSearchTag('ACCIÓN') },

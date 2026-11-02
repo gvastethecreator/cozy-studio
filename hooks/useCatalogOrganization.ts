@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { CatalogCollection, CatalogTag } from '../packages/shared/src';
+import type { CatalogCollection, CatalogOrganizeResult, CatalogTag } from '../packages/shared/src';
 import {
   CATALOG_ORGANIZATION_CHANGED,
   listCatalogCollections,
@@ -59,4 +59,16 @@ export function useCatalogOrganization(workspaceId: string, enabled = true) {
     loading: loadedWorkspaceId !== workspaceId,
     refresh,
   };
+}
+
+/** An image's tags after an organize call, from the ids the result lists per tag. */
+export function applyOrganizeResult(
+  imageId: string,
+  tags: string[],
+  result: CatalogOrganizeResult,
+) {
+  const has = (byTag: Record<string, string[]>) =>
+    Object.keys(byTag).filter((tag) => byTag[tag].includes(imageId));
+  const removed = new Set(has(result.tags.removed));
+  return [...tags.filter((tag) => !removed.has(tag)), ...has(result.tags.added)];
 }

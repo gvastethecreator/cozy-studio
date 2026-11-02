@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
 import {
-  applyCatalogTagChanges,
   CATALOG_PURGE_CONFIRMATION,
   CATALOG_SORT_OPTIONS,
+  CatalogOrganizeError,
+  parseCatalogOrganizeInput,
   validateCatalogCollectionImageIds,
   validateCatalogCollectionName,
   validateCatalogCollectionWorkspaceId,
-  validateCatalogTags,
   type CatalogCollectionPatch,
   type CatalogTagPatch,
   normalizeImageHashtag,
@@ -25,7 +25,7 @@ import type { updateCatalogImageFileSize as updateCatalogImageFileSizeFn } from 
 interface CatalogCommandsBoundary {
   update(
     id: string,
-    patch: { isFavorite?: boolean; tags?: string[]; workspaceId?: string | null },
+    patch: { isFavorite?: boolean; workspaceId?: string | null },
   ): CatalogCommandResult;
   softDelete(id: string): CatalogCommandResult;
   restore(id: string): CatalogCommandResult;
@@ -297,6 +297,30 @@ export function createCatalogRoutes({
     });
   }
 
+  routes.post('/commands/organize', async (c) => {
+    try {
+      const body = await c.req.json().catch(() => null);
+      const result = catalogStore.organizeImages(parseCatalogOrganizeInput(body));
+      const changed = new Set([
+        ...Object.values(result.tags.added).flat(),
+        ...Object.values(result.tags.removed).flat(),
+        ...(result.collection?.addedImageIds ?? []),
+        ...(result.removedFrom?.removedImageIds ?? []),
+      ]).size;
+      if (changed) publishOrganized(changed, result.workspaceId);
+      return c.json(result);
+    } catch (error) {
+      return c.json(
+        {
+          ...collectionError(error),
+          ...(error instanceof CatalogOrganizeError &&
+            error.imageIds && { imageIds: error.imageIds }),
+        },
+        400,
+      );
+    }
+  });
+
   routes.get('/:id', (c) => {
     const image = catalogStore.getCatalogImage(c.req.param('id'));
     if (!image) return jsonNotFound(c);
@@ -305,21 +329,13 @@ export function createCatalogRoutes({
 
   routes.patch('/:id', async (c) => {
     const body = await c.req.json().catch(() => ({}));
-    let tags: string[] | undefined;
     try {
       if (!body || typeof body !== 'object' || Array.isArray(body)) {
         throw new Error('Expected an image update object.');
       }
-      if (body.tags !== undefined) tags = validateCatalogTags(body.tags);
-      if (body.addTags !== undefined || body.removeTags !== undefined) {
-        if (body.tags !== undefined) throw new Error('Send tag changes or a tag list, not both.');
-        const current = catalogStore.getCatalogImage(c.req.param('id'));
-        if (!current) return jsonNotFound(c);
-        tags = applyCatalogTagChanges(
-          current.tags,
-          body,
-          catalogStore.listTags(current.workspaceId ?? 'default').map((tag) => tag.name),
-        );
+      // Every tag write goes through the organize command.
+      if (['tags', 'addTags', 'removeTags'].some((key) => key in body)) {
+        throw new Error('Change tags with POST /api/catalog/commands/organize.');
       }
       const workspaceId: string | null | undefined =
         body.workspaceId === undefined || body.workspaceId === null
@@ -328,13 +344,12 @@ export function createCatalogRoutes({
       // An unknown workspace throws before anything is written.
       const result = catalogCommands.update(c.req.param('id'), {
         isFavorite: body.isFavorite,
-        tags,
         workspaceId,
       });
       if (!result.ok) return jsonNotFound(c);
       return c.json(result.image);
     } catch (error) {
-      return c.json({ error: error instanceof Error ? error.message : 'Invalid tags' }, 400);
+      return c.json({ error: error instanceof Error ? error.message : 'Invalid update' }, 400);
     }
   });
 

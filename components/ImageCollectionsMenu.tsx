@@ -10,7 +10,7 @@ import { openStudioSettings } from '../lib/studioSettingsDomains';
 import { DemandMountedGsapDropdown } from './ui/DemandMountedGsapDropdown';
 import { OrganizationCreatePopover } from './OrganizationCreatePopover';
 import {
-  updateCatalogCollection,
+  organizeCatalogImages,
   deleteCatalogCollection,
   notifyCatalogOrganizationChanged,
 } from '../services/studio-api/catalog';
@@ -45,7 +45,11 @@ function OrganizationMenuFooter({
             disabled={busy}
             onClick={() =>
               void onChange(() =>
-                updateCatalogCollection(active.id, { addImageIds: selectedImageIds }),
+                organizeCatalogImages({
+                  workspaceId: active.workspaceId,
+                  imageIds: selectedImageIds,
+                  addToCollection: active.name,
+                }),
               )
             }
           >
@@ -57,7 +61,11 @@ function OrganizationMenuFooter({
             disabled={busy}
             onClick={() =>
               void onChange(() =>
-                updateCatalogCollection(active.id, { removeImageIds: selectedImageIds }),
+                organizeCatalogImages({
+                  workspaceId: active.workspaceId,
+                  imageIds: selectedImageIds,
+                  removeFromCollection: active.name,
+                }),
               )
             }
           >

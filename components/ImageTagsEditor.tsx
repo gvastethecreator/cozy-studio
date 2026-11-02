@@ -1,11 +1,11 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { parseImageHashtags, type CatalogTagChanges } from '../packages/shared/src/catalogTags';
 import {
-  updateCatalogImage,
+  organizeCatalogImages,
   notifyCatalogOrganizationChanged,
 } from '../services/studio-api/catalog';
 import type { GeneratedImage } from '../types';
-import { useCatalogOrganization } from '../hooks/useCatalogOrganization';
+import { applyOrganizeResult, useCatalogOrganization } from '../hooks/useCatalogOrganization';
 
 export function ImageTagsEditor({
   images,
@@ -45,35 +45,23 @@ export function ImageTagsEditor({
     setSaved(false);
     try {
       setSaving(true);
-      const results = await Promise.allSettled(
-        imageTags.map(async (image) => {
-          const result = await updateCatalogImage(image.id, changes);
-          return { id: image.id, tags: result.tags };
-        }),
+      // All or nothing: a rejected call changes no image.
+      const result = await organizeCatalogImages({
+        workspaceId,
+        imageIds: imageTags.map((image) => image.id),
+        ...changes,
+      });
+      confirmedRef.current = true;
+      setImageTags((current) =>
+        current.map((image) => ({
+          ...image,
+          tags: applyOrganizeResult(image.id, image.tags, result),
+        })),
       );
-      const updated = new Map(
-        results.flatMap((result) =>
-          result.status === 'fulfilled' ? [[result.value.id, result.value.tags] as const] : [],
-        ),
-      );
-      if (updated.size) {
-        confirmedRef.current = true;
-        setImageTags((current) =>
-          current.map((image) => ({ ...image, tags: updated.get(image.id) ?? image.tags })),
-        );
-        onSaved?.();
-        notifyCatalogOrganizationChanged();
-      }
-      const failed = results.filter((result) => result.status === 'rejected');
-      if (failed.length) {
-        const cause = failed[0].reason;
-        setError(
-          `${failed.length} of ${imageTags.length} images could not be updated. ${cause instanceof Error ? cause.message : 'Try again.'}`,
-        );
-      } else {
-        if (clearInput) setInput('');
-        setSaved(true);
-      }
+      onSaved?.();
+      notifyCatalogOrganizationChanged();
+      if (clearInput) setInput('');
+      setSaved(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not save tags. Try again.');
     } finally {

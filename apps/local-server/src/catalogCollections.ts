@@ -1,11 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import type { Database } from 'bun:sqlite';
 
-import type {
-  CatalogCollection,
-  CatalogCollectionPatch,
-  CatalogCollectionSelection,
+import {
+  CatalogOrganizeError,
+  type CatalogCollection,
+  type CatalogCollectionPatch,
+  type CatalogCollectionSelection,
+  type CatalogOrganizeInput,
+  type CatalogOrganizeResult,
 } from '../../../packages/shared/src/catalogCollections';
+import { applyCatalogTagChanges } from '../../../packages/shared/src/catalogTags';
+import { recordCatalogTagUse } from './catalogTags';
 import { getDb } from './db/connection';
 
 function now() {
@@ -247,4 +252,165 @@ export function updateCatalogCollection(id: string, patch: CatalogCollectionPatc
 
 export function deleteCatalogCollection(id: string, db?: Database) {
   return getDb(db).query('DELETE FROM catalog_collections WHERE id = ?').run(id).changes === 1;
+}
+
+function parseTags(value: string | null): string[] {
+  try {
+    const tags: unknown = JSON.parse(value ?? '[]');
+    return Array.isArray(tags) ? tags.filter((tag) => typeof tag === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Applies one organize call in one transaction. Every image and change is checked before the
+ * first write, so a rejected call changes nothing. It never deletes, archives or moves images.
+ * It calls no helper that opens its own transaction: the Vitest database cannot nest them.
+ */
+export function organizeCatalogImages(
+  input: CatalogOrganizeInput,
+  db?: Database,
+): CatalogOrganizeResult {
+  const database = getDb(db);
+  const { workspaceId, imageIds, addTags, removeTags, addToCollection, removeFromCollection } =
+    input;
+  const placeholders = imageIds.map(() => '?').join(', ');
+  return database.transaction(() => {
+    const rows = database
+      .query(
+        `SELECT id, workspace_id, is_deleted, tags FROM catalog_images WHERE id IN (${placeholders})`,
+      )
+      .all(...imageIds) as {
+      id: string;
+      workspace_id: string | null;
+      is_deleted: number;
+      tags: string | null;
+    }[];
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    const outside = imageIds.filter((id) => {
+      const row = byId.get(id);
+      return !row || row.is_deleted || (row.workspace_id ?? 'default') !== workspaceId;
+    });
+    if (outside.length)
+      throw new CatalogOrganizeError(
+        'Every image must be live and in workspaceId. Nothing changed.',
+        outside,
+      );
+
+    // Per tag, the images that gain or lose it, so an undo touches only those images.
+    const added: Record<string, string[]> = {};
+    const removed: Record<string, string[]> = {};
+    const retagged = new Map<string, string[]>();
+    if (addTags || removeTags) {
+      const known = (
+        database.query('SELECT name FROM catalog_tags WHERE workspace_id = ?').all(workspaceId) as {
+          name: string;
+        }[]
+      ).map(({ name }) => name);
+      const record = (byTag: Record<string, string[]>, from: string[], to: string[], id: string) =>
+        from.filter((tag) => !to.includes(tag)).forEach((tag) => (byTag[tag] ??= []).push(id));
+      const rejected: string[] = [];
+      let tagError = '';
+      for (const id of imageIds) {
+        const current = parseTags(byId.get(id)!.tags);
+        try {
+          const tags = applyCatalogTagChanges(current, { addTags, removeTags }, known);
+          if (tags.join('\n') === current.join('\n')) continue;
+          retagged.set(id, tags);
+          record(added, tags, current, id);
+          record(removed, current, tags, id);
+        } catch (error) {
+          rejected.push(id);
+          tagError = error instanceof Error ? error.message : 'Invalid tags.';
+        }
+      }
+      if (rejected.length) throw new CatalogOrganizeError(`${tagError} Nothing changed.`, rejected);
+    }
+
+    const byName = (name: string) =>
+      database
+        .query(
+          'SELECT id, name FROM catalog_collections WHERE workspace_id = ? AND name = ? COLLATE NOCASE',
+        )
+        .get(workspaceId, name) as { id: string; name: string } | null;
+    const target = addToCollection ? byName(addToCollection) : null;
+    const removeFrom = removeFromCollection ? byName(removeFromCollection) : null;
+    if (removeFromCollection && !removeFrom)
+      throw new CatalogOrganizeError(
+        'removeFromCollection is not a collection in this workspace. Nothing changed.',
+      );
+    const membersOf = (collectionId: string) =>
+      new Set(
+        (
+          database
+            .query(
+              `SELECT image_id FROM catalog_collection_images
+               WHERE collection_id = ? AND image_id IN (${placeholders})`,
+            )
+            .all(collectionId, ...imageIds) as { image_id: string }[]
+        ).map(({ image_id }) => image_id),
+      );
+    const alreadyIn = target ? membersOf(target.id) : new Set<string>();
+    const wasIn = removeFrom ? membersOf(removeFrom.id) : new Set<string>();
+
+    // Every check passed; the writes follow.
+    const timestamp = now();
+    const setTags = database.query('UPDATE catalog_images SET tags = ? WHERE id = ?');
+    for (const [id, tags] of retagged) setTags.run(JSON.stringify(tags), id);
+    recordCatalogTagUse(workspaceId, Object.keys(added), database);
+
+    let collection: CatalogOrganizeResult['collection'] = null;
+    if (addToCollection) {
+      const addedImageIds = imageIds.filter((id) => !alreadyIn.has(id));
+      let id = target?.id;
+      if (id) {
+        const insert = database.query(
+          'INSERT INTO catalog_collection_images (collection_id, image_id, added_at) VALUES (?, ?, ?)',
+        );
+        for (const imageId of addedImageIds) insert.run(id, imageId, timestamp);
+        database
+          .query(
+            `UPDATE catalog_collections SET last_used_at = ?,
+             updated_at = CASE WHEN ? THEN ? ELSE updated_at END WHERE id = ?`,
+          )
+          .run(timestamp, addedImageIds.length ? 1 : 0, timestamp, id);
+      } else {
+        id = createCatalogCollection({ workspaceId, name: addToCollection, imageIds }, database).id;
+      }
+      const saved = getCatalogCollection(id, database)!;
+      collection = {
+        id: saved.id,
+        name: saved.name,
+        created: !target,
+        imageCount: saved.imageCount,
+        addedImageIds,
+      };
+    }
+    if (removeFrom && wasIn.size) {
+      const ids = [...wasIn];
+      database
+        .query(
+          `DELETE FROM catalog_collection_images
+           WHERE collection_id = ? AND image_id IN (${ids.map(() => '?').join(', ')})`,
+        )
+        .run(removeFrom.id, ...ids);
+      database
+        .query('UPDATE catalog_collections SET updated_at = ? WHERE id = ?')
+        .run(timestamp, removeFrom.id);
+    }
+    return {
+      workspaceId,
+      imageCount: imageIds.length,
+      tags: { added, removed },
+      collection,
+      removedFrom: removeFrom
+        ? {
+            id: removeFrom.id,
+            name: removeFrom.name,
+            removedImageIds: imageIds.filter((id) => wasIn.has(id)),
+          }
+        : null,
+    };
+  })();
 }

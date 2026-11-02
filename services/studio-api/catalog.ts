@@ -4,7 +4,8 @@ import {
   type CatalogCollection,
   type CatalogCollectionPatch,
   type CatalogCollectionSelection,
-  type CatalogTagChanges,
+  type CatalogOrganizeInput,
+  type CatalogOrganizeResult,
   type CatalogTag,
   type CatalogTagPatch,
   type CatalogCommandFilter,
@@ -75,13 +76,22 @@ export async function queryCatalogWorkspaceSummaries(
   );
 }
 
+/** Favorite or workspace. Tags change through organizeCatalogImages. */
 export async function updateCatalogImage(
   imageId: string,
-  patch: { isFavorite?: boolean; tags?: string[]; workspaceId?: string | null } & CatalogTagChanges,
+  patch: { isFavorite?: boolean; workspaceId?: string | null },
 ) {
   return request<CatalogImage>(`/api/catalog/${encodeURIComponent(imageId)}`, {
     method: 'PATCH',
     body: JSON.stringify(patch),
+  });
+}
+
+/** One transaction: a rejected call changes nothing and names the images at fault. */
+export async function organizeCatalogImages(input: CatalogOrganizeInput) {
+  return request<CatalogOrganizeResult>('/api/catalog/commands/organize', {
+    method: 'POST',
+    body: JSON.stringify(input),
   });
 }
 

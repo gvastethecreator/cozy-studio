@@ -236,6 +236,9 @@ function createFakeCatalogStore(overrides?: Partial<StudioCatalogStore>): Studio
     })),
     updateCollection: vi.fn(() => null),
     deleteCollection: vi.fn(() => false),
+    organizeImages: vi.fn(() => {
+      throw new Error('Not used.');
+    }),
   };
 
   return { ...store, ...overrides };

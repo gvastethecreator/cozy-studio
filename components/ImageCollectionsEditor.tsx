@@ -1,10 +1,9 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import type { CatalogCollectionSelection } from '../packages/shared/src';
+import type { CatalogCollectionSelection, CatalogOrganizeInput } from '../packages/shared/src';
 import {
-  createCatalogCollection,
   getCatalogCollectionSelection,
-  updateCatalogCollection,
   notifyCatalogOrganizationChanged,
+  organizeCatalogImages,
 } from '../services/studio-api/catalog';
 
 export function ImageCollectionsEditor({
@@ -43,6 +42,11 @@ export function ImageCollectionsEditor({
     };
   }, [workspaceId, selectionKey, revision]);
 
+  // All or nothing: a rejected call changes no image.
+  const organize = (
+    change: Pick<CatalogOrganizeInput, 'addToCollection' | 'removeFromCollection'>,
+  ) => organizeCatalogImages({ workspaceId, imageIds, ...change });
+
   const save = async (work: () => Promise<unknown>, clearName = false) => {
     if (saving.current) return;
     saving.current = true;
@@ -80,9 +84,10 @@ export function ImageCollectionsEditor({
                   disabled={busy}
                   onClick={() =>
                     void save(() =>
-                      updateCatalogCollection(
-                        collection.id,
-                        all ? { removeImageIds: imageIds } : { addImageIds: imageIds },
+                      organize(
+                        all
+                          ? { removeFromCollection: collection.name }
+                          : { addToCollection: collection.name },
                       ),
                     )
                   }
@@ -109,9 +114,7 @@ export function ImageCollectionsEditor({
                     disabled={busy}
                     className="studio-ghost-control rounded px-2 py-1"
                     onClick={() =>
-                      void save(() =>
-                        updateCatalogCollection(collection.id, { removeImageIds: imageIds }),
-                      )
+                      void save(() => organize({ removeFromCollection: collection.name }))
                     }
                   >
                     ×
@@ -128,11 +131,8 @@ export function ImageCollectionsEditor({
         className="flex gap-2"
         onSubmit={(event) => {
           event.preventDefault();
-          if (name.trim())
-            void save(
-              () => createCatalogCollection({ workspaceId, name: name.trim(), imageIds }),
-              true,
-            );
+          // Adds the images to that collection, and creates it when the workspace has none.
+          if (name.trim()) void save(() => organize({ addToCollection: name.trim() }), true);
         }}
       >
         <label htmlFor={inputId} className="sr-only">

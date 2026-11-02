@@ -1,6 +1,5 @@
 /**
- * Studio Runtime Info — detects whether the frontend runs inside the desktop bridge
- * or a standalone web browser, and resolves the local backend API base URL.
+ * Studio Runtime Info — resolves the local backend API base URL for the browser UI.
  *
  * This service is a STATIC CONFIG ADAPTER. It does not manage state, sessions,
  * onboarding, readiness, or any runtime lifecycle. It answers "where is the backend?"
@@ -25,23 +24,13 @@ function normalizeStudioLoopback(value: string) {
   }
 }
 
-export interface StudioRuntimeCapabilities {
-  desktopBridge: boolean;
-  localBackend: boolean;
-  localCodexSession: boolean;
-}
-
 export interface StudioRuntimeInfo {
-  kind: 'desktop' | 'web';
   label: string;
   apiBase: string;
   isDesktop: boolean;
-  platform: string | null;
-  capabilities: StudioRuntimeCapabilities;
 }
 
 export interface StudioRuntimeSources {
-  desktopBridge?: Window['cozyStudio'];
   envApiBase?: string;
   pageOrigin?: string;
   productionUi?: boolean;
@@ -72,17 +61,11 @@ function resolveLoopbackHttpOrigin(value: string | undefined) {
 }
 
 function resolveApiBase({
-  desktopBridge,
   envApiBase,
   pageOrigin,
   productionUi = false,
   fallbackApiBase = DEFAULT_STUDIO_API_BASE,
 }: StudioRuntimeSources = {}) {
-  const desktopBase = desktopBridge?.apiBase?.trim();
-  if (desktopBase) {
-    return trimTrailingSlash(normalizeStudioLoopback(desktopBase));
-  }
-
   const envBase = envApiBase?.trim();
   if (envBase) {
     return trimTrailingSlash(normalizeStudioLoopback(envBase));
@@ -96,54 +79,18 @@ function resolveApiBase({
   return trimTrailingSlash(normalizeStudioLoopback(fallbackApiBase));
 }
 
-export function resolveStudioRuntimeFromSources({
-  desktopBridge,
-  envApiBase,
-  pageOrigin,
-  productionUi = false,
-  fallbackApiBase = DEFAULT_STUDIO_API_BASE,
-}: StudioRuntimeSources = {}): StudioRuntimeInfo {
-  const apiBase = resolveApiBase({
-    desktopBridge,
-    envApiBase,
-    pageOrigin,
-    productionUi,
-    fallbackApiBase,
-  });
-  const isDesktop = desktopBridge?.desktop === true;
-
-  if (isDesktop) {
-    return {
-      kind: 'desktop',
-      label: 'Desktop runtime',
-      apiBase,
-      isDesktop: true,
-      platform: desktopBridge?.platform ?? null,
-      capabilities: {
-        desktopBridge: true,
-        localBackend: true,
-        localCodexSession: true,
-      },
-    };
-  }
-
+export function resolveStudioRuntimeFromSources(
+  sources: StudioRuntimeSources = {},
+): StudioRuntimeInfo {
   return {
-    kind: 'web',
     label: 'Web runtime',
-    apiBase,
+    apiBase: resolveApiBase(sources),
     isDesktop: false,
-    platform: null,
-    capabilities: {
-      desktopBridge: false,
-      localBackend: true,
-      localCodexSession: true,
-    },
   };
 }
 
 export function resolveStudioRuntime(): StudioRuntimeInfo {
   return resolveStudioRuntimeFromSources({
-    desktopBridge: typeof window !== 'undefined' ? window.cozyStudio : undefined,
     envApiBase: import.meta.env.VITE_STUDIO_API_BASE,
     pageOrigin: typeof window !== 'undefined' ? window.location.origin : undefined,
     productionUi: import.meta.env.PROD,
@@ -152,8 +99,4 @@ export function resolveStudioRuntime(): StudioRuntimeInfo {
 
 export function resolveStudioApiBase() {
   return resolveStudioRuntime().apiBase;
-}
-
-function isDesktopStudioRuntime() {
-  return resolveStudioRuntime().isDesktop;
 }

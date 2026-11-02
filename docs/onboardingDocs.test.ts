@@ -9,9 +9,8 @@ function readDoc(relativePath: string) {
 describe('onboarding docs contract', () => {
   const readme = readDoc('README.md');
   const troubleshooting = readDoc('docs/TROUBLESHOOTING.md');
-  const electron = readDoc('docs/ELECTRON.md');
   const skill = readDoc('skills/cozy-studio-setup/SKILL.md');
-  const four = [readme, troubleshooting, electron, skill].join('\n---\n');
+  const docs = [readme, troubleshooting, skill].join('\n---\n');
 
   it('README first-run path separates ChatGPT sign-in from optional Codex setup and names storage', () => {
     expect(readme).toContain('private app-data folder');
@@ -44,13 +43,6 @@ describe('onboarding docs contract', () => {
     );
   });
 
-  it('ELECTRON.md says Electron is not the user channel', () => {
-    expect(electron).toContain('Electron is an optional development shell');
-    expect(electron).toContain('The user path remains the browser');
-    expect(electron).toContain('There is no packaged desktop distribution');
-    expect(electron).toContain('does not bundle Bun, provider CLIs or sign-in sessions');
-  });
-
   it('setup skill still owns the Setup Prompt text', () => {
     expect(skill).toContain('COZY_STUDIO_SETUP_SKILL_PATH');
     expect(skill).toContain('Ask your agent and Copy prompt');
@@ -59,10 +51,10 @@ describe('onboarding docs contract', () => {
   });
 
   it('does not call Preferred Output Path the generation destination or claim silent Bun / bundled login', () => {
-    expect(four).not.toMatch(/Preferred Output Path is the generate destination/i);
-    expect(four).not.toMatch(/Generate writes to Preferred Output Path/i);
-    expect(four).not.toMatch(/silently installs Bun/i);
-    expect(four).not.toMatch(/Studio bundles ChatGPT login/i);
+    expect(docs).not.toMatch(/Preferred Output Path is the generate destination/i);
+    expect(docs).not.toMatch(/Generate writes to Preferred Output Path/i);
+    expect(docs).not.toMatch(/silently installs Bun/i);
+    expect(docs).not.toMatch(/Studio bundles ChatGPT login/i);
     expect(readme).toContain('That login is not bundled');
   });
 });

@@ -236,7 +236,7 @@ Frontend seam that creates Persistent Jobs, waits for completion, and returns ca
 _Avoid_: inline job choreography, direct editor pipeline
 
 **Studio Runtime**:
-Frontend runtime adapter that resolves how the renderer reaches the local backend in web or desktop contexts.
+Frontend runtime adapter that resolves how the renderer reaches the local backend.
 _Avoid_: readiness state, onboarding snapshot
 
 **Studio Shell**:

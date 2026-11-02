@@ -109,12 +109,7 @@ export default defineConfig({
         },
       },
       {
-        files: [
-          'apps/local-server/src/**/*.ts',
-          'scripts/**/*.ts',
-          'electron/**/*.cjs',
-          'utils/runtimeLogger.ts',
-        ],
+        files: ['apps/local-server/src/**/*.ts', 'scripts/**/*.ts', 'utils/runtimeLogger.ts'],
         rules: {
           'no-console': 'off',
         },

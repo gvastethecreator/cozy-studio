@@ -17,7 +17,7 @@
 - [Architecture](ARCHITECTURE.md): product boundaries and contracts
 - [Domain vocabulary](../CONTEXT.md) and [architecture decisions](adr/)
 - [Design system](DESIGN.md): principles, tokens, CSS owners, motion and preserved exceptions
-- [Electron development shell](ELECTRON.md) and [public landing page](../landing/README.md)
+- [Public landing page](../landing/README.md)
 - [Roadmap](../ROADMAP.md) and [Code of Conduct](../CODE_OF_CONDUCT.md)
 
 ## Work with an agent

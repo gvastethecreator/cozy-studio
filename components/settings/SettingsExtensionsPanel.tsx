@@ -9,12 +9,15 @@ import {
 } from '../../services/studio-api/settings';
 import { PackCoverGrid, PackDetail, type BrowsablePack } from './StylePackBrowser';
 import {
+  forgetExtensionHub,
+  getExtensionHub,
   getInstalledPackPreview,
   getRemotePackPreview,
   installExtension,
   listAvailableExtensions,
   listInstalledExtensions,
   removeExtension,
+  unlockExtensionHub,
   type AvailableExtension,
   type AvailableExtensionSource,
   type ExtensionOrigin,
@@ -176,6 +179,102 @@ function WorkflowModulesSection({ onChanged }: { onChanged: () => void }) {
   );
 }
 
+/** Unlocks a private pack hub with the link and password its owner shared. */
+function PrivateHubSection({ onChanged }: { onChanged: () => Promise<void> }) {
+  const [hub, setHub] = useState<{ configured: boolean; url: string | null } | null>(null);
+  const [url, setUrl] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getExtensionHub()
+      .then(setHub)
+      .catch((reason: unknown) => setError(errorText(reason)));
+  }, []);
+
+  const act = async (action: () => Promise<unknown>) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await action();
+      setPassword('');
+      setHub(await getExtensionHub());
+      await onChanged();
+    } catch (reason) {
+      setError(errorText(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <details className="settings-disclosure" open={hub?.configured || undefined}>
+      <summary aria-label="Private packs">Private packs</summary>
+      {hub?.configured ? (
+        <div className="studio-list-row flex items-center justify-between gap-3 p-3">
+          <span className="min-w-0 text-xs">
+            Unlocked: <strong className="break-all">{hub.url}</strong>. Its packs show above.
+          </span>
+          <button
+            type="button"
+            className="studio-ghost-control px-3"
+            disabled={busy}
+            onClick={() => void act(forgetExtensionHub)}
+          >
+            Forget
+          </button>
+        </div>
+      ) : (
+        <form
+          className="grid gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void act(() => unlockExtensionHub(url, password));
+          }}
+        >
+          <p className="text-xs studio-muted">
+            Have a link and password for a private pack hub? Enter both to see its packs here.
+          </p>
+          <input
+            className="studio-field"
+            type="url"
+            inputMode="url"
+            autoComplete="off"
+            placeholder="https://…"
+            aria-label="Hub link"
+            value={url}
+            onChange={(event) => setUrl(event.target.value)}
+            required
+          />
+          <input
+            className="studio-field"
+            type="password"
+            autoComplete="off"
+            placeholder="Password"
+            aria-label="Hub password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+          />
+          <button
+            type="submit"
+            className="studio-ghost-control justify-self-start px-3"
+            disabled={busy}
+          >
+            {busy ? 'Checking…' : 'Unlock'}
+          </button>
+        </form>
+      )}
+      {error ? (
+        <p role="alert" className="text-xs text-[color:var(--wb-danger)]">
+          {error}
+        </p>
+      ) : null}
+    </details>
+  );
+}
+
 /**
  * Shows the style packs Studio reads as a browsable cover grid, installs more from remote
  * Extension Sources and turns workflow modules on or off (ADR 0011).
@@ -269,8 +368,8 @@ function AvailablePackSources({
   return (
     <>
       {sources?.map((source) => (
-        <section key={source.id} className="grid gap-2" aria-label={`Source ${source.repo}`}>
-          <h4 className="text-xs font-semibold">{source.repo}</h4>
+        <section key={source.id} className="grid gap-2" aria-label={`Source ${source.label}`}>
+          <h4 className="text-xs font-semibold">{source.label}</h4>
           {source.error ? (
             <p className="text-xs text-[color:var(--wb-danger)]">{source.error}</p>
           ) : source.extensions.length === 0 ? (
@@ -569,8 +668,8 @@ export function SettingsExtensionsPanel() {
             <div>
               <h3 className="text-sm font-semibold">Get more packs</h3>
               <p className="mt-1 text-xs studio-muted">
-                Install packs published on GitHub. Studio checks each download before it replaces
-                the installed version.
+                Install packs published on GitHub or in a private hub. Studio checks each download
+                before it replaces the installed version.
                 {tokenConfigured ? ' A GitHub token is set for private sources.' : null}
               </p>
             </div>
@@ -594,6 +693,8 @@ export function SettingsExtensionsPanel() {
               remotePacks={remotePacks}
               onOpen={(pack) => setOpenKey(pack.key)}
             />
+
+            <PrivateHubSection onChanged={refresh} />
           </section>
 
           <WorkflowModulesSection onChanged={() => setNeedsReload(true)} />

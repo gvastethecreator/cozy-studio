@@ -125,6 +125,8 @@ External folder to scan in Settings → Library & imports finds images to import
 
 Studio loads styles only from installed style packs (ADR 0011). Settings → Styles & workflows shows each pack's cover and sample cards before you install it, and it installs and updates packs published on GitHub. The default source is the public `gvastethecreator/cozy-styles` repository, which needs no token; browse its styles at <https://gvastethecreator.github.io/cozy-styles/>. Add more sources with `STUDIO_EXTENSION_REMOTE_SOURCES=owner/repo,owner/repo`; a private source also needs `COZY_STYLES_GITHUB_TOKEN` in `.env.local`. To use packs built on this machine, point `STUDIO_EXTENSION_SOURCES` at their build folder.
 
+If someone shares a private pack hub with you, open **Private packs** in the same panel, enter its link and password, and select **Unlock**. Studio checks the password with the hub, then lists the hub's packs under **Get more packs**. **Forget** removes the hub. Studio keeps the password in a private file next to its sign-in tokens, not in Studio Settings.
+
 Each pack downloads with small thumbnails. Tick **Full-quality cards** to also download its large sample cards; updating a pack keeps the cards you already have. After you install or remove a pack, reload Studio to see the change in Styles.
 
 Essentials copies its styles from the full packs. When you install a full pack, Studio hides the matching Essentials copies so a style never shows twice. Collections list only the collections that your installed packs add styles to.

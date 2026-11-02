@@ -56,6 +56,8 @@ export interface AvailableExtension {
 export interface AvailableExtensionSource {
   id: string;
   repo: string;
+  /** What the panel shows: the GitHub repository, or the private hub's host. */
+  label: string;
   extensions: AvailableExtension[];
   error: string | null;
 }
@@ -72,6 +74,22 @@ export async function installExtension(sourceId: string, id: string, layers: 'ca
     '/api/extensions/install',
     { method: 'POST', body: JSON.stringify({ sourceId, id, layers }) },
   );
+}
+
+/** The private hub unlocked in this Studio; the password never comes back from the backend. */
+export async function getExtensionHub() {
+  return request<{ configured: boolean; url: string | null }>('/api/extensions/hub');
+}
+
+export async function unlockExtensionHub(url: string, password: string) {
+  return request<{ configured: true; url: string; packs: number }>('/api/extensions/hub', {
+    method: 'PUT',
+    body: JSON.stringify({ url, password }),
+  });
+}
+
+export async function forgetExtensionHub() {
+  return request<void>('/api/extensions/hub', { method: 'DELETE' });
 }
 
 export async function removeExtension(id: string) {

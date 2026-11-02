@@ -32,19 +32,19 @@ For documentation-only changes, run `bun run docs:check` and validate changed sk
 
 Use one validation level per integration. Each broader gate includes the narrower checks it needs; do not rerun its components separately. For one test file, use `bun run test -- path/to/test.ts`.
 
-| Script                           | Purpose                                      |
-| -------------------------------- | -------------------------------------------- |
-| `bun run validate:fast`          | Fixed unit subset + server typecheck         |
-| `bun run validate`               | Main PR gate                                 |
-| `bun run validate:release`       | Release gate                                 |
-| `bun run validate:full`          | Compatibility alias of the release gate      |
-| `bun run typecheck:environments` | Web, server, shared, and script boundaries   |
-| `bun run docs:check`             | Broken local doc links                       |
-| `bun run repo:hygiene:verify`    | Reject tracked secrets, DBs, and scratch     |
-| `bun run repo:assets:audit`      | Core budget and optional pack hashes         |
-| `bun run repo:assets:lock`       | Refresh optional pack integrity lock         |
-| `bun run core-assets:smoke`      | Isolated build and route smoke, no packs     |
-| `bun run portability:smoke`      | Isolated local API health smoke              |
+| Script                           | Purpose                                    |
+| -------------------------------- | ------------------------------------------ |
+| `bun run validate:fast`          | Fixed unit subset + server typecheck       |
+| `bun run validate`               | Main PR gate                               |
+| `bun run validate:release`       | Release gate                               |
+| `bun run validate:full`          | Compatibility alias of the release gate    |
+| `bun run typecheck:environments` | Web, server, shared, and script boundaries |
+| `bun run docs:check`             | Broken local doc links                     |
+| `bun run repo:hygiene:verify`    | Reject tracked secrets, DBs, and scratch   |
+| `bun run repo:assets:audit`      | Core budget and optional pack hashes       |
+| `bun run repo:assets:lock`       | Refresh optional pack integrity lock       |
+| `bun run core-assets:smoke`      | Isolated build and route smoke, no packs   |
+| `bun run portability:smoke`      | Isolated local API health smoke            |
 
 ## Complete test pass
 

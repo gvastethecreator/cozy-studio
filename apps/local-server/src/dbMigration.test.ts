@@ -30,13 +30,14 @@ describe('database migrations', () => {
       transactionRolledBack: true,
       recoverableCheckpoint: true,
       summaryProjection: true,
-      schemaVersion: 16,
+      schemaVersion: 17,
       legacyComfyIsolated: true,
       remoteIdentityPreserved: true,
       completeJobHistory: true,
       executionPolicyPreserved: true,
       atomicBatchRecovery: true,
       durableOutputGenerations: true,
+      preMigrationBackup: true,
     });
   });
 });

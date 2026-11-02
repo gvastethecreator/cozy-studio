@@ -1,4 +1,6 @@
 import { Database } from 'bun:sqlite';
+import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
+import path from 'node:path';
 import type { GenerationTaskSpec } from '../../../../packages/shared/src';
 import { resolveJobWorkspaceId } from '../../../../packages/shared/src/workspaceContracts';
 import { getDb } from './connection';
@@ -460,6 +462,35 @@ const DATABASE_MIGRATIONS = [
             AND collection.workspace_id <> COALESCE(image.workspace_id, 'default'))`);
     },
   },
+  {
+    version: 17,
+    name: 'settle-legacy-size-review-jobs',
+    migrate(database: Database) {
+      // Builds from 2026-10-07 to 2026-10-26 saved the image and then held the job in
+      // needs_review for a size or aspect difference. The current finalizer completes such a job
+      // and records an asset.dimensions.info notice; apply that rule to the old rows.
+      // Only that finalizer wrote actualSize on a job.needs_review event. Images are not touched.
+      const legacyEvent = `SELECT MAX(e.id) FROM job_events e
+        WHERE e.job_id = jobs.id AND e.type = 'job.needs_review'
+          AND json_extract(CASE WHEN json_valid(e.metadata) THEN e.metadata ELSE '{}' END,
+            '$.actualSize') IS NOT NULL`;
+      const legacyJob = `jobs.status = 'needs_review' AND jobs.finalization_state = 'completed'
+        AND jobs.finalization_catalog_id IS NOT NULL AND (${legacyEvent}) IS NOT NULL`;
+      // Insert first: the job predicate reads the status that the update changes.
+      database.run(`INSERT INTO job_events (job_id, type, message, metadata, created_at)
+        SELECT jobs.id, 'asset.dimensions.info',
+          'Requested image size ' || COALESCE(json_extract(e.metadata, '$.requestedSize'), 'unknown')
+            || '; provider returned ' || json_extract(e.metadata, '$.actualSize')
+            || '. Original dimensions preserved.',
+          e.metadata, e.created_at
+        FROM jobs JOIN job_events e ON e.id = (${legacyEvent})
+        WHERE ${legacyJob}`);
+      // Keep updated_at: the Queue "clear list" filters compare with it.
+      database.run(`UPDATE jobs SET status = 'completed', error = NULL,
+        completed_at = COALESCE(completed_at, updated_at)
+        WHERE ${legacyJob}`);
+    },
+  },
 ] as const;
 
 function backfillJobOperationalColumns(database: Database) {
@@ -653,6 +684,58 @@ function rebuildCodexThreadsWithoutRequiredProject(database: Database) {
 
 export const LATEST_DATABASE_SCHEMA_VERSION = DATABASE_MIGRATIONS.at(-1)?.version ?? 0;
 
+/** Folder beside the database file that holds the copies made before a migration. */
+const PRE_MIGRATION_BACKUP_DIR = path.join('state', 'pre-migration');
+const PRE_MIGRATION_BACKUP_LIMIT = 3;
+
+/**
+ * Copies an existing file database before pending migrations change it. VACUUM INTO writes one
+ * consistent file that includes committed WAL pages. In-memory and new databases are skipped.
+ * Studio never restores a copy by itself: a restore replaces the Library and needs the user.
+ */
+function writePreMigrationBackup(database: Database, fromVersion: number) {
+  const databasePath = database.filename;
+  if (!databasePath || databasePath === ':memory:') return;
+  const hasData = database
+    .query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name <> 'schema_migrations'")
+    .get();
+  if (!hasData) return;
+
+  const backupDir = path.join(path.dirname(databasePath), PRE_MIGRATION_BACKUP_DIR);
+  const baseName = path.parse(databasePath).name;
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  // Timestamp first, so name order is time order for the retention below.
+  const backupPath = path.join(backupDir, `${baseName}-${stamp}-schema-v${fromVersion}.sqlite`);
+  try {
+    mkdirSync(backupDir, { recursive: true });
+    database.query('VACUUM INTO ?').run(backupPath);
+  } catch (error) {
+    try {
+      if (existsSync(backupPath)) rmSync(backupPath, { force: true });
+    } catch {
+      // A locked partial copy must not hide the backup error below.
+    }
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Studio did not update the database from schema v${fromVersion} to v${LATEST_DATABASE_SCHEMA_VERSION}: ` +
+        `the backup copy ${backupPath} failed (${reason}). The database is unchanged. ` +
+        'Free disk space or fix access to that folder, then start Studio again.',
+      { cause: error },
+    );
+  }
+
+  const backups = readdirSync(backupDir)
+    .filter((name) => name.startsWith(`${baseName}-`) && /-schema-v\d+\.sqlite$/.test(name))
+    .sort();
+  for (const name of backups.slice(0, -PRE_MIGRATION_BACKUP_LIMIT)) {
+    try {
+      rmSync(path.join(backupDir, name), { force: true });
+    } catch {
+      // A locked old copy only uses disk space; the next migrating start removes it.
+    }
+  }
+}
+
 export function migrateDatabase(database: Database) {
   database.run(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -669,6 +752,9 @@ export function migrateDatabase(database: Database) {
       }>
     ).map((row) => row.version),
   );
+  if (DATABASE_MIGRATIONS.some((migration) => !appliedVersions.has(migration.version))) {
+    writePreMigrationBackup(database, Math.max(0, ...appliedVersions));
+  }
   const requiresForeignKeySafeRebuild = !appliedVersions.has(5);
   const foreignKeysWereEnabled =
     (

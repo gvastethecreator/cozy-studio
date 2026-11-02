@@ -75,6 +75,9 @@ The landing site owns its styles under `landing/`. The Studio entry point does n
 - The Create generation action uses content height, a 48px minimum and 10px vertical padding. Do not squeeze a two-line action and its thumbnail into a fixed 36px row. `studio-workspace.css` owns that geometry; `workbench-studio.css` owns its theme paint and type.
 - Settings is a 1120 × 760 dialog, bounded by the viewport. The header, section navigation and footer stay fixed; only the content scrolls. Narrow screens use a section selector. Desktop content, header and footer share 24px edge insets; narrow layouts use 16px. Provider account cards use two columns when space permits and one on narrow screens. Setup guidance wraps; it is not clamped. The narrow footer keeps a row for the save status above the actions. `workbench-studio.css` owns the shared label, help and control rows, the modal scrim and the Cozy layout rules.
 - Onboarding is a centered, content-sized dialog up to 960px wide and 800px high, bounded by the viewport. Body text starts at 14px and the introduction uses 16px. Setup diagnostics stay collapsed when Studio is ready. Provider names use the existing brand marks.
+- Create layout follows the available workspace width, not the viewport. From 1120px, Create uses a 320px main rail, an optional 360px Workflow or Styles panel and the canvas. From 720px to 1120px, Prompt, Workflow and Styles share the rail. Narrower workspaces use Configure and Preview navigation.
+- The Create prompt grows from 192px to 320px and then scrolls. References do not add to its height.
+- Workflow card art is 4:3 and loads lazily as 640 × 480 WebP. Each card reserves its image size while it loads.
 
 ## Motion
 
@@ -82,6 +85,7 @@ The landing site owns its styles under `landing/`. The Studio entry point does n
 - Animate state, reveal and feedback. Do not add motion for its own sake.
 - Prefer `transform` and `opacity`. Press feedback does not scale whole cards or images.
 - `lib/motionRuntime.ts` owns GSAP. `lib/gsapMotion.tsx` owns shared presence and route and dialog motion. No other motion engine is installed. `components/ui/GsapDropdown.tsx` owns dropdown animation, portal placement, interruption and cleanup. Exiting surfaces become inert, and focus returns through the existing handlers. CSS selectors exclude motion-owned surfaces where the shared adapter writes transforms.
+- Each surface has one entry owner: native route transitions, CSS panel transitions or GSAP. GSAP surfaces do not also use CSS opacity or geometry transitions. Presence keeps closing surfaces for the 120 ms CSS exit. `TooltipBubble` owns the shared 300 ms tooltip delay.
 - `hooks/useTheme.ts` writes the accent custom properties and handles theme motion. CSS owns hover and focus paint, spinners and small disclosure transitions.
 - Reduced motion has a CSS path and a JavaScript path. Keep their durations, easing, transform ownership and completion behavior together. Do not infer animation completion from screenshots.
 - Modal scrims use a translucent theme surface with `blur(12px) saturate(0.25)`. Settings opens and closes through the GSAP presence adapter at about 160 ms and 100 ms. Do not animate the Settings height. `useDialogFocus` owns focus, nested Escape, body scroll locks and inert background branches.

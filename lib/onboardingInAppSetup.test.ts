@@ -21,7 +21,7 @@ const probe = buildOnboardingProbe({
 });
 
 describe('in-app Setup form', () => {
-  it('shows the resolved Studio Library path from the probe', () => {
+  it('shows the resolved Studio data folder path from the probe', () => {
     expect(resolveInAppSetupDraftPath(probe)).toBe('D:/Cozy Studio');
     expect(resolveInAppSetupDraftPath(null)).toBe('');
   });
@@ -93,7 +93,7 @@ describe('OnboardingModal Setup surface', () => {
     );
     expect(onboardingSource).toContain('runOnboardingSetup');
     expect(onboardingSource).toContain('inAppSetupCanSubmit');
-    expect(onboardingSource).toContain('Studio Library path');
+    expect(onboardingSource).toContain('Studio data folder path');
     expect(onboardingSource).not.toMatch(/preferredOutputPath/);
     expect(onboardingSource).not.toMatch(/Preferred Output Path/);
     expect(onboardingSource).not.toMatch(/External folder to scan/);

@@ -37,8 +37,8 @@ export function SettingsFormPanel({
     <div className="settings-form-stack">
       {domain === 'library' && (
         <section className="settings-group">
-          <h3>Library location</h3>
-          <p className="settings-path">{libraryDir ?? 'Loading library location…'}</p>
+          <h3>Studio data folder</h3>
+          <p className="settings-path">{libraryDir ?? 'Loading data folder…'}</p>
           <h3>Import discovery</h3>
           <label className="settings-row">
             <span>

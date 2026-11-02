@@ -79,7 +79,7 @@ export async function performStudioReset({
 
     await refreshRuntime();
     addToast(
-      'Studio reset complete. The local library, workspace cache, and database were rebuilt.',
+      'Studio reset complete. The Studio data folder, workspace cache, and database were rebuilt.',
       'success',
     );
     return true;

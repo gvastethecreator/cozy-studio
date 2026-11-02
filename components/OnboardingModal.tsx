@@ -214,7 +214,7 @@ function ImagesFolderRow({ isOpen }: { isOpen: boolean }) {
               ? error
                 ? 'Images folder unavailable.'
                 : 'Checking…'
-              : (folder ?? 'Inside the Studio Library, in its outputs folder.')}
+              : (folder ?? 'Inside the Studio data folder, in its outputs folder.')}
           </p>
         )}
         {error ? (
@@ -695,20 +695,20 @@ function InAppSetupForm({
   return (
     <div className="mt-5 rounded-[var(--wb-radius)] border border-blue-500/2 bg-blue-500/[0.06] p-4 xl:mt-3 xl:p-3">
       <p className="text-sm font-semibold tracking-normal text-[color:var(--wb-ink)] ">
-        Studio Library
+        Studio data folder
       </p>
       <p className="mt-2 text-sm leading-6 text-[color:var(--wb-muted)] xl:mt-1  ">
-        Choose an absolute folder. By default the library lives in Cozy Studio's private app-data
-        folder. Images use the Pictures folder configured by your operating system. You can change
-        their destination under Images folder.
+        Choose an absolute folder. By default the Studio data folder is in Cozy Studio's private
+        app-data folder. Images use the Pictures folder configured by your operating system. You can
+        change their destination under Images folder.
       </p>
       <label className="mt-3 block xl:mt-2">
-        <span className="sr-only">Studio Library path</span>
+        <span className="sr-only">Studio data folder path</span>
         <input
           type="text"
           value={libraryPath}
           onChange={(event) => onLibraryPathChange(event.target.value)}
-          aria-label="Studio Library path"
+          aria-label="Studio data folder path"
           className="w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-3 py-2.5 font-mono text-sm text-[color:var(--wb-ink)] outline-none focus:border-blue-400/2 xl:py-2 "
         />
       </label>
@@ -733,7 +733,9 @@ function InAppSetupForm({
           onChange={(event) => onConsentChange(event.target.checked)}
           className="mt-1"
         />
-        <span>Create this Studio Library and write Bootstrap Configuration on this machine.</span>
+        <span>
+          Create this Studio data folder and write Bootstrap Configuration on this machine.
+        </span>
       </label>
       {error ? (
         <p className="mt-3 rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-500/8 px-3 py-2 text-sm leading-6 text-[color:var(--wb-danger)]  xl:mt-2  ">
@@ -1121,11 +1123,11 @@ function OnboardingChecks({
         <>
           <CheckRow
             icon={<Folder width={18} height={18} />}
-            title="Studio Library"
+            title="Studio data folder"
             detail={
               libraryReady
                 ? 'Your assets and generations are stored locally.'
-                : 'Repair the local library path or permissions.'
+                : 'Repair the Studio data folder path or permissions.'
             }
             meta={health?.libraryDir || 'path not set'}
             status={libraryReady ? 'Ready' : 'Needs attention'}

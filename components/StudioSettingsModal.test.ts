@@ -151,7 +151,7 @@ describe('StudioSettingsModal provider defaults', () => {
       expect(document.body.textContent).not.toContain('Preferred Output Path');
       expect(document.querySelector('[class*="bg-zinc-950"]')).toBeNull();
     }
-    fireEvent.click(screen.getByRole('button', { name: 'Library & imports' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Data folder & imports' }));
     expect(screen.getByLabelText(EXTERNAL_SCAN_PATH_LABEL)).toBeTruthy();
     expect(screen.getByText(EXTERNAL_SCAN_PATH_HELP)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Accounts & models' }));

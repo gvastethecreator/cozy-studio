@@ -30,7 +30,7 @@ export const DashboardModal: React.FC<DashboardModalProps> = ({
     <dialog
       aria-modal="true"
       ref={dialogRef}
-      aria-label="Library summary"
+      aria-label="Studio summary"
       tabIndex={-1}
       className="studio-modal fixed inset-0 z-100 flex items-center justify-center studio-scrim p-0 sm:p-4"
     >
@@ -41,7 +41,7 @@ export const DashboardModal: React.FC<DashboardModalProps> = ({
               <User width={20} height={20} />
             </div>
             <h2 className="text-sm font-semibold tracking-normal text-[color:var(--wb-ink)]">
-              Library summary
+              Studio summary
             </h2>
           </div>
           <button
@@ -81,7 +81,7 @@ export const DashboardModal: React.FC<DashboardModalProps> = ({
               <div className="flex items-center gap-2">
                 <HardDrive width={14} height={14} className="text-[color:var(--wb-success)]" />
                 <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-                  Library
+                  Studio
                 </span>
               </div>
               <p className="text-lg font-mono font-semibold text-[color:var(--wb-ink)]">Local</p>

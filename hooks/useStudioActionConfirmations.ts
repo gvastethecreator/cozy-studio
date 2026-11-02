@@ -86,7 +86,7 @@ export function useStudioActionConfirmations({
             `${imageCount} image${imageCount === 1 ? '' : 's'} will leave the active workspace.`,
             'Archived images can still be restored later from Archived Images.',
           ],
-          note: 'No local library files are deleted permanently by this action.',
+          note: 'No image files are deleted permanently by this action.',
         },
         () => clearWorkspace(workspaceId),
       );
@@ -103,14 +103,15 @@ export function useStudioActionConfirmations({
         {
           title: 'Delete workspace',
           description:
-            'This removes the workspace from the active Studio and clears its current catalog images from the canvas.',
+            'This deletes the workspace with its tags and collections. Its images move to Archived Images, where you can restore them.',
           confirmLabel: 'Delete workspace',
           tone: 'danger',
           details: [
             `Workspace: ${workspaceLabel}`,
-            `${imageCount} image${imageCount === 1 ? '' : 's'} in this workspace will no longer appear in the active Studio.`,
+            `${imageCount} image${imageCount === 1 ? '' : 's'} will move to Archived Images.`,
+            'Its tags and collections will be deleted.',
           ],
-          note: 'The default workspace is protected. This UI action does not delete local library files from disk.',
+          note: 'The default workspace is protected.',
         },
         async () => {
           await runWorkspaceDeleteLifecycle({
@@ -167,16 +168,16 @@ export function useStudioActionConfirmations({
   const requestResetStudio = useCallback(() => {
     requestConfirmation(
       {
-        title: 'Rebuild local studio library',
+        title: 'Rebuild Studio data',
         description:
-          'Use this when the local library, queue state, or SQLite index got stuck and you want Cozy Studio to recreate a clean local workspace.',
+          'Use this when the Studio data folder, queue state, or SQLite index got stuck and you want Cozy Studio to recreate a clean local workspace.',
         confirmLabel: 'Rebuild local studio',
         tone: 'danger',
         details: [
-          'Local assets, thumbnails, references, masks, exports, transcripts, archived items, logs, and the SQLite library database will be deleted and recreated.',
+          'Local assets, thumbnails, references, masks, exports, transcripts, archived items, logs, and the SQLite database will be deleted and recreated.',
           'The Studio UI cache and queue state will also be cleared, then diagnostics will refresh automatically.',
         ],
-        note: 'Export a legacy workspace snapshot first if you need the current visual workspace metadata. This reset removes local library files from disk.',
+        note: 'Export a legacy workspace snapshot first if you need the current visual workspace metadata. This reset removes files in the Studio data folder from disk.',
       },
       resetStudio,
     );

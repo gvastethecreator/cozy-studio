@@ -63,7 +63,7 @@ export function SettingsOutputPanel({
   )
     ? value.outputSubfolderPreset
     : 'custom';
-  const root = value.outputDirectory.trim() || `${libraryDir ?? 'Studio Library'}/outputs`;
+  const root = value.outputDirectory.trim() || `${libraryDir ?? 'Studio data folder'}/outputs`;
   const hasNamePreset = NAME_PRESETS.some((item) => item.value === value.outputFileNameTemplate);
   const showCustomName = customName || !hasNamePreset;
   return (
@@ -77,7 +77,7 @@ export function SettingsOutputPanel({
           className="studio-field"
           aria-label="Output directory"
           value={value.outputDirectory}
-          placeholder={`${libraryDir ?? 'Studio Library'}/outputs`}
+          placeholder={`${libraryDir ?? 'Studio data folder'}/outputs`}
           onChange={(event) =>
             onChange((current) => ({ ...current, outputDirectory: event.target.value }))
           }

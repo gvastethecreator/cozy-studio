@@ -186,7 +186,7 @@ export function resolveGrokImagineGenerateBlock({
   if (refs.some((attachment) => attachment.sourceUrl && !attachment.localPath)) {
     return {
       code: 'unresolved_grok_source',
-      message: 'Import the image into the Studio Library first.',
+      message: 'Import the image into Studio first.',
     };
   }
 

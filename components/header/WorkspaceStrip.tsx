@@ -19,7 +19,6 @@ interface WorkspaceStripWorkspace extends Workspace {
   imageCount?: number;
   totalFileSizeBytes?: number;
   knownFileSizeCount?: number;
-  libraryIds?: string[];
   locationPath?: string;
   firstImageCreatedAt?: string;
   latestImageCreatedAt?: string;
@@ -97,13 +96,6 @@ const getWorkspaceLocationLabel = (filePath: string | undefined) => {
   return lastSeparatorIndex > 0 ? normalized.slice(0, lastSeparatorIndex) : normalized;
 };
 
-const formatWorkspaceLibraries = (libraryIds: string[] | undefined) => {
-  const count = libraryIds?.length ?? 0;
-  if (count === 0) return 'None';
-  if (count === 1) return libraryIds?.[0] ?? 'Unknown';
-  return `${count} libraries`;
-};
-
 export function WorkspaceStrip({
   workspaces,
   activeWorkspaceId,
@@ -145,7 +137,6 @@ export function WorkspaceStrip({
           workspace.totalFileSizeBytes,
           workspace.knownFileSizeCount,
         );
-        const librariesLabel = formatWorkspaceLibraries(workspace.libraryIds);
         const updatedLabel = formatWorkspaceDate(
           workspace.latestImageCreatedAt ?? workspace.createdAt,
         );
@@ -310,7 +301,6 @@ export function WorkspaceStrip({
                   formattedImageCount={formattedImageCount}
                   workspaceLocation={workspaceLocation}
                   storageLabel={storageLabel}
-                  librariesLabel={librariesLabel}
                   updatedLabel={updatedLabel}
                   createdLabel={createdLabel}
                 />
@@ -357,7 +347,6 @@ function WorkspaceInformation({
   formattedImageCount,
   workspaceLocation,
   storageLabel,
-  librariesLabel,
   updatedLabel,
   createdLabel,
 }: {
@@ -366,7 +355,6 @@ function WorkspaceInformation({
   formattedImageCount: string;
   workspaceLocation: string;
   storageLabel: string;
-  librariesLabel: string;
   updatedLabel: string;
   createdLabel: string;
 }) {
@@ -422,17 +410,6 @@ function WorkspaceInformation({
               Created
             </div>
             <div className="mt-1 text-[color:var(--wb-ink)]">{createdLabel}</div>
-          </div>
-        </div>
-        <div className="rounded-[var(--wb-radius)] bg-white/[0.025] px-2 py-1.5">
-          <div className="font-semibold tracking-normal text-[color:var(--wb-muted)]">
-            Libraries
-          </div>
-          <div
-            className="mt-1 truncate text-[color:var(--wb-ink)]"
-            data-tooltip={workspace.libraryIds?.join(', ')}
-          >
-            {librariesLabel}
           </div>
         </div>
       </div>

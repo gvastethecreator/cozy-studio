@@ -45,7 +45,7 @@ export function buildCozyStudioSetupPrompt({
 }: BuildCozyStudioSetupPromptArgs) {
   const projectRoot = renderValue(health?.runtime.cwd, 'Cozy Studio repository root');
   const envLocalPath = renderValue(health?.runtime.envLocalPath, '.env.local');
-  const libraryDir = renderValue(health?.libraryDir, 'Studio Library not detected yet');
+  const libraryDir = renderValue(health?.libraryDir, 'Studio data folder not detected yet');
   const codexCliState = health?.codexCli.available ? 'available' : 'missing';
   const codexMetadata = renderValue(health?.codexCli.version, 'not reported');
   const codexRuntimeAction = renderValue(
@@ -69,7 +69,7 @@ export function buildCozyStudioSetupPrompt({
     `- Project root: ${projectRoot}`,
     `- Runtime: ${isDesktopRuntime ? 'Desktop runtime' : 'Web runtime'}`,
     `- Local API: ${apiBase}`,
-    `- Studio Library: ${libraryDir}`,
+    `- Studio data folder: ${libraryDir}`,
     `- .env.local: ${envLocalPath} (present: ${renderBool(health?.runtime.envLocalPresent)})`,
     `- Bun runtime metadata: ${bunMetadata}`,
     `- Codex CLI: ${codexCliState}; metadata: ${codexMetadata}`,
@@ -87,15 +87,15 @@ export function buildCozyStudioSetupPrompt({
     '- Read AGENTS.md and README.md before editing.',
     '- Preserve dirty worktree changes you did not make.',
     '- Keep Provider Secrets out of SQLite, catalog metadata, logs, screenshots, docs, and committed files.',
-    '- Do not delete, move, compact, or rewrite Studio Library data unless the user explicitly confirms it.',
+    '- Do not delete, move, compact, or rewrite data in the Studio data folder unless the user explicitly confirms it.',
     '- Never silent-install Bun or Codex CLI. Recommended image login is Studio Settings Sign in, then the ChatGPT provider. `codex login` is only for an explicit Codex app-server job.',
-    '- Default Studio Library is `Library` inside the private Cozy Studio app-data folder unless STUDIO_LIBRARY_DIR is already set. Generated images go to Pictures/Cozy Studio. Do not treat Preferred Output Path as the generate destination.',
+    '- The default Studio data folder is `Library` inside the private Cozy Studio app-data folder unless STUDIO_LIBRARY_DIR is already set. Generated images go to Pictures/Cozy Studio. Do not treat Preferred Output Path as the generate destination.',
     '- Use Bun scripts from package.json and run broad checks only at closeout.',
     '- Treat Bun and Codex command output as diagnostic metadata only. Do not block setup on an exact tool release when app readiness, supported scripts, app-server support, and Local Codex Session are healthy.',
     '',
     'Setup tasks:',
-    '1. Audit app readiness: git status, supported Bun scripts, Codex Runtime Doctor capability, ports, .env.local, Studio Library, and `/api/health` when reachable.',
-    '2. If Studio Library or Bootstrap Configuration is missing, run in-app Setup or `bun run studio:onboard` after consent. Then run or repair `bun run studio:init` if local bootstrap files or library folders are still missing; keep existing .env.local values unless they are clearly invalid.',
+    '1. Audit app readiness: git status, supported Bun scripts, Codex Runtime Doctor capability, ports, .env.local, Studio data folder, and `/api/health` when reachable.',
+    '2. If the Studio data folder or Bootstrap Configuration is missing, run in-app Setup or `bun run studio:onboard` after consent. Then run or repair `bun run studio:init` if local bootstrap files or data folders are still missing; keep existing .env.local values unless they are clearly invalid.',
     '3. Verify the local backend and Codex Product Runtime with `bun run dev` or separate backend/UI commands as needed.',
     '4. Verify ChatGPT auth through Studio Settings Sign in. If login requires interactive auth, stop and give Settings Sign in. Do not run `codex login` unless the user explicitly wants the Codex app-server route.',
     '5. Leave `codex app-server` stopped for ChatGPT HTTP image jobs. Start it through the local backend only when the user selects the Codex provider, and avoid orphaned processes.',

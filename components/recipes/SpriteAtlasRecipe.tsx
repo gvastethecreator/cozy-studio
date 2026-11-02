@@ -1233,7 +1233,7 @@ function AtlasRowDetails({
                         ))}
                       </select>
                       <span className="text-xs text-[color:var(--wb-muted)]">
-                        Import external images through Settings → Library &amp; imports.
+                        Import external images through Settings → Data folder &amp; imports.
                       </span>
                     </label>
                     <button

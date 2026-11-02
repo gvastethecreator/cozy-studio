@@ -38,7 +38,7 @@ describe('performStudioReset', () => {
       'resetStudioState',
       'clearUiState',
       'refreshRuntime',
-      'toast:success:Studio reset complete. The local library, workspace cache, and database were rebuilt.',
+      'toast:success:Studio reset complete. The Studio data folder, workspace cache, and database were rebuilt.',
     ]);
   });
 

@@ -86,7 +86,7 @@ function buildTitle(nextAction: StudioReadinessAction, runtimeLabel: string) {
     case 'login-chatgpt':
       return 'Sign in with ChatGPT';
     case 'fix-library':
-      return 'Repair the Studio Library';
+      return 'Repair the Studio data folder';
     case 'retry':
       return 'Reconnect the local backend';
     default:
@@ -103,7 +103,7 @@ function buildDescription(nextAction: StudioReadinessAction, runtimeLabel: strin
     case 'login-chatgpt':
       return 'Sign in from Studio Settings and use the ChatGPT provider. Use `codex login` only for an explicit Codex app-server job.';
     case 'fix-library':
-      return 'The Studio Library is missing folders or write access, so Local Assets cannot be persisted safely.';
+      return 'The Studio data folder is missing folders or write access, so Local Assets cannot be persisted safely.';
     case 'retry':
       return 'The local backend or app-server is unavailable. Refresh after the local runtime comes back.';
     default:
@@ -139,11 +139,11 @@ export function buildStudioReadinessSnapshot({
     },
     {
       key: 'library',
-      label: 'Local Library',
+      label: 'Studio data folder',
       ok: Boolean(health?.checks.libraryReady),
       detail: health?.checks.libraryReady
-        ? 'Library folders and write access look healthy.'
-        : 'The Studio Library still needs folders or write access.',
+        ? 'Folders and write access look healthy.'
+        : 'The Studio data folder still needs folders or write access.',
       blocking: true,
     },
     {

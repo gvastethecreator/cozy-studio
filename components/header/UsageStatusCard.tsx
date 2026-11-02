@@ -102,7 +102,7 @@ export function UsageStatusCard({
               onOpenDashboard();
             }}
           >
-            Library summary
+            Studio summary
           </button>
         </div>
       )}

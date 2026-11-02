@@ -268,7 +268,7 @@ const SETTINGS_SEARCH_ITEMS: {
   {
     domain: 'maintenance',
     label: 'Storage audit',
-    description: 'Inspect library storage',
+    description: 'Inspect Studio data storage',
     target: 'Audit storage',
   },
   {
@@ -291,9 +291,9 @@ const SETTINGS_SEARCH_ITEMS: {
   },
   {
     domain: 'maintenance',
-    label: 'Rebuild Library',
-    description: 'Repair the library index',
-    target: 'Rebuild Library',
+    label: 'Rebuild Studio data',
+    description: 'Repair the Studio database',
+    target: 'Rebuild Studio data',
   },
   {
     domain: 'help',
@@ -440,18 +440,19 @@ function SettingsDomainContent({
           </fieldset>
           <SettingsMaintenancePanel maintenance={maintenance} />
           <details className="settings-disclosure">
-            <summary>Repair library</summary>
+            <summary>Repair Studio data</summary>
             <p className="studio-muted text-sm mb-3">
-              Rebuild the library index from saved files. Review the confirmation before continuing.
+              Rebuild the Studio data folder and database. Review the confirmation before
+              continuing.
             </p>
             <button
               type="button"
               className="studio-ghost-control px-3"
-              aria-label="Rebuild Library"
+              aria-label="Rebuild Studio data"
               disabled={isResettingStudio || isSaving}
               onClick={() => void onResetStudio()}
             >
-              {isResettingStudio ? 'Rebuilding…' : 'Rebuild Library'}
+              {isResettingStudio ? 'Rebuilding…' : 'Rebuild Studio data'}
             </button>
           </details>
         </div>

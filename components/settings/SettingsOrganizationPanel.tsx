@@ -101,11 +101,19 @@ function OrganizationRow({
 }
 
 export function SettingsOrganizationPanel() {
-  const { activeWorkspaceId } = useWorkspaceState();
+  const { workspaces, activeWorkspaceId } = useWorkspaceState();
   const { tags, collections, errors, loading, refresh } = useCatalogOrganization(activeWorkspaceId);
   const error = Object.values(errors).filter(Boolean).join(' ');
+  const workspace =
+    workspaces.find((item) => item.id === activeWorkspaceId)?.name || activeWorkspaceId;
   return (
     <div className="settings-form-stack" key={activeWorkspaceId}>
+      <div className="settings-group">
+        <h3>{`Tags and collections in ${workspace}`}</h3>
+        <p className="text-[length:var(--wbp-label)] text-[color:var(--wb-muted)]">
+          Each workspace has its own tags and collections. Switch workspaces to edit another one.
+        </p>
+      </div>
       {(['tag', 'collection'] as const).map((kind) => (
         <section
           className="settings-group"

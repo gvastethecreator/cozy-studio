@@ -3,7 +3,7 @@ export const STUDIO_SETTINGS_DOMAIN_TABS = [
   { id: 'appearance', label: 'Appearance & layout' },
   { id: 'providers', label: 'Accounts & models' },
   { id: 'output', label: 'Files & naming' },
-  { id: 'library', label: 'Library & imports' },
+  { id: 'library', label: 'Data folder & imports' },
   { id: 'organization', label: 'Tags & collections' },
   { id: 'extensions', label: 'Styles & workflows' },
   { id: 'maintenance', label: 'Advanced & maintenance' },

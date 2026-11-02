@@ -163,7 +163,7 @@ describe('buildCozyStudioSetupPrompt', () => {
 
     expect(prompt).toContain('Project root: Cozy Studio repository root');
     expect(prompt).toContain('Runtime: Web runtime');
-    expect(prompt).toContain('Studio Library not detected yet');
+    expect(prompt).toContain('Studio data folder not detected yet');
     expect(prompt).toContain('Bun runtime metadata: not reported');
     expect(prompt).toContain('No readiness checks were available yet.');
   });

@@ -13,9 +13,16 @@ export default defineConfig({
     port: 17222,
     host: '0.0.0.0',
     watch: {
-      // Local runtime state and logs are not app source. Watching them pinned the dev server
-      // during extension builds.
-      ignored: ['**/.local/**', '**/.scratch/**', '**/.tmp/**', '**/tmp/**', '**/logs/**'],
+      // Local runtime state, logs and agent worktrees are not app source. Watching them pinned
+      // the dev server during extension builds and agent worktree checkouts.
+      ignored: [
+        '**/.claude/**',
+        '**/.local/**',
+        '**/.scratch/**',
+        '**/.tmp/**',
+        '**/tmp/**',
+        '**/logs/**',
+      ],
     },
   },
   preview: {

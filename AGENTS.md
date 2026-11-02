@@ -2,7 +2,7 @@
 
 This file is for agents that work in this repo. Start with `git status --short` and preserve unrelated work. Read `CONTEXT.md` for domain terms and the relevant section of `docs/ARCHITECTURE.md` before changing a product boundary.
 
-For product-module changes, inspect `docs/codemap/codemap.lock` and use the affected section of `docs/codemap/codemap.md` for callers, tests, and flows. Docs and skill edits do not require map regeneration. GitHub Issues and Project `#8` are the task tracker; do not introduce a second `tasks.json` tracker.
+For product-module changes, inspect `docs/codemap/codemap.lock` and use the affected section of `docs/codemap/codemap.md` for callers, tests, and flows. Refresh the map only at the closeout of a change set that changes boundaries, dependencies, routes, data stores, queues or major flows, and commit the four artifacts in their own `docs(codemap): refresh` commit. Tests, docs, skills, styles, copy and internal edits do not need a refresh; `impact` still answers from a stale map and reports its freshness. GitHub Issues and Project `#8` are the task tracker; do not introduce a second `tasks.json` tracker.
 
 ## Setup
 

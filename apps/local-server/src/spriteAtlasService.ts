@@ -22,6 +22,7 @@ import {
 } from '../../../packages/shared/src/spriteAtlasContracts';
 import type { CatalogImage, Job, JobLibraryContext } from '../../../packages/shared/src/types';
 import { resolveLibraryPathFromRoot } from './library';
+import { isPathInside } from './pathContainment';
 import {
   createRunLock,
   fileExists,
@@ -92,13 +93,6 @@ export interface CreateSpriteAtlasServiceOptions {
   getCatalogImage?: (imageId: string) => CatalogImage | null;
   createId?: () => string;
   now?: () => string;
-}
-
-function isPathInside(parentPath: string, childPath: string) {
-  const parent = path.resolve(parentPath);
-  const child = path.resolve(childPath);
-  const relative = path.relative(parent, child);
-  return Boolean(relative) && !relative.startsWith('..') && !path.isAbsolute(relative);
 }
 
 function blockedReason(

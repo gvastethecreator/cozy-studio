@@ -25,6 +25,7 @@ import type { GenerationTaskSpec } from '../../../packages/shared/src/generation
 import type { JobLibraryContext, CatalogImage, Job } from '../../../packages/shared/src/types';
 import { encodeGif, type GifRgbaFrame } from './animationGifEncoder';
 import { resolveLibraryPathFromRoot } from './library';
+import { isPathInside } from './pathContainment';
 import {
   createRunLock,
   fileExists,
@@ -78,13 +79,6 @@ export interface CreateAnimationSequenceServiceOptions {
   getJob?: (jobId: string) => Job | null;
   createId?: () => string;
   now?: () => string;
-}
-
-function isPathInside(parentPath: string, childPath: string) {
-  const parent = path.resolve(parentPath);
-  const child = path.resolve(childPath);
-  const relative = path.relative(parent, child);
-  return Boolean(relative) && !relative.startsWith('..') && !path.isAbsolute(relative);
 }
 
 function createRunPaths(libraryDir: string, runId: string): AnimationSequenceRunPaths {

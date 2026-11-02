@@ -30,6 +30,27 @@ describe('managed generation asset policy', () => {
       expect(isManagedGenerationAssetPath(reference, context)).toBe(true);
       expect(isManagedGenerationAssetPath(database, context)).toBe(false);
       expect(isManagedGenerationAssetPath(outside, context)).toBe(false);
+      // `..` segments resolve before the check, and a sibling with a matching prefix is outside.
+      const { sep } = path;
+      expect(
+        isManagedGenerationAssetPath(
+          `${root}${sep}outputs${sep}..${sep}.studio${sep}studio.sqlite`,
+          context,
+        ),
+      ).toBe(false);
+      expect(
+        isManagedGenerationAssetPath(
+          `${root}${sep}outputs${sep}..${sep}..${sep}${path.basename(outside)}`,
+          context,
+        ),
+      ).toBe(false);
+      expect(
+        isManagedGenerationAssetPath(path.join(root, 'outputs-extra', 'image.png'), context),
+      ).toBe(false);
+      if (process.platform === 'win32') {
+        expect(isManagedGenerationAssetPath(output.toUpperCase(), context)).toBe(true);
+        expect(isManagedGenerationAssetPath(outside.toUpperCase(), context)).toBe(false);
+      }
     } finally {
       rmSync(root, { recursive: true, force: true });
       rmSync(path.join(path.dirname(root), `${path.basename(root)}-outside.png`), { force: true });
@@ -49,6 +70,8 @@ describe('managed generation asset policy', () => {
       symlinkSync(outsideRoot, link, 'junction');
 
       expect(isManagedGenerationAssetPath(path.join(link, 'secret.png'), context)).toBe(false);
+      // A file that does not exist yet still resolves through the link's real target.
+      expect(isManagedGenerationAssetPath(path.join(link, 'not-yet.png'), context)).toBe(false);
     } finally {
       rmSync(root, { recursive: true, force: true });
       rmSync(outsideRoot, { recursive: true, force: true });

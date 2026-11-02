@@ -10,12 +10,12 @@ If the user wants images out of the Library, they archive the images in Studio: 
 
 ## Check Studio state
 
-| Question                                         | Tool                                                                                               |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| Is Studio healthy? Is an update available?       | `studio_status`: `health`, `update` and `notice`.                                                  |
-| How many images have no tags and no collection?  | `studio_status`: `library.unorganized`. For one workspace: `studio_workspaces` with `workspaceId`. |
-| Which jobs failed, and why?                      | `studio_jobs` with `status: "failed"`, then `studio_job` with `detail: true`.                      |
-| Which packs are installed? Which have an update? | `studio_extensions` and `studio_available_extensions` (`updateAvailable`).                         |
+| Question                                         | Tool                                                                                                                                                       |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Is Studio healthy? Is an update available?       | `studio_status`: `health`, `update` and `notice`.                                                                                                          |
+| How many images have no tags and no collection?  | `studio_status`: `unorganized.total` for all workspaces, `unorganized.workspaces` for each one. For one workspace: `studio_workspaces` with `workspaceId`. |
+| Which jobs failed, and why?                      | `studio_jobs` with `status: "failed"`, then `studio_job` with `detail: true`.                                                                              |
+| Which packs are installed? Which have an update? | `studio_extensions` and `studio_available_extensions` (`updateAvailable`).                                                                                 |
 
 A retry of failed jobs spends usage: see [generate-and-compare.md](generate-and-compare.md). For pack updates and removal, see [styles-and-packs.md](styles-and-packs.md).
 
@@ -23,7 +23,7 @@ Done when you can name each finding and the step that fixes it.
 
 ## Audit storage
 
-With a shell in the Studio checkout, run only these commands. They open the Library database read-only.
+With a shell in the Studio checkout, run only these commands. They open the Studio database read-only.
 
 | Command                                              | Result                                                                                                                                                                                  |
 | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -40,15 +40,15 @@ Done when you have the audit and, for each fix, its dry-run result.
 
 Show the dry-run result. Then give the user the control or the command. The confirm tokens in these commands are for the user (**Ask before destructive steps**).
 
-| Change                    | In Studio                                                                                                                                                             | From a shell                                                                                 |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Compact inline payloads   | Storage maintenance > **Plan database cleanup**, then **Apply plan**.                                                                                                 | Stop Studio, then `bun run storage:compact -- --write --confirm=compact-inline-payloads`.    |
-| Create missing thumbnails | Storage maintenance > **Plan missing thumbnails**, then **Apply plan**.                                                                                               | `bun run storage:thumbnails:backfill -- --limit=1000 --write --confirm=backfill-thumbnails`. |
-| Prune diagnostic logs     | Storage maintenance > **Prune diagnostic logs**.                                                                                                                      | `bun run tooling:logs:prune`                                                                 |
-| Hide finished jobs        | **Clear** in the Jobs header. It keeps the images and the job records.                                                                                                |                                                                                              |
-| Empty the Archive         | **Archive** in the header, then **Delete permanently**. This cannot be undone.                                                                                        |                                                                                              |
-| Rebuild the Library       | Settings > Advanced & maintenance > **Rebuild Library**. It deletes and recreates the local Library: assets, references, thumbnails, archived items and the database. |                                                                                              |
+| Change                    | In Studio                                                                                                                                                                                         | From a shell                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Compact inline payloads   | Storage maintenance > **Plan database cleanup**, then **Apply plan**.                                                                                                                             | Stop Studio, then `bun run storage:compact -- --write --confirm=compact-inline-payloads`.    |
+| Create missing thumbnails | Storage maintenance > **Plan missing thumbnails**, then **Apply plan**.                                                                                                                           | `bun run storage:thumbnails:backfill -- --limit=1000 --write --confirm=backfill-thumbnails`. |
+| Prune diagnostic logs     | Storage maintenance > **Prune diagnostic logs**.                                                                                                                                                  | `bun run tooling:logs:prune`                                                                 |
+| Hide finished jobs        | **Clear** in the Jobs header. It keeps the images and the job records.                                                                                                                            |                                                                                              |
+| Empty the Archive         | **Archive** in the header, then **Delete permanently**. This cannot be undone.                                                                                                                    |                                                                                              |
+| Rebuild Studio data       | Settings > Advanced & maintenance > **Rebuild Studio data**. It deletes and recreates the Studio data folder for all workspaces: assets, references, thumbnails, archived items and the database. |                                                                                              |
 
-**Leave user-only actions to the user** says when to mention emptying the Archive or **Rebuild Library**. For a stuck Library, start with the audit and [troubleshooting.md](troubleshooting.md).
+**Leave user-only actions to the user** says when to mention emptying the Archive or **Rebuild Studio data**. For a stuck Studio, start with the audit and [troubleshooting.md](troubleshooting.md).
 
 Done when the user has the dry-run result and the exact control or command for each write they want.

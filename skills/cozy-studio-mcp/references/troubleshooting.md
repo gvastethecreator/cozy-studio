@@ -33,7 +33,7 @@ Input errors return 400 from both `studio_generate` and `studio_plan_generation`
 - `Unknown workspaceId. Use studio_workspaces, or workspaceName to create one.`: use an id from `studio_workspaces`, or pass `workspaceName`.
 - `Could not read the workspaces. ...` or `Could not create the workspace.`: the workspace step failed and nothing was queued. Call `studio_status`, then send the same call again.
 - `Use letters, numbers, underscores or hyphens in each hashtag.`, `Each hashtag can have up to 64 characters.`, `Use a collection name of up to 80 characters.`, `Collection name cannot include control characters.`, or code `invalid_library_organization`: fix `tags` or `collection`. A tag holds only letters, numbers, `_` and `-`. Studio removes a leading `#` and lowercases the tag.
-- `Catalog reference not found` with `imageId`: no Library image has that id. Find the image with `studio_catalog`.
+- `Catalog reference not found` with `imageId`: no Library image has that id. Find the image with `studio_catalog` and the `workspace_id` of the workspace where it should be.
 - `Catalog reference is unavailable` with `imageId`: the image is in the Archive (trash) or its file is missing. Choose another image. The user can restore it from the Archive.
 - `Unknown recipe. ...`, `Recipe Module <id> does not support ...`, a recipe parameter error or code `workflow_module_disabled`: see [workflows-and-recipes.md](workflows-and-recipes.md).
 - `This workflow needs its run in the Studio UI (Workflows). studio_generate makes single images.`: Sprite Atlas and Animation Sequence runs work only in the Studio UI. Tell the user to run that workflow in Studio.
@@ -89,7 +89,7 @@ See the Errors table in [organize-library.md](organize-library.md).
 - `Reference image could not be decoded.`, `... could not be decoded or optimized.` or `Reference file must contain a PNG, JPEG, WebP or GIF image.`: use a PNG, JPEG, WebP or GIF image.
 - `Reference file changed during import. Retry with a stable file.`: retry when the file no longer changes.
 - `Reference image is no longer available in the catalog.`: the earlier import with this id was deleted. Import again with a new `reference-` id.
-- `Reference image changed on disk and was left unchanged.`, `... is not in its Studio Library.` or `A managed reference file already exists for this digest and was left unchanged.`: the stored Library file differs from its record. Tell the user (**Never delete, archive or move images**).
+- `Reference image changed on disk and was left unchanged.`, `... is not in its Studio Library.` or `A managed reference file already exists for this digest and was left unchanged.`: the stored file differs from its record. Tell the user (**Never delete, archive or move images**).
 
 ## Settings
 

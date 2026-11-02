@@ -1,6 +1,6 @@
 # Workspaces
 
-A workspace holds the images of one project. Each Library image belongs to one workspace. Each collection belongs to one workspace, and `studio_workspaces` lists tags for each workspace. For tag and collection names, use the filing scheme in [organize-library.md](organize-library.md).
+A workspace holds the images of one project. Its images, tags (with their colors) and collections are its Library. Each image belongs to one workspace, and each collection belongs to one workspace. The same tag name in another workspace is a different tag. For tag and collection names, use the filing scheme in [organize-library.md](organize-library.md).
 
 The Default workspace has the id `default` and the name `Default`. It cannot be deleted. Imported images go into it.
 
@@ -31,18 +31,19 @@ Done when `studio_workspaces` lists the workspace after the batch is queued.
 ## Read a workspace
 
 - `studio_workspaces` with `workspaceId` returns `workspace`, `tags` (`name`, `color`, `imageCount`), `collections` (`id`, `name`, `emoji`, `imageCount`) and `unorganized`.
-- `studio_catalog` with `workspace_id` lists its images. Add `collection_id` to list one collection.
+- `studio_catalog` with `workspace_id` lists its images. `workspace_id` is required, and a search never reads another workspace. Add `collection_id` to list one collection.
 - `studio_jobs` with `workspaceId` lists its jobs.
 
 ## Changes that only the user makes
 
 Agent tools do not rename or delete workspaces, move images to another workspace, or set favorites. When the user asks for one of these changes, tell them where to make it:
 
-| Change                                                            | Where in Studio                                                                                                                                                                |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Rename a workspace                                                | Click the name of the active workspace in the header.                                                                                                                          |
-| Delete a workspace                                                | Open the workspace menu in the header, then **Delete workspace**. This also deletes the collections of the workspace, and its images leave the Studio view. Default is locked. |
-| Mark a favorite                                                   | **Add to favorites** in the image viewer.                                                                                                                                      |
-| Rename tags and collections, set tag colors and collection emojis | Settings > **Tags & collections**.                                                                                                                                             |
+| Change                                                            | Where in Studio                                                                                                                                                                                     |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rename a workspace                                                | Click the name of the active workspace in the header.                                                                                                                                               |
+| Delete a workspace                                                | Open the workspace menu in the header, then **Delete workspace**. Its images move to Archived Images, where the user can restore them, and its tags and collections are deleted. Default is locked. |
+| Move an image to another workspace                                | Studio has no control for this today.                                                                                                                                                               |
+| Mark a favorite                                                   | **Add to favorites** in the image viewer.                                                                                                                                                           |
+| Rename tags and collections, set tag colors and collection emojis | Settings > **Tags & collections**.                                                                                                                                                                  |
 
 To group images from two workspaces, add them to a collection in each workspace.

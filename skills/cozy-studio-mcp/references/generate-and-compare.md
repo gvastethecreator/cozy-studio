@@ -32,7 +32,7 @@ This file runs a generation from plan to report, and compares styles, providers,
    - Done when `counts.queued` and `counts.running` are both 0, or you stopped and reported.
 
 6. Collect.
-   - Call `studio_catalog` with `{batch_id, limit: 100}`. Each row has `id`, `prompt`, `tags`, `thumbnailPath` and `filePath`.
+   - Call `studio_catalog` with `{workspace_id, batch_id, limit: 100}`. The batch result has the `workspaceId`. Each row has `id`, `prompt`, `tags`, `thumbnailPath` and `filePath`.
    - Call `studio_job` with `{jobId}` for its `notices`, such as a returned size that differs from the request. Add `detail: true` for the model, the filing and the last 20 events.
    - Done when you have the image ids of every completed job.
 
@@ -87,7 +87,7 @@ A comparison changes one variable and keeps everything else the same. Each varia
      | ------- | ----- | ------ | --------- | --------- | ----- |
 
    - Under the table, describe the visible differences between the variants.
-   - Tell the user how to see them side by side: in the Library, filter by the collection, select two images and choose **Compare 2 images**. `studio_catalog` with `q: "#cmp-<slug>"` lists the whole comparison again later.
+   - Tell the user how to see them side by side: in the Library, filter by the collection, select two images and choose **Compare 2 images**. `studio_catalog` with the comparison's `workspace_id` and `q: "#cmp-<slug>"` lists the whole comparison again later.
    - When the user picks favorites, offer to tag them. Use [organize-library.md](organize-library.md).
    - Done when the table has a row for every variant.
 

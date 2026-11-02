@@ -9,23 +9,35 @@ Agent work rules live in `AGENTS.md`; setup guidance lives in `skills/cozy-studi
 ### Storage and catalog
 
 **Workspace**:
-User-visible durable organization unit for generations and Catalog Entries. Stored in SQLite and exposed through `/api/workspaces`. Default id is the literal string `default`.
+User-visible durable organization unit for generations and Catalog Entries. Owns exactly one Library. Stored in SQLite and exposed through `/api/workspaces`. Default id is the literal string `default`.
 _Avoid_: project (product), board, browser-only folder
 
-**Studio Library**:
-External local folder that stores assets, thumbnails, references, transcripts, logs, and SQLite state for the studio.
-_Avoid_: output folder, data dir, library path
+**Library**:
+The image set of one Workspace, with its Tags and Image Collections. Each Workspace has exactly one Library. It has no disk folder of its own.
+_Avoid_: Studio Library (for the data folder), library folder, several Libraries in one workspace
 
-**Library Registry**:
-SQLite-backed registry of Studio Library directories, with one default library for new generations.
-_Avoid_: libraries list, path registry
+**Tag**:
+A name and optional color in one Workspace's Library. Images store tag names; `catalog_tags` holds each workspace's names and colors. The same name in two workspaces is two Tags. A `#tag` search reads one workspace.
+_Avoid_: global tag, label
+
+**Studio Data Folder**:
+Private local folder with SQLite state, settings, references, thumbnails, transcripts, logs and the trash. Code names: `settings.libraryDir`, `STUDIO_LIBRARY_DIR`, the `libraries` row of kind `library`.
+_Avoid_: Library, Studio Library
+
+**Output Folder**:
+Registered folder where new images are written (default Pictures/Cozy Studio). Code name: a `libraries` row of kind `output`.
+_Avoid_: Library, External Output Source
+
+**Storage Folder Registry**:
+The `libraries` table: the Studio Data Folder row and one row per Output Folder. `catalog_images.library_id`, `jobs.library_id` and `/library/<id>/` URLs point at these rows.
+_Avoid_: Library Registry
 
 **Studio Settings**:
-Editable application preferences stored with the Studio Library, such as default provider, output behavior, library choices, and UI/runtime defaults.
+Editable application preferences stored in the Studio Data Folder, such as default provider, output behavior and UI/runtime defaults.
 _Avoid_: env config, bootstrap vars, hidden preferences
 
 **Bootstrap Configuration**:
-Minimal startup-only configuration needed before Studio Settings can be loaded, such as initial library path, ports, development flags, and secrets.
+Minimal startup-only configuration needed before Studio Settings can be loaded, such as initial Studio Data Folder path, ports, development flags, and secrets.
 _Avoid_: app settings, user preferences, runtime defaults
 
 **Provider Secret**:
@@ -33,7 +45,7 @@ Credential or token needed by a Generation Provider and stored outside SQLite-ba
 _Avoid_: provider setting, catalog metadata, visible config value
 
 **Image Catalog**:
-SQLite-backed index of generated images and their searchable metadata across one or more Studio Libraries.
+SQLite-backed index of all Catalog Entries of the install and their searchable metadata. Each entry belongs to one Workspace's Library.
 _Avoid_: asset table, gallery cache
 
 **Catalog Entry**:
@@ -41,7 +53,7 @@ One image record inside the Image Catalog.
 _Avoid_: asset row, generated image record
 
 **Image Collection**:
-Named set of Catalog Entries inside one Workspace. An image can belong to many Image Collections. Stored in SQLite and opened from the Library beside tag search.
+Named set of Catalog Entries inside one Workspace's Library. An image can belong to many Image Collections. Stored in SQLite and opened from the Library beside tag search.
 _Avoid_: disk folder, Workspace, tag
 
 **Library Organization**:
@@ -65,7 +77,7 @@ Generation metadata written into an image file so the asset stays self-describin
 _Avoid_: sidecar metadata, prompt note
 
 **Local Asset**:
-Image file stored in a Studio Library and served to the UI through `/library/...`.
+Image file stored in the Studio Data Folder or an Output Folder and served to the UI through `/library/<id>/...`.
 _Avoid_: blob, attachment
 
 **Reference Import Receipt**:
@@ -173,7 +185,7 @@ Local folder or GitHub repository release feed where Studio finds Cozy Extension
 _Avoid_: marketplace, registry server, pack path
 
 **Workflow Module**:
-Optional built-in workflow, such as Character Lab or Sprite Atlas, that the user can turn off in Settings → Styles & workflows. Create and Styles are not modules. A turned-off module hides its workflows, loads none of its code, closes its API routes and rejects its new jobs; its jobs and images stay in the Studio Library.
+Optional built-in workflow, such as Character Lab or Sprite Atlas, that the user can turn off in Settings → Styles & workflows. Create and Styles are not modules. A turned-off module hides its workflows, loads none of its code, closes its API routes and rejects its new jobs; its jobs and images stay in their workspaces.
 _Avoid_: plugin, extension, feature flag
 
 **Codex Turn**:
@@ -249,7 +261,7 @@ Its Codex diagnostics combine App-Server Lifecycle and Local Codex Session facts
 _Avoid_: simple health boolean, account check, deep diagnostic command
 
 **Command Center**:
-Top toolbar surface for global studio status, provider/runtime usage, queue awareness, library/workspace switching, and entry points to configuration or diagnostics.
+Top toolbar surface for global studio status, provider/runtime usage, queue awareness, workspace switching, and entry points to configuration or diagnostics.
 _Avoid_: floating status panel, scattered global controls, dashboard-only command surface
 
 **Demand-Mounted Surface**:
@@ -270,13 +282,14 @@ _Avoid_: direct repair command, secret-printing audit, destructive storage scan
 
 ## Relationships
 
-- A **Library Registry** tracks one or more **Studio Libraries** and exactly one default library at a time.
-- A registered output directory stores new final images and exports without becoming a separate SQLite catalog. Each job captures its output root and layout; existing files stay under their original registered roots.
+- Each **Workspace** has exactly one **Library**, which owns its **Tags** and **Image Collections**. Deleting a Workspace moves its images to the trash and deletes its Tags and Image Collections. A moved image keeps its tags and leaves the collections of its old Workspace.
+- The **Storage Folder Registry** holds the **Studio Data Folder** and the **Output Folders**; it is not a set of Libraries.
+- An **Output Folder** stores new final images and exports without becoming a separate SQLite catalog. Each job captures its output root and layout; existing files stay under their original registered roots.
 - Shared workflow categories drive discovery and preferences. Character views retain per-mode drafts within one workspace character. Native output background belongs to the Generation Task Spec, not a provider-specific task name.
-- **Bootstrap Configuration** locates the initial **Studio Library**, then **Studio Settings** become the editable source of truth.
+- **Bootstrap Configuration** locates the initial **Studio Data Folder**, then **Studio Settings** become the editable source of truth.
 - **Provider Secrets** live outside **Studio Settings**. Settings can show only availability or validation state.
-- One **Studio Library** contains many **Local Assets** and contributes many **Catalog Entries** to the **Image Catalog**.
-- An **External Output Source** can be discovered or registered, then imported into a **Studio Library** before destructive or catalog operations.
+- The **Studio Data Folder** and the **Output Folders** hold many **Local Assets**, which contribute **Catalog Entries** to the **Image Catalog**.
+- An **External Output Source** can be discovered or registered, then imported as **Local Assets** before destructive or catalog operations.
 - A **Catalog Page** contains many **Catalog Entries**.
 - **Catalog Entry Detail** completes one compact Catalog Entry only when a caller explicitly needs full generation or diagnostic metadata.
 - A **Persistent Job** on the Codex app-server route executes one or more **Codex Turns**. ChatGPT HTTP jobs do not create Codex turns or threads.
@@ -303,7 +316,7 @@ _Avoid_: direct repair command, secret-printing audit, destructive storage scan
 - An **Image Grid Geometry Budget** keeps first-viewport Catalog thumbnails discoverable while off-viewport images remain lazy.
 - A **Route Preload Budget** lets the **Studio Shell** warm route surfaces by route and user intent without importing every **Recipe Module** surface on Home.
 - **Studio Shell** materializes **Studio Runtime**, navigation state, overlays, and **Catalog Entries** into the renderable app layout.
-- **Studio Readiness** exposes **Studio Runtime**, **Studio Library**, and Codex runtime diagnostics. Generation readiness is checked for the selected **Generation Provider**.
+- **Studio Readiness** exposes **Studio Runtime**, **Studio Data Folder**, and Codex runtime diagnostics. Generation readiness is checked for the selected **Generation Provider**.
 - The **Command Center** exposes global status and commands, while deeper configuration and diagnostics open from it.
 - A **Demand-Mounted Surface** is opened from the **Command Center** or another explicit user action. The **Settings Surface** is the settings-specific demand-mounted surface.
 - The **Provider Boundary** keeps ChatGPT HTTP and Codex app-server distinct. New jobs capture their selected route; a failed job never switches providers automatically.
@@ -314,16 +327,16 @@ _Avoid_: direct repair command, secret-printing audit, destructive storage scan
 > **Domain expert:** "Yes. The backend persists the **Catalog Entry**. **Local Studio Sync** refreshes the affected catalog scope. Then the grid materializes that entry directly."
 >
 > **Dev:** "So what actually blocks the user from generating?"
-> **Domain expert:** "Backend and **Studio Library** readiness matter, then the selected **Generation Provider** must be available. Codex runtime diagnostics do not block an authenticated ChatGPT HTTP job."
+> **Domain expert:** "Backend and **Studio Data Folder** readiness matter, then the selected **Generation Provider** must be available. Codex runtime diagnostics do not block an authenticated ChatGPT HTTP job."
 
 ## Flagged ambiguities
 
 - `CONTEXT.md` is glossary-only. System shape belongs in `docs/ARCHITECTURE.md`. Work rules belong in `AGENTS.md` and the relevant contributor guide.
 - `AGENTS.md` guides repo work practices without duplicating the glossary in `CONTEXT.md`.
 - **Legacy Workspace Snapshot** is export-only compatibility. It is not read, recovered, or stored as browser state.
-- **Studio Settings** are not `.env.local`. Environment files are for **Bootstrap Configuration** and secrets that must exist before the app can load the library.
+- **Studio Settings** are not `.env.local`. Environment files are for **Bootstrap Configuration** and secrets that must exist before the app can load the Studio Data Folder.
 - **Provider Secret** values must not be stored in the Image Catalog, job metadata, or SQLite-backed Studio Settings.
-- **External Output Source** is not a second source of truth. Catalog operations belong to imported **Local Assets** in a **Studio Library**.
+- **External Output Source** is not a second source of truth. Catalog operations belong to imported **Local Assets** in the Studio Data Folder or an Output Folder.
 - **Studio Runtime** names the backend-resolution adapter. Readiness and onboarding status belong to **Studio Readiness**.
 - **Command Center** does not mean putting every control in the toolbar. Global controls live there or open from there instead of floating separately.
 - **Demand-Mounted Surface** is the default for heavy diagnostics, file views, activity panels, and visual effects that are not always visible.
@@ -339,3 +352,4 @@ _Avoid_: direct repair command, secret-printing audit, destructive storage scan
 - **Compiled Provider Input** is execution data, not the durable source of truth. The richer **Generation Task Spec** remains for traceability.
 - **Provider Session Contract** contains stable rules only. Task-specific requirements belong in the **Generation Task Spec** and its **Compiled Provider Input**.
 - **Codex Automation Surface** does not replace the **Codex Product Runtime** unless a future ADR changes the product architecture.
+- **Library** means a Workspace's image set, never a folder. Code names (`libraries`, `library_id`, `libraryDir`, `/library/<id>/`, `STUDIO_LIBRARY_DIR`) keep the old word for storage folders. `workspaces.library_id` is unused.

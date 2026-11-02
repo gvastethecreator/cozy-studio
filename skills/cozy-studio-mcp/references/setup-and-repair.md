@@ -20,7 +20,7 @@ The Studio checkout is the folder that the `overview` topic names on its first l
    - Otherwise run `bun run dev` in the checkout as a background process. It starts the API and the UI.
    - When port 17223 is busy, `bun run dev` starts the API on the next free port and logs `[dev] Port 17223 unavailable for the backend; starting on port <N>`. The bridge still calls 17223. Set `COZY_STUDIO_API_URL` to `http://127.0.0.1:<N>` in the MCP registration and reload the connection, or free port 17223 and start again.
    - A busy UI port stops the start with `Studio UI port 17222 is already in use.` Follow **Ask before destructive steps** before you stop the process that holds it.
-   - For other start failures (Codex, Library path, database), read the matching section of `docs/TROUBLESHOOTING.md` in the checkout.
+   - For other start failures (Codex, Studio data folder path, database), read the matching section of `docs/TROUBLESHOOTING.md` in the checkout.
    - Done when `studio_status` returns JSON.
 
 3. Repair the MCP connection.

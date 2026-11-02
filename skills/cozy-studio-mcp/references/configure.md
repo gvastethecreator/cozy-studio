@@ -65,18 +65,18 @@ Some providers read a key from `.env.local` in the checkout, for example `OPENAI
 
 Agents cannot do these. Tell the user where to do them.
 
-| Action                                                            | Where                                                                             |
-| ----------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Sign in or out (ChatGPT, xAI, Google)                             | Settings > Accounts & models                                                      |
-| Default provider, model defaults, execution settings              | Settings > Accounts & models                                                      |
-| Output directory                                                  | Settings > Files & naming > Output directory                                      |
-| External folders, import sources, metadata export                 | Settings > Library & imports                                                      |
-| Rename or recolor tags and collections                            | Settings > Tags & collections                                                     |
-| Agent access, Allowed import folders                              | Settings > Advanced & maintenance                                                 |
-| Storage cleanup, thumbnail repair, log cleanup, Rebuild Library   | Settings > Advanced & maintenance                                                 |
-| Empty the Archive (permanent)                                     | **Archive** in the header > **Delete permanently** (deletes every archived image) |
-| Delete a workspace                                                | The workspace menu > Delete workspace                                             |
-| Private pack hub password                                         | Settings > Styles & workflows                                                     |
-| Provider keys, ports, Library folder, pack sources, worker limits | `.env.local`, then restart Studio                                                 |
+| Action                                                                | Where                                                                             |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Sign in or out (ChatGPT, xAI, Google)                                 | Settings > Accounts & models                                                      |
+| Default provider, model defaults, execution settings                  | Settings > Accounts & models                                                      |
+| Output directory                                                      | Settings > Files & naming > Output directory                                      |
+| External folders, import sources, metadata export                     | Settings > Data folder & imports                                                  |
+| Rename or recolor tags and collections                                | Settings > Tags & collections                                                     |
+| Agent access, Allowed import folders                                  | Settings > Advanced & maintenance                                                 |
+| Storage cleanup, thumbnail repair, log cleanup, Rebuild Studio data   | Settings > Advanced & maintenance                                                 |
+| Empty the Archive (permanent)                                         | **Archive** in the header > **Delete permanently** (deletes every archived image) |
+| Delete a workspace                                                    | The workspace menu > Delete workspace                                             |
+| Private pack hub password                                             | Settings > Styles & workflows                                                     |
+| Provider keys, ports, Studio data folder, pack sources, worker limits | `.env.local`, then restart Studio                                                 |
 
 Removing a style pack and applying an app update are agent tools, but they need the user's agreement first: see [SKILL.md](../SKILL.md).

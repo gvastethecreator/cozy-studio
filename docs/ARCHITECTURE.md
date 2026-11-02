@@ -19,7 +19,7 @@ graph TD
     API --> CATALOG["/api/catalog + /library/*"]
     API --> SETTINGS["Studio Settings"]
     API --> DB["SQLite .studio/studio.sqlite"]
-    API --> LIB["Studio Library + registered image outputs"]
+    API --> LIB["Studio data folder + output folders"]
     API --> PROVIDERS["Provider Boundary"]
     PROVIDERS --> CODEX["Codex Product Runtime"]
     CODEX --> CX["codex app-server ws://127.0.0.1:17224"]
@@ -39,7 +39,7 @@ graph TD
 
 ## Product shape
 
-- **Local-first:** SQLite state, references, transcripts, thumbnails and logs live in the Studio Library. Generated images go to the output destination captured at intake, which can be outside that Library. User data stays outside the repository.
+- **Local-first:** SQLite state, references, transcripts, thumbnails and logs live in the Studio data folder. Generated images go to the output folder captured at intake, which can be outside the Studio data folder. User data stays outside the repository.
 - **Catalog-first:** the Image Catalog is the durable and UI truth for images. The former workspace snapshot shape exists only as an explicit export.
 - **Provider-aware:** built-in providers run behind backend adapters and do not change the product center. ChatGPT uses its subscription HTTP endpoint and creates no Codex threads. Codex uses local `codex app-server`.
 
@@ -63,7 +63,7 @@ All paths are under `apps/local-server/src/`. `appFactory.ts` composes the route
 
 - `jobRoutes.ts` and `persistentJobIntake.ts` own job intake. `providerExecutionPolicy.ts` resolves the execution fields: the explicit request, then the selected provider's default, then the bootstrap fallback.
 - `catalog.ts`, `catalogCollections.ts` and `catalogTags.ts` own Catalog Entries and the workspace-scoped collections and tags. A rename updates membership in one transaction. `db/` holds the SQLite connection, the migrations and the domain stores.
-- `managedAssetPolicy.ts` validates provider assets against the captured Library root. `workerAssetFinalizer.ts` owns recoverable file, Asset, Catalog and job finalization.
+- `managedAssetPolicy.ts` validates provider assets against the storage folders that the job captured (`JobLibraryContext`). `workerAssetFinalizer.ts` owns recoverable file, Asset, Catalog and job finalization.
 - `worker.ts` runs one Effect `ManagedRuntime`. SQLite stays the job authority. The global and per-provider limits choose which jobs run. Capacity is released only after cleanup and finalization finish.
 - `providers/providerEffect.ts` defines the typed failure boundary. Every HTTP body, SSE reader, CLI process, temporary folder and Codex RPC listener has explicit cleanup. Retries stay inside the operations that allow them. Studio never retries a whole job.
 - `codex/sessionPool.ts` shares Codex sessions and serializes turns. Each job keeps its captured transport.
@@ -91,9 +91,9 @@ All paths are under `apps/local-server/src/`. `appFactory.ts` composes the route
 
 1. The UI collects the prompt, recipe, attachments, provider, batch count and workspace. `useGenerationPipeline` hands them to the local generation runner. No browser queue owns the job lifecycle.
 2. The runner resolves Recipe Module data and builds provider-independent Generation Task Specs. With no active style, Default submits a normal generation. Active styles use the `styles` recipe contract.
-3. The backend captures each item's Library Context and execution policy. It commits the requested count, the ordered membership and all jobs in one SQLite transaction before dispatch.
+3. The backend captures each item's storage folders (`JobLibraryContext`: the Studio data folder and the output folder) and execution policy. It commits the requested count, the ordered membership and all jobs in one SQLite transaction before dispatch.
 4. The Provider Boundary compiles each spec into provider-specific input. New Codex jobs capture `codex app-server`, and new ChatGPT jobs capture subscription HTTP. Historical jobs keep their captured contract. Other providers run only when a concrete preflight passes.
-5. Completed jobs write Local Assets, Catalog Entries, transcripts and logs into the Studio Library. HTTP results keep their original pixels. A different returned aspect ratio is an `asset.dimensions.info` event, not a reason for review.
+5. Completed jobs write Local Assets to the output folder, and Catalog Entries, transcripts and logs to the Studio data folder. HTTP results keep their original pixels. A different returned aspect ratio is an `asset.dimensions.info` event, not a reason for review.
 6. The UI refreshes `/api/catalog` by job ID and shows catalog-derived images.
 
 ## Jobs and batches
@@ -107,11 +107,15 @@ All paths are under `apps/local-server/src/`. `appFactory.ts` composes the route
 
 ## Persistence
 
-- SQLite is the durable source of truth for jobs, cataloged assets, libraries, workspaces, settings, events and system logs. Browser storage keeps only bounded preferences and input state.
+- SQLite is the durable source of truth for jobs, cataloged assets, storage folders, workspaces, settings, events and system logs. Browser storage keeps only bounded preferences and input state.
 - Ordered migrations in `apps/local-server/src/db/migrations.ts` run in a transaction and are recorded in `schema_migrations`.
-- Workspace is the top-level catalog scope. Tags and collections organize Catalog Entries inside it. Project routes, contracts, columns and tables are retired.
+- Workspace is the top-level catalog scope. Each workspace has exactly one Library: its Catalog Entries, tags and collections ([ADR 0012](adr/0012-one-library-per-workspace.md)). Tags are per workspace (`catalog_tags` key `(workspace_id, name)`). Project routes, contracts, columns and tables are retired.
+- Workspace delete (`DELETE /api/workspaces/:id`) first rejects Default (400) and an unknown id (404). Then it moves the live images to the trash through the soft-delete path (`archiveByFilter`). If an image fails to move, it answers 500 with `failed` and keeps the workspace, its tags and its collections. Then one transaction checks for new live images (409 when one arrived) and deletes the tags, the collections and the workspace row.
+- Image move (`PATCH /api/catalog/:id` with `workspaceId`) rejects an unknown workspace with 400. In one transaction it changes `workspace_id`, creates each missing tag in the destination with the source color and removes the image from collections of other workspaces. The file does not move.
+- Catalog reads stay inside one workspace: the Library and history pages in the UI, `studio_catalog` (`workspace_id` required), tags and collections. `studio_status` counts unorganized images per workspace. Only the trash, restore-all and purge read all workspaces, so Archived Images also shows images of deleted workspaces.
+- The `libraries` rows are storage folders: the Studio data folder and the output folders. `catalog_images.library_id`, `jobs.library_id` and `/library/<id>/` point at them. `workspaces.library_id` is unused.
 - `StudioWorkspace` is the shared API contract. Shared Effect schemas validate Workspace and Job intake before route logic runs.
-- Persistent Jobs carry an immutable Library context, the output folder and naming captured at submit, and durable finalization checkpoints. Recovery resumes finalization without duplicate records or events.
+- Persistent Jobs carry the Studio data folder, the output folder and naming captured at submit, and durable finalization checkpoints. Recovery resumes finalization without duplicate records or events.
 - `/api/jobs` and `/api/catalog` are summary-first. `/api/jobs` returns all open jobs (`queued`, `running`, `needs_review`) apart from the cursor-paged history. History filters never hide open work.
 - Catalog batch mutations emit one scoped `catalog.batch_changed` event. A revision gap on the event stream restarts reconciliation.
 - Studio reset and the trash purge need a confirm token in the request body. Without it they answer `confirmation_required` and change nothing.
@@ -119,8 +123,8 @@ All paths are under `apps/local-server/src/`. `appFactory.ts` composes the route
 
 ### Storage locations
 
-- `resolveStudioDataRoot` in `apps/local-server/src/config.ts` resolves the private app-data folder. The Studio Library is its `Library` folder, and extensions are in `Extensions`. [Platform support](PLATFORMS.md#default-paths) has the table for each OS. Internal Library state is under `.studio/`.
-- A new library registers `Cozy Studio` in the OS Pictures folder (or `STUDIO_IMAGES_DIR`) as an output-only library and selects it as the output directory. Existing destinations are kept. Without a selected output directory, generations use `outputs/` inside the Studio Library.
+- `resolveStudioDataRoot` in `apps/local-server/src/config.ts` resolves the private app-data folder. The Studio data folder is its `Library` folder, and extensions are in `Extensions`. [Platform support](PLATFORMS.md#default-paths) has the table for each OS. Internal state of the Studio data folder is under `.studio/`.
+- A new Studio data folder registers `Cozy Studio` in the OS Pictures folder (or `STUDIO_IMAGES_DIR`) as an output folder (a `libraries` row of kind `output`) and selects it as the output directory. Existing destinations are kept. Without a selected output directory, generations use `outputs/` inside the Studio data folder.
 - SQLite assigns a continuous output generation number at job admission. The same owner always gets the same number, also after a restart. Existing files are never renamed, and ZIP exports never overwrite entries.
 
 ### Extensions and style authoring
@@ -142,7 +146,7 @@ All paths are under `apps/local-server/src/`. `appFactory.ts` composes the route
 Studio Readiness combines:
 
 - local backend reachability
-- Studio Library health
+- Studio data folder health
 - selected-provider authentication and execution readiness
 - for the Codex route only: CLI availability, Runtime Doctor metadata, app-server capability and lifecycle, and Local Codex Session state
 
@@ -166,7 +170,7 @@ Generation Tasks and Generation Providers stay separate:
 - Provider-specific secrets, SDKs, retries and output discovery stay behind backend adapters.
 - Provider Secrets stay out of SQLite-backed Studio Settings, job metadata, logs, transcripts, screenshots and docs.
 - Providers return the same local contract: job state, Local Assets, Catalog Entries, metadata, logs and diagnostics.
-- Provider assets must already resolve to managed Library outputs, references or masks. Raw caller-controlled filesystem paths never cross the Provider Boundary.
+- Provider assets must already resolve to managed outputs, references or masks in the registered folders. Raw caller-controlled filesystem paths never cross the Provider Boundary.
 - Per-provider execution defaults contain no secrets. An explicit null clears a stored override.
 
 ### Codex and ChatGPT

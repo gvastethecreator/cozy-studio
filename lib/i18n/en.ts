@@ -21,6 +21,12 @@ export const en = {
   'settings.language.heading': 'Language',
   'settings.language.label': 'Interface language',
   'settings.language.hint': 'Prompts, style packs and your own content are never translated.',
+  'settings.providers.signInOptional': 'Sign-in optional',
+  'settings.providers.defaultNotReady':
+    '{provider} cannot generate yet. Set it up below, or pick another provider.',
+  'settings.providers.googleSetup': 'Sign in with Google below, or add a Google API key.',
+  'settings.providers.grokSetup':
+    'Sign in with xAI below, set XAI_API_KEY, or install Grok Build and sign in there.',
 
   'tcg.title': 'TCG Component Studio',
   'tcg.intro':
@@ -174,6 +180,8 @@ export const en = {
     'A starter set of about a hundred styles. They appear after a reload.',
   'stylePacks.notice.installed': 'Studio loads styles when it starts, so reload once to see them.',
   'stylePacks.notice.empty': 'Styles come from style packs. Install a pack to fill this catalog.',
+  'status.providerReady': '{provider} is ready to generate.',
+  'characterLab.notReady': 'Not ready',
 } as const;
 
 export type MessageKey = keyof typeof en;

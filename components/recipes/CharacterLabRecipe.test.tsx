@@ -129,6 +129,46 @@ describe('CharacterLabRecipe', () => {
     expect(onGenerate).toHaveBeenCalledTimes(2);
   });
 
+  it('blocks Generate with the provider hint and badges run readiness', () => {
+    const onGenerate = vi.fn();
+    const block = 'Sign in to ChatGPT in Settings → Accounts & models to generate.';
+    const context = {
+      controls: null,
+      action: null,
+      overlay: null,
+      sidePanel: null,
+      compare: null,
+      setCompare: () => {},
+      generateBlock: block,
+    };
+    const props = { updateConfig: vi.fn(), onGenerate, isGenerating: false };
+    const { rerender } = render(
+      <RecipeWorkbenchContext value={context}>
+        <CharacterLabRecipe
+          {...props}
+          config={activateCharacterLabView(DEFAULT_GENERATION_CONFIG, 'poses')}
+        />
+      </RecipeWorkbenchContext>,
+    );
+    const button = screen.getByRole('button', { name: /^Not ready: Front View/ });
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText(block)).toBeTruthy();
+    expect(screen.getByText('Not ready', { selector: 'span' })).toBeTruthy();
+    fireEvent.click(button);
+    expect(onGenerate).not.toHaveBeenCalled();
+
+    rerender(
+      <RecipeWorkbenchContext value={context}>
+        <CharacterLabRecipe
+          {...props}
+          config={activateCharacterLabView(DEFAULT_GENERATION_CONFIG, 'effects')}
+        />
+      </RecipeWorkbenchContext>,
+    );
+    expect(screen.getByText('Needs source', { selector: 'span' })).toBeTruthy();
+    expect(screen.queryByText('Ready', { selector: 'span' })).toBeNull();
+  });
+
   it('queues one single-output job per action in a category batch', () => {
     const onGenerate = vi.fn();
     render(

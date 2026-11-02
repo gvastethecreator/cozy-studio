@@ -1,5 +1,5 @@
 import { CozyLoader as Loader2 } from '../CozyMascot';
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   Check,
   NavArrowDown as ChevronDown,
@@ -51,7 +51,9 @@ import {
   RecipeOptionsPanel,
   RecipeResults,
 } from './RecipeWorkbenchContext';
+import { RecipeWorkbenchContext } from './recipeWorkbenchContextState';
 import { RecipeLayout } from './RecipeLayout';
+import { t } from '../../lib/i18n';
 import { DemandMountedGsapDropdown } from '../ui/DemandMountedGsapDropdown';
 
 interface CharacterLabRecipeProps {
@@ -838,10 +840,18 @@ function useCharacterActionCatalog(selectedMode: CharacterLabModeId) {
   };
 }
 
-function describeCharacterCapability(capability: CharacterLabAction['capability']) {
+function describeCharacterCapability(
+  capability: CharacterLabAction['capability'],
+  sourceRequired: boolean,
+  providerBlock: string | null,
+) {
   const capabilityLabel =
     capability === 'ready'
-      ? 'Ready'
+      ? sourceRequired
+        ? 'Needs source'
+        : providerBlock
+          ? t('characterLab.notReady')
+          : 'Ready'
       : capability === 'planned-video'
         ? 'Video planned'
         : capability === 'planned-live'
@@ -884,6 +894,7 @@ function useCharacterLabRecipeSessionController({
     selectedModeReadyActions,
   } = useCharacterActionCatalog(selectedMode);
   const [capabilityNotice, setCapabilityNotice] = useState('');
+  const providerBlock = useContext(RecipeWorkbenchContext).generateBlock ?? null;
 
   const patchView = (patch: Partial<CharacterLabViewDraft>) =>
     setConfig((current) => updateCharacterLabView(current, selectedMode, patch));
@@ -969,6 +980,8 @@ function useCharacterLabRecipeSessionController({
 
   const { capabilityLabel, unavailableMessage } = describeCharacterCapability(
     selectedAction.capability,
+    sourceRequired,
+    providerBlock,
   );
   const previewControlItems = useMemo(
     () =>
@@ -1034,9 +1047,9 @@ function useCharacterLabRecipeSessionController({
     if (action.capability !== 'ready') {
       return 'Profile and Live Interview actions require structured analysis/live provider support.';
     }
-    return CHARACTER_LAB_WORKFLOWS[action.mode].requiresSource && !source
-      ? SOURCE_REQUIRED_MESSAGE
-      : '';
+    if (CHARACTER_LAB_WORKFLOWS[action.mode].requiresSource && !source)
+      return SOURCE_REQUIRED_MESSAGE;
+    return providerBlock ?? '';
   };
 
   const dispatchAction = (action: CharacterLabAction, batchCount: number) => {
@@ -1142,6 +1155,7 @@ function useCharacterLabRecipeSessionController({
     capabilityNotice,
     runAction,
     sourceRequired,
+    providerBlock,
     unavailableMessage,
     config,
   };
@@ -1537,21 +1551,18 @@ function CharacterExecutionControls({
     workflow,
     runAction,
     sourceRequired,
+    providerBlock,
     unavailableMessage,
     config,
   } = model;
+  const blockMessage =
+    unavailableMessage || (sourceRequired ? SOURCE_REQUIRED_MESSAGE : providerBlock);
   return (
-    <RecipePrimaryAction
-      execute={() => runAction(selectedAction)}
-      disabled={selectedAction.capability !== 'ready' || sourceRequired}
-    >
-      {(unavailableMessage || sourceRequired) && (
-        <p className="mb-2 text-xs leading-relaxed text-[color:var(--wb-muted)]">
-          {unavailableMessage || SOURCE_REQUIRED_MESSAGE}
-        </p>
+    <RecipePrimaryAction execute={() => runAction(selectedAction)} disabled={Boolean(blockMessage)}>
+      {blockMessage && (
+        <p className="mb-2 text-xs leading-relaxed text-[color:var(--wb-muted)]">{blockMessage}</p>
       )}
-      {!unavailableMessage &&
-        !sourceRequired &&
+      {!blockMessage &&
         config.outputBackground !== 'transparent' &&
         resolveCharacterLabOutputBackground(selectedAction.id, config.outputBackground) ===
           'transparent' && (
@@ -1562,7 +1573,7 @@ function CharacterExecutionControls({
       <button
         type="button"
         onClick={() => runAction(selectedAction)}
-        disabled={selectedAction.capability !== 'ready' || sourceRequired}
+        disabled={Boolean(blockMessage)}
         data-character-lab-generate-button
         data-generate-active={isGenerating ? 'true' : 'false'}
         className="studio-primary-control group relative min-h-11 w-full gap-2 py-2 text-left"
@@ -1580,9 +1591,11 @@ function CharacterExecutionControls({
               ? 'Unavailable:'
               : sourceRequired
                 ? 'Needs source:'
-                : isGenerating
-                  ? 'Queue'
-                  : 'Generate'}{' '}
+                : providerBlock
+                  ? `${t('characterLab.notReady')}:`
+                  : isGenerating
+                    ? 'Queue'
+                    : 'Generate'}{' '}
             {selectedAction.label}
           </span>
           <span className="mt-0.5 block truncate text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-on-fill)]">

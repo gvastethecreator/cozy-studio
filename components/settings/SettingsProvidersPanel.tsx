@@ -16,6 +16,7 @@ import {
   providerSecretLabel,
 } from '../../lib/subscriptionAuthUi';
 import { providerBrandChipLabel, providerReadyPillClass } from '../../lib/providerBrand';
+import { useT } from '../../lib/i18n';
 import { ProviderBrandMark, ProviderUntestedBadge } from '../ProviderBrandMark';
 import { SubscriptionAuthControls } from './SubscriptionAuthControls';
 import { ProviderExecutionDefaultsFields } from './ProviderExecutionDefaultsFields';
@@ -45,6 +46,7 @@ export function SettingsProvidersPanel({
   providerCapabilities,
   providerRuntimePreflight,
 }: SettingsProvidersPanelProps) {
+  const { t } = useT();
   const { defaultProviderId, providerDefaults } = formState;
   const selectedProviderDefaults: ProviderDefaultSettings = providerDefaults[defaultProviderId] ?? {
     providerId: defaultProviderId,
@@ -77,6 +79,10 @@ export function SettingsProvidersPanel({
   const preflightByProvider = new Map(
     providerRuntimePreflight?.providers.map((p) => [p.providerId, p]) ?? [],
   );
+  const capabilityByProvider = new Map(
+    providerCapabilities?.providers.map((p) => [p.providerId, p]) ?? [],
+  );
+  const defaultCapability = capabilityByProvider.get(defaultProviderId);
 
   return (
     <>
@@ -107,7 +113,12 @@ export function SettingsProvidersPanel({
                   }
                   className="sr-only"
                 />
-                <ProviderBrandMark providerId={providerId} size="sm" />
+                <ProviderBrandMark
+                  providerId={providerId}
+                  size="sm"
+                  canExecute={capabilityByProvider.get(providerId)?.canExecute}
+                  status={capabilityByProvider.get(providerId)?.status}
+                />
                 <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs font-medium">
                   {providerBrandChipLabel(providerId)}
                   <ProviderUntestedBadge providerId={providerId} />
@@ -116,6 +127,13 @@ export function SettingsProvidersPanel({
             );
           })}
         </fieldset>
+        {defaultCapability && !defaultCapability.canExecute ? (
+          <p className="settings-provider-attention" role="status">
+            {t('settings.providers.defaultNotReady', {
+              provider: providerBrandChipLabel(defaultProviderId),
+            })}
+          </p>
+        ) : null}
       </div>
 
       <details className="settings-provider-defaults">
@@ -157,14 +175,26 @@ export function SettingsProvidersPanel({
                   subscriptionId || provider.providerId === 'comfy'
                     ? null
                     : providerSecretLabel(preflight?.secretState, preflight?.secretSource);
-                const readinessLabel =
+                const readyLabel =
                   provider.providerId === 'chatgpt' && provider.canExecute
                     ? 'Connected'
                     : providerReadyLabel({
                         canExecute: provider.canExecute,
                         status: provider.status,
                       });
-                const readyLabel = readinessLabel === 'Needs setup' ? 'Setup' : readinessLabel;
+                // The sign-in row below is the action; don't send the user to Settings from Settings.
+                const attention =
+                  provider.providerId === 'chatgpt'
+                    ? t(
+                        provider.subscriptionAuthState === 'refresh_failed'
+                          ? 'onboarding.chatgpt.expired'
+                          : 'onboarding.chatgpt.signedOut',
+                      )
+                    : provider.providerId === 'google'
+                      ? t('settings.providers.googleSetup')
+                      : provider.providerId === 'grok'
+                        ? t('settings.providers.grokSetup')
+                        : provider.detail;
 
                 return (
                   <div
@@ -203,12 +233,16 @@ export function SettingsProvidersPanel({
                       </p>
                     ) : null}
                     {!provider.canExecute && (
-                      <p className="settings-provider-attention" title={provider.detail}>
-                        {provider.detail}
+                      <p className="settings-provider-attention" title={attention}>
+                        {attention}
                       </p>
                     )}
                     {subscriptionId ? (
-                      <SubscriptionAuthControls providerId={subscriptionId} compact />
+                      <SubscriptionAuthControls
+                        providerId={subscriptionId}
+                        compact
+                        optional={provider.canExecute}
+                      />
                     ) : null}
                     <details className="settings-provider-details">
                       <summary>Connection details</summary>

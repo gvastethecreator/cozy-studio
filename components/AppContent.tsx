@@ -128,6 +128,7 @@ function useAppWorkbench() {
   const [compactControls, setCompactControls] = useState<HTMLElement | null>(null);
   const [prompt, setPrompt] = useState<WorkflowPrompt | null>(null);
   const [primaryAction, setPrimaryAction] = useState<WorkflowAction | null>(null);
+  const [generateBlock, setGenerateBlock] = useState<string | null>(null);
   const [isNarrowWorkbench, setIsNarrowWorkbench] = useState(false);
   const [workspaceTab, setWorkspaceTab] = useState<'configure' | 'preview'>('configure');
   const [compare, setCompare] = useState<CanvasCompareChrome>(null);
@@ -166,6 +167,8 @@ function useAppWorkbench() {
     setPrompt,
     primaryAction,
     setPrimaryAction,
+    generateBlock,
+    setGenerateBlock,
     isNarrowWorkbench,
     setIsNarrowWorkbench,
     workspaceTab,
@@ -192,6 +195,8 @@ function AppWorkspace({ model }: { model: AppWorkbenchModel }) {
     setPrompt,
     primaryAction,
     setPrimaryAction,
+    generateBlock,
+    setGenerateBlock,
     compare,
     setCompare,
     isWorkspace,
@@ -220,6 +225,8 @@ function AppWorkspace({ model }: { model: AppWorkbenchModel }) {
         setPrompt,
         primaryAction,
         setPrimaryAction,
+        generateBlock,
+        setGenerateBlock,
         compare,
         setCompare,
         history: isWorkspace ? shell.history : undefined,

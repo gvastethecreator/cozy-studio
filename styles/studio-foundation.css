@@ -129,17 +129,17 @@ react-scan-overlay,
     --studio-recipe-dock-space: 11rem;
     --studio-chrome-block: 350px;
 
-    --accent-50: 255 247 237;
-    --accent-100: 254 238 215;
-    --accent-200: 254 223 178;
-    --accent-300: 253 207 141;
-    --accent-400: 253 192 104;
-    --accent-500: 252 178 71;
-    --accent-600: 209 147 59;
-    --accent-700: 171 118 48;
-    --accent-800: 140 96 39;
-    --accent-900: 112 76 31;
-    --accent-950: 85 56 24;
+    --accent-50: 245 243 255;
+    --accent-100: 237 233 254;
+    --accent-200: 221 214 254;
+    --accent-300: 196 181 253;
+    --accent-400: 167 139 250;
+    --accent-500: 139 108 255;
+    --accent-600: 124 58 237;
+    --accent-700: 109 40 217;
+    --accent-800: 91 33 182;
+    --accent-900: 76 29 149;
+    --accent-950: 46 16 101;
   }
 
   html,

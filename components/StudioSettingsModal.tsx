@@ -131,7 +131,7 @@ const SETTINGS_SEARCH_ITEMS: {
     domain: 'appearance',
     label: 'Accent color',
     description: 'Workspace colors',
-    target: 'Accent: Apricot',
+    target: 'Accent: Violet',
   },
   {
     domain: 'appearance',

@@ -16,7 +16,7 @@ Studio chrome uses Workbench UI **0.4.0** tokens (`--wb-*` + `--wbp-*`) with **A
 
 - Carbon (dark): background `#0a0a0a`, panels `#161616`, controls `#2a2a2a`, wells `#0d0d0d`. Catalog Carbon (`#202020` / `#282828`) is not used.
 - Paper (light): background `#efece4`, panels `#e4e0d6`, controls `#d8d2c4`, wells `#f6f3eb`.
-- Accent starts as Apricot (`#fcb247`) on `--wb-accent`, `--wba-accent`, and `--wbp-accent`. The logo cycles palettes for Generate, tabs, and selection. The cup mark follows that scale. Catalog signature coral `#e79a72` is not the Studio default.
+- Accent starts as Violet (`#8b6cff`, the landing page accent) on `--wb-accent`, `--wba-accent`, and `--wbp-accent`. The logo cycles palettes for Generate, tabs, and selection. The cup mark follows that scale. Catalog signature coral `#e79a72` is not the Studio default.
 - Studio control size: 32px single-line rows with 13px text; two-line output selectors use 40px. Settings inherits the shared scale. Read the token owners in the [CSS ownership guide](css-sanitization/STYLE_SYSTEM.md) before changing these values.
 - Precision density is `comfortable` (`--wbp-gap` 18px, `--wbp-pad` 24px). The Create Generate cluster keeps `--create-control-gap: 12px`.
 - Typography is `neutral` (Manrope / system UI for labels, mono for values). Edges are `soft`. Presentation is `utility` — Studio does not ship Compose instrument editors, knobs, or Workbench.js.

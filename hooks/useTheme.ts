@@ -47,7 +47,24 @@ export function accentOnColor(rgb: string): string {
   return y >= 150 ? '#141414' : '#f4f4f4';
 }
 
+// Violet first: its 500 is the landing page accent, so a new Studio matches the site.
 export const ACCENT_PALETTES: AccentPalette[] = [
+  {
+    name: 'Violet',
+    colors: {
+      50: '245 243 255',
+      100: '237 233 254',
+      200: '221 214 254',
+      300: '196 181 253',
+      400: '167 139 250',
+      500: '139 108 255',
+      600: '124 58 237',
+      700: '109 40 217',
+      800: '91 33 182',
+      900: '76 29 149',
+      950: '46 16 101',
+    },
+  },
   {
     name: 'Apricot',
     colors: {
@@ -176,22 +193,6 @@ export const ACCENT_PALETTES: AccentPalette[] = [
       950: '23 37 84',
     },
   },
-  {
-    name: 'Violet',
-    colors: {
-      50: '245 243 255',
-      100: '237 233 254',
-      200: '221 214 254',
-      300: '196 181 253',
-      400: '167 139 250',
-      500: '139 92 246',
-      600: '124 58 237',
-      700: '109 40 217',
-      800: '91 33 182',
-      900: '76 29 149',
-      950: '46 16 101',
-    },
-  },
 ];
 
 export function applyAccentPaletteToDocument(
@@ -236,7 +237,10 @@ function useThemeState(): ThemeContextValue {
     'cozy-studio-motion',
     'system',
   );
-  const [storedPalette, setStoredPalette] = useLocalStorage<string>(STORAGE_KEY, 'Apricot');
+  const [storedPalette, setStoredPalette] = useLocalStorage<string>(
+    STORAGE_KEY,
+    ACCENT_PALETTES[0].name,
+  );
   const palette =
     ACCENT_PALETTES.find((entry) => entry.name === (preview?.accent ?? storedPalette)) ??
     ACCENT_PALETTES[0];

@@ -23,17 +23,17 @@ afterEach(() => {
 });
 
 describe('accent palettes', () => {
-  it('starts with the logo liquid and maps 500 onto Workbench accent tokens', () => {
-    expect(ACCENT_PALETTES[0].name).toBe('Apricot');
-    expect(ACCENT_PALETTES[0].colors[500]).toBe('252 178 71');
+  it('starts with the landing violet and maps 500 onto Workbench accent tokens', () => {
+    expect(ACCENT_PALETTES[0].name).toBe('Violet');
+    expect(ACCENT_PALETTES[0].colors[500]).toBe('139 108 255');
     applyAccentPaletteToDocument(ACCENT_PALETTES[0]);
-    expect(document.documentElement.style.getPropertyValue('--wb-accent')).toBe('#fcb247');
-    expect(document.documentElement.style.getPropertyValue('--wba-accent')).toBe('#fcb247');
-    expect(document.documentElement.style.getPropertyValue('--wbp-accent')).toBe('#fcb247');
-    expect(document.documentElement.style.getPropertyValue('--create-primary')).toBe('#fcb247');
-    expect(document.documentElement.style.getPropertyValue('--accent-500')).toBe('252 178 71');
+    expect(document.documentElement.style.getPropertyValue('--wb-accent')).toBe('#8b6cff');
+    expect(document.documentElement.style.getPropertyValue('--wba-accent')).toBe('#8b6cff');
+    expect(document.documentElement.style.getPropertyValue('--wbp-accent')).toBe('#8b6cff');
+    expect(document.documentElement.style.getPropertyValue('--create-primary')).toBe('#8b6cff');
+    expect(document.documentElement.style.getPropertyValue('--accent-500')).toBe('139 108 255');
     expect(document.documentElement.style.getPropertyValue('--wb-on-accent')).toBe(
-      accentOnColor('252 178 71'),
+      accentOnColor('139 108 255'),
     );
   });
 
@@ -56,8 +56,9 @@ describe('accent palettes', () => {
     }));
     const app = () => React.createElement(ThemeProvider, null, React.createElement(Logo));
     const view = render(app());
-    const logo = screen.getByRole('button', { name: /Cozy Studio.*Apricot/ });
+    const logo = screen.getByRole('button', { name: /Cozy Studio.*Violet/ });
     expect(ACCENT_PALETTES.map(({ name }) => name)).toEqual([
+      'Violet',
       'Apricot',
       'Stone',
       'Rose',
@@ -66,7 +67,6 @@ describe('accent palettes', () => {
       'Green',
       'Cyan',
       'Blue',
-      'Violet',
     ]);
     for (const palette of [...ACCENT_PALETTES.slice(1), ACCENT_PALETTES[0]]) {
       fireEvent.click(logo);
@@ -81,6 +81,6 @@ describe('accent palettes', () => {
     fireEvent.click(logo);
     view.unmount();
     render(app());
-    expect(screen.getByRole('button', { name: /Cozy Studio.*Stone/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Cozy Studio.*Apricot/ })).toBeTruthy();
   });
 });

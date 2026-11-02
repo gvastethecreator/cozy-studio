@@ -180,6 +180,8 @@ const defaultLogStore: StudioLogStore = { listLogs };
 export interface CreateStudioAppOptions {
   runInit?: boolean;
   restart?: () => void;
+  /** Fetch origin/main once at startup so the UI and agents learn about updates on open. */
+  checkUpdatesOnStart?: boolean;
   dependencies?: {
     readLocalCodexSession?: () => Promise<LocalCodexSessionResponse>;
     readCodexModelCatalog?: () => Promise<CodexModelCatalogResponse>;
@@ -279,6 +281,8 @@ export async function createStudioApp(
     restart: options.restart,
     isBusy: () => activeMutations > 0 || listRecoverableJobs().length > 0,
   });
+  // Failures (offline, not a Git checkout) stay in the update status; startup never waits.
+  if (options.checkUpdatesOnStart) void updates.check();
   const updateBlockedMessage =
     'Studio update is incomplete. Finish it in Settings before continuing.';
   const trackMutation = async <T>(run: () => Promise<T>) => {

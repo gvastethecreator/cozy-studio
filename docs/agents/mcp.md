@@ -46,22 +46,22 @@ The setting controls the MCP gateway, not the app's own UI/API. Local MCP client
 
 ## Tools
 
-| Tool                                                               | Access             | Purpose                                                                           |
-| ------------------------------------------------------------------ | ------------------ | --------------------------------------------------------------------------------- |
-| `studio_status`                                                    | read               | Health and current `mcpAccess`.                                                   |
-| `studio_onboarding`                                                | read               | Onboarding probe, provider readiness and ChatGPT sign-in state.                   |
-| `studio_providers`, `studio_recipes`, `studio_workspaces`          | read               | Provider readiness, recipes, workspaces.                                          |
-| `studio_settings`                                                  | read               | Editable Studio Settings.                                                         |
-| `studio_update_settings`                                           | write              | Change agent-safe settings (allowlist below).                                     |
-| `studio_extensions`, `studio_extension_json`, `studio_user_styles` | read               | Installed packs, their JSON files, saved user styles.                             |
-| `studio_available_extensions`                                      | read               | Published packs with `installedVersion`, `installedLayers` and `updateAvailable`. |
-| `studio_install_extension`                                         | write              | Install or update a published pack.                                               |
-| `studio_remove_extension`                                          | write, destructive | Delete a downloaded pack from disk.                                               |
-| `studio_jobs`, `studio_job`, `studio_batch`, `studio_catalog`      | read               | Jobs, batches and results.                                                        |
-| `studio_generate`, `studio_cancel`                                 | write              | Queue generation, cancel a job.                                                   |
-| `studio_import_reference`, `studio_import_reference_file`          | write              | Import an image reference.                                                        |
-| `studio_updates`                                                   | read               | App update status; `check: true` fetches `origin/main`.                           |
-| `studio_apply_update`                                              | write              | Fast-forward to the checked commit, install and restart.                          |
+| Tool                                                               | Access             | Purpose                                                                                                    |
+| ------------------------------------------------------------------ | ------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `studio_status`                                                    | read               | Health, current `mcpAccess` and app update status (`update`, plus a `notice` when an update is available). |
+| `studio_onboarding`                                                | read               | Onboarding probe, provider readiness and ChatGPT sign-in state.                                            |
+| `studio_providers`, `studio_recipes`, `studio_workspaces`          | read               | Provider readiness, recipes, workspaces.                                                                   |
+| `studio_settings`                                                  | read               | Editable Studio Settings.                                                                                  |
+| `studio_update_settings`                                           | write              | Change agent-safe settings (allowlist below).                                                              |
+| `studio_extensions`, `studio_extension_json`, `studio_user_styles` | read               | Installed packs, their JSON files, saved user styles.                                                      |
+| `studio_available_extensions`                                      | read               | Published packs with `installedVersion`, `installedLayers` and `updateAvailable`.                          |
+| `studio_install_extension`                                         | write              | Install or update a published pack.                                                                        |
+| `studio_remove_extension`                                          | write, destructive | Delete a downloaded pack from disk.                                                                        |
+| `studio_jobs`, `studio_job`, `studio_batch`, `studio_catalog`      | read               | Jobs, batches and results.                                                                                 |
+| `studio_generate`, `studio_cancel`                                 | write              | Queue generation, cancel a job.                                                                            |
+| `studio_import_reference`, `studio_import_reference_file`          | write              | Import an image reference.                                                                                 |
+| `studio_updates`                                                   | read               | App update status; `check: true` fetches `origin/main`.                                                    |
+| `studio_apply_update`                                              | write              | Fast-forward to the checked commit, install and restart.                                                   |
 
 `studio_update_settings` accepts only `defaultProviderId`, `providerDefaults`, `outputDirectory`, `outputOrganization`, `notifyOnUpdates` and `preferredWorkflow`. Any other field, including `mcpAccess` and `mcpAllowedImportRoots`, rejects the whole call. `outputDirectory` must be absolute; Studio registers it as the output destination. `null` returns output to the Studio Library.
 
@@ -72,7 +72,7 @@ The setting controls the MCP gateway, not the app's own UI/API. Local MCP client
 ## New user setup
 
 1. `studio_onboarding`. If ChatGPT is not signed in, ask the user to sign in from Studio Settings. Do not start sign-in.
-2. `studio_status`. If `mcpAccess` is not `write`, ask the user to set Agent access (MCP) to Generate and cancel before the write steps.
+2. `studio_status`. If it returns a `notice`, tell the user an update is available and ask before `studio_apply_update`. If `mcpAccess` is not `write`, ask the user to set Agent access (MCP) to Generate and cancel before the write steps.
 3. `studio_available_extensions`, then `studio_install_extension` for the packs the user wants, with `layers: ["cards"]` for preview cards.
 4. `studio_settings`, then `studio_update_settings` for the provider, output folder and organization the user asked for.
 5. Generate with the workflow below.

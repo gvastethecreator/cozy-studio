@@ -19,6 +19,7 @@ if (import.meta.main) {
     process.exit(1);
   }
   const studio = await createStudioApp({
+    checkUpdatesOnStart: true,
     restart:
       process.env.STUDIO_MANAGED_RESTART === '1'
         ? () => {

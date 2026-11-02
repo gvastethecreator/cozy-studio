@@ -109,16 +109,19 @@ export function createRepositoryUpdates({
     ]);
     const [ahead, behind] = counts.split(/\s+/).map(Number);
     state.behind = behind;
+    // A blocker only matters when there is something to apply.
     state.blocker =
-      branch !== 'main'
-        ? 'Switch to main before updating.'
-        : dirty
-          ? 'Save or commit local changes and untracked files before updating.'
-          : ahead > 0
-            ? 'Local commits differ from origin/main. Reconcile them manually before updating.'
-            : !restart
-              ? launcherMessage
-              : null;
+      behind === 0 && !needsInstall
+        ? null
+        : branch !== 'main'
+          ? 'Switch to main before updating.'
+          : dirty
+            ? 'Save or commit local changes and untracked files before updating.'
+            : ahead > 0
+              ? `Local commits differ from origin/main: ${ahead} commit${ahead === 1 ? ' is' : 's are'} not on origin. Push or reset them, then update.`
+              : !restart
+                ? launcherMessage
+                : null;
     state.canUpdate = !state.blocker && (behind > 0 || needsInstall);
   }
 

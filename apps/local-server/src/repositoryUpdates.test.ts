@@ -187,6 +187,13 @@ describe('repository updates', () => {
     },
   );
 
+  it('reports up to date without a blocker when only local commits differ', async () => {
+    writeFileSync(join(f.root, 'notes.txt'), 'unique');
+    f.git(f.root, 'add', '.');
+    f.git(f.root, 'commit', '-m', 'local');
+    expect(await f.updates.check()).toMatchObject({ behind: 0, canUpdate: false, blocker: null });
+  });
+
   it('requires a managed launcher and protects mutation routes from foreign origins and simple form posts', async () => {
     f.advance();
     const unmanaged = createRepositoryUpdates({

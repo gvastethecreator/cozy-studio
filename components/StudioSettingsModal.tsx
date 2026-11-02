@@ -362,7 +362,7 @@ function SettingsDomainContent({
             <label className="settings-row">
               <span>
                 <strong>Notify me about updates</strong>
-                <small>Check at startup and hourly.</small>
+                <small>Studio checks when it starts; this adds an hourly check.</small>
               </span>
               <input
                 type="checkbox"

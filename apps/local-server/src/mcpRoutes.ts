@@ -91,7 +91,29 @@ export function createMcpRoutes({
     switch (name) {
       case 'studio_status': {
         const health = await get('/api/health');
-        return c.json({ health: await health.json(), mcpAccess: settings.mcpAccess });
+        // Startup fetches origin/main once, so agents learn about updates on their first call.
+        const update = (await readJson('/api/updates')) as {
+          behind?: number;
+          latestCommit?: string | null;
+          canUpdate?: boolean;
+          blocker?: string | null;
+          checkedAt?: string | null;
+        } | null;
+        const behind = update?.behind ?? 0;
+        return c.json({
+          health: await health.json(),
+          mcpAccess: settings.mcpAccess,
+          update: update && {
+            behind,
+            latestCommit: update.latestCommit ?? null,
+            canUpdate: update.canUpdate ?? false,
+            blocker: update.blocker ?? null,
+            checkedAt: update.checkedAt ?? null,
+          },
+          ...(behind > 0 && {
+            notice: `Studio is ${behind} commit${behind === 1 ? '' : 's'} behind origin/main. Tell the user an update is available and ask before applying it with studio_apply_update, or point them to Settings → Help & updates.`,
+          }),
+        });
       }
       case 'studio_providers':
         return get('/api/providers');

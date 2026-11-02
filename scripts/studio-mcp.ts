@@ -29,7 +29,11 @@ const networkTools = new Set([
 
 const server = new Server(
   { name: 'cozy-studio-mcp', version: '1.0.0' },
-  { capabilities: { tools: {} } },
+  {
+    capabilities: { tools: {} },
+    instructions:
+      'Call studio_status first. If it returns a notice, a Studio update is available: tell the user and suggest updating; apply it with studio_apply_update only after they agree.',
+  },
 );
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: Object.entries(studioMcpTools).map(([name, tool]) => ({

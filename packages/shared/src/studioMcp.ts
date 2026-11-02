@@ -115,7 +115,8 @@ export const studioMcpSettingsPatch = z
 
 export const studioMcpTools = {
   studio_status: {
-    description: 'Read Studio health and current MCP access. Start Studio if it is offline.',
+    description:
+      'Read Studio health, current MCP access and app update status. Start Studio if it is offline. When the result has a notice, an update is available: tell the user and ask before applying it.',
     schema: empty,
   },
   studio_providers: {

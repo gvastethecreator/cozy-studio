@@ -178,7 +178,7 @@ Codex uses local `codex app-server` and your `codex login`. Choose it only when 
 1. Sign in with xAI from Studio Settings, or install Grok Build and run `grok login`. `XAI_API_KEY` in `.env.local` also works on the same HTTP path.
 2. Make sure that `bun run providers:preflight -- --provider=grok` reports `canAttempt=true`.
 
-Grok Build keeps its CLI login under `GROK_HOME`. Default supports Grok, including its optional styles. With references, Grok edits the image; without them, it generates a new one. Each Grok job makes one image, so a batch makes one job per image.
+Grok Build keeps its CLI login under `GROK_HOME`. Default supports Grok, including its optional styles. Other workflows offer Grok only when they declare Grok support, so use Default when you want Grok. With references, Grok edits the image; without them, it generates a new one. Each Grok job makes one image, so a batch makes one job per image.
 
 ### Google Nano Banana (Untested)
 

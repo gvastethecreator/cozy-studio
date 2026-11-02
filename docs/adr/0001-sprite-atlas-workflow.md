@@ -36,7 +36,7 @@ The backend owns row progress. When the job queue accepts a row job, the backend
 
 The browser does not coordinate rows. It shows the run, refetches it when the backend reports a change, and keeps a manual import for an image that the user chooses.
 
-New run state, handoff inputs, and extracted working frames live in `.studio/state/sprite-atlas/<runId>`. The atlas PNG and manifest use the output directory and layout captured when the run starts. Older runs remain readable at their stored paths. The shared background choice resolves the run contract: native transparency disables chroma instructions and keeps alpha through atlas composition.
+New run state and extracted working frames live in `.studio/state/sprite-atlas/<runId>`. The atlas PNG and manifest use the output directory and layout captured when the run starts. Older runs remain readable at their stored paths. The shared background choice resolves the run contract: native transparency disables chroma instructions and keeps alpha through atlas composition.
 
 ## Consequences
 

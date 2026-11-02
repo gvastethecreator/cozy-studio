@@ -37,8 +37,11 @@ const progressColors = {
 const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
   const [progress, setProgress] = useState(100);
   const duration = toast.duration || (toast.type === 'error' ? 25000 : 8000); // Errors last longer by default
+  // duration 0 keeps the toast until the user dismisses it.
+  const persistent = toast.duration === 0;
 
   useEffect(() => {
+    if (persistent) return;
     const startTime = Date.now();
     let animationFrame: number;
 
@@ -59,7 +62,7 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
     return () => {
       cancelAnimationFrame(animationFrame);
     };
-  }, [toast.id, onDismiss, duration]);
+  }, [toast.id, onDismiss, duration, persistent]);
 
   return (
     <div
@@ -83,12 +86,14 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
           <X className="size-4" />
         </button>
       </div>
-      <div className="absolute bottom-0 left-0 h-1 w-full bg-[color:color-mix(in_srgb,var(--wb-ink)_12%,transparent)]">
-        <div
-          className={`h-full ${progressColors[toast.type]} origin-left`}
-          style={{ transform: `scaleX(${progress / 100})` }}
-        />
-      </div>
+      {persistent ? null : (
+        <div className="absolute bottom-0 left-0 h-1 w-full bg-[color:color-mix(in_srgb,var(--wb-ink)_12%,transparent)]">
+          <div
+            className={`h-full ${progressColors[toast.type]} origin-left`}
+            style={{ transform: `scaleX(${progress / 100})` }}
+          />
+        </div>
+      )}
     </div>
   );
 };

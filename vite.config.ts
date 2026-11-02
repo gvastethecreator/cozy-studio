@@ -123,6 +123,113 @@ export default defineConfig({
           node: true,
         },
       },
+      // Import boundaries. scripts/architecture-source-rules.ts holds the text rules that
+      // import linting cannot express.
+      {
+        files: ['apps/local-server/src/**/*.{ts,tsx}'],
+        excludeFiles: ['apps/local-server/src/providers/**', '**/*.test.{ts,tsx}'],
+        rules: {
+          'no-restricted-imports': [
+            'error',
+            {
+              patterns: [
+                {
+                  regex:
+                    '(^|/)(providerInputCompiler|externalProviderResults|(google|fal|openaiImages|replicate|comfy|grokImagine|grokImagineHttp|grokRuntime|antigravityImage|chatgptResponsesImage)Executor)$',
+                  message:
+                    'Keep provider compilers and concrete executors behind apps/local-server/src/providers/.',
+                },
+              ],
+            },
+          ],
+        },
+      },
+      {
+        files: [
+          'components/recipes/**/*.{ts,tsx}',
+          'components/RecipesView.tsx',
+          'components/RecipeRouter.tsx',
+        ],
+        excludeFiles: ['components/recipes/recipeModuleUi.ts', '**/*.test.{ts,tsx}'],
+        rules: {
+          'no-restricted-imports': [
+            'error',
+            {
+              patterns: [
+                {
+                  regex: '(^|/)providerInputCompiler$',
+                  message: 'Recipe surfaces collect UI params only; providers compile inputs.',
+                },
+                {
+                  regex:
+                    '(^|/)(lib/recipeModules(/index|/taskSpec)?|packages/shared/src(/index|/generationContracts)?)$',
+                  importNames: [
+                    'buildGenerationTaskSpecFromRecipe',
+                    'createGenerationTaskSpec',
+                    'buildRecipeProviderDirectives',
+                  ],
+                  message:
+                    'Recipe surfaces collect UI params only; Recipe Modules build task specs and provider directives.',
+                },
+              ],
+            },
+          ],
+        },
+      },
+      {
+        files: ['lib/studioCatalogView.ts', 'hooks/useCatalog.ts'],
+        rules: {
+          'no-restricted-imports': [
+            'error',
+            {
+              patterns: [
+                {
+                  regex: '(^|/)(catalogImageGenerationConfig|useIndexedDBStorage|GlobalContext)$',
+                  message:
+                    'Catalog View and useCatalog query Catalog Entries directly, not export adapters or retired browser batch state.',
+                },
+              ],
+            },
+          ],
+        },
+      },
+      {
+        // Startup surfaces: heavy vendors, route pages and GSAP dropdowns load on demand.
+        files: [
+          'utils/fileUtils.ts',
+          'hooks/useCameraViewport.ts',
+          'lib/gsapMotion.tsx',
+          'components/shell/StudioViewport.tsx',
+          'components/Toolbar.tsx',
+          'components/HeaderToolbar.tsx',
+          'components/ImageGrid.tsx',
+          'components/header/WorkspaceStrip.tsx',
+          'components/studio/StudioOperationsRail.tsx',
+        ],
+        rules: {
+          'no-restricted-imports': [
+            'error',
+            {
+              patterns: [
+                {
+                  regex: '^(jszip|three|gsap|@gsap/react)(/|$)',
+                  importNamePattern: '.',
+                  allowTypeImports: true,
+                  message: 'Load ZIP, Three.js and GSAP with import() so they stay out of startup.',
+                },
+                {
+                  regex:
+                    '(^|/)(ui/GsapDropdown|studio/StudioGridSurface|RecipesView|RecipePage|QueuePanel)$',
+                  importNamePattern: '.',
+                  allowTypeImports: true,
+                  message:
+                    'Lazy-load route pages and the queue panel; use DemandMountedGsapDropdown for menus.',
+                },
+              ],
+            },
+          ],
+        },
+      },
     ],
     options: {
       typeAware: true,

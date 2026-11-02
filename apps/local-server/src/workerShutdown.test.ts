@@ -421,10 +421,14 @@ describe('worker shutdown', () => {
         );
       }
     } finally {
-      const stopped = harness.controller.shutdown();
-      await vi.runAllTimersAsync();
-      await stopped;
-      vi.useRealTimers();
+      try {
+        const stopped = harness.controller.shutdown();
+        await vi.runAllTimersAsync();
+        await stopped;
+      } finally {
+        // Real timers come back even when shutdown fails, so later tests are not left on fake ones.
+        vi.useRealTimers();
+      }
     }
   });
   it('persists an HTTP marker before POST and does not resend recovered running work', async () => {

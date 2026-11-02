@@ -9,10 +9,19 @@ import { createServer } from 'node:net';
 const root = process.cwd();
 const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'cozy-studio-core-assets-'));
 const isolatedLibraryDir = path.join(tempRoot, '.local', 'library');
+const isolatedProfileDir = path.join(tempRoot, '.local', 'profile');
 const expectedTempPrefix = normalize(path.join(os.tmpdir(), 'cozy-studio-core-assets-'));
 if (!normalize(tempRoot).startsWith(expectedTempPrefix)) {
   throw new Error(`Unexpected core asset smoke path: ${tempRoot}`);
 }
+
+// Bun loads the checkout's `.env.local` into this process. Keep it, and any Studio or provider
+// setting from the shell, out of every child: the scratch Studio must not see the developer's setup.
+const DEVELOPER_ENV_KEY =
+  /^(STUDIO_|COZY_|VITE_|CODEX_|GROK_|GOOGLE_|GEMINI_|NANO_BANANA_|XAI_|OPENAI_|FAL_|REPLICATE_|COMFY|ANTIGRAVITY_|AGY_|ANTHROPIC_)/i;
+const childEnv = Object.fromEntries(
+  Object.entries(process.env).filter(([key]) => !DEVELOPER_ENV_KEY.test(key)),
+);
 
 function normalize(filePath: string) {
   return filePath.replaceAll('\\', '/');
@@ -123,7 +132,7 @@ async function runBrowserSmoke(tempDir: string, baseUrl: string) {
     ],
     {
       cwd: tempDir,
-      env: process.env,
+      env: childEnv,
       windowsHide: true,
     },
   );
@@ -170,7 +179,7 @@ try {
 
   const result = spawnSync(process.execPath, ['x', 'vp', 'build'], {
     cwd: tempRoot,
-    env: { ...process.env, VITE_STUDIO_API_BASE: '' },
+    env: { ...childEnv, VITE_STUDIO_API_BASE: '' },
     encoding: 'utf8',
     windowsHide: true,
   });
@@ -184,7 +193,12 @@ try {
     preview = spawn(process.execPath, ['apps/local-server/src/index.ts'], {
       cwd: tempRoot,
       env: {
-        ...process.env,
+        ...childEnv,
+        // Installed extensions, sign-in files and preview caches live under these profile folders.
+        // ponytail: macOS resolves them under HOME; isolate HOME too if this smoke runs there.
+        LOCALAPPDATA: isolatedProfileDir,
+        XDG_DATA_HOME: isolatedProfileDir,
+        XDG_STATE_HOME: isolatedProfileDir,
         STUDIO_LIBRARY_DIR: isolatedLibraryDir,
         STUDIO_IMAGES_DIR: path.join(tempRoot, '.local', 'images'),
         STUDIO_SERVER_PORT: String(port),
@@ -201,6 +215,12 @@ try {
       previewOutput += String(chunk);
     });
     await waitForPreview(baseUrl, preview);
+    const { extensions } = (await (await fetch(`${baseUrl}/api/extensions`)).json()) as {
+      extensions: unknown[];
+    };
+    if (extensions.length > 0) {
+      throw new Error(`Scratch Studio found ${extensions.length} extensions; packs must be absent`);
+    }
     let browserResult: { routes: string[] };
     try {
       browserResult = await runBrowserSmoke(tempRoot, baseUrl);

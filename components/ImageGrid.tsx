@@ -1372,6 +1372,9 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
           workspaceId={model.workspaceId}
           collectionId={model.collectionId}
           selectedImageIds={model.selectedImageIds}
+          query={searchQuery}
+          favorites={model.showFavoritesOnly}
+          unorganized={model.showUnorganizedOnly}
           onOpenCollection={(collection) =>
             model.onLibraryFiltersChange({ collection, unorganized: false })
           }

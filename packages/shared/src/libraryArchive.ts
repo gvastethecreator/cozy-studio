@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import { validateCatalogTags, validateTagColor } from './catalogTags';
-import { validateCatalogCollectionName, validateCollectionEmoji } from './catalogCollections';
+import {
+  parseCatalogSmartRule,
+  validateCatalogCollectionName,
+  validateCollectionEmoji,
+} from './catalogCollections';
 import { isRecord } from './types';
 import type { StudioWorkspace } from './workspaceContracts';
 
@@ -122,6 +126,7 @@ export const libraryArchiveManifest = z
             name: validated(validateCatalogCollectionName),
             emoji: validated(validateCollectionEmoji),
             imageIds: z.array(id).max(20_000),
+            rule: validated(parseCatalogSmartRule).optional(),
           })
           .strict(),
       )
@@ -176,6 +181,12 @@ export const libraryArchiveManifest = z
       'collection',
     );
     const ids = new Set([...manifest.images, ...manifest.missing].map((image) => image.id));
+    if (manifest.collections.some((collection) => collection.rule && collection.imageIds.length)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Smart collections cannot have manual image members.',
+      });
+    }
     if (
       manifest.collections.some((collection) =>
         collection.imageIds.some((value) => !ids.has(value)),

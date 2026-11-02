@@ -10,6 +10,11 @@ import { buildCatalogWorkspaceClause } from './catalogWorkspaceClause';
 import { recordCatalogTagUse } from './catalogTags';
 import { addImageToNamedCollection } from './catalogCollections';
 import { MAX_CATALOG_TAGS, parseCatalogSearch } from '../../../packages/shared/src/catalogTags';
+import {
+  parseCatalogSmartRule,
+  type CatalogSmartRule,
+  type CatalogFacets,
+} from '../../../packages/shared/src/catalogCollections';
 import type {
   CatalogCommandFilter,
   CatalogSortOption,
@@ -242,9 +247,7 @@ export function registerCatalogImage(
 
 export function getCatalogImage(id: string, db?: Database) {
   const row = getDb(db)
-    .query(
-      `SELECT *, COALESCE((SELECT provider_id FROM jobs WHERE jobs.id = catalog_images.job_id), json_extract(generation_config, '$.providerId')) AS provider_id FROM catalog_images WHERE id = ?`,
-    )
+    .query(`SELECT *, ${CATALOG_PROVIDER} AS provider_id FROM catalog_images WHERE id = ?`)
     .get(id);
   return row ? mapCatalogImage(row, { includeGenerationConfig: true }) : null;
 }
@@ -260,6 +263,108 @@ export function getCatalogImageByJobId(jobId: string, filePath?: string | null) 
         .query('SELECT * FROM catalog_images WHERE job_id = ? ORDER BY created_at ASC LIMIT 1')
         .get(jobId);
   return row ? mapCatalogImage(row, { includeGenerationConfig: true }) : null;
+}
+
+const SAFE_GENERATION_CONFIG =
+  "CASE WHEN json_valid(generation_config) THEN generation_config ELSE '{}' END";
+const CATALOG_PROVIDER = `COALESCE((SELECT provider_id FROM jobs WHERE jobs.id = catalog_images.job_id), json_extract(${SAFE_GENERATION_CONFIG}, '$.providerId'))`;
+const DEFAULT_RECIPE =
+  "CASE WHEN recipe_id IS NULL OR recipe_id = '' OR recipe_id = 'styles' THEN 'default' ELSE recipe_id END";
+
+function pushFilterClauses(
+  filters: Omit<CatalogSmartRule, 'q' | 'recipeId'> & {
+    q?: string | null;
+    recipeId?: string | null;
+  },
+  clauses: string[],
+  params: (string | number)[],
+) {
+  if (filters.recipeId !== undefined) {
+    if (filters.recipeId === null || filters.recipeId === 'default')
+      clauses.push(
+        "(recipe_id IS NULL OR recipe_id = '' OR recipe_id = 'styles' OR recipe_id = 'default')",
+      );
+    else {
+      clauses.push('recipe_id = ?');
+      params.push(filters.recipeId);
+    }
+  }
+  if (filters.unorganized) {
+    clauses.push(`json_array_length(CASE WHEN json_valid(tags) THEN tags ELSE '[]' END) = 0
+      AND NOT EXISTS (
+        SELECT 1 FROM catalog_collection_images
+        JOIN catalog_collections ON catalog_collections.id = catalog_collection_images.collection_id
+        WHERE catalog_collection_images.image_id = catalog_images.id
+          AND catalog_collections.workspace_id = COALESCE(catalog_images.workspace_id, 'default')
+          AND catalog_collections.rule_json IS NULL
+      )`);
+  }
+  if (filters.favorite !== undefined) {
+    clauses.push('is_favorite = ?');
+    params.push(filters.favorite ? 1 : 0);
+  }
+  if (filters.q) {
+    const search = parseCatalogSearch(filters.q);
+    if (search.tags.length > MAX_CATALOG_TAGS) clauses.push('0');
+    for (const tag of search.tags) {
+      clauses.push(
+        "EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(tags) THEN tags ELSE '[]' END) AS image_tag WHERE image_tag.value = ? COLLATE NOCASE)",
+      );
+      params.push(tag);
+    }
+    if (search.text) {
+      clauses.push('(prompt LIKE ? OR tags LIKE ?)');
+      params.push(`%${search.text}%`, `%${search.text}%`);
+    }
+  }
+  if (filters.providerId) {
+    clauses.push(`${CATALOG_PROVIDER} = ?`);
+    params.push(filters.providerId);
+  }
+  if (filters.stylePresetId) {
+    // ponytail: style match scans generation_config JSON per row; add a generated column + index if a workspace gets slow.
+    clauses.push(`(json_extract(${SAFE_GENERATION_CONFIG}, '$.recipeParams.presetId') = ? OR EXISTS (
+      SELECT 1 FROM json_each(${SAFE_GENERATION_CONFIG}, '$.recipeParams.selectedStyles') AS style
+      WHERE json_extract(CASE WHEN style.type = 'object' THEN style.value ELSE '{}' END, '$.presetId') = ?
+    ))`);
+    params.push(filters.stylePresetId, filters.stylePresetId);
+  }
+  if (filters.withinDays) {
+    clauses.push('julianday(created_at) >= julianday(?)');
+    params.push(new Date(Date.now() - filters.withinDays * 86400000).toISOString());
+  }
+  if (filters.createdFrom) {
+    // Imported ISO timestamps may omit milliseconds; compare instants, not their spelling.
+    clauses.push('julianday(created_at) >= julianday(?)');
+    params.push(filters.createdFrom);
+  }
+  if (filters.createdTo) {
+    clauses.push('julianday(created_at) < julianday(?)');
+    params.push(filters.createdTo);
+  }
+}
+
+export function listCatalogFacets(workspaceId: string, db?: Database): CatalogFacets {
+  const database = getDb(db);
+  const where = "is_deleted = 0 AND COALESCE(workspace_id, 'default') = ?";
+  const providers = database
+    .query(
+      `SELECT ${CATALOG_PROVIDER} AS id, COUNT(*) AS count FROM catalog_images WHERE ${where} GROUP BY 1 HAVING ${CATALOG_PROVIDER} IS NOT NULL AND ${CATALOG_PROVIDER} != '' ORDER BY id COLLATE NOCASE`,
+    )
+    .all(workspaceId) as CatalogFacets['providers'];
+  const recipes = database
+    .query(
+      `SELECT ${DEFAULT_RECIPE} AS id, COUNT(*) AS count FROM catalog_images WHERE ${where} GROUP BY 1 ORDER BY id COLLATE NOCASE`,
+    )
+    .all(workspaceId) as CatalogFacets['recipes'];
+  const styles = database
+    .query(`WITH live AS (SELECT id, ${SAFE_GENERATION_CONFIG} AS config FROM catalog_images WHERE ${where}), styles AS (
+    SELECT live.id AS image_id, json_extract(config, '$.recipeParams.presetId') AS presetId, json_extract(config, '$.recipeParams.presetName') AS name FROM live
+    UNION ALL
+    SELECT live.id AS image_id, json_extract(CASE WHEN style.type = 'object' THEN style.value ELSE '{}' END, '$.presetId'), json_extract(CASE WHEN style.type = 'object' THEN style.value ELSE '{}' END, '$.presetName') FROM live, json_each(live.config, '$.recipeParams.selectedStyles') AS style
+  ) SELECT presetId, COALESCE(MAX(NULLIF(name, '')), presetId) AS name, COUNT(DISTINCT image_id) AS count FROM styles WHERE presetId IS NOT NULL AND presetId != '' GROUP BY presetId ORDER BY name COLLATE NOCASE`)
+    .all(workspaceId) as CatalogFacets['styles'];
+  return { providers, recipes, styles };
 }
 
 function queryCatalogInternal(
@@ -298,14 +403,6 @@ function queryCatalogInternal(
     clauses.push(workspaceClause.clause);
     params.push(...workspaceClause.params);
   }
-  if (filters.recipeId !== undefined) {
-    if (filters.recipeId === null)
-      clauses.push("(recipe_id IS NULL OR recipe_id = '' OR recipe_id = 'styles')");
-    else {
-      clauses.push('recipe_id = ?');
-      params.push(filters.recipeId);
-    }
-  }
   if (filters.jobId) {
     clauses.push('job_id = ?');
     params.push(filters.jobId);
@@ -315,49 +412,36 @@ function queryCatalogInternal(
     params.push(filters.batchId);
   }
   if (filters.collectionId) {
-    clauses.push(
-      `EXISTS (
+    const collection = database
+      .query('SELECT workspace_id, rule_json FROM catalog_collections WHERE id = ?')
+      .get(filters.collectionId) as { workspace_id: string; rule_json: string | null } | null;
+    if (!collection) return { images: [], total: 0, hasMore: false };
+    if (collection.rule_json !== null) {
+      let rule: CatalogSmartRule;
+      try {
+        rule = parseCatalogSmartRule(JSON.parse(collection.rule_json));
+      } catch {
+        return { images: [], total: 0, hasMore: false };
+      }
+      clauses.push("COALESCE(workspace_id, 'default') = ?");
+      params.push(collection.workspace_id);
+      pushFilterClauses(rule, clauses, params);
+    } else {
+      clauses.push(
+        `EXISTS (
         SELECT 1 FROM catalog_collection_images
         JOIN catalog_collections ON catalog_collections.id = catalog_collection_images.collection_id
         WHERE catalog_collection_images.image_id = catalog_images.id
           AND catalog_collection_images.collection_id = ?
           AND catalog_collections.workspace_id = COALESCE(catalog_images.workspace_id, 'default')
       )`,
-    );
-    params.push(filters.collectionId);
+      );
+      params.push(filters.collectionId);
+    }
   }
-  if (filters.unorganized) {
-    // No tags and no collection in the image's own workspace: nobody has organized it yet.
-    clauses.push(
-      `json_array_length(CASE WHEN json_valid(tags) THEN tags ELSE '[]' END) = 0
-      AND NOT EXISTS (
-        SELECT 1 FROM catalog_collection_images
-        JOIN catalog_collections ON catalog_collections.id = catalog_collection_images.collection_id
-        WHERE catalog_collection_images.image_id = catalog_images.id
-          AND catalog_collections.workspace_id = COALESCE(catalog_images.workspace_id, 'default')
-      )`,
-    );
-  }
-  if (filters.favorite !== undefined) {
-    clauses.push('is_favorite = ?');
-    params.push(filters.favorite ? 1 : 0);
-  }
+  pushFilterClauses(filters, clauses, params);
   clauses.push('is_deleted = ?');
   params.push(filters.isDeleted ? 1 : 0);
-  if (filters.q) {
-    const search = parseCatalogSearch(filters.q);
-    if (search.tags.length > MAX_CATALOG_TAGS) return { images: [], total: 0, hasMore: false };
-    for (const tag of search.tags) {
-      clauses.push(
-        "EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(tags) THEN tags ELSE '[]' END) AS image_tag WHERE image_tag.value = ? COLLATE NOCASE)",
-      );
-      params.push(tag);
-    }
-    if (search.text) {
-      clauses.push('(prompt LIKE ? OR tags LIKE ?)');
-      params.push(`%${search.text}%`, `%${search.text}%`);
-    }
-  }
   const where = `WHERE ${clauses.join(' AND ')}`;
   const limit = Math.min(Math.max(Number(filters.limit ?? 50), 1), 200);
   const offset = Math.max(Number(filters.offset ?? 0), 0);
@@ -376,7 +460,7 @@ function queryCatalogInternal(
     .query(
       `SELECT ${
         options.includeGenerationConfig ? '*' : CATALOG_IMAGE_SUMMARY_COLUMNS
-      }, COALESCE((SELECT provider_id FROM jobs WHERE jobs.id = catalog_images.job_id), json_extract(generation_config, '$.providerId')) AS provider_id FROM catalog_images ${where} ORDER BY ${orderBy[filters.sort ?? 'desc']} LIMIT ? OFFSET ?`,
+      }, ${CATALOG_PROVIDER} AS provider_id FROM catalog_images ${where} ORDER BY ${orderBy[filters.sort ?? 'desc']} LIMIT ? OFFSET ?`,
     )
     .all(...params, limit, offset)
     .map((row) => mapCatalogImage(row, options));

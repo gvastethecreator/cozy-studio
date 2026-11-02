@@ -507,6 +507,13 @@ const DATABASE_MIGRATIONS = [
         ON catalog_organize_history(workspace_id)`);
     },
   },
+  {
+    version: 19,
+    name: 'catalog-smart-collections',
+    migrate(database: Database) {
+      database.run('ALTER TABLE catalog_collections ADD COLUMN rule_json TEXT');
+    },
+  },
 ] as const;
 
 function backfillJobOperationalColumns(database: Database) {

@@ -16,6 +16,24 @@ Use the same scheme when you generate and when you organize.
 - Tag format: letters, numbers, `_` or `-`, with no spaces, up to 64 characters. A leading `#` is optional. Studio stores `#Cover` as `cover`.
 - Limits: 8 tags in each tag list of a call, 32 tags on one image, 80 characters in a collection name. Collection names match without case.
 - Tags and collections belong to one workspace. A tag name in another workspace is a different tag with its own color. An image can be in many collections.
+- Smart Collections are living views, not manual filing targets. `studio_workspaces` marks them with `kind: "smart"` and returns their rule. Reuse only manual collection names when generating or organizing.
+
+## Smart Collections
+
+When the user wants a living view, such as all favorites from the last 30 days, use `studio_save_smart_collection` with Organize or Full control access:
+
+```json
+{
+  "workspaceId": "default",
+  "name": "Recent favorites",
+  "emoji": "⭐",
+  "rule": { "favorite": true, "withinDays": 30 }
+}
+```
+
+The tool creates the collection or updates the smart collection with the same name. A manual collection with that name is an error. Rules can filter search text and `#tags` (`q`), favorites, unorganized images, provider, workflow (`recipeId`), style (`stylePresetId`), a rolling number of days, or ISO date boundaries (`createdFrom` inclusive, `createdTo` exclusive). All fields narrow the results together. Imported images retain provider matching when their metadata has a provider.
+
+Read the result with `studio_catalog`, sending both `workspace_id` and `collection_id`. Search filters narrow the saved rule further. Counts update as images change; matching a Smart Collection does not organize an image. Never pass a smart name to `studio_organize_images` or to generation filing. In the UI, use Collections → New smart collection, then Edit rules to change it.
 
 ## Organize while generating
 

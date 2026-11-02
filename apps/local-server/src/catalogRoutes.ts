@@ -5,6 +5,7 @@ import {
   CatalogOrganizeError,
   CatalogOrganizeConflict,
   parseCatalogOrganizeInput,
+  parseCatalogSmartRule,
   validateCatalogCollectionImageIds,
   validateCatalogCollectionName,
   validateCatalogCollectionWorkspaceId,
@@ -204,6 +205,18 @@ export function createCatalogRoutes({
     }
   });
 
+  routes.get('/facets', (c) => {
+    try {
+      return c.json(
+        catalogStore.listFacets(
+          validateCatalogCollectionWorkspaceId(new URL(c.req.url).searchParams.get('workspace_id')),
+        ),
+      );
+    } catch (error) {
+      return c.json(collectionError(error), 400);
+    }
+  });
+
   routes.post('/collections/selection', async (c) => {
     try {
       const body = await readJsonRecord(c.req);
@@ -225,6 +238,7 @@ export function createCatalogRoutes({
         workspaceId: validateCatalogCollectionWorkspaceId(body.workspaceId),
         name: validateCatalogCollectionName(body.name),
         emoji: validateCollectionEmoji(body.emoji ?? null),
+        ...(body.rule !== undefined && { rule: parseCatalogSmartRule(body.rule) }),
         imageIds:
           body.imageIds === undefined || (Array.isArray(body.imageIds) && !body.imageIds.length)
             ? []
@@ -241,6 +255,7 @@ export function createCatalogRoutes({
     try {
       const body = await readJsonRecord(c.req);
       const patch: CatalogCollectionPatch = {};
+      if (body.rule !== undefined) patch.rule = parseCatalogSmartRule(body.rule);
       if (body.name !== undefined) patch.name = validateCatalogCollectionName(body.name);
       if (body.emoji !== undefined) patch.emoji = validateCollectionEmoji(body.emoji);
       if (body.addImageIds !== undefined) {
@@ -250,7 +265,7 @@ export function createCatalogRoutes({
         patch.removeImageIds = validateCatalogCollectionImageIds(body.removeImageIds);
       }
       if (!Object.keys(patch).length) {
-        throw new Error('Send a name or image changes.');
+        throw new Error('Send a name, emoji, rule or image changes.');
       }
       const updated = catalogStore.updateCollection(c.req.param('collectionId'), patch);
       if (!updated) return c.json({ error: 'Collection not found' }, 404);

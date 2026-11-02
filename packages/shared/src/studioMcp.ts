@@ -256,7 +256,7 @@ export const studioMcpTools = {
   studio_catalog: {
     access: 'read',
     description:
-      'Search the Library images (generated and imported) of one workspace by text or #tag, collection, job, batch or recipe. workspace_id is required: use the id from studio_workspaces, or the workspaceId that studio_generate, studio_batch or studio_job with detail: true returns. A search never spans workspaces. unorganized: true returns images with no tags and no collection in their workspace. Use sort: "asc" to page through a whole workspace in a stable order. Each row has id, prompt, tags, thumbnailPath and filePath: open thumbnailPath to look at an image, filePath for full detail. Rows do not list collections; page collection_id for each collection instead. Image IDs work as studio_generate referenceIds.',
+      'Search the Library images (generated and imported) of one workspace by text or #tag, collection, job, batch or workflow. collection_id also opens a smart collection, whose images update automatically. workspace_id is required: use the id from studio_workspaces, or the workspaceId that studio_generate, studio_batch or studio_job with detail: true returns. A search never spans workspaces. unorganized: true returns images with no tags and no manual collection in their workspace. Use sort: "asc" to page through a whole workspace in a stable order. Each row has id, prompt, tags, thumbnailPath and filePath: open thumbnailPath to look at an image, filePath for full detail. Rows do not list collections; page collection_id for each collection instead. Image IDs work as studio_generate referenceIds.',
     schema: z.strictObject({
       ...page,
       offset: z.number().int().min(0).default(0),
@@ -270,10 +270,31 @@ export const studioMcpTools = {
       sort: z.enum(CATALOG_SORT_OPTIONS).optional(),
     }),
   },
+  studio_save_smart_collection: {
+    access: 'organize',
+    description:
+      'Save a Smart Collection in one workspace: a living view evaluated from its rule. Creates a collection or updates the smart collection with that name. A manual collection with that name is an error. Does not organize, move or delete images.',
+    schema: z.strictObject({
+      workspaceId: id,
+      name: collectionName,
+      emoji: z.string().max(32).nullable().optional(),
+      rule: z.strictObject({
+        q: z.string().min(1).max(2000).optional(),
+        favorite: z.boolean().optional(),
+        unorganized: z.boolean().optional(),
+        providerId: z.string().min(1).max(200).optional(),
+        recipeId: z.string().min(1).max(200).optional(),
+        stylePresetId: z.string().min(1).max(200).optional(),
+        withinDays: z.number().int().min(1).max(3650).optional(),
+        createdFrom: z.iso.datetime({ offset: true }).optional(),
+        createdTo: z.iso.datetime({ offset: true }).optional(),
+      }),
+    }),
+  },
   studio_organize_images: {
     access: 'organize',
     description:
-      'Organize up to 100 existing images in one workspace: add or remove tags, add the images to a collection by name (created if missing) or remove them from one. Needs Organize or Full control access. Propose the scheme to the user first (which images get which tags and collection) and call this only after they confirm. The call is one transaction: every image must be live and in workspaceId, and every tag change must fit, or nothing changes. Safe to repeat: tags and members already present stay as they are. The result lists only the pairs changed and returns operationId for studio_undo_organize, or null when nothing changed. Never deletes, archives or moves images.',
+      'Organize up to 100 existing images in one workspace: add or remove tags, add the images to a collection by name (created if missing) or remove them from one. Smart collections cannot be targets. Needs Organize or Full control access. Propose the scheme to the user first (which images get which tags and collection) and call this only after they confirm. The call is one transaction: every image must be live and in workspaceId, and every tag change must fit, or nothing changes. Safe to repeat: tags and members already present stay as they are. The result lists only the pairs changed and returns operationId for studio_undo_organize, or null when nothing changed. Never deletes, archives or moves images.',
     schema: z
       .strictObject({
         workspaceId: id,

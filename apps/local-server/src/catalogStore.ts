@@ -13,6 +13,8 @@ import type {
   CatalogWorkspaceSummary,
   CatalogTag,
   CatalogTagPatch,
+  CatalogSmartRule,
+  CatalogFacets,
 } from '../../../packages/shared/src';
 
 export interface RegisterCatalogImageInput {
@@ -71,12 +73,14 @@ export interface StudioCatalogStore {
   restoreCatalogImage(id: string): CatalogImage | null;
   purgeCatalogImage(id: string): CatalogImage | null;
   listCollections(workspaceId: string): CatalogCollection[];
+  listFacets(workspaceId: string): CatalogFacets;
   listCollectionSelection(workspaceId: string, imageIds: string[]): CatalogCollectionSelection[];
   createCollection(input: {
     workspaceId: string;
     name: string;
     emoji?: string | null;
     imageIds: string[];
+    rule?: CatalogSmartRule;
   }): CatalogCollection;
   updateCollection(id: string, patch: CatalogCollectionPatch): CatalogCollection | null;
   deleteCollection(id: string): boolean;
@@ -117,6 +121,17 @@ export async function createDefaultCatalogStore(): Promise<StudioCatalogStore> {
     updateCatalogCollection,
   } = collections;
   const { listCatalogTags, createCatalogTag, updateCatalogTag } = tags;
+  const withLiveCount = (collection: CatalogCollection): CatalogCollection =>
+    collection.kind === 'smart'
+      ? {
+          ...collection,
+          imageCount: queryCatalog({
+            workspaceId: collection.workspaceId,
+            collectionId: collection.id,
+            limit: 1,
+          }).total,
+        }
+      : collection;
 
   return {
     getCatalogImage,
@@ -128,10 +143,15 @@ export async function createDefaultCatalogStore(): Promise<StudioCatalogStore> {
     softDeleteCatalogImage,
     restoreCatalogImage,
     purgeCatalogImage,
-    listCollections: listCatalogCollections,
+    // ponytail: one COUNT per smart collection per list.
+    listCollections: (workspaceId) => listCatalogCollections(workspaceId).map(withLiveCount),
+    listFacets: catalog.listCatalogFacets,
     listCollectionSelection: listCatalogCollectionSelection,
-    createCollection: createCatalogCollection,
-    updateCollection: updateCatalogCollection,
+    createCollection: (input) => withLiveCount(createCatalogCollection(input)),
+    updateCollection: (id, patch) => {
+      const collection = updateCatalogCollection(id, patch);
+      return collection ? withLiveCount(collection) : null;
+    },
     deleteCollection: deleteCatalogCollection,
     organizeImages: organizeCatalogImages,
     undoOrganize: undoCatalogOrganize,

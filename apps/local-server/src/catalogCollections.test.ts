@@ -51,7 +51,7 @@ function openTestDatabase() {
     );
     CREATE TABLE catalog_collections (
       id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, name TEXT NOT NULL,
-      created_at TEXT NOT NULL, updated_at TEXT NOT NULL, emoji TEXT, last_used_at TEXT
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL, emoji TEXT, last_used_at TEXT, rule_json TEXT
     );
     CREATE UNIQUE INDEX idx_catalog_collections_workspace_name
       ON catalog_collections(workspace_id, name COLLATE NOCASE);

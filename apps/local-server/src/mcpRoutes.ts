@@ -23,6 +23,8 @@ import {
 } from '../../../packages/shared/src/studioMcp';
 import {
   parseLibraryOrganization,
+  parseCatalogSmartRule,
+  validateCatalogCollectionName,
   type CatalogCollection,
   type LibraryOrganization,
 } from '../../../packages/shared/src/catalogCollections';
@@ -418,11 +420,13 @@ export function createMcpRoutes({
         return c.json({
           workspace: await workspace.json(),
           tags: tags.map(({ name, color, imageCount }) => ({ name, color, imageCount })),
-          collections: collections.map(({ id, name, emoji, imageCount }) => ({
+          collections: collections.map(({ id, name, emoji, imageCount, kind, rule }) => ({
             id,
             name,
             emoji,
             imageCount,
+            kind,
+            ...(kind === 'smart' && { rule }),
           })),
           unorganized,
           recentChanges: recentChanges.slice(0, 5),
@@ -475,6 +479,53 @@ export function createMcpRoutes({
         return get(`/api/jobs/batches/${String(args.batchId)}`);
       case 'studio_catalog':
         return query('/api/catalog');
+      case 'studio_save_smart_collection': {
+        const input = studioMcpTools.studio_save_smart_collection.schema.parse(args);
+        let name: string;
+        let rule: ReturnType<typeof parseCatalogSmartRule>;
+        try {
+          name = validateCatalogCollectionName(input.name);
+          rule = parseCatalogSmartRule(input.rule);
+        } catch (error) {
+          return c.json(
+            { error: error instanceof Error ? error.message : 'Invalid smart collection.' },
+            400,
+          );
+        }
+        const response = await get(
+          `/api/catalog/collections?workspace_id=${encodeURIComponent(input.workspaceId)}`,
+        );
+        if (!response.ok) return response;
+        const collections = (await response.json()) as CatalogCollection[];
+        const existing = collections.find(
+          (collection) => collection.name.toLocaleLowerCase() === name.toLocaleLowerCase(),
+        );
+        if (existing && existing.kind !== 'smart')
+          return c.json(
+            { error: 'A manual collection with that name already exists in this workspace.' },
+            400,
+          );
+        const saved = existing
+          ? await send('PATCH', `/api/catalog/collections/${encodeURIComponent(existing.id)}`, {
+              rule,
+              ...(input.emoji !== undefined && { emoji: input.emoji }),
+            })
+          : await post('/api/catalog/collections', {
+              workspaceId: input.workspaceId,
+              name,
+              rule,
+              emoji: input.emoji,
+            });
+        if (!saved.ok) return saved;
+        const collection = (await saved.json()) as CatalogCollection;
+        return c.json({
+          id: collection.id,
+          name: collection.name,
+          created: !existing,
+          imageCount: collection.imageCount,
+          rule: collection.rule,
+        });
+      }
       case 'studio_organize_images':
         // One transaction on the server: a rejected call changes nothing.
         return post('/api/catalog/commands/organize', {

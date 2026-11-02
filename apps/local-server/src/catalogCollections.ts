@@ -4,6 +4,8 @@ import type { Database } from 'bun:sqlite';
 import {
   CatalogOrganizeError,
   CatalogOrganizeConflict,
+  parseCatalogSmartRule,
+  type CatalogSmartRule,
   type CatalogCollection,
   type CatalogCollectionPatch,
   type CatalogCollectionSelection,
@@ -27,7 +29,7 @@ function isUniqueConstraint(error: unknown) {
 }
 
 const COLLECTION_SELECT = `
-  id, workspace_id, name, emoji, last_used_at, created_at, updated_at,
+  id, workspace_id, name, emoji, last_used_at, created_at, updated_at, rule_json,
   (
     SELECT COUNT(*)
     FROM catalog_collection_images AS member
@@ -46,11 +48,22 @@ function mapCollection(row: {
   created_at: string;
   updated_at: string;
   image_count: number;
+  rule_json: string | null;
 }): CatalogCollection {
+  let rule: CatalogSmartRule | null = null;
+  if (row.rule_json !== null) {
+    try {
+      rule = parseCatalogSmartRule(JSON.parse(row.rule_json));
+    } catch {
+      /* Invalid stored rules stay smart and match no images. */
+    }
+  }
   return {
     id: row.id,
     workspaceId: row.workspace_id,
     name: row.name,
+    kind: row.rule_json === null ? 'manual' : 'smart',
+    rule,
     emoji: row.emoji,
     lastUsedAt: row.last_used_at,
     imageCount: row.image_count,
@@ -122,24 +135,35 @@ export function listCatalogCollectionSelection(
     )
     .all(workspaceId, workspaceId, ...imageIds) as { collection_id: string; count: number }[];
   const counts = new Map(selected.map((row) => [row.collection_id, row.count]));
-  return listCatalogCollections(workspaceId, database).map((collection) => ({
-    ...collection,
-    selectedImageCount: counts.get(collection.id) ?? 0,
-  }));
+  return listCatalogCollections(workspaceId, database)
+    .filter((collection) => collection.kind === 'manual')
+    .map((collection) => ({
+      ...collection,
+      selectedImageCount: counts.get(collection.id) ?? 0,
+    }));
 }
 
 export function createCatalogCollection(
-  input: { workspaceId: string; name: string; emoji?: string | null; imageIds: string[] },
+  input: {
+    workspaceId: string;
+    name: string;
+    emoji?: string | null;
+    imageIds: string[];
+    rule?: CatalogSmartRule;
+  },
   db?: Database,
 ) {
   const database = getDb(db);
+  const rule = input.rule === undefined ? null : parseCatalogSmartRule(input.rule);
+  if (rule && input.imageIds.length)
+    throw new Error('Smart collections update automatically. Edit the rules instead.');
   const id = `collection-${randomUUID()}`;
   const timestamp = now();
   try {
     database
       .query(
-        `INSERT INTO catalog_collections (id, workspace_id, name, emoji, last_used_at, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO catalog_collections (id, workspace_id, name, emoji, last_used_at, created_at, updated_at, rule_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -149,6 +173,7 @@ export function createCatalogCollection(
         input.imageIds.length ? timestamp : null,
         timestamp,
         timestamp,
+        rule ? JSON.stringify(rule) : null,
       );
   } catch (error) {
     if (isUniqueConstraint(error)) {
@@ -195,13 +220,13 @@ export function addImageToNamedCollection(
   database
     .query(
       `INSERT OR IGNORE INTO catalog_collection_images (collection_id, image_id, added_at)
-       SELECT id, ?, ? FROM catalog_collections WHERE workspace_id = ? AND name = ? COLLATE NOCASE`,
+       SELECT id, ?, ? FROM catalog_collections WHERE workspace_id = ? AND name = ? COLLATE NOCASE AND rule_json IS NULL`,
     )
     .run(imageId, timestamp, workspaceId, name);
   database
     .query(
       `UPDATE catalog_collections SET last_used_at = ?, updated_at = ?
-       WHERE workspace_id = ? AND name = ? COLLATE NOCASE`,
+       WHERE workspace_id = ? AND name = ? COLLATE NOCASE AND rule_json IS NULL`,
     )
     .run(timestamp, timestamp, workspaceId, name);
 }
@@ -211,7 +236,20 @@ export function updateCatalogCollection(id: string, patch: CatalogCollectionPatc
   return database.transaction(() => {
     const current = getCatalogCollection(id, database);
     if (!current) return null;
+    if (
+      current.kind === 'smart' &&
+      (patch.addImageIds !== undefined || patch.removeImageIds !== undefined)
+    ) {
+      throw new Error('Smart collections update automatically. Edit the rules instead.');
+    }
+    if (patch.rule !== undefined && current.kind !== 'smart')
+      throw new Error('Manual collections cannot have smart rules.');
+    const rule = patch.rule === undefined ? undefined : parseCatalogSmartRule(patch.rule);
     const timestamp = now();
+    if (rule)
+      database
+        .query('UPDATE catalog_collections SET rule_json = ?, updated_at = ? WHERE id = ?')
+        .run(JSON.stringify(rule), timestamp, id);
     if (patch.emoji !== undefined) {
       database
         .query('UPDATE catalog_collections SET emoji = ?, updated_at = ? WHERE id = ?')
@@ -334,12 +372,17 @@ export function organizeCatalogImages(
     // SQLite NOCASE folds ASCII only, so compare in JS to match "Ácido" with "ácido".
     const fold = (value: string) => value.normalize('NFC').toLocaleLowerCase();
     const workspaceCollections = database
-      .query('SELECT id, name FROM catalog_collections WHERE workspace_id = ?')
-      .all(workspaceId) as Array<{ id: string; name: string }>;
+      .query('SELECT id, name, rule_json FROM catalog_collections WHERE workspace_id = ?')
+      .all(workspaceId) as Array<{ id: string; name: string; rule_json: string | null }>;
     const byName = (name: string) =>
       workspaceCollections.find((collection) => fold(collection.name) === fold(name)) ?? null;
     const target = addToCollection ? byName(addToCollection) : null;
     const removeFrom = removeFromCollection ? byName(removeFromCollection) : null;
+    if ((target && target.rule_json !== null) || (removeFrom && removeFrom.rule_json !== null)) {
+      throw new CatalogOrganizeError(
+        'Smart collections update automatically. Edit the rules instead.',
+      );
+    }
     if (removeFromCollection && !removeFrom)
       throw new CatalogOrganizeError(
         'removeFromCollection is not a collection in this workspace. Nothing changed.',

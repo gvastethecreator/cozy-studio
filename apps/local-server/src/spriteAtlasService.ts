@@ -1,7 +1,7 @@
 import { isManagedGenerationAssetPath } from './managedAssetPolicy';
 import { captureWorkflowOutput } from './outputDestination';
 import { createHash, randomUUID } from 'node:crypto';
-import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { authoringSharp, writePngFromSvg } from './sharpAuthoringAdapter';
 import {
@@ -22,6 +22,14 @@ import {
 } from '../../../packages/shared/src/spriteAtlasContracts';
 import type { CatalogImage, Job, JobLibraryContext } from '../../../packages/shared/src/types';
 import { resolveLibraryPathFromRoot } from './library';
+import {
+  createRunLock,
+  fileExists,
+  listRunRecords,
+  readRunRecord,
+  safeSegment,
+  writeJson,
+} from './runFolderStore';
 
 export class SpriteAtlasActionError extends Error {
   readonly status = 409;
@@ -176,15 +184,6 @@ export function spriteAtlasFramePath(run: SpriteAtlasRun, rowId: string, frameNu
   );
 }
 
-function safeSegment(value: string) {
-  return (
-    value
-      .trim()
-      .replace(/[^a-zA-Z0-9_.-]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'item'
-  );
-}
-
 function createRunPaths(libraryDir: string, runId: string): SpriteAtlasRunPaths {
   const runDir = resolveLibraryPathFromRoot(libraryDir, 'state', 'sprite-atlas', runId);
   return {
@@ -211,37 +210,6 @@ async function ensureRunDirs(paths: SpriteAtlasRunPaths) {
     mkdir(paths.framesDir, { recursive: true }),
     mkdir(path.dirname(paths.qaReportPath), { recursive: true }),
   ]);
-}
-
-async function fileExists(filePath: string | null | undefined) {
-  if (!filePath) return false;
-  try {
-    const result = await stat(filePath);
-    return result.isFile();
-  } catch {
-    return false;
-  }
-}
-
-async function readJson<T>(filePath: string): Promise<T | null> {
-  try {
-    return JSON.parse(await readFile(filePath, 'utf8')) as T;
-  } catch {
-    return null;
-  }
-}
-
-/** Writes a temp file and renames it, so a reader never sees a partial JSON file. */
-async function writeJson(filePath: string, value: unknown) {
-  await mkdir(path.dirname(filePath), { recursive: true });
-  const tempPath = `${filePath}.${randomUUID()}.tmp`;
-  try {
-    await writeFile(tempPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
-    await rename(tempPath, filePath);
-  } catch (error) {
-    await rm(tempPath, { force: true });
-    throw error;
-  }
 }
 
 /**
@@ -592,19 +560,8 @@ export function createSpriteAtlasService({
   createId = randomUUID,
   now = () => new Date().toISOString(),
 }: CreateSpriteAtlasServiceOptions): SpriteAtlasService {
-  const runLocks = new Map<string, Promise<unknown>>();
-
   /** Serializes every read-modify-write of one run's status.json. */
-  function withRunLock<T>(runId: string, work: () => Promise<T>): Promise<T> {
-    const key = safeSegment(runId);
-    const result = (runLocks.get(key) ?? Promise.resolve()).then(work);
-    const tail = result.catch(() => undefined);
-    runLocks.set(key, tail);
-    void tail.then(() => {
-      if (runLocks.get(key) === tail) runLocks.delete(key);
-    });
-    return result;
-  }
+  const withRunLock = createRunLock();
 
   async function saveRun(run: SpriteAtlasRun) {
     const updated = {
@@ -617,19 +574,12 @@ export function createSpriteAtlasService({
   }
 
   async function getRun(runId: string) {
-    const safeRunId = safeSegment(runId);
-    const paths = createRunPaths(readLibraryDir(), safeRunId);
-    const stored =
-      (await readJson<SpriteAtlasRun>(paths.statusPath)) ??
-      (await readJson<SpriteAtlasRun>(
-        resolveLibraryPathFromRoot(
-          readLibraryDir(),
-          'outputs',
-          'sprite-atlas',
-          safeRunId,
-          'status.json',
-        ),
-      ));
+    const stored = await readRunRecord<SpriteAtlasRun>(
+      readLibraryDir(),
+      'sprite-atlas',
+      safeSegment(runId),
+      'status.json',
+    );
     return stored ? normalizeRun(stored) : null;
   }
 
@@ -767,24 +717,8 @@ export function createSpriteAtlasService({
     listPresets() {
       return createSpriteAtlasPresetSummaries();
     },
-    async listRuns() {
-      const roots = ['state', 'outputs'].map((section) =>
-        resolveLibraryPathFromRoot(readLibraryDir(), section, 'sprite-atlas'),
-      );
-      const groups = await Promise.all(
-        roots.map((root) => readdir(root, { withFileTypes: true }).catch(() => [])),
-      );
-      const ids = [
-        ...new Set(
-          groups.flatMap((entries) =>
-            entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name),
-          ),
-        ),
-      ];
-      const runs = await Promise.all(ids.map(getRun));
-      return runs
-        .flatMap((run) => (run ? [run] : []))
-        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    listRuns() {
+      return listRunRecords(readLibraryDir(), 'sprite-atlas', getRun);
     },
     getRun,
     async createRun(input) {

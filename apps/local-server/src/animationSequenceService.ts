@@ -2,7 +2,7 @@ import { isManagedGenerationAssetPath } from './managedAssetPolicy';
 import { captureWorkflowOutput } from './outputDestination';
 import { toPublicAssetUrl } from './library';
 import { randomUUID } from 'node:crypto';
-import { copyFile, mkdir, readFile, readdir, rename, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { authoringSharp } from './sharpAuthoringAdapter';
 import {
@@ -25,6 +25,14 @@ import type { GenerationTaskSpec } from '../../../packages/shared/src/generation
 import type { JobLibraryContext, CatalogImage, Job } from '../../../packages/shared/src/types';
 import { encodeGif, type GifRgbaFrame } from './animationGifEncoder';
 import { resolveLibraryPathFromRoot } from './library';
+import {
+  createRunLock,
+  fileExists,
+  listRunRecords,
+  readRunRecord,
+  safeSegment,
+  writeJson,
+} from './runFolderStore';
 import { getJob as getStoredJob } from './db/jobs';
 import type { WorkflowRunDispatchIssue } from './workflowRunReconciler';
 
@@ -72,15 +80,6 @@ export interface CreateAnimationSequenceServiceOptions {
   now?: () => string;
 }
 
-function safeSegment(value: string) {
-  return (
-    value
-      .trim()
-      .replace(/[^a-zA-Z0-9_.-]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'item'
-  );
-}
-
 function isPathInside(parentPath: string, childPath: string) {
   const parent = path.resolve(parentPath);
   const child = path.resolve(childPath);
@@ -122,16 +121,6 @@ async function ensureRunDirs(paths: AnimationSequenceRunPaths) {
   ]);
 }
 
-async function fileExists(filePath: string | null | undefined) {
-  if (!filePath) return false;
-  try {
-    const result = await stat(filePath);
-    return result.isFile();
-  } catch {
-    return false;
-  }
-}
-
 async function fileSize(filePath: string | null | undefined) {
   if (!filePath) return null;
   try {
@@ -140,22 +129,6 @@ async function fileSize(filePath: string | null | undefined) {
   } catch {
     return null;
   }
-}
-
-async function readJson<T>(filePath: string): Promise<T | null> {
-  try {
-    return JSON.parse(await readFile(filePath, 'utf8')) as T;
-  } catch {
-    return null;
-  }
-}
-
-// Write beside the target and rename, so a crash never leaves a truncated run record.
-async function writeJson(filePath: string, value: unknown) {
-  await mkdir(path.dirname(filePath), { recursive: true });
-  const tempPath = `${filePath}.${randomUUID()}.tmp`;
-  await writeFile(tempPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
-  await rename(tempPath, filePath);
 }
 
 function createFrameStates(
@@ -352,21 +325,7 @@ export function createAnimationSequenceService({
   createId = randomUUID,
   now = () => new Date().toISOString(),
 }: CreateAnimationSequenceServiceOptions): AnimationSequenceService {
-  const runLocks = new Map<string, Promise<void>>();
-
-  function withRunLock<T>(runId: string, task: () => Promise<T>) {
-    const key = safeSegment(runId);
-    const result = (runLocks.get(key) ?? Promise.resolve()).then(task);
-    const settled = result.then(
-      () => undefined,
-      () => undefined,
-    );
-    runLocks.set(key, settled);
-    void settled.then(() => {
-      if (runLocks.get(key) === settled) runLocks.delete(key);
-    });
-    return result;
-  }
+  const withRunLock = createRunLock();
 
   async function saveRun(run: AnimationSequenceRun) {
     const updated = {
@@ -378,20 +337,12 @@ export function createAnimationSequenceService({
     return updated;
   }
 
-  async function getRun(runId: string) {
-    const safeRunId = safeSegment(runId);
-    const paths = createRunPaths(readLibraryDir(), safeRunId);
-    return (
-      (await readJson<AnimationSequenceRun>(paths.statusPath)) ??
-      readJson<AnimationSequenceRun>(
-        resolveLibraryPathFromRoot(
-          readLibraryDir(),
-          'outputs',
-          'animation-sequence',
-          safeRunId,
-          'animation-sequence-run.json',
-        ),
-      )
+  function getRun(runId: string) {
+    return readRunRecord<AnimationSequenceRun>(
+      readLibraryDir(),
+      'animation-sequence',
+      safeSegment(runId),
+      'animation-sequence-run.json',
     );
   }
 
@@ -578,24 +529,8 @@ export function createAnimationSequenceService({
   }
 
   const service: AnimationSequenceService = {
-    async listRuns() {
-      const roots = ['state', 'outputs'].map((section) =>
-        resolveLibraryPathFromRoot(readLibraryDir(), section, 'animation-sequence'),
-      );
-      const groups = await Promise.all(
-        roots.map((root) => readdir(root, { withFileTypes: true }).catch(() => [])),
-      );
-      const ids = [
-        ...new Set(
-          groups.flatMap((entries) =>
-            entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name),
-          ),
-        ),
-      ];
-      const runs = await Promise.all(ids.map(getRun));
-      return runs
-        .flatMap((run) => (run ? [run] : []))
-        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    listRuns() {
+      return listRunRecords(readLibraryDir(), 'animation-sequence', getRun);
     },
     getRun,
     async createRun(input) {

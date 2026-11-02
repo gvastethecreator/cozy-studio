@@ -2,6 +2,7 @@ import type { CodexServiceTier } from './types';
 import type { GenerationProviderId } from './generationContracts';
 import { isPreferredWorkflow, type PreferredWorkflow } from './workflowCatalog';
 import { normalizeDisabledWorkflowModules, type WorkflowModuleId } from './workflowModules';
+import { isRecord } from './types';
 
 const EDITABLE_STUDIO_SETTINGS_VERSION = 'editable-studio-settings/v2' as const;
 
@@ -88,10 +89,6 @@ export interface EditableStudioSettingsPatch {
   preferredOutputPath?: string | null;
   outputOrganization?: Partial<StudioOutputOrganizationSettings> | null;
   providerDefaults?: EditableProviderDefaultsPatch;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function cleanString(value: unknown): string | null {

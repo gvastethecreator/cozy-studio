@@ -8,7 +8,6 @@ import {
   type AnimationSequenceFramePlan,
   type AnimationSequenceFramePlanItem,
 } from '../../packages/shared/src/animationSequenceContracts';
-import { animationSequencePolicy } from '../../packages/shared/src/recipePolicies/animationSequence';
 import {
   createModuleDirectives,
   directive,
@@ -272,7 +271,6 @@ function isCorrection(params: RecipeParams) {
 
 export const animationSequenceRecipe: RecipeDefinition = {
   module,
-  policy: animationSequencePolicy,
   /** The frame plus its neighbours, independent of the provider cap. */
   ...sequenceReferenceRules,
   /** A correction puts the frame it corrects first. */

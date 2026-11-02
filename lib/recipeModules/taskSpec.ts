@@ -14,7 +14,8 @@ import {
 } from '../generationBackground';
 import type { GenerationVariationScope } from '../generationVariation';
 import { isRecipeProviderSupported, isRecipeTaskSupported, validateRecipeParams } from './params';
-import { DEFAULT_RECIPE, getRecipeBehavior, getRecipeModule } from './registry';
+import { defaultRecipe } from './default';
+import { getRecipeBehavior, getRecipeModule } from './registry';
 import type {
   RecipeBehavior,
   RecipeDirectiveContext,
@@ -33,7 +34,7 @@ export interface BuildGenerationTaskSpecFromRecipeArgs {
 type RecipeConfig = Pick<ImageGenerationConfig, 'recipeId' | 'recipeParams'>;
 
 function resolveBehavior(recipeId: string | null | undefined): RecipeBehavior {
-  return getRecipeBehavior(recipeId) ?? DEFAULT_RECIPE;
+  return getRecipeBehavior(recipeId) ?? defaultRecipe;
 }
 
 function isInlineAttachmentDataUrl(value: string | null | undefined) {

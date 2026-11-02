@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
-import { startViewTransition } from '../../utils/transitionUtils';
 import type { StyleBrowserSortOrder, StyleBrowserViewMode } from './styleBrowserRenderPlan';
 import {
   getStyleTabHash as getStyleTabHashForRoute,
@@ -95,27 +94,25 @@ export function useStyleBrowserNavigation({
       currentStyleTabRef.current = normalizedTabId;
       setLastTab(normalizedTabId);
 
-      startViewTransition(() => {
-        if (normalizedTabId === STYLE_PACKS_TAB_ID) {
-          setIsPackLandingOpen(true);
-        } else {
-          setIsPackLandingOpen(false);
-          setCurrentPackId(normalizedTabId);
-        }
+      if (normalizedTabId === STYLE_PACKS_TAB_ID) {
+        setIsPackLandingOpen(true);
+      } else {
+        setIsPackLandingOpen(false);
+        setCurrentPackId(normalizedTabId);
+      }
 
-        if (
-          options.resetSearch ||
-          options.browserStatePatch ||
-          Object.keys(tabBrowserStatePatch).length > 0
-        ) {
-          setBrowserState((prev) => ({
-            ...prev,
-            ...(options.resetSearch ? { searchQuery: '' } : {}),
-            ...tabBrowserStatePatch,
-            ...options.browserStatePatch,
-          }));
-        }
-      });
+      if (
+        options.resetSearch ||
+        options.browserStatePatch ||
+        Object.keys(tabBrowserStatePatch).length > 0
+      ) {
+        setBrowserState((prev) => ({
+          ...prev,
+          ...(options.resetSearch ? { searchQuery: '' } : {}),
+          ...tabBrowserStatePatch,
+          ...options.browserStatePatch,
+        }));
+      }
     },
     [routeOptions, allCategoriesTabId, allCardsTabId, setLastTab, setBrowserState],
   );

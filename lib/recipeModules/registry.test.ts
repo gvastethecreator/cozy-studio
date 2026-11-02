@@ -5,12 +5,11 @@ import { REGISTERED_RECIPE_IDS } from '../recipeIds';
 import { getRecipeBehavior, listRecipeModules, RECIPE_MODULES } from './registry';
 
 describe('recipe registry', () => {
-  it('has one module and the shared policy for every registered recipe id', () => {
+  it('has one module for every registered recipe id and no orphan policy', () => {
     for (const recipeId of REGISTERED_RECIPE_IDS) {
       const recipe = getRecipeBehavior(recipeId);
       expect(recipe?.module.id).toBe(recipeId);
       expect(RECIPE_MODULES[recipeId]).toBe(recipe?.module);
-      expect(recipe?.policy).toEqual(RECIPE_POLICIES[recipeId] ?? {});
     }
     expect(Object.keys(RECIPE_POLICIES).every((id) => getRecipeBehavior(id))).toBe(true);
     expect(

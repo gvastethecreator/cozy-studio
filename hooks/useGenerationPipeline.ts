@@ -8,7 +8,6 @@ import type {
   RecipeId,
 } from '../types';
 import type { Job as StudioJob } from '../packages/shared/src';
-import { startViewTransition } from '../utils/transitionUtils';
 import type {
   LocalGenerationLifecycleOutcome,
   LocalGenerationRunResult,
@@ -264,9 +263,7 @@ export const useGenerationPipeline = ({
         const result = outcome.result;
         const { batchId, generatedCount, images } = result;
 
-        startViewTransition(() => {
-          appendLocalGenerationResultRef.current?.(result);
-        });
+        appendLocalGenerationResultRef.current?.(result);
 
         if (images.length > 0 && !options?.preventModal) {
           const resultImage = {
@@ -353,9 +350,7 @@ export const useGenerationPipeline = ({
         const result = outcome.result;
         const { batchId, generatedCount } = result;
 
-        startViewTransition(() => {
-          appendLocalGenerationResultRef.current?.(result, { maxPerWorkspace: 20 });
-        });
+        appendLocalGenerationResultRef.current?.(result, { maxPerWorkspace: 20 });
 
         const duration = formatGenerationDuration(outcome.durationMs);
         logRef.current(

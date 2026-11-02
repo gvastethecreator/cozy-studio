@@ -1,14 +1,4 @@
-import type {
-  StylePresetCatalog,
-  StylePresetCatalogSearchFilters,
-  StylePresetCatalogSearchIndex,
-  StylePresetCatalogSearchPackSummary,
-} from './stylePresetManifests';
-import {
-  resolveStylePresetCatalogSearchPackIds,
-  searchStylePresetCatalog,
-  searchStylePresetCatalogIndex,
-} from './stylePresetManifests';
+import type { StylePresetCatalogSearchFilters } from './stylePresetManifests';
 
 export const STYLE_SEARCH_TASK_FILTERS = [
   { id: '', label: 'All' },
@@ -55,34 +45,4 @@ export function buildStyleSearchFilters({
     task: cleanOptional(task),
     limit,
   };
-}
-
-export function planStyleSearchPackIds({
-  packSummaries,
-  filters,
-}: {
-  packSummaries: readonly StylePresetCatalogSearchPackSummary[];
-  filters?: StylePresetCatalogSearchFilters;
-}) {
-  return resolveStylePresetCatalogSearchPackIds({ packSummaries, filters });
-}
-
-export function projectStyleSearchResultsFromIndex({
-  searchIndex,
-  filters,
-}: {
-  searchIndex: StylePresetCatalogSearchIndex;
-  filters?: StylePresetCatalogSearchFilters;
-}) {
-  return searchStylePresetCatalogIndex(searchIndex, filters);
-}
-
-export function projectStyleSearchResultsFromManifestCatalog({
-  catalog,
-  filters,
-}: {
-  catalog: StylePresetCatalog;
-  filters?: StylePresetCatalogSearchFilters;
-}) {
-  return searchStylePresetCatalog(catalog, filters);
 }

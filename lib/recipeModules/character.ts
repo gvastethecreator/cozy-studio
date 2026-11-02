@@ -1,4 +1,3 @@
-import { characterPolicy } from '../../packages/shared/src/recipePolicies/character';
 import { createModuleDirectives, directive, getBoolean, getString } from './directiveHelpers';
 import { createRecipeModule, options } from './params';
 import type { RecipeDefinition, RecipeParams } from './types';
@@ -188,7 +187,6 @@ function buildCharacterDirectives(params: RecipeParams) {
 
 export const characterRecipe: RecipeDefinition = {
   module,
-  policy: characterPolicy,
   referenceInstruction: (_params, _attachment, index) =>
     index === 0
       ? 'Identity source for the character on the sheet.'

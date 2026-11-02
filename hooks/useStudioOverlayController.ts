@@ -1,5 +1,3 @@
-import { startViewTransition } from '../utils/transitionUtils';
-
 import type {
   StudioConfirmationOverlayProps,
   StudioImageOverlaysProps,
@@ -168,7 +166,7 @@ export function buildStudioOverlayController({
   workspace,
   workspaceActions,
   confirmation,
-  startTransition = startViewTransition,
+  startTransition = (callback) => callback(),
 }: BuildStudioOverlayControllerArgs): StudioOverlayController {
   return {
     imageOverlays: {

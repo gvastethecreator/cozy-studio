@@ -12,6 +12,7 @@ import {
   type SubscriptionHttpResetPath,
 } from '../../../../packages/shared/src/subscriptionHttpDiagnostic';
 import type { SubscriptionHttpError } from './subscriptionHttpError';
+import { isRecord } from '../../../../packages/shared/src/types';
 
 const CATEGORY_BY_CODE: Record<SubscriptionHttpProviderCode, SubscriptionHttpDiagnosticCategory> = {
   usage_limit_reached: 'source_limit',
@@ -47,10 +48,6 @@ const QUOTA_TEXT =
   /(?:hit|reached|exceeded|exhausted) (?:your |the )?(?:usage limit|quota)|(?:usage limit|quota) (?:has been |is )?(?:reached|exceeded|exhausted)|no available usage/i;
 
 type ResetPrefix = 'payload' | 'payload.response' | 'payload.error' | 'payload.response.error';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 function own(value: unknown, key: string) {
   return isRecord(value) && Object.hasOwn(value, key) ? value[key] : undefined;

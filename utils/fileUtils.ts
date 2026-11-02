@@ -186,21 +186,12 @@ export const exportToJson = <T>(data: T, filename: string) => {
   downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), filename);
 };
 
-/**
- * Read a user-provided JSON file and parse it into a typed payload.
- */
-const readJsonFile = <T = unknown>(file: File): Promise<T> => {
+/** Read a file or blob as a data URL. */
+export function readAsDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const json = JSON.parse(e.target?.result as string) as T;
-        resolve(json);
-      } catch {
-        reject(new Error('Invalid JSON file format'));
-      }
-    };
+    reader.onload = () => resolve(reader.result as string);
     reader.onerror = reject;
-    reader.readAsText(file);
+    reader.readAsDataURL(blob);
   });
-};
+}

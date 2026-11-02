@@ -31,7 +31,8 @@ import { useRecipeContextRegistration } from '../../hooks/useRecipeContextRegist
 import { createTimelineRecipeParams } from '../../lib/recipeModules/timeline';
 import { getRecipeNumberParam, hasRecipeIdentity } from '../../lib/recipeIdentity';
 import { materializeCatalogEntryImageWithConfig } from '../../lib/studioCatalogImageAdapter';
-import { getRecipeModuleUiModel, getRecipeOptions, getRecipeStringDefault } from './recipeModuleUi';
+import { getRecipeParameterOptions } from '../../lib/recipeModules';
+import { getRecipeModuleUiModel, getRecipeStringDefault } from './recipeModuleUi';
 
 interface TimelineRecipeProps {
   config: ImageGenerationConfig;
@@ -58,15 +59,15 @@ const DEFAULT_CAMERA_MODE = getRecipeStringDefault(TIMELINE_DEFAULTS, 'cameraMod
 const DEFAULT_MOTION_AMOUNT = getRecipeStringDefault(TIMELINE_DEFAULTS, 'motionAmount', 'Subtle');
 const DEFAULT_LIGHTING_MODE = getRecipeStringDefault(TIMELINE_DEFAULTS, 'lightingMode', 'Locked');
 
-const TIME_DELTA_LABEL_OPTIONS = getRecipeOptions(TIMELINE_MODULE, 'timeDeltaLabel');
+const TIME_DELTA_LABEL_OPTIONS = getRecipeParameterOptions(TIMELINE_MODULE, 'timeDeltaLabel');
 const TIME_OPTIONS = (
   TIME_DELTA_LABEL_OPTIONS.length > 0 ? TIME_DELTA_LABEL_OPTIONS : [DEFAULT_TIME_DELTA_LABEL]
 ).map((label) => ({
   label,
 }));
 
-const MOTION_OPTIONS = getRecipeOptions(TIMELINE_MODULE, 'motionAmount');
-const LIGHTING_OPTIONS = getRecipeOptions(TIMELINE_MODULE, 'lightingMode');
+const MOTION_OPTIONS = getRecipeParameterOptions(TIMELINE_MODULE, 'motionAmount');
+const LIGHTING_OPTIONS = getRecipeParameterOptions(TIMELINE_MODULE, 'lightingMode');
 const EVOLVING_LIGHTING_MODE = 'Evolving';
 const LIGHTING_SHIFT_INTERVALS = new Set(['Hours', 'Years']);
 

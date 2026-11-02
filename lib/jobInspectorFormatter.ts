@@ -4,6 +4,7 @@ import type {
   JobEventRecord,
   JobTranscriptEntry,
 } from '../packages/shared/src';
+import { isRecord } from '../packages/shared/src/types';
 
 export interface JobInspectorArtifact {
   id: string;
@@ -105,10 +106,6 @@ const MAX_RAW_JSON_LENGTH = 16_000;
 const MAX_DATA_URL_PREVIEW_LENGTH = 80_000;
 const OPAQUE_PAYLOAD_RE = /^[A-Za-z0-9+/=_-]+$/;
 
-function isRecordLike(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
 function stripTrailingPunctuation(value: string) {
   return value.replace(/[),.;]+$/g, '');
 }
@@ -205,7 +202,7 @@ function sanitizeStructuredValue(value: unknown, seen = new Set<unknown>(), dept
     return value.slice(0, 24).map((entry) => sanitizeStructuredValue(entry, seen, depth + 1));
   }
 
-  if (!isRecordLike(value) || seen.has(value)) return value;
+  if (!isRecord(value) || seen.has(value)) return value;
   seen.add(value);
 
   return Object.fromEntries(
@@ -319,7 +316,7 @@ function collectPrimitiveFacts(
     return output;
   }
 
-  if (!isRecordLike(value) || seen.has(value)) return output;
+  if (!isRecord(value) || seen.has(value)) return output;
   seen.add(value);
 
   Object.entries(value)
@@ -390,7 +387,7 @@ function collectStringCandidates(
     return output;
   }
 
-  if (!isRecordLike(value) || seen.has(value)) return output;
+  if (!isRecord(value) || seen.has(value)) return output;
   seen.add(value);
 
   Object.values(value)
@@ -786,12 +783,12 @@ function createRequestModel(
 }
 
 function readTranscriptMethod(entry: JobTranscriptEntry) {
-  return isRecordLike(entry.raw) && typeof entry.raw.method === 'string' ? entry.raw.method : null;
+  return isRecord(entry.raw) && typeof entry.raw.method === 'string' ? entry.raw.method : null;
 }
 
 function readTranscriptParams(entry: JobTranscriptEntry) {
-  if (!isRecordLike(entry.raw)) return null;
-  return isRecordLike(entry.raw.params) ? entry.raw.params : null;
+  if (!isRecord(entry.raw)) return null;
+  return isRecord(entry.raw.params) ? entry.raw.params : null;
 }
 
 function readTranscriptItemId(entry: JobTranscriptEntry) {
@@ -802,7 +799,7 @@ function readTranscriptItemId(entry: JobTranscriptEntry) {
     return params.itemId.trim();
   }
 
-  const item = isRecordLike(params.item) ? params.item : null;
+  const item = isRecord(params.item) ? params.item : null;
   return typeof item?.id === 'string' && item.id.trim() ? item.id.trim() : null;
 }
 
@@ -815,7 +812,7 @@ function readCompletedTranscriptItemId(entry: JobTranscriptEntry) {
 function readTextFromUnknown(value: unknown): string {
   if (typeof value === 'string') return value;
   if (Array.isArray(value)) return value.map((item) => readTextFromUnknown(item)).join('');
-  if (!isRecordLike(value)) return '';
+  if (!isRecord(value)) return '';
 
   return [value.text, value.content, value.reasoning, value.output, value.delta, value.value]
     .map((item) => readTextFromUnknown(item))

@@ -1,4 +1,3 @@
-import { spritesheetPolicy } from '../../packages/shared/src/recipePolicies/spritesheet';
 import { createModuleDirectives, directive, getRecord, getString } from './directiveHelpers';
 import { createRecipeModule, options } from './params';
 import { spritesheetBackground } from './composerRules';
@@ -230,7 +229,6 @@ function buildSpritesheetDirectives(params: RecipeParams, context: RecipeDirecti
 
 export const spritesheetRecipe: RecipeDefinition = {
   module,
-  policy: spritesheetPolicy,
   referenceInstruction: () =>
     'Identity reference for the character or asset in every cell. Do not copy its background or framing.',
   /** A sprite sheet keeps its chosen sheet fill. A reference sets identity, not the backdrop. */

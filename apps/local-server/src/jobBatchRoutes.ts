@@ -9,6 +9,7 @@ import type {
   PreparedPersistentJob,
 } from './persistentJobIntake';
 import { BatchRequestConflictError, type JobBatchStore } from './db/jobBatches';
+import { isRecord } from '../../../packages/shared/src/types';
 
 function requestHash(value: unknown): string {
   const canonical = (item: unknown): unknown => {
@@ -24,9 +25,6 @@ function requestHash(value: unknown): string {
   return createHash('sha256')
     .update(JSON.stringify(canonical(value)))
     .digest('hex');
-}
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
 function validRequestId(value: unknown): value is string {
   return typeof value === 'string' && /^[a-z0-9-]{8,128}$/i.test(value);

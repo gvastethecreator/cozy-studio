@@ -15,10 +15,10 @@ import {
   type DeleteWorkspaceResult,
 } from './db/workspaces';
 import { getDb } from './db/connection';
-import { getDefaultLibrary } from './libraries';
+import { ensureDefaultLibrary } from './libraries';
 
 function listCatalogWorkspaces() {
-  return listWorkspacesFromDb(getDb(), getDefaultLibrary().id);
+  return listWorkspacesFromDb(getDb(), ensureDefaultLibrary().id);
 }
 
 function getCatalogWorkspace(id: string) {
@@ -32,7 +32,7 @@ function createCatalogWorkspace(input: {
   filter?: Record<string, unknown>;
   sortOrder?: 'newest' | 'oldest' | 'favorite';
 }) {
-  return createWorkspaceInDb(getDb(), input, getDefaultLibrary().id);
+  return createWorkspaceInDb(getDb(), input, ensureDefaultLibrary().id);
 }
 
 function updateCatalogWorkspace(

@@ -1,4 +1,3 @@
-import { timelinePolicy } from '../../packages/shared/src/recipePolicies/timeline';
 import {
   createModuleDirectives,
   directive,
@@ -224,7 +223,6 @@ function buildTimelineDirectives(params: RecipeParams, context: RecipeDirectiveC
 
 export const timelineRecipe: RecipeDefinition = {
   module,
-  policy: timelinePolicy,
   /** The current frame plus the anchor and neighbours, independent of the provider cap. */
   ...sequenceReferenceRules,
   referenceInstruction: (_params, attachment) =>

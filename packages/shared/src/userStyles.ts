@@ -1,4 +1,5 @@
 import type { GenerationTaskKind } from './generationContracts';
+import { isRecord } from './types';
 
 export const USER_STYLE_PRESET_SCHEMA_VERSION = 'user-style-preset/v1' as const;
 
@@ -155,10 +156,6 @@ const MAX_TEXT_LENGTH = 900;
 const MAX_NAME_LENGTH = 96;
 const MAX_CATEGORY_LENGTH = 80;
 const MAX_LIST_ITEMS = 32;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function cleanString(value: unknown, maxLength = MAX_TEXT_LENGTH) {
   if (typeof value !== 'string') return null;

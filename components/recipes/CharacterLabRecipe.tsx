@@ -44,6 +44,7 @@ import {
 } from '../../lib/characterLabView';
 import { resolveRecipeAlias, type RecipeAliasId } from '../../lib/recipeAliases';
 import { normalizeImageGenRatio } from '../../utils/imageGenSizing';
+import { readAsDataUrl } from '../../utils/fileUtils';
 import {
   RecipeControls,
   useWorkflowPrompt,
@@ -246,27 +247,12 @@ function actionMatches(action: CharacterLabAction, query: string) {
 
 async function readAttachments(files: File[]) {
   return Promise.all(
-    files.map(
-      (file) =>
-        new Promise<Attachment>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            if (typeof reader.result !== 'string') {
-              reject(new Error(`Unable to read ${file.name} as a data URL.`));
-              return;
-            }
-
-            resolve({
-              id: `character-lab-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-              name: file.name,
-              dataUrl: reader.result,
-              strength: 0.5,
-            });
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        }),
-    ),
+    files.map(async (file): Promise<Attachment> => ({
+      id: `character-lab-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: file.name,
+      dataUrl: await readAsDataUrl(file),
+      strength: 0.5,
+    })),
   );
 }
 

@@ -19,11 +19,11 @@ import { useRecipeContextRegistration } from '../../hooks/useRecipeContextRegist
 import { RecipeLayout } from './RecipeLayout';
 import { ControlDropdown } from './RecipeUI';
 import { QuickStartText } from './QuickStartText';
+import { getRecipeParameterOptions } from '../../lib/recipeModules';
 import {
   getRecipeModuleUiModel,
   getRecipeNumberDefault,
   getRecipeNumberOptions,
-  getRecipeOptions,
   getRecipeStringDefault,
 } from './recipeModuleUi';
 
@@ -43,17 +43,17 @@ const { module: CINEMATIC_MODULE, defaults: CINEMATIC_DEFAULTS } =
   getRecipeModuleUiModel('cinematic');
 
 const CONTROL_OPTIONS = {
-  genre: getRecipeOptions(CINEMATIC_MODULE, 'genre'),
-  tone: getRecipeOptions(CINEMATIC_MODULE, 'tone'),
-  lighting: getRecipeOptions(CINEMATIC_MODULE, 'lighting'),
-  time: getRecipeOptions(CINEMATIC_MODULE, 'time'),
-  weather: getRecipeOptions(CINEMATIC_MODULE, 'weather'),
-  movement: getRecipeOptions(CINEMATIC_MODULE, 'movement'),
-  lens: getRecipeOptions(CINEMATIC_MODULE, 'lens'),
+  genre: getRecipeParameterOptions(CINEMATIC_MODULE, 'genre'),
+  tone: getRecipeParameterOptions(CINEMATIC_MODULE, 'tone'),
+  lighting: getRecipeParameterOptions(CINEMATIC_MODULE, 'lighting'),
+  time: getRecipeParameterOptions(CINEMATIC_MODULE, 'time'),
+  weather: getRecipeParameterOptions(CINEMATIC_MODULE, 'weather'),
+  movement: getRecipeParameterOptions(CINEMATIC_MODULE, 'movement'),
+  lens: getRecipeParameterOptions(CINEMATIC_MODULE, 'lens'),
 };
 
 const FRAME_COUNTS = getRecipeNumberOptions(CINEMATIC_MODULE, 'frames');
-const SHOT_TYPES = getRecipeOptions(CINEMATIC_MODULE, 'frameShots');
+const SHOT_TYPES = getRecipeParameterOptions(CINEMATIC_MODULE, 'frameShots');
 
 const DEFAULT_PARAMS = {
   frames: getRecipeNumberDefault(CINEMATIC_DEFAULTS, 'frames', 9),

@@ -1,9 +1,6 @@
 import { Effect } from 'effect';
 import { providerOperation, providerPromise, providerSync } from './providerEffect';
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
+import { isRecord } from '../../../../packages/shared/src/types';
 export function consumeSseJson(
   body: ReadableStream<Uint8Array>,
   onEvent: (event: unknown) => void,

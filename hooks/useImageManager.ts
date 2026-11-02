@@ -1,8 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import type { GeneratedImageWithConfig } from '../types';
 
-import { startViewTransition } from '../utils/transitionUtils';
-
 interface UseImageManagerProps {
   activeWorkspaceId: string;
   log: (message: string) => void;
@@ -67,34 +65,28 @@ export const useImageManager = ({
 
   const handleSelectionChange = useCallback(
     (id: string, selected: boolean) => {
-      startViewTransition(() => {
-        updateSelection((prev) =>
-          selected
-            ? prev.some((image) => image.id === id) || !availableIds.has(id)
-              ? prev
-              : [...prev, allImages.find((image) => image.id === id)!]
-            : prev.filter((image) => image.id !== id),
-        );
-      });
+      updateSelection((prev) =>
+        selected
+          ? prev.some((image) => image.id === id) || !availableIds.has(id)
+            ? prev
+            : [...prev, allImages.find((image) => image.id === id)!]
+          : prev.filter((image) => image.id !== id),
+      );
     },
     [availableIds, allImages, updateSelection],
   );
 
   const handleDelete = useCallback(
     (imageId: string) => {
-      const performDelete = () => {
-        if (!allImages.some((image) => image.id === imageId)) return;
+      if (!allImages.some((image) => image.id === imageId)) return;
 
-        deleteImage(imageId);
+      deleteImage(imageId);
 
-        updateSelection((prev) => prev.filter((image) => image.id !== imageId));
-        if (modalImage?.id === imageId) {
-          handleCloseModal();
-        }
-        log(`Moved image ${imageId} to archives`);
-      };
-
-      startViewTransition(performDelete);
+      updateSelection((prev) => prev.filter((image) => image.id !== imageId));
+      if (modalImage?.id === imageId) {
+        handleCloseModal();
+      }
+      log(`Moved image ${imageId} to archives`);
     },
     [allImages, modalImage, deleteImage, handleCloseModal, log, updateSelection],
   );
@@ -103,18 +95,15 @@ export const useImageManager = ({
     (imageIds = selectedImageIds) => {
       const selectedIds = new Set(selectedImageIds);
       imageIds = [...new Set(imageIds)].filter((id) => availableIds.has(id) || selectedIds.has(id));
-      const performDelete = () => {
-        if (imageIds.length > 0) {
-          const imageIdSet = new Set(imageIds);
-          deleteImages(imageIds);
-          log(`Moved ${imageIds.length} selected images to archives.`);
-          if (modalImage && imageIdSet.has(modalImage.id)) {
-            handleCloseModal();
-          }
-          updateSelection((prev) => prev.filter((image) => !imageIdSet.has(image.id)));
+      if (imageIds.length > 0) {
+        const imageIdSet = new Set(imageIds);
+        deleteImages(imageIds);
+        log(`Moved ${imageIds.length} selected images to archives.`);
+        if (modalImage && imageIdSet.has(modalImage.id)) {
+          handleCloseModal();
         }
-      };
-      startViewTransition(performDelete);
+        updateSelection((prev) => prev.filter((image) => !imageIdSet.has(image.id)));
+      }
     },
     [
       selectedImageIds,
@@ -129,26 +118,22 @@ export const useImageManager = ({
 
   const handleSelectAll = useCallback(
     (images: GeneratedImageWithConfig[]) => {
-      startViewTransition(() => {
-        updateSelection((previous) => [
-          ...new Map([
-            ...previous.map((image) => [image.id, image] as const),
-            ...images
-              .filter((image) => availableIds.has(image.id))
-              .map((image) => [image.id, image] as const),
-          ]).values(),
-        ]);
-        log(`Selected all ${images.length} images.`);
-      });
+      updateSelection((previous) => [
+        ...new Map([
+          ...previous.map((image) => [image.id, image] as const),
+          ...images
+            .filter((image) => availableIds.has(image.id))
+            .map((image) => [image.id, image] as const),
+        ]).values(),
+      ]);
+      log(`Selected all ${images.length} images.`);
     },
     [log, availableIds, updateSelection],
   );
 
   const handleDeselectAll = useCallback(() => {
-    startViewTransition(() => {
-      updateSelection(() => []);
-      log('Deselected all images.');
-    });
+    updateSelection(() => []);
+    log('Deselected all images.');
   }, [log, updateSelection]);
 
   const clearWorkspaceSelection = useCallback((workspaceId: string) => {
@@ -169,11 +154,9 @@ export const useImageManager = ({
         return;
       }
 
-      startViewTransition(() => {
-        clearWorkspace(activeWorkspaceId);
-        updateSelection(() => []);
-        log(`Moved workspace ${activeWorkspaceId} images to archives.`);
-      });
+      clearWorkspace(activeWorkspaceId);
+      updateSelection(() => []);
+      log(`Moved workspace ${activeWorkspaceId} images to archives.`);
     },
     [clearWorkspace, log, onRequestClearWorkspace, updateSelection],
   );

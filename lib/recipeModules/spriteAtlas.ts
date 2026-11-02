@@ -215,7 +215,6 @@ function buildSpriteAtlasDirectives(params: RecipeParams) {
 
 export const spriteAtlasRecipe: RecipeDefinition = {
   module,
-  policy: {},
   referenceInstruction: (_params, _attachment, index) =>
     index === 0
       ? 'Identity anchor: match this character or asset in every frame.'

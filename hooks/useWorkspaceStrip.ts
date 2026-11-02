@@ -12,7 +12,6 @@ import {
   type RunWorkspaceDeleteLifecycleArgs,
 } from '../lib/workspaceLifecycle';
 import type { Workspace } from '../types';
-import { startViewTransition } from '../utils/transitionUtils';
 
 interface UseWorkspaceStripProps {
   workspaces: Workspace[];
@@ -72,12 +71,10 @@ export function useWorkspaceStrip({
   }, [catalogView, syncedWorkspaces, workspaceSummaries]);
 
   const handleAddWorkspace = useCallback(() => {
-    startViewTransition(() => {
-      const newId = `ws-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      createWorkspace({ id: newId, createdAt: Date.now() }, { activate: true });
-      onNewWorkspace?.();
-      addToast('New workspace created', 'success');
-    });
+    const newId = `ws-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    createWorkspace({ id: newId, createdAt: Date.now() }, { activate: true });
+    onNewWorkspace?.();
+    addToast('New workspace created', 'success');
   }, [addToast, createWorkspace, onNewWorkspace]);
 
   const handleDeleteWorkspace = useCallback(
@@ -94,39 +91,33 @@ export function useWorkspaceStrip({
       }
 
       if (clearWorkspace) {
-        startViewTransition(() => {
-          void runWorkspaceDeleteLifecycle({
-            workspaceId: id,
-            clearWorkspace,
-            deleteWorkspace,
+        void runWorkspaceDeleteLifecycle({
+          workspaceId: id,
+          clearWorkspace,
+          deleteWorkspace,
+        })
+          .then(() => {
+            addToast('Workspace removed from the active Studio', 'info');
           })
-            .then(() => {
-              addToast('Workspace removed from the active Studio', 'info');
-            })
-            .catch((error) => {
-              addToast(
-                error instanceof Error ? error.message : 'Unable to remove workspace',
-                'error',
-              );
-            });
-        });
+          .catch((error) => {
+            addToast(
+              error instanceof Error ? error.message : 'Unable to remove workspace',
+              'error',
+            );
+          });
         return;
       }
 
-      startViewTransition(() => {
-        deleteWorkspace(id);
-        addToast('Workspace removed from the active Studio', 'info');
-      });
+      deleteWorkspace(id);
+      addToast('Workspace removed from the active Studio', 'info');
     },
     [addToast, clearWorkspace, deleteWorkspace, onRequestDeleteWorkspace, workspacesWithThumbs],
   );
 
   const handleRenameWorkspace = useCallback(
     (id: string, newName: string) => {
-      startViewTransition(() => {
-        renameWorkspace(id, newName);
-        addToast('Workspace renamed', 'success');
-      });
+      renameWorkspace(id, newName);
+      addToast('Workspace renamed', 'success');
     },
     [addToast, renameWorkspace],
   );

@@ -301,7 +301,6 @@ function buildCameraDirectives(params: RecipeParams) {
 
 export const cameraRecipe: RecipeDefinition = {
   module,
-  policy: {},
   referenceInstruction: (_params, _attachment, index) =>
     index === 0
       ? 'The subject to re-render from the new camera position.'

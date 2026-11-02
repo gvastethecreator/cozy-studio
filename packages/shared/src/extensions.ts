@@ -1,3 +1,4 @@
+import { isRecord } from './types';
 // Cozy Extensions (ADR 0011): versioned declarative content packages. An extension holds data
 // files and images only, never code that Studio runs.
 
@@ -89,10 +90,6 @@ const EXTENSION_ID_PATTERN = /^[a-z0-9][a-z0-9-]*(\.[a-z0-9][a-z0-9-]*)+$/;
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 const STYLE_PACK_FILE_KEYS = ['pack', 'runtime', 'search', 'thumbnails'] as const;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function isSafeRelativePath(value: unknown): value is string {
   return (

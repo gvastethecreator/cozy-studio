@@ -112,10 +112,6 @@ export function registerOutputDirectory(directory: string) {
   );
 }
 
-export function getDefaultLibrary() {
-  return ensureDefaultLibrary();
-}
-
 export function getLibrary(id: string, db?: Database) {
   const row = getDb(db).query('SELECT * FROM libraries WHERE id = ?').get(id);
   return row ? mapLibrary(row) : null;

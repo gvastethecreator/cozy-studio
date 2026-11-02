@@ -16,7 +16,6 @@ vi.mock('./stylePresetCatalogSearchData', () => ({
 vi.mock('../../lib/styleThumbnailCatalog', () => ({
   getStyleThumbnail: () => null,
   getStyleCategoryImage: () => null,
-  resolveStyleDefaultImageThumbnail: () => null,
   STYLE_CATEGORY_PREVIEWS: {},
 }));
 

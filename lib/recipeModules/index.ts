@@ -15,13 +15,7 @@ export {
   isRecipeTaskSupported,
   validateRecipeParams,
 } from './params';
-export {
-  DEFAULT_RECIPE,
-  getRecipeBehavior,
-  getRecipeModule,
-  listRecipeModules,
-  RECIPE_MODULES,
-} from './registry';
+export { getRecipeBehavior, getRecipeModule, listRecipeModules, RECIPE_MODULES } from './registry';
 export {
   buildGenerationTaskSpecFromRecipe,
   buildRecipeProviderDirectives,

@@ -1,6 +1,9 @@
 import { chromium, type Page } from 'playwright';
 
-import { projectStyleSearchResultsFromManifestCatalog } from '../components/recipes/styleSearchProjection';
+import {
+  createStylePresetCatalog,
+  searchStylePresetCatalog,
+} from '../components/recipes/stylePresetManifests';
 import {
   createStylesBrowserGateExpectation,
   evaluateStylesBrowserGate,
@@ -8,7 +11,6 @@ import {
   type StylesBrowserGateObservation,
 } from '../lib/stylesBrowserGate';
 import { createStyleRenderBudgetReport } from './report-style-render-budget';
-import { createStylePresetCatalog } from '../components/recipes/stylePresetManifests';
 import { loadInstalledStylePackData } from './installed-style-packs';
 
 const DEFAULT_URL = 'http://localhost:17222/#recipes';
@@ -147,13 +149,10 @@ export async function verifyStylesBrowserGate({
     throw new Error(`Missing render budget for pack ${packId}`);
   }
 
-  const catalogResultCount = projectStyleSearchResultsFromManifestCatalog({
-    catalog: createStylePresetCatalog(installed.packManifests, installed.presetManifests),
-    filters: {
-      query: catalogQuery,
-      limit: 80,
-    },
-  }).length;
+  const catalogResultCount = searchStylePresetCatalog(
+    createStylePresetCatalog(installed.packManifests, installed.presetManifests),
+    { query: catalogQuery, limit: 80 },
+  ).length;
   const expectation = createStylesBrowserGateExpectation({
     packBudget,
     catalogQuery,

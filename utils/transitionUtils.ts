@@ -8,17 +8,9 @@ export const setIsGlobalTransitioning = (value: boolean) => {
   isGlobalTransitioning = value;
 };
 
-export interface StartViewTransitionOptions {
-  useNative?: boolean;
-}
-
-export const startViewTransition = (
-  callback: () => void,
-  options: StartViewTransitionOptions = {},
-) => {
+export const startViewTransition = (callback: () => void) => {
   if (
     prefersReducedMotion() ||
-    !options.useNative ||
     isGlobalTransitioning ||
     !document.startViewTransition ||
     document.visibilityState !== 'visible'

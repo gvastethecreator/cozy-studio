@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { resetStudioData as requestStudioResetData } from '../services/studio-api/runtime';
 import { clearAll as clearAllIndexedDb } from '../utils/idb';
-import { startViewTransition } from '../utils/transitionUtils';
 
 const DEFAULT_RESET_LOCAL_STORAGE_KEYS = ['generation-config', 'user-wallet-balance'] as const;
 
@@ -57,7 +56,7 @@ export async function performStudioReset({
   requestStudioReset = requestStudioResetData,
   clearIndexedDb = clearAllIndexedDb,
   removeLocalStorageItem = (key: string) => window.localStorage.removeItem(key),
-  startTransition = startViewTransition,
+  startTransition = (callback) => callback(),
 }: PerformStudioResetOptions) {
   try {
     await requestStudioReset();

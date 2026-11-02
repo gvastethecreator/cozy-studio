@@ -9,10 +9,6 @@ export function resolveInAppSetupDraftPath(probe: OnboardingProbe | null): strin
   return probe?.studioLibraryPath?.trim() ?? '';
 }
 
-export function inAppSetupCloudProvider(libraryPath: string): string | null {
-  return detectCloudSyncLibraryPath(libraryPath);
-}
-
 export function inAppSetupCanSubmit(input: {
   consent: boolean;
   libraryPath: string;
@@ -20,7 +16,7 @@ export function inAppSetupCanSubmit(input: {
 }): boolean {
   if (!input.consent) return false;
   if (!looksLikeAbsoluteLibraryPath(input.libraryPath)) return false;
-  if (inAppSetupCloudProvider(input.libraryPath) && !input.confirmCloudSync) return false;
+  if (detectCloudSyncLibraryPath(input.libraryPath) && !input.confirmCloudSync) return false;
   return true;
 }
 

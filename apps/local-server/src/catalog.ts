@@ -4,7 +4,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { Database } from 'bun:sqlite';
 import { getDb } from './db/connection';
-import { getDefaultLibrary, getLibrary } from './libraries';
+import { ensureDefaultLibrary, getLibrary } from './libraries';
 import { resolveLibraryPathFromRoot, toPublicAssetUrl } from './library';
 import { buildCatalogWorkspaceClause } from './catalogWorkspaceClause';
 import { recordCatalogTagUse } from './catalogTags';
@@ -170,7 +170,7 @@ export function registerCatalogImage(
   db?: Database,
 ) {
   const database = getDb(db);
-  const library = input.libraryId ? getLibrary(input.libraryId, database) : getDefaultLibrary();
+  const library = input.libraryId ? getLibrary(input.libraryId, database) : ensureDefaultLibrary();
   if (!library) throw new Error('No studio library registered.');
   const id = randomUUID();
   const createdAt = now();
@@ -515,8 +515,8 @@ export function updateCatalogImageFileSize(id: string, fileSizeBytes: number) {
 export function softDeleteCatalogImage(id: string) {
   const image = getCatalogImage(id);
   if (!image || image.isDeleted) return image;
-  const library = getLibrary(image.libraryId) ?? getDefaultLibrary();
-  const trashLibrary = library.kind === 'output' ? getDefaultLibrary() : library;
+  const library = getLibrary(image.libraryId) ?? ensureDefaultLibrary();
+  const trashLibrary = library.kind === 'output' ? ensureDefaultLibrary() : library;
   const trashDir = resolveLibraryPathFromRoot(trashLibrary.path, '.trash', 'assets');
   mkdirSync(trashDir, { recursive: true });
   const trashedPath = path.join(trashDir, `${id}-${path.basename(image.filePath)}`);
@@ -540,7 +540,7 @@ export function softDeleteCatalogImage(id: string) {
 export function restoreCatalogImage(id: string) {
   const image = getCatalogImage(id);
   if (!image || !image.isDeleted) return image;
-  const library = getLibrary(image.libraryId) ?? getDefaultLibrary();
+  const library = getLibrary(image.libraryId) ?? ensureDefaultLibrary();
   const assetsDir =
     library.kind === 'output' ? library.path : resolveLibraryPathFromRoot(library.path, 'assets');
   mkdirSync(assetsDir, { recursive: true });

@@ -10,12 +10,9 @@ import type {
   CatalogImage,
   CodexTurnRecord,
 } from '../../../packages/shared/src';
+import { isRecord } from '../../../packages/shared/src/types';
 
 type RecordLike = Record<string, unknown>;
-
-function isRecordLike(value: unknown): value is RecordLike {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
 
 function safeStringify(value: unknown) {
   try {
@@ -45,7 +42,7 @@ function findNumberByKeys(record: RecordLike, keys: string[]) {
 }
 
 function extractTokenUsage(value: unknown, source: string): JobTokenUsageSummary | null {
-  if (!isRecordLike(value)) return null;
+  if (!isRecord(value)) return null;
 
   const directInput = findNumberByKeys(value, [
     'inputTokens',
@@ -78,7 +75,7 @@ function extractTokenUsage(value: unknown, source: string): JobTokenUsageSummary
   }
 
   for (const [key, child] of Object.entries(value)) {
-    if (isRecordLike(child)) {
+    if (isRecord(child)) {
       const nested = extractTokenUsage(child, `${source}.${key}`);
       if (nested) return nested;
     }
@@ -219,7 +216,7 @@ function coerceText(value: unknown): string {
       .trim();
   }
 
-  if (isRecordLike(value)) {
+  if (isRecord(value)) {
     const candidates = [
       value.text,
       value.message,
@@ -302,9 +299,9 @@ function parseTranscriptLine(rawLine: string, index: number): JobTranscriptEntry
     };
   }
 
-  const message = isRecordLike(parsed) ? parsed : null;
-  const params = isRecordLike(message?.params) ? message.params : null;
-  const item = isRecordLike(params?.item) ? params.item : null;
+  const message = isRecord(parsed) ? parsed : null;
+  const params = isRecord(message?.params) ? message.params : null;
+  const item = isRecord(params?.item) ? params.item : null;
   const source = typeof message?.method === 'string' ? message.method : 'notification';
   const itemType = typeof item?.type === 'string' ? item.type : null;
   const meta = inferTranscriptKind(source, itemType);
@@ -317,7 +314,7 @@ function parseTranscriptLine(rawLine: string, index: number): JobTranscriptEntry
 
   let text = coerceText(item) || coerceText(params);
   if (!text && source === 'turn/completed') {
-    const turn = isRecordLike(params?.turn) ? params.turn : null;
+    const turn = isRecord(params?.turn) ? params.turn : null;
     text = typeof turn?.status === 'string' ? `Turn ${turn.status}` : 'Turn completed';
   }
 

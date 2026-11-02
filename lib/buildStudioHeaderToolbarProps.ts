@@ -1,6 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react';
 
-import { startViewTransition } from '../utils/transitionUtils';
 import { buildStudioCommandCenterProjection } from './commandCenterProjection';
 import { runWorkspaceSwitchLifecycle } from './workspaceLifecycle';
 
@@ -82,7 +81,7 @@ export function buildStudioHeaderToolbarProps({
   workspace,
   overlays,
   commandCenter,
-  startTransition = startViewTransition,
+  startTransition = (callback) => callback(),
 }: BuildStudioHeaderToolbarPropsArgs): HeaderToolbarProps {
   return {
     isGenerating: view.isGenerating,

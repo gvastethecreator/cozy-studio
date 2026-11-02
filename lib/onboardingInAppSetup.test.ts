@@ -1,11 +1,10 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { buildOnboardingProbe } from '../packages/shared/src';
+import { buildOnboardingProbe, detectCloudSyncLibraryPath } from '../packages/shared/src';
 import {
   buildInAppSetupRequest,
   inAppSetupCanSubmit,
-  inAppSetupCloudProvider,
   resolveInAppSetupDraftPath,
 } from './onboardingInAppSetup';
 
@@ -52,7 +51,7 @@ describe('in-app Setup form', () => {
   });
 
   it('requires a cloud-sync confirm for OneDrive-like paths', () => {
-    expect(inAppSetupCloudProvider('C:/Users/a/OneDrive/Cozy Studio')).toBe('OneDrive');
+    expect(detectCloudSyncLibraryPath('C:/Users/a/OneDrive/Cozy Studio')).toBe('OneDrive');
     expect(
       inAppSetupCanSubmit({
         consent: true,

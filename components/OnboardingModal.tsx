@@ -25,6 +25,7 @@ import {
   COZY_STUDIO_SETUP_SKILL_PATH,
 } from '../lib/onboardingSetupPrompt';
 import {
+  detectCloudSyncLibraryPath,
   type HealthResponse,
   type LocalCodexSessionResponse,
   type OnboardingCheck,
@@ -40,7 +41,6 @@ import { providerBrandChipLabel } from '../lib/providerBrand';
 import {
   buildInAppSetupRequest,
   inAppSetupCanSubmit,
-  inAppSetupCloudProvider,
   resolveInAppSetupDraftPath,
 } from '../lib/onboardingInAppSetup';
 import {
@@ -1352,7 +1352,7 @@ function OnboardingDiagnostics({
   const showInAppSetup =
     (probe ? resolveOnboardingPrimaryAction(probe.primaryCta).type : null) === 'in_app_setup';
   const subscriptionReady = Boolean(probe?.facts.codexSubscriptionReady);
-  const cloudProvider = inAppSetupCloudProvider(libraryPathDraft);
+  const cloudProvider = detectCloudSyncLibraryPath(libraryPathDraft);
   return (
     <div className="onboarding-diagnostics min-w-0">
       <details open={showInAppSetup || Boolean(error)}>

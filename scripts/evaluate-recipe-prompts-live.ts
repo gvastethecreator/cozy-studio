@@ -24,6 +24,7 @@ import {
   type EvaluationVariantMetadata,
 } from './evaluate-recipe-prompts';
 import { pollWithScriptTimeout, runWithScriptRetry } from './runtimePolicy';
+import { isRecord } from '../packages/shared/src/types';
 
 export const LIVE_EVALUATION_VARIANT_NAMES = ['bare', 'directives'] as const;
 
@@ -148,10 +149,6 @@ const DEFAULT_POLL_MS = 2_000;
 const DEFAULT_TIMEOUT_MS = 15 * 60_000;
 const DEFAULT_REQUEST_RETRY_ATTEMPTS = 3;
 const DEFAULT_REQUEST_RETRY_DELAY_MS = 1_000;
-
-function isRecordLike(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
 
 function cloneJson<T>(value: T): T {
   return structuredClone(value);
@@ -281,9 +278,7 @@ function parseVariantNames(): LiveEvaluationVariantName[] {
 }
 
 function extractExecutionOptions(sourceSpec: GenerationTaskSpec): JobExecutionOptions | null {
-  const execution = isRecordLike(sourceSpec.metadata.execution)
-    ? sourceSpec.metadata.execution
-    : null;
+  const execution = isRecord(sourceSpec.metadata.execution) ? sourceSpec.metadata.execution : null;
   const model = typeof execution?.model === 'string' ? execution.model.trim() : '';
   const reasoningEffort =
     typeof execution?.reasoningEffort === 'string' ? execution.reasoningEffort.trim() : '';

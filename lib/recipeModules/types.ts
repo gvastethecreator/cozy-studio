@@ -4,7 +4,6 @@ import type {
   GenerationQualityPresetId,
   GenerationTaskKind,
 } from '../../packages/shared/src/generationContracts';
-import type { RecipePolicy } from '../../packages/shared/src/recipePolicies';
 import type { RecipeProviderDirectives } from '../../packages/shared/src/recipeProviderDirectives';
 import type { Attachment, ImageGenerationConfig } from '../../types';
 import type { GenerationVariationScope } from '../generationVariation';
@@ -91,7 +90,6 @@ export interface RecipeBackgroundBehavior {
 
 /** Recipe-specific behavior. Every hook is optional except the reference instruction. */
 export interface RecipeBehavior {
-  policy: RecipePolicy;
   /** Attachment cap that replaces the provider input-image limit. */
   maxReferences?: number;
   /** Strength sent with every attached reference. */

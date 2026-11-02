@@ -1,4 +1,5 @@
 import { getGenerationRequirement } from './generationRequirements';
+import { isRecord } from './types';
 
 const GENERATION_TASK_SPEC_VERSION = 'generation-task-spec/v1' as const;
 
@@ -340,10 +341,6 @@ function jsonChars(value: unknown) {
 function readMetadataString(metadata: Record<string, unknown>, key: string) {
   const value = metadata[key];
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function hasAssetLocation(asset: GenerationTaskAssetRef) {

@@ -26,6 +26,7 @@ import type { WorkflowRunReconciler } from './workflowRunReconciler';
 import { validateManagedGenerationAssets } from './managedAssetPolicy';
 import { resolveEffectiveJobExecutionOptions } from './providerExecutionPolicy';
 import { resolveBootstrapProviderExecutionOptions } from './providers/providerExecutionDefaults';
+import { isRecord } from '../../../packages/shared/src/types';
 
 interface ProcessReferencesResult {
   augmentedPrompt: string;
@@ -112,10 +113,6 @@ function shouldRequireLocalRunIds(sourceSpec: GenerationTaskSpec | null) {
   // Workspace id is always dual-written for durable authority. Only batch runs
   // require the local queued id/batchId contract.
   return Boolean(sourceSpec && typeof metadata.batchId === 'string' && metadata.batchId.trim());
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
 
 function readSourceSpecPrompt(sourceSpec: unknown) {

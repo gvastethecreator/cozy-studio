@@ -4,9 +4,11 @@ import path from 'node:path';
 import os from 'node:os';
 import { createHash } from 'node:crypto';
 import { createDefaultEditableStudioSettings } from '../packages/shared/src/studioSettings';
-import { createStylePresetCatalog } from '../components/recipes/stylePresetManifests';
 import { loadInstalledStylePackData } from './installed-style-packs';
-import { projectStyleSearchResultsFromManifestCatalog } from '../components/recipes/styleSearchProjection';
+import {
+  createStylePresetCatalog,
+  searchStylePresetCatalog,
+} from '../components/recipes/stylePresetManifests';
 
 const viewport = { width: 1440, height: 1000 };
 const query = 'boudoir';
@@ -202,10 +204,7 @@ export async function measureStyleWorkflow({
 }) {
   const installed = await loadInstalledStylePackData();
   const catalog = createStylePresetCatalog(installed.packManifests, installed.presetManifests);
-  const results = projectStyleSearchResultsFromManifestCatalog({
-    catalog,
-    filters: { query, limit: 80 },
-  });
+  const results = searchStylePresetCatalog(catalog, { query, limit: 80 });
   const target = results[0];
   if (!target) throw new Error('The fixed Styles fixture query returned no target.');
   const fixtureHash = createHash('sha256').update(JSON.stringify(catalog)).digest('hex');

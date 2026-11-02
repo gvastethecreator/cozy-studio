@@ -19,7 +19,6 @@ import {
   getStyleCategoryImage,
   getStyleThumbnail,
   STYLE_CATEGORY_PREVIEWS,
-  resolveStyleDefaultImageThumbnail,
   resolveStyleDefaultImageVariantThumbnails,
 } from '../../lib/styleThumbnailCatalog';
 import { styleCategoryImageKey } from '../../lib/recipeAssetKeys';
@@ -216,7 +215,7 @@ function createStylePresetVisualState({
   const resultImages = images
     .filter((img) => hasStylePresetIdentity(img.config, preset.id))
     .sort((a, b) => b.createdAt - a.createdAt);
-  const defaultImage = resolveStyleDefaultImageThumbnail(preset.id);
+  const defaultImage = getStyleThumbnail(preset.id);
   const defaultImageVariants = resolveStyleDefaultImageVariantThumbnails(preset.id);
   const categoryImage = preset.category
     ? (getStyleThumbnail(styleCategoryImageKey(presetPackId, preset.category)) ??
@@ -738,7 +737,7 @@ function useStylesBrowserController({
     () =>
       userStylePack.presets.length > 0
         ? createStylePresetCatalogSearchIndexFromRuntimePacks([userStylePack], {
-            resolveDefaultImage: resolveStyleDefaultImageThumbnail,
+            resolveDefaultImage: getStyleThumbnail,
           })
         : null,
     [userStylePack],

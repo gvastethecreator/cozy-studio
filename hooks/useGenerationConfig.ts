@@ -27,7 +27,7 @@ import {
 } from '../lib/browserPersistenceBudget';
 import { createContextImageDataUrl } from '../utils/imageUtils';
 import { resolveRecipeAlias, type RecipeAliasId } from '../lib/recipeAliases';
-import { exportToJson } from '../utils/fileUtils';
+import { exportToJson, readAsDataUrl } from '../utils/fileUtils';
 
 interface UseGenerationConfigProps {
   scopeKey?: string;
@@ -412,12 +412,7 @@ export const useGenerationConfig = ({
       await Promise.all(
         uploads.map(async ({ file, attachment: pendingAttachment }) => {
           try {
-            const rawDataUrl = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(file);
-            });
+            const rawDataUrl = await readAsDataUrl(file);
             if (!uploadPreviews.current.has(pendingAttachment.id)) return;
             const contextImage = await createContextImageDataUrl(rawDataUrl).catch((error) => {
               log(

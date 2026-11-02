@@ -1,3 +1,4 @@
+import { isRecord } from './types';
 export const SUBSCRIPTION_HTTP_DIAGNOSTIC_SCHEMA_VERSION = 1 as const;
 
 export const SUBSCRIPTION_HTTP_DIAGNOSTIC_LIMITATIONS = [
@@ -167,10 +168,6 @@ const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d
 const MIN_MS = Date.UTC(2000, 0, 1);
 const MAX_MS = Date.UTC(2100, 0, 1);
 
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
 function oneOf<T extends string>(value: unknown, allowed: readonly T[]): value is T {
   return typeof value === 'string' && (allowed as readonly string[]).includes(value);
 }
@@ -239,7 +236,7 @@ function projectAgreement(value: unknown) {
 }
 
 function projectCandidate(value: unknown): SubscriptionHttpResetCandidate | null {
-  if (!isPlainRecord(value) || !oneOf(value.path, SUBSCRIPTION_HTTP_RESET_PATHS)) return null;
+  if (!isRecord(value) || !oneOf(value.path, SUBSCRIPTION_HTTP_RESET_PATHS)) return null;
   if (!oneOf(value.status, CANDIDATE_STATUS)) return null;
   const unitBasis =
     value.unitBasis === null
@@ -259,7 +256,7 @@ function projectCandidate(value: unknown): SubscriptionHttpResetCandidate | null
 }
 
 function projectRetryAfter(value: unknown): SubscriptionHttpDiagnostic['retryAfter'] | null {
-  if (!isPlainRecord(value) || !oneOf(value.status, RETRY_STATUS)) return null;
+  if (!isRecord(value) || !oneOf(value.status, RETRY_STATUS)) return null;
   const kind = value.kind === null ? null : oneOf(value.kind, RETRY_KIND) ? value.kind : undefined;
   const basis =
     value.basis === null ? null : oneOf(value.basis, RETRY_BASIS) ? value.basis : undefined;
@@ -287,7 +284,7 @@ function projectRetryAfter(value: unknown): SubscriptionHttpDiagnostic['retryAft
 export function projectSubscriptionHttpDiagnostic(
   value: unknown,
 ): SubscriptionHttpDiagnostic | null {
-  if (!isPlainRecord(value) || value.schemaVersion !== SUBSCRIPTION_HTTP_DIAGNOSTIC_SCHEMA_VERSION)
+  if (!isRecord(value) || value.schemaVersion !== SUBSCRIPTION_HTTP_DIAGNOSTIC_SCHEMA_VERSION)
     return null;
   if (!oneOf(value.evidenceOrigin, ['synthetic', 'operator_capture_unverified'] as const))
     return null;
@@ -304,7 +301,7 @@ export function projectSubscriptionHttpDiagnostic(
   ) {
     return null;
   }
-  if (!isPlainRecord(value.classification)) return null;
+  if (!isRecord(value.classification)) return null;
   const classification = value.classification;
   if (!oneOf(classification.category, SUBSCRIPTION_HTTP_DIAGNOSTIC_CATEGORIES)) return null;
   if (!oneOf(classification.basis, CLASSIFICATION_BASIS)) return null;
@@ -336,14 +333,14 @@ export function projectSubscriptionHttpDiagnostic(
   ) {
     return null;
   }
-  if (!isPlainRecord(value.clock)) return null;
+  if (!isRecord(value.clock)) return null;
   const serverDateUtc = nullableInstant(value.clock.serverDateUtc);
   if (value.clock.serverDateUtc !== null && serverDateUtc === null) return null;
   const skew = value.clock.serverClientDifferenceMs;
   if (skew !== null && finiteNumber(skew) === null) return null;
   const retryAfter = projectRetryAfter(value.retryAfter);
   if (!retryAfter) return null;
-  if (!isPlainRecord(value.reset) || !Array.isArray(value.reset.candidates)) return null;
+  if (!isRecord(value.reset) || !Array.isArray(value.reset.candidates)) return null;
   if (value.reset.candidates.length > 12) return null;
   if (!oneOf(value.reset.status, RESET_STATUS)) return null;
   const resetAt = nullableInstant(value.reset.atUtc);
@@ -376,8 +373,7 @@ export function projectSubscriptionHttpDiagnostic(
   if (durationSeconds === undefined) return null;
   const primaryUsedPercent = projectOptionalWholeNumber(value.reset.primaryUsedPercent, 100);
   if (primaryUsedPercent === undefined) return null;
-  if (!isPlainRecord(value.policy) || typeof value.policy.preserveNeedsReview !== 'boolean')
-    return null;
+  if (!isRecord(value.policy) || typeof value.policy.preserveNeedsReview !== 'boolean') return null;
   if (!Array.isArray(value.warnings) || !Array.isArray(value.limitations)) return null;
   if (value.limitations.length !== SUBSCRIPTION_HTTP_DIAGNOSTIC_LIMITATIONS.length) return null;
   for (let index = 0; index < SUBSCRIPTION_HTTP_DIAGNOSTIC_LIMITATIONS.length; index += 1) {

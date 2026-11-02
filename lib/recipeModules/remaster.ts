@@ -1,4 +1,3 @@
-import { remasterPolicy } from '../../packages/shared/src/recipePolicies/remaster';
 import { createModuleDirectives, directive, getNumber, getString } from './directiveHelpers';
 import { createRecipeModule, options } from './params';
 import type { RecipeDefinition, RecipeParams } from './types';
@@ -188,7 +187,6 @@ function buildRemasterDirectives(params: RecipeParams) {
 
 export const remasterRecipe: RecipeDefinition = {
   module,
-  policy: remasterPolicy,
   referencePromptFallback: 'Restore and remaster the provided image.',
   /** A restoration edits its source. A reinterpretation renders anew from it as a reference. */
   resolveTask: (task, referenceCount, params) =>

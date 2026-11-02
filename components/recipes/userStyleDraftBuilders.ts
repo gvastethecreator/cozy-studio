@@ -18,6 +18,7 @@ import {
   type StyleLayerFieldId,
 } from './styleLayerComposer';
 import { getStyleRuntimePresetDisplayName, type StyleRuntimePreset } from './styles/runtimeTypes';
+import { isRecord } from '../../packages/shared/src/types';
 
 export const USER_STYLE_DNA_FIELDS: Array<{
   key: UserStyleVisualDnaKey;
@@ -50,10 +51,6 @@ const DEFAULT_VISUAL_DNA: Record<UserStyleVisualDnaKey, string> = {
   rendering_and_quality:
     'Polished finish with clean edges, intentional detail density, and no artifacts.',
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function cleanText(value: unknown, fallback = '') {
   if (typeof value !== 'string') return fallback;

@@ -140,7 +140,3 @@ export function createSqliteUserStyleStore(database?: Database): UserStyleStore 
     },
   };
 }
-
-export function createDefaultUserStyleStore() {
-  return createSqliteUserStyleStore();
-}

@@ -1,5 +1,4 @@
 import { buildGenerationBackgroundInstruction } from '../../packages/shared/src/generationContracts';
-import { characterLabPolicy } from '../../packages/shared/src/recipePolicies/characterLab';
 import type { CharacterLabAction } from '../characterLabCatalog.generated';
 import {
   CHARACTER_LAB_ACTION_PRIORITY,
@@ -288,7 +287,6 @@ function buildCharacterLabDirectives(params: RecipeParams) {
 
 export const characterLabRecipe: RecipeDefinition = {
   module,
-  policy: characterLabPolicy,
   /** The source image plus the extra character identities a group pose needs. */
   ...sequenceReferenceRules,
   attachmentRole: (_params, index) => (index === 0 ? 'input' : 'reference'),

@@ -1,4 +1,5 @@
 import type { GenerationProviderId } from './generationContracts';
+import { isRecord } from './types';
 
 const EXTERNAL_OUTPUT_SOURCE_REGISTRY_VERSION = 'external-output-sources/v1' as const;
 
@@ -73,10 +74,6 @@ export function createDefaultExternalOutputSourceRegistry(): ExternalOutputSourc
     schemaVersion: EXTERNAL_OUTPUT_SOURCE_REGISTRY_VERSION,
     sources: [],
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function cleanString(value: unknown): string | null {

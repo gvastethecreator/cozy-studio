@@ -27,7 +27,7 @@ import {
 import { getCatalogImage, registerCatalogImage } from './catalog';
 import { getDb } from './db/connection';
 import { resolveLibraryPathFromRoot } from './library';
-import { getDefaultLibrary, getLibrary } from './libraries';
+import { ensureDefaultLibrary, getLibrary } from './libraries';
 import { authoringSharp as sharp, type Metadata } from './sharpAuthoringAdapter';
 
 const MIME_FORMAT = {
@@ -433,7 +433,7 @@ async function persistReference(
 ): Promise<StudioReferenceImportResult> {
   const hash = requestHash(validated);
   const database = deps.database ?? getDb();
-  const library = deps.library ?? getDefaultLibrary();
+  const library = deps.library ?? ensureDefaultLibrary();
   if (!library) throw new Error('No studio library registered.');
   const existing = readReceipt(database, requestId);
   if (existing) {

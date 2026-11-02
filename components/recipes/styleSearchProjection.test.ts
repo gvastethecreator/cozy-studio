@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
+import { buildStyleSearchFilters, STYLE_SEARCH_TASK_FILTERS } from './styleSearchProjection';
 import {
-  buildStyleSearchFilters,
-  planStyleSearchPackIds,
-  projectStyleSearchResultsFromIndex,
-  STYLE_SEARCH_TASK_FILTERS,
-} from './styleSearchProjection';
+  resolveStylePresetCatalogSearchPackIds,
+  searchStylePresetCatalogIndex,
+} from './stylePresetManifests';
 
 describe('styleSearchProjection', () => {
   it('normalizes filters and plans pack loading from manifest summaries', () => {
@@ -27,7 +26,7 @@ describe('styleSearchProjection', () => {
       limit: 1,
     });
     expect(
-      planStyleSearchPackIds({
+      resolveStylePresetCatalogSearchPackIds({
         packSummaries: [
           { id: 'pack_01', name: 'Pack 1', presetCount: 1 },
           { id: 'pack_02', name: 'Pack 2', presetCount: 10 },
@@ -39,8 +38,8 @@ describe('styleSearchProjection', () => {
   });
 
   it('projects loaded search-index results through the same filter contract', () => {
-    const results = projectStyleSearchResultsFromIndex({
-      searchIndex: {
+    const results = searchStylePresetCatalogIndex(
+      {
         packs: [{ id: 'pack_01', name: 'Pack 1', presetCount: 2 }],
         totalPresetCount: 2,
         presets: [
@@ -70,8 +69,8 @@ describe('styleSearchProjection', () => {
           },
         ],
       },
-      filters: buildStyleSearchFilters({ query: 'ink', task: 'image_generate' }),
-    });
+      buildStyleSearchFilters({ query: 'ink', task: 'image_generate' }),
+    );
 
     expect(results.map((result) => result.id)).toEqual(['SP01-001']);
   });

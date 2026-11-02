@@ -2,7 +2,6 @@ import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Attachment, AspectRatio } from '../types';
 import { STUDIO_OPEN_SETTINGS_EVENT } from '../lib/studioSettingsDomains';
-import { startViewTransition } from '../utils/transitionUtils';
 import type { ImageEditorDraft } from '../components/ImageEditorModal';
 
 interface UseStudioViewStateProps {
@@ -77,21 +76,21 @@ export function useStudioViewState({
   const [isChatPanelOpen, setIsChatPanelOpen] = useState(false);
 
   const openDashboard = useCallback(() => {
-    startViewTransition(() => setIsDashboardModalOpen(true));
+    setIsDashboardModalOpen(true);
   }, []);
 
   const closeDashboard = useCallback(() => {
-    startViewTransition(() => setIsDashboardModalOpen(false));
+    setIsDashboardModalOpen(false);
   }, []);
 
   const openSettings = useCallback(() => {
     settingsOpenRef.current = true;
-    startViewTransition(() => setIsSettingsModalOpen(true));
+    setIsSettingsModalOpen(true);
   }, []);
 
   const closeSettings = useCallback(() => {
     settingsOpenRef.current = false;
-    startViewTransition(() => setIsSettingsModalOpen(false));
+    setIsSettingsModalOpen(false);
   }, []);
 
   // Surfaces far from this state, such as the empty style catalog, open settings by event.
@@ -117,11 +116,11 @@ export function useStudioViewState({
   }, [closeSettings]);
 
   const openTrash = useCallback(() => {
-    startViewTransition(() => setIsTrashModalOpen(true));
+    setIsTrashModalOpen(true);
   }, []);
 
   const closeTrash = useCallback(() => {
-    startViewTransition(() => setIsTrashModalOpen(false));
+    setIsTrashModalOpen(false);
   }, []);
 
   const openChat = useCallback(() => {
@@ -132,21 +131,17 @@ export function useStudioViewState({
   }, []);
 
   const closeChat = useCallback(() => {
-    startViewTransition(() => setIsChatPanelOpen(false));
+    setIsChatPanelOpen(false);
   }, []);
 
   const openEditor = useCallback((attachment: Attachment, openEditorRoute: () => void) => {
-    startViewTransition(() => {
-      setEditorState({ isOpen: true, image: attachment });
-      openEditorRoute();
-    });
+    setEditorState({ isOpen: true, image: attachment });
+    openEditorRoute();
   }, []);
 
   const closeEditor = useCallback(() => {
-    startViewTransition(() => {
-      setEditorState(INITIAL_EDITOR_STATE);
-      closeOverlay();
-    });
+    setEditorState(INITIAL_EDITOR_STATE);
+    closeOverlay();
   }, [closeOverlay]);
 
   const handleDownloadAndClear = useCallback(async () => {

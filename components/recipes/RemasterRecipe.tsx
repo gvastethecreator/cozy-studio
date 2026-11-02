@@ -12,10 +12,10 @@ import { useRecipeContextRegistration } from '../../hooks/useRecipeContextRegist
 import { RecipeLayout } from './RecipeLayout';
 import { RecipeResults } from './RecipeWorkbenchContext';
 import { ControlDropdown } from './RecipeUI';
+import { getRecipeParameterOptions } from '../../lib/recipeModules';
 import {
   getRecipeModuleUiModel,
   getRecipeNumberDefault,
-  getRecipeOptions,
   getRecipeRange,
   getRecipeStringDefault,
 } from './recipeModuleUi';
@@ -32,12 +32,12 @@ interface RemasterRecipeProps {
 const { module: REMASTER_MODULE, defaults: REMASTER_DEFAULTS } = getRecipeModuleUiModel('remaster');
 
 const CONTROL_OPTIONS = {
-  style: getRecipeOptions(REMASTER_MODULE, 'style'),
-  lighting: getRecipeOptions(REMASTER_MODULE, 'lighting'),
-  camera: getRecipeOptions(REMASTER_MODULE, 'camera'),
-  anatomy: getRecipeOptions(REMASTER_MODULE, 'anatomy'),
-  text: getRecipeOptions(REMASTER_MODULE, 'text'),
-  color: getRecipeOptions(REMASTER_MODULE, 'color'),
+  style: getRecipeParameterOptions(REMASTER_MODULE, 'style'),
+  lighting: getRecipeParameterOptions(REMASTER_MODULE, 'lighting'),
+  camera: getRecipeParameterOptions(REMASTER_MODULE, 'camera'),
+  anatomy: getRecipeParameterOptions(REMASTER_MODULE, 'anatomy'),
+  text: getRecipeParameterOptions(REMASTER_MODULE, 'text'),
+  color: getRecipeParameterOptions(REMASTER_MODULE, 'color'),
 };
 
 const FIDELITY_RANGE = getRecipeRange(REMASTER_MODULE, 'fidelity', { min: 0, max: 100, step: 1 });

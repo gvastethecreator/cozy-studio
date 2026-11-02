@@ -23,6 +23,8 @@ import { resolveStylePreviewImage } from '../../lib/stylePresetVisuals';
 import { DemandMountedGsapDropdown } from '../ui/DemandMountedGsapDropdown';
 
 import {
+  resolveStylePresetCatalogSearchPackIds,
+  searchStylePresetCatalogIndex,
   type StylePresetCatalogSearchIndex,
   type StylePresetCatalogSearchResult,
 } from './stylePresetManifests';
@@ -30,12 +32,7 @@ import {
   STYLE_PRESET_CATALOG_SEARCH_PACK_SUMMARIES,
   loadStylePresetCatalogSearchIndex,
 } from './stylePresetCatalogSearchData';
-import {
-  buildStyleSearchFilters,
-  planStyleSearchPackIds,
-  projectStyleSearchResultsFromIndex,
-  STYLE_SEARCH_TASK_FILTERS,
-} from './styleSearchProjection';
+import { buildStyleSearchFilters, STYLE_SEARCH_TASK_FILTERS } from './styleSearchProjection';
 
 interface StylePresetCatalogSearchSurfaceProps {
   selectedIds?: ReadonlySet<string>;
@@ -100,7 +97,7 @@ function useStylePresetCatalogSearchSurfaceController({
   );
   const packIdsToLoadKey = useMemo(
     () =>
-      planStyleSearchPackIds({
+      resolveStylePresetCatalogSearchPackIds({
         packSummaries: STYLE_PRESET_CATALOG_SEARCH_PACK_SUMMARIES,
         filters,
       }).join('|'),
@@ -138,13 +135,7 @@ function useStylePresetCatalogSearchSurfaceController({
   }, [packIdsToLoadKey, loadAttempt]);
 
   const results = useMemo(
-    () =>
-      searchIndex
-        ? projectStyleSearchResultsFromIndex({
-            searchIndex,
-            filters,
-          })
-        : [],
+    () => (searchIndex ? searchStylePresetCatalogIndex(searchIndex, filters) : []),
     [filters, searchIndex],
   );
 

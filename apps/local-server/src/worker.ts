@@ -39,7 +39,7 @@ import {
 } from '../../../packages/shared/src/workerContracts';
 import { readEditableStudioSettings } from './studioSettingsStore';
 import { resolveJobCatalogContext } from './workerCatalogContext';
-import { SubscriptionHttpError } from './providers/subscriptionHttpError';
+import { SubscriptionHttpError, isAbortError } from './providers/subscriptionHttpError';
 import { subscriptionHttpFailureMetadata } from './providers/subscriptionHttpDiagnostic';
 import { resolveWorkerRuntimeTarget } from './workerRouting';
 import { createWorkerAssetPathing, inferGeneratedAssetMimeType } from './workerAssetPathing';
@@ -98,17 +98,9 @@ export interface CreateWorkerControllerDependencies {
   ensureThumbnailVariant?: typeof ensureThumbnailVariantDefault;
 }
 
-function createAbortError() {
-  return createAbortWorkerError();
-}
-
-function isAbortError(error: unknown) {
-  return error instanceof Error && error.name === 'AbortError';
-}
-
 function throwIfAborted(signal?: AbortSignal) {
   if (signal?.aborted) {
-    throw createAbortError();
+    throw createAbortWorkerError();
   }
 }
 
@@ -587,7 +579,7 @@ export function createWorkerController({
           );
           if (Exit.isFailure(exit) && getJobFn(job.id)?.finalization?.state !== 'completed') {
             const error = Cause.hasInterruptsOnly(exit.cause)
-              ? createAbortError()
+              ? createAbortWorkerError()
               : Cause.squash(exit.cause);
             handleJobFailure(job, error);
           }

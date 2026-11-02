@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
+import { getRecipeParameterOptions } from '../../lib/recipeModules';
 import {
   getRecipeModuleUiModel,
   getRecipeNumberDefault,
   getRecipeNumberOptions,
-  getRecipeOptions,
   getRecipeRange,
   getRecipeStringDefault,
 } from './recipeModuleUi';
@@ -15,7 +15,7 @@ describe('recipeModuleUi', () => {
 
     expect(getRecipeNumberDefault(defaults, 'frames', 3)).toBe(9);
     expect(getRecipeStringDefault(defaults, 'genre', 'Manual')).toBe('Auto-Detect');
-    expect(getRecipeOptions(module, 'lens')).toContain('Anamorphic');
+    expect(getRecipeParameterOptions(module, 'lens')).toContain('Anamorphic');
     expect(getRecipeNumberOptions(module, 'frames')).toEqual([3, 6, 9]);
   });
 

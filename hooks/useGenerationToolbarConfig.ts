@@ -1,5 +1,3 @@
-import { startViewTransition } from '../utils/transitionUtils';
-
 import type { ToolbarProps } from '../components/Toolbar';
 import { resolveProviderMaxInputImages } from '../lib/composerProviderProjection';
 import type { GenerationProviderId } from '../packages/shared/src';
@@ -76,7 +74,7 @@ export function buildGenerationToolbarProps({
   editor,
   sync,
   provider,
-  startTransition = startViewTransition,
+  startTransition = (callback) => callback(),
 }: BuildGenerationToolbarPropsArgs): ToolbarProps {
   return {
     generationConfig: config.generationConfig,

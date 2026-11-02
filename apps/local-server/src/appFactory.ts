@@ -40,7 +40,7 @@ import { getCurrentEventRevision, publishEvent, subscribeEvents } from './events
 import { initStudio } from './init';
 import { inspectLibrary, resolvePublicLibraryPath, toPublicAssetUrl } from './library';
 import {
-  getDefaultLibrary,
+  ensureDefaultLibrary,
   listLibraries,
   registerLibrary,
   registerOutputDirectory,
@@ -129,7 +129,7 @@ import { createAnimationSequenceService } from './animationSequenceService';
 import { createAnimationSequenceRunParticipant } from './animationSequenceRunReconciler';
 import { createWorkflowRunReconciler } from './workflowRunReconciler';
 import { createStudioReadinessLifecycle } from './studioReadinessLifecycle';
-import { createDefaultUserStyleStore } from './sqliteUserStyles';
+import { createSqliteUserStyleStore } from './sqliteUserStyles';
 import type { UserStyleStore } from './userStyles';
 import { createLocalApiSecurityMiddleware } from './localApiSecurity';
 import { createUiStaticHandler, resolveUiDistDir, uiDistIsReady } from './uiStaticRoutes';
@@ -254,7 +254,7 @@ export async function createStudioApp(
   const assetStore = options.dependencies?.assetStore ?? defaultAssetStore;
   const logStore = options.dependencies?.logStore ?? defaultLogStore;
   const catalogStore = options.dependencies?.catalogStore ?? (await createDefaultCatalogStore());
-  const userStyleStore = options.dependencies?.userStyleStore ?? createDefaultUserStyleStore();
+  const userStyleStore = options.dependencies?.userStyleStore ?? createSqliteUserStyleStore();
   const extensionStore =
     options.dependencies?.extensionStore ?? createExtensionStore(resolveExtensionSources());
   const appLogger = options.dependencies?.logger ?? log;
@@ -436,7 +436,7 @@ export async function createStudioApp(
   );
 
   const readLibraryContext = (workspaceId?: string) => {
-    const library = getDefaultLibrary();
+    const library = ensureDefaultLibrary();
     const settings = readEditableStudioSettings(settingsStorage);
     const destination = settings.outputDirectoryId ? getLibrary(settings.outputDirectoryId) : null;
     if (settings.outputDirectoryId && !destination)
@@ -479,7 +479,7 @@ export async function createStudioApp(
   // One service per workflow: its run locks belong to that instance, so the
   // routes and the run reconciler must share it.
   const workflowServiceOptions = {
-    readLibraryDir: () => getDefaultLibrary().path,
+    readLibraryDir: () => ensureDefaultLibrary().path,
     readOutputContext: readLibraryContext,
     getCatalogImage: (imageId: string) => catalogStore.getCatalogImage(imageId),
   };
@@ -547,7 +547,7 @@ export async function createStudioApp(
           libraryDir,
           libraryContext?.libraryId,
         ),
-      readLibraryDir: () => getDefaultLibrary().path,
+      readLibraryDir: () => ensureDefaultLibrary().path,
       readLibraryContext,
       readEditableSettings: () => readEditableStudioSettings(settingsStorage),
       resolveBootstrapExecution: (providerId) =>
@@ -605,9 +605,9 @@ export async function createStudioApp(
       createHandoffId: () => `handoff-${randomUUID()}`,
       processReferences: (handoffId, prompt, references, libraryDir) =>
         processReferences(handoffId, prompt, references, libraryDir),
-      readLibraryDir: () => getDefaultLibrary().path,
+      readLibraryDir: () => ensureDefaultLibrary().path,
       toPublicAssetUrl: (filePath) => {
-        const library = getDefaultLibrary();
+        const library = ensureDefaultLibrary();
         return toPublicAssetUrl(filePath, { libraryId: library.id, rootPath: library.path });
       },
       isReferenceProcessingError: (error): error is ReferenceProcessingError =>
@@ -652,7 +652,7 @@ export async function createStudioApp(
       getLibrary,
       getJob,
       readLibraryContext,
-      readLibraryDir: () => getDefaultLibrary().path,
+      readLibraryDir: () => ensureDefaultLibrary().path,
       publishEvent,
     }),
   );
@@ -664,7 +664,7 @@ export async function createStudioApp(
       readSettings: () => readEditableStudioSettings(settingsStorage),
       importReference: (input) =>
         guardMutation(() => {
-          const library = getDefaultLibrary();
+          const library = ensureDefaultLibrary();
           return importStudioReference(input, {
             database: getDb(),
             library: { id: library.id, path: library.path },
@@ -672,7 +672,7 @@ export async function createStudioApp(
         }),
       importReferenceFile: (input, allowedRoots) =>
         guardMutation(() => {
-          const library = getDefaultLibrary();
+          const library = ensureDefaultLibrary();
           return importStudioReferenceFile(input, allowedRoots, {
             database: getDb(),
             library: { id: library.id, path: library.path },

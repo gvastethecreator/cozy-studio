@@ -4,13 +4,12 @@ import { cameraRecipe } from './camera';
 import { characterRecipe } from './character';
 import { characterLabRecipe } from './characterLab';
 import { cinematicRecipe } from './cinematic';
-import { defaultRecipe } from './default';
 import { remasterRecipe } from './remaster';
 import { spriteAtlasRecipe } from './spriteAtlas';
 import { spritesheetRecipe } from './spritesheet';
 import { stylesRecipe } from './styles';
 import { timelineRecipe } from './timeline';
-import type { RecipeBehavior, RecipeDefinition, RecipeModule } from './types';
+import type { RecipeDefinition, RecipeModule } from './types';
 
 const RECIPE_DEFINITIONS: Record<RegisteredRecipeId, RecipeDefinition> = {
   'animation-sequence': animationSequenceRecipe,
@@ -41,9 +40,6 @@ const RECIPE_LIST_ORDER: RegisteredRecipeId[] = [
 export const RECIPE_MODULES = Object.fromEntries(
   Object.entries(RECIPE_DEFINITIONS).map(([recipeId, definition]) => [recipeId, definition.module]),
 ) as Record<RegisteredRecipeId, RecipeModule>;
-
-/** Behavior for a request without a Recipe Module. */
-export const DEFAULT_RECIPE: RecipeBehavior = defaultRecipe;
 
 export function getRecipeBehavior(recipeId: string | null | undefined): RecipeDefinition | null {
   return recipeId && Object.hasOwn(RECIPE_DEFINITIONS, recipeId)

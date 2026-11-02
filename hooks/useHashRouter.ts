@@ -160,12 +160,9 @@ export function useHashRouter() {
     pendingRouteRef.current = nextRoute;
     document.documentElement.dataset.transitionType = 'route';
     document.documentElement.dataset.routeDirection = direction;
-    const transition = startViewTransition(
-      () => {
-        if (pendingRouteRef.current === nextRoute) applyRoute();
-      },
-      { useNative: true },
-    );
+    const transition = startViewTransition(() => {
+      if (pendingRouteRef.current === nextRoute) applyRoute();
+    });
     const clearTransition = () => {
       pendingRouteRef.current = null;
       if (document.documentElement.dataset.transitionType !== 'route') return;

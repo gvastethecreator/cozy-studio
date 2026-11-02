@@ -1,3 +1,4 @@
+import { isRecord } from './types';
 const RECIPE_PROVIDER_DIRECTIVES_PROTOCOL = 'recipe-provider-directives/v1' as const;
 
 export interface RecipeProviderDirective {
@@ -25,10 +26,6 @@ export interface CreateRecipeProviderDirectivesInput {
 
 function cleanString(value: string) {
   return value.trim().replace(/\s+/g, ' ');
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 function cleanDirective(directive: RecipeProviderDirective) {

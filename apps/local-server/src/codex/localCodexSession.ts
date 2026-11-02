@@ -8,6 +8,7 @@ import type {
 } from '../../../../packages/shared/src';
 import { CodexRpcClient } from './rpcClient';
 import { extractUsageSnapshot, pickRateLimitSnapshot } from './rateLimitUsage';
+import { isRecord } from '../../../../packages/shared/src/types';
 
 export interface CodexRpcTransport {
   connect(): Effect.Effect<void, ProviderFailure>;
@@ -60,10 +61,6 @@ type CodexAccountRecord = {
   planType?: unknown;
 };
 type AccountReadResponse = { account: CodexAccountRecord | null };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 function isCodexAccountType(value: unknown): value is CodexAccountType {
   return (

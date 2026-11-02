@@ -1,4 +1,3 @@
-import { cinematicPolicy } from '../../packages/shared/src/recipePolicies/cinematic';
 import {
   chosenOption,
   createModuleDirectives,
@@ -312,7 +311,6 @@ function buildCinematicDirectives(params: RecipeParams) {
 
 export const cinematicRecipe: RecipeDefinition = {
   module,
-  policy: cinematicPolicy,
   referenceInstruction: () => 'Cast, setting, and look reference for every panel.',
   directives: (params) => buildCinematicDirectives(params),
 };

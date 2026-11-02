@@ -105,10 +105,6 @@ export function getStyleThumbnailCatalog(): Readonly<Record<string, string>> {
   return styleCardThumbnails;
 }
 
-export function resolveStyleDefaultImageThumbnail(presetId: string) {
-  return getStyleThumbnail(presetId);
-}
-
 export function resolveStyleDefaultImageVariantThumbnails(
   presetId: string,
   getThumbnail: (key: string) => string | undefined = getStyleThumbnail,

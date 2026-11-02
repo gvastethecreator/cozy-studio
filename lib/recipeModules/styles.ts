@@ -1,4 +1,3 @@
-import { stylesPolicy } from '../../packages/shared/src/recipePolicies/styles';
 import {
   createModuleDirectives,
   directive,
@@ -255,7 +254,6 @@ function stylesReferenceInstruction(params: RecipeParams, index: number) {
 
 export const stylesRecipe: RecipeDefinition = {
   module,
-  policy: stylesPolicy,
   ...stylesReferenceRules,
   referencePromptFallback: 'Apply the selected style using the provided reference image.',
   /** Styles that keep the reference subject and framing vary like a fixed-layout workflow. */

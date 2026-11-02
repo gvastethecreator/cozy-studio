@@ -16,6 +16,7 @@ export { ExternalProviderImageError } from './providerEffect';
 import type { CompiledProviderInput } from '../../../../packages/shared/src';
 import type { TurnResult } from '../codex/turn';
 import { resolveLibraryPath } from '../library';
+import { isAbortError } from './subscriptionHttpError';
 import {
   getExternalProviderRetryDelayMs,
   isRetryableProviderStatus,
@@ -146,10 +147,6 @@ export function readResponseTextLimited(
       return text;
     }),
   );
-}
-
-function isAbortError(error: unknown) {
-  return error instanceof Error && error.name === 'AbortError';
 }
 
 export function fetchExternalProviderWithRetry({

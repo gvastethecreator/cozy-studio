@@ -39,10 +39,6 @@ export function getRecipeNumberDefault(
   return typeof value === 'number' ? value : fallback;
 }
 
-export function getRecipeOptions(module: RecipeModule, parameterId: string) {
-  return getRecipeParameterOptions(module, parameterId);
-}
-
 export function getRecipeNumberOptions(module: RecipeModule, parameterId: string) {
   return getRecipeParameterOptions(module, parameterId).reduce<number[]>((acc, option) => {
     const num = Number(option);

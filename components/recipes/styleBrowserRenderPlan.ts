@@ -4,6 +4,7 @@ import {
   type StyleRuntimePack,
   type StyleRuntimePreset,
 } from './styles/runtimeTypes';
+import { isRecord } from '../../packages/shared/src/types';
 
 export type StyleBrowserSortOrder =
   | 'source'
@@ -107,10 +108,6 @@ function compareStyleCategoryNames(first: string, second: string) {
     sensitivity: 'base',
     numeric: true,
   });
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function parseDateValue(value: unknown): number | null {

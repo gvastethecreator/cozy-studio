@@ -5,7 +5,8 @@ import { useRecipeContextRegistration } from '../../hooks/useRecipeContextRegist
 import { RecipeLayout } from './RecipeLayout';
 import { RecipeResults } from './RecipeWorkbenchContext';
 import { ControlDropdown } from './RecipeUI';
-import { getRecipeModuleUiModel, getRecipeOptions, getRecipeStringDefault } from './recipeModuleUi';
+import { getRecipeParameterOptions } from '../../lib/recipeModules';
+import { getRecipeModuleUiModel, getRecipeStringDefault } from './recipeModuleUi';
 
 interface CharacterSheetRecipeProps {
   config: ImageGenerationConfig;
@@ -20,10 +21,10 @@ const { module: CHARACTER_MODULE, defaults: CHARACTER_DEFAULTS } =
   getRecipeModuleUiModel('character');
 
 const CONTROL_OPTIONS = {
-  layout: getRecipeOptions(CHARACTER_MODULE, 'layout'),
-  style: getRecipeOptions(CHARACTER_MODULE, 'style'),
-  shot: getRecipeOptions(CHARACTER_MODULE, 'shot'),
-  focus: getRecipeOptions(CHARACTER_MODULE, 'focus'),
+  layout: getRecipeParameterOptions(CHARACTER_MODULE, 'layout'),
+  style: getRecipeParameterOptions(CHARACTER_MODULE, 'style'),
+  shot: getRecipeParameterOptions(CHARACTER_MODULE, 'shot'),
+  focus: getRecipeParameterOptions(CHARACTER_MODULE, 'focus'),
 };
 
 const DEFAULT_PARAMS = {

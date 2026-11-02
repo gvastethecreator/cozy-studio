@@ -6,14 +6,11 @@ import type { Attachment, ImageGenerationConfig, ImageSize, RecipeId } from '../
 import { normalizeImageGenRatio } from './imageGenSizing';
 import { parseRecipeIdFromContext } from '../lib/recipeShellMetadata';
 import { isRegisteredRecipeId } from '../lib/recipeIds';
+import { isRecord } from '../packages/shared/src/types';
 
 type RecordLike = Record<string, unknown>;
 
 const VALID_IMAGE_SIZES = new Set<ImageSize>(['512px', '1K', '2K', '4K']);
-
-function isRecordLike(value: unknown): value is RecordLike {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
 
 function readString(record: RecordLike | null, key: string) {
   const value = record?.[key];
@@ -32,7 +29,7 @@ function readNumber(record: RecordLike | null, key: string) {
 
 function readRecipeParams(record: RecordLike | null) {
   const value = record?.recipeParams;
-  return isRecordLike(value) ? value : null;
+  return isRecord(value) ? value : null;
 }
 
 function normalizeImageSize(value: unknown): ImageSize {
@@ -60,7 +57,7 @@ function normalizeRecipeId(candidate: unknown, legacyRecipeContext: string): Rec
 function readSourceAttachments(record: RecordLike | null, catalogId: string): Attachment[] {
   const assets = Array.isArray(record?.attachments) ? record.attachments : [];
   return assets.flatMap((asset, index) => {
-    if (!isRecordLike(asset) || (asset.role !== 'input' && asset.role !== 'reference')) return [];
+    if (!isRecord(asset) || (asset.role !== 'input' && asset.role !== 'reference')) return [];
     const localPath = readString(asset, 'localPath').trim();
     const sourceUrl = readString(asset, 'sourceUrl').trim();
     const dataUrl = readString(asset, 'dataUrl').trim();
@@ -90,7 +87,7 @@ export function getCatalogRegenerateIssue(config: ImageGenerationConfig) {
 }
 
 export function buildGenerationConfigFromCatalogImage(asset: CatalogImage): ImageGenerationConfig {
-  const storedConfig = isRecordLike(asset.generationConfig) ? asset.generationConfig : null;
+  const storedConfig = isRecord(asset.generationConfig) ? asset.generationConfig : null;
   const parsedPrompt = parsePromptTransport(asset.prompt);
   const recipeIdCandidate =
     readString(storedConfig, 'recipeId') || asset.recipeId || parsedPrompt.recipeId;

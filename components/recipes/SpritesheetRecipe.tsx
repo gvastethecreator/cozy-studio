@@ -18,7 +18,8 @@ import { RATIO_MAP } from '../../constants';
 import { useRecipeContextRegistration } from '../../hooks/useRecipeContextRegistration';
 import { RecipeLayout } from './RecipeLayout';
 import { ControlDropdown, MinimalColorPicker } from './RecipeUI';
-import { getRecipeModuleUiModel, getRecipeOptions, getRecipeStringDefault } from './recipeModuleUi';
+import { getRecipeParameterOptions } from '../../lib/recipeModules';
+import { getRecipeModuleUiModel, getRecipeStringDefault } from './recipeModuleUi';
 
 interface SpritesheetRecipeProps {
   config: ImageGenerationConfig;
@@ -34,11 +35,11 @@ const { module: SPRITESHEET_MODULE, defaults: SPRITESHEET_DEFAULTS } =
   getRecipeModuleUiModel('spritesheet');
 
 const CONTROL_OPTIONS = {
-  view: getRecipeOptions(SPRITESHEET_MODULE, 'view'),
-  style: getRecipeOptions(SPRITESHEET_MODULE, 'style'),
-  grid: getRecipeOptions(SPRITESHEET_MODULE, 'grid'),
-  background: getRecipeOptions(SPRITESHEET_MODULE, 'background'),
-  dividers: getRecipeOptions(SPRITESHEET_MODULE, 'dividers'),
+  view: getRecipeParameterOptions(SPRITESHEET_MODULE, 'view'),
+  style: getRecipeParameterOptions(SPRITESHEET_MODULE, 'style'),
+  grid: getRecipeParameterOptions(SPRITESHEET_MODULE, 'grid'),
+  background: getRecipeParameterOptions(SPRITESHEET_MODULE, 'background'),
+  dividers: getRecipeParameterOptions(SPRITESHEET_MODULE, 'dividers'),
 };
 
 const DEFAULT_PARAMS = {

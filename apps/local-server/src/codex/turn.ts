@@ -29,6 +29,7 @@ import {
 import type { JsonRpcMessage } from './rpcClient';
 import type { JobExecutionOptions } from '../../../../packages/shared/src';
 import type { CodexImagegenCompiledInput } from '../providers/codexProvider';
+import { isAbortError } from '../providers/subscriptionHttpError';
 
 export interface TurnParams {
   prompt: string;
@@ -81,10 +82,6 @@ function createAbortError() {
   const error = new Error('Operation cancelled by user');
   error.name = 'AbortError';
   return error;
-}
-
-function isAbortError(error: unknown) {
-  return error instanceof Error && error.name === 'AbortError';
 }
 
 function throwIfAborted(signal?: AbortSignal) {

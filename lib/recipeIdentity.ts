@@ -1,15 +1,12 @@
 import type { ImageGenerationConfig } from '../types';
 import { isRegisteredRecipeId, type RegisteredRecipeId } from './recipeIds';
+import { isRecord } from '../packages/shared/src/types';
 
 export type { RegisteredRecipeId } from './recipeIds';
 
 export interface RecipeIdentity {
   recipeId: RegisteredRecipeId;
   recipeParams: Record<string, unknown>;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 export function resolveRecipeIdentity(

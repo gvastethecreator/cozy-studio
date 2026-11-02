@@ -2,7 +2,12 @@ import type {
   ImageConversionOptions,
   ImageConversionResult,
 } from '../../packages/shared/src/imageConversion';
-import { getStudioApiBase, readLocalStudioErrorMessage, request } from './http';
+import {
+  getStudioApiBase,
+  readAttachmentFilename,
+  readLocalStudioErrorMessage,
+  request,
+} from './http';
 
 export function convertCatalogImage(imageId: string, options: ImageConversionOptions) {
   return request<ImageConversionResult>(`/api/catalog/${encodeURIComponent(imageId)}/convert`, {
@@ -25,18 +30,10 @@ export async function downloadConvertedCatalogImage(
   );
   if (!response.ok)
     throw new Error(readLocalStudioErrorMessage(await response.text(), response.status));
-  const disposition = response.headers.get('Content-Disposition') ?? '';
-  const encodedName = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1];
-  const plainName = /filename="([^"]+)"/i.exec(disposition)?.[1];
-  let filename = plainName ?? `converted.${options.format === 'jpeg' ? 'jpg' : options.format}`;
-  if (encodedName) {
-    try {
-      filename = decodeURIComponent(encodedName);
-    } catch {
-      /* Use the ASCII filename. */
-    }
-  }
-  filename = filename.split(/[\\/]/).pop() || 'converted.png';
+  const filename = readAttachmentFilename(
+    response,
+    `converted.${options.format === 'jpeg' ? 'jpg' : options.format}`,
+  );
   const blob = await response.blob();
   const sourceBytes = Number(response.headers.get('X-Source-Bytes'));
   return {

@@ -267,8 +267,6 @@ export function useStudioShell(): StudioShellController {
 
   const { exportLegacyWorkspaceSnapshot } = useVaultTransfer({
     catalogView: activeCatalog.view,
-    addToast,
-    log,
   });
 
   useGenerationQueueController({

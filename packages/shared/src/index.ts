@@ -26,3 +26,4 @@ export * from './workerContracts';
 export * from './subscriptionHttpDiagnostic';
 export * from './imageConversion';
 export * from './styleAuthoring';
+export * from './libraryArchive';

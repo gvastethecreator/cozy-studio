@@ -1,6 +1,9 @@
 import { createMcpRoutes } from './mcpRoutes';
 import { randomUUID } from 'node:crypto';
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
+import { createLibraryArchiveRoutes } from './libraryArchiveRoutes';
+import { LOCAL_EXTENSION_BODY_LIMIT } from './localExtensionInstall';
 import { getCodexWsUrl, getEnvLocalPath, getSettings, hasEnvLocalFile } from './config';
 import { createCheckingCodexRuntimeReport, readCodexRuntimeDoctor } from './codexRuntimeDoctor';
 import { isCodexHttpCredentialReady } from './auth/tokens';
@@ -280,6 +283,10 @@ export async function createStudioApp(
   );
 
   let activeMutations = 0;
+  const standardBodyLimit = bodyLimit({ maxSize: LOCAL_EXTENSION_BODY_LIMIT });
+  app.use('/api/*', (c, next) =>
+    c.req.path === '/api/workspaces/import' ? next() : standardBodyLimit(c, next),
+  );
   const updates = createRepositoryUpdates({
     restart: options.restart,
     isBusy: () => activeMutations > 0 || listRecoverableJobs().length > 0,
@@ -672,6 +679,7 @@ export async function createStudioApp(
     }),
   );
 
+  app.route('/api/workspaces', createLibraryArchiveRoutes({ publishEvent }));
   app.route(
     '/api/workspaces',
     createWorkspaceRoutes({

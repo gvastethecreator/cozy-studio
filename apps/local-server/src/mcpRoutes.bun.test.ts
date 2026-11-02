@@ -15,6 +15,11 @@ import { Database } from 'bun:sqlite';
 import { describe, expect, it } from 'bun:test';
 import { Hono } from 'hono';
 import sharp from 'sharp';
+import JSZip from 'jszip';
+import { createLibraryArchiveRoutes } from './libraryArchiveRoutes';
+import { createWorkspaceInDb } from './db/workspaces';
+import { createCatalogCollection } from './catalogCollections';
+import { libraryArchiveManifest } from '../../../packages/shared/src/libraryArchive';
 import {
   referenceImportResult,
   STUDIO_REFERENCE_IMPORT_MAX_BASE64_CHARS,
@@ -658,6 +663,346 @@ describe('registerCatalogImage filing', () => {
       expect(listCatalogTags('default', database)).toMatchObject([
         { name: 'cover', imageCount: 2 },
       ]);
+    } finally {
+      database.close();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('Library archives', () => {
+  it('round trips originals and workspace organization with portable metadata and new identities', async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), 'studio-library-archive-'));
+    const database = openLibrary(path.join(root, 'library.sqlite'), root);
+    try {
+      const workspace = createWorkspaceInDb(database, { name: 'Sprites', sortOrder: 'oldest' });
+      const png = await sharp({
+        create: { width: 2, height: 2, channels: 4, background: '#aa3300' },
+      })
+        .png()
+        .toBuffer();
+      const source = ['a', 'b', 'missing'].map((name, index) => {
+        const filePath = path.join(root, `${name}.png`);
+        if (name !== 'missing') writeFileSync(filePath, png);
+        return registerCatalogImage(
+          {
+            libraryId: LIBRARY_ID,
+            workspaceId: workspace.id,
+            filePath,
+            mimeType: 'image/png',
+            width: 2,
+            height: 2,
+            batchId: 'source-batch',
+            isFavorite: index === 0,
+            createdAt: '2024-01-02T03:04:05.000Z',
+            tags: ['boss'],
+            generationConfig: {
+              prompt: 'A boss',
+              executionReasoningEffort: 'high',
+              providerId: 'chatgpt',
+              apiKey: 'private-value',
+              filePath: 'C:/private/source.png',
+              recipeParams: {
+                layout: 'grid',
+                selectedStyles: [{ presetId: 'ink', presetName: 'Ink', strength: 0.5 }],
+                nested: {
+                  localPath: 'C:/private/nested.png',
+                  token: 'private-token',
+                  color: 'red',
+                },
+              },
+              attachments: [
+                {
+                  name: 'C:/private/source.png',
+                  role: 'input',
+                  strength: 0.7,
+                  localPath: 'C:/private/source.png',
+                  sourceUrl: 'file:///private/source.png',
+                  dataUrl: 'private-data',
+                },
+              ],
+            },
+          },
+          database,
+        );
+      });
+      database
+        .query('UPDATE catalog_tags SET color = ? WHERE workspace_id = ?')
+        .run('#aa3300', workspace.id);
+      database
+        .query('INSERT INTO catalog_tags (workspace_id, name, color) VALUES (?, ?, ?)')
+        .run(workspace.id, 'unused', '#00aa55');
+      createCatalogCollection(
+        { workspaceId: workspace.id, name: 'Picks', emoji: '⭐', imageIds: [source[0].id] },
+        database,
+      );
+      createCatalogCollection({ workspaceId: workspace.id, name: 'Empty', imageIds: [] }, database);
+      const sourceRows = database.query('SELECT * FROM catalog_images ORDER BY id').all();
+      const events: unknown[] = [];
+      const app = new Hono().route(
+        '/api/workspaces',
+        createLibraryArchiveRoutes({
+          database,
+          library: { id: LIBRARY_ID, path: root },
+          publishEvent: (type, payload) => events.push({ type, payload }),
+        }),
+      );
+      expect((await app.request('/api/workspaces/unknown/export')).status).toBe(404);
+      const response = await app.request(`/api/workspaces/${workspace.id}/export`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('X-Archive-Images')).toBe('2');
+      expect(response.headers.get('X-Archive-Missing')).toBe('1');
+      const archive = Buffer.from(await response.arrayBuffer());
+      const zip = await JSZip.loadAsync(archive, { checkCRC32: true });
+      const manifest = libraryArchiveManifest.parse(
+        JSON.parse(await zip.file('manifest.json')!.async('string')),
+      );
+      expect(manifest.missing).toEqual([{ id: source[2].id, reason: 'file_missing' }]);
+      expect(JSON.stringify(manifest)).not.toContain('private');
+      expect(manifest.images[0].generationConfig.recipeParams).toEqual({
+        layout: 'grid',
+        selectedStyles: [{ presetId: 'ink', presetName: 'Ink', strength: 0.5 }],
+        nested: { color: 'red' },
+      });
+      const upload = () =>
+        app.request('/api/workspaces/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/zip' },
+          body: new Uint8Array(archive),
+        });
+      const importedResponse = await upload();
+      expect(importedResponse.status).toBe(201);
+      const result = await importedResponse.json();
+      expect(result).toMatchObject({
+        imported: 2,
+        skipped: [],
+        workspace: { name: 'Sprites (imported)', sortOrder: 'oldest' },
+        missing: manifest.missing,
+      });
+      expect(result.workspace.id).not.toBe(workspace.id);
+      const rows = (
+        database
+          .query('SELECT id FROM catalog_images WHERE workspace_id = ?')
+          .all(result.workspace.id) as { id: string }[]
+      ).map(({ id }) => getCatalogImage(id, database)!);
+      expect(rows).toHaveLength(2);
+      expect(rows.filter((row) => row.isFavorite)).toHaveLength(1);
+      expect(new Set(rows.map((row) => row.batchId)).size).toBe(1);
+      for (const row of rows) {
+        expect(source.map((item) => item.id)).not.toContain(row.id);
+        expect(row.batchId).not.toBe('source-batch');
+        expect(row.createdAt).toBe('2024-01-02T03:04:05.000Z');
+        expect(row.providerId).toBe('chatgpt');
+        expect(row.tags).toEqual(['boss']);
+        expect(
+          row.filePath.startsWith(path.join(root, 'outputs', 'imports', result.workspace.id)),
+        ).toBe(true);
+        expect(readFileSync(row.filePath)).toEqual(png);
+        expect(row.jobId).toBeNull();
+        expect(JSON.stringify(row.generationConfig)).not.toContain('localPath');
+      }
+      expect(
+        listCatalogTags(result.workspace.id, database)
+          .map(({ name, color }) => ({ name, color }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      ).toEqual([
+        { name: 'boss', color: '#aa3300' },
+        { name: 'unused', color: '#00aa55' },
+      ]);
+      const collections = listCatalogCollections(result.workspace.id, database);
+      expect(collections.find((collection) => collection.name === 'Empty')?.imageCount).toBe(0);
+      const picks = collections.find((collection) => collection.name === 'Picks')!;
+      expect(picks).toMatchObject({ emoji: '⭐', imageCount: 1 });
+      expect(
+        database
+          .query('SELECT image_id FROM catalog_collection_images WHERE collection_id = ?')
+          .get(picks.id),
+      ).toEqual({ image_id: rows.find((row) => row.isFavorite)!.id });
+      const second = await (await upload()).json();
+      const secondBatch = database
+        .query('SELECT batch_id FROM catalog_images WHERE workspace_id = ? LIMIT 1')
+        .get(second.workspace.id) as { batch_id: string };
+      expect(secondBatch.batch_id).not.toBe(rows[0].batchId);
+      expect(
+        database
+          .query('SELECT * FROM catalog_images WHERE workspace_id = ? ORDER BY id')
+          .all(workspace.id),
+      ).toEqual(sourceRows);
+      expect(readFileSync(source[0].filePath)).toEqual(png);
+      expect(events).toContainEqual({
+        type: 'catalog.batch_changed',
+        payload: {
+          action: 'import',
+          changedCount: 2,
+          scope: { kind: 'workspace', workspaceId: result.workspace.id },
+        },
+      });
+    } finally {
+      database.close();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects hostile ZIP structure, CRC corruption and forged expansion sizes without durable writes; skips invalid images', async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), 'studio-library-hostile-'));
+    const database = openLibrary(path.join(root, 'library.sqlite'), root);
+    try {
+      const app = new Hono().route(
+        '/api/workspaces',
+        createLibraryArchiveRoutes({ database, library: { id: LIBRARY_ID, path: root } }),
+      );
+      const manifest = {
+        format: 'cozy-studio.library',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        studioVersion: '1.0.0',
+        workspace: { name: 'Hostile', sortOrder: 'newest' },
+        tags: [],
+        collections: [],
+        missing: [],
+        images: [
+          {
+            id: 'a',
+            file: 'images/a.png',
+            mimeType: 'image/png',
+            width: 1,
+            height: 1,
+            prompt: null,
+            negativePrompt: null,
+            aspectRatio: null,
+            imageSize: null,
+            recipeId: null,
+            batchId: null,
+            tags: [],
+            isFavorite: false,
+            createdAt: new Date().toISOString(),
+            providerId: null,
+            generationConfig: {},
+          },
+        ],
+      };
+      const makeZip = (image: Buffer = ONE_BY_ONE_PNG, payload: unknown = manifest) =>
+        new JSZip()
+          .file('manifest.json', JSON.stringify(payload), { createFolders: false })
+          .file('images/a.png', image, { createFolders: false });
+      const baseline = database.query('SELECT * FROM workspaces').all();
+      const upload = (bytes: Buffer) =>
+        app.request('/api/workspaces/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/zip' },
+          body: new Uint8Array(bytes),
+        });
+      const rejected = async (bytes: Buffer) => {
+        const response = await upload(bytes);
+        expect(response.status).toBe(400);
+        expect(database.query('SELECT * FROM workspaces').all()).toEqual(baseline);
+        expect(countRows(database, 'catalog_images')).toBe(0);
+        expect(existsSync(path.join(root, 'outputs'))).toBe(false);
+        return response.json();
+      };
+      await rejected(Buffer.from('not a ZIP'));
+      for (const name of ['../evil.png', 'images/../../x.png', '/evil.png', 'C:/evil.png']) {
+        await rejected(
+          await makeZip()
+            .file(name, ONE_BY_ONE_PNG, { createFolders: false })
+            .generateAsync({ type: 'nodebuffer' }),
+        );
+      }
+      await rejected(
+        await makeZip()
+          .file('images/link.png', 'target', { unixPermissions: 0o120777, createFolders: false })
+          .generateAsync({ type: 'nodebuffer', platform: 'UNIX' }),
+      );
+      await rejected(
+        await makeZip(ONE_BY_ONE_PNG, { ...manifest, format: 'legacy.snapshot' }).generateAsync({
+          type: 'nodebuffer',
+        }),
+      );
+      await rejected(
+        await makeZip(ONE_BY_ONE_PNG, {
+          ...manifest,
+          images: [...manifest.images, ...manifest.images],
+        }).generateAsync({ type: 'nodebuffer' }),
+      );
+      await rejected(
+        await makeZip()
+          .file('images/extra.png', ONE_BY_ONE_PNG, { createFolders: false })
+          .generateAsync({ type: 'nodebuffer' }),
+      );
+      const corrupt = await makeZip().generateAsync({ type: 'nodebuffer' });
+      corrupt[corrupt.indexOf(ONE_BY_ONE_PNG)] ^= 1;
+      await rejected(corrupt);
+      const oversizedImage = Buffer.alloc(64 * 1024 * 1024 + 1);
+      const oversizedDeflate = await makeZip(oversizedImage).generateAsync({
+        type: 'nodebuffer',
+        compression: 'DEFLATE',
+      });
+      const bomb = Buffer.from(oversizedDeflate);
+      for (let cursor = 0; cursor < bomb.length - 46; cursor++) {
+        const signature = bomb.readUInt32LE(cursor);
+        if (
+          signature === 0x04034b50 &&
+          bomb.readUInt16LE(cursor + 26) === 12 &&
+          bomb.subarray(cursor + 30, cursor + 42).toString() === 'images/a.png'
+        )
+          bomb.writeUInt32LE(1, cursor + 22);
+        if (
+          signature === 0x02014b50 &&
+          bomb.readUInt16LE(cursor + 28) === 12 &&
+          bomb.subarray(cursor + 46, cursor + 58).toString() === 'images/a.png'
+        )
+          bomb.writeUInt32LE(1, cursor + 24);
+      }
+      expect(await rejected(bomb)).toEqual({
+        error: 'ZIP entry cannot be decompressed within the size limit.',
+      });
+      const validPng = await sharp({
+        create: { width: 2, height: 2, channels: 4, background: '#112233' },
+      })
+        .png()
+        .toBuffer();
+      const fileNames = () =>
+        readdirSync(root, { recursive: true, withFileTypes: true })
+          .filter((entry) => entry.isFile())
+          .map((entry) => path.join(entry.parentPath, entry.name))
+          .sort();
+      const beforeFiles = fileNames();
+      database.run(`CREATE TRIGGER reject_archive_insert BEFORE INSERT ON catalog_images
+        BEGIN SELECT RAISE(ABORT, 'Archive rollback probe'); END`);
+      const rolledBack = await upload(
+        await makeZip(validPng).generateAsync({ type: 'nodebuffer' }),
+      );
+      expect(rolledBack.status).toBe(500);
+      expect(database.query('SELECT * FROM workspaces').all()).toEqual(baseline);
+      expect(countRows(database, 'catalog_images')).toBe(0);
+      expect(fileNames()).toEqual(beforeFiles);
+      for (const oversized of [
+        await makeZip(oversizedImage).generateAsync({ type: 'nodebuffer', compression: 'STORE' }),
+        oversizedDeflate,
+      ]) {
+        const skippedResponse = await upload(oversized);
+        expect(skippedResponse.status).toBe(201);
+        expect(await skippedResponse.json()).toMatchObject({
+          imported: 0,
+          skipped: [{ file: 'images/a.png', reason: 'Exceeds the 64 MiB image limit.' }],
+        });
+        expect(countRows(database, 'catalog_images')).toBe(0);
+        expect(fileNames()).toEqual(beforeFiles);
+      }
+      database.run('DROP TRIGGER reject_archive_insert');
+      const invalid = await upload(
+        await makeZip(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>')).generateAsync({
+          type: 'nodebuffer',
+          compression: 'DEFLATE',
+        }),
+      );
+      expect(invalid.status).toBe(201);
+      expect(await invalid.json()).toMatchObject({
+        imported: 0,
+        skipped: [{ file: 'images/a.png', reason: 'Not a valid image of the declared type.' }],
+      });
+      expect(countRows(database, 'catalog_images')).toBe(0);
+      expect(fileNames()).toEqual(beforeFiles);
     } finally {
       database.close();
       rmSync(root, { recursive: true, force: true });

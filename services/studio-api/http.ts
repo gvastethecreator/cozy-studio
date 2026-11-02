@@ -77,3 +77,17 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export function getStudioApiBase() {
   return resolveStudioApiBase();
 }
+
+export function readAttachmentFilename(response: Response, fallback: string) {
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const encodedName = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1];
+  let filename = /filename="([^"]+)"/i.exec(disposition)?.[1] ?? fallback;
+  if (encodedName) {
+    try {
+      filename = decodeURIComponent(encodedName);
+    } catch {
+      /* Keep the plain filename when the encoding is invalid. */
+    }
+  }
+  return filename.split(/[\\/]/).pop() || fallback;
+}

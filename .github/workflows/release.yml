@@ -1,0 +1,60 @@
+name: Release
+
+# Runs only for a pushed version tag, never for branch pushes.
+# It creates a draft release. The owner reviews and publishes it by hand.
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+
+jobs:
+  draft-release:
+    name: Draft release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+
+      - name: Check that the tag matches package.json
+        run: test "v$(bun -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Chromium for core asset smoke
+        run: bunx playwright install --with-deps chromium
+
+      # validate:release also builds dist/, which portable:build packs.
+      - name: Release validation
+        run: bun run validate:release
+
+      - name: Build portable ZIPs
+        run: |
+          for target in windows-x64 windows-arm64 linux-x64 linux-arm64 macos-x64 macos-arm64; do
+            bun run portable:build "$target"
+          done
+          cat .scratch/portable/*/Cozy-Studio-*.zip.sha256 > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          flags=(--draft --verify-tag --generate-notes)
+          case "$GITHUB_REF_NAME" in *-*) flags+=(--prerelease) ;; esac
+          gh release create "$GITHUB_REF_NAME" "${flags[@]}" \
+            --notes 'Only the windows-x64 ZIP is runtime-verified. The other ZIPs are cross-built. SHA256SUMS lists the SHA-256 of each ZIP.' \
+            .scratch/portable/*/Cozy-Studio-*.zip SHA256SUMS

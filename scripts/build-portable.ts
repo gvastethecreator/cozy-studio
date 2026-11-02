@@ -219,6 +219,7 @@ export async function buildPortable(targetName: string) {
     path.join(appRoot, 'portable.json'),
     JSON.stringify(
       {
+        version: manifest.version,
         target: targetName,
         platform: target.platform,
         arch: target.arch,

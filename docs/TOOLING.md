@@ -42,11 +42,7 @@ The UI build checks chunk budgets. Keep optional surfaces demand-loaded and pres
 
 ## Dependency maintenance
 
-Follow the scoped update workflow in [Dependencies](DEPENDENCIES.md). Keep unrelated packages unchanged.
-
-Effect is pinned to `4.0.5`. Keep domain cancellation separate from fiber interruption in tests: the Comfy executor must report unconfirmed cancellation, and the worker must retain `needs_review` when an interrupted job has no confirmed remote cancellation. A raw interrupted fiber does not promise to return the domain error from its cleanup.
-
-Studio and the landing use Pretext `1.0.0`. The landing bundles its public entry instead of copying private implementation files. Its VGPU `0.6.0` shaders are prepared during the build with the matching `@vgpu/wgsl` version. Rebuild the tracked vendor output when updating these packages; do not retain stale output after a failed build. See the [Pretext release notes](https://github.com/chenglou/pretext/releases/tag/v1.0.0) and [VGPU migration guide](https://github.com/vercel-labs/vgpu/blob/v0.6.0/docs/migrations/0.6.0.docs.md).
+Follow the scoped update workflow in [Dependencies](DEPENDENCIES.md). It also lists the pinned packages. Keep unrelated packages unchanged.
 
 If Bun stalls after extracting dependencies on Windows, stop that install and retry with `bun install --backend copyfile`. Use the same backend with `--frozen-lockfile` when validating that checkout. This avoids changing the package manager or the lockfile by hand.
 

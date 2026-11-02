@@ -89,7 +89,7 @@ Images go to **Pictures/Cozy Studio** by default. Change the destination in **Se
 
 Original PNG, JPEG and WebP outputs can contain the generation prompt and model as metadata. Sharing an original file also shares that text. Use the conversion controls with metadata disabled when you want to remove descriptive metadata.
 
-The [user guide](docs/USER_GUIDE.md) covers file locations and naming, conversion, style packs, provider setup, backgrounds, jobs and updates. [Troubleshooting](docs/TROUBLESHOOTING.md) explains blocked jobs and recovery. Contributors should use the [development guide](docs/DEV_GUIDE.md) and [Tooling](docs/TOOLING.md) for commands and validation.
+The [user guide](docs/USER_GUIDE.md) covers file locations and naming, conversion, style packs, provider setup, backgrounds, jobs and updates. [Troubleshooting](docs/TROUBLESHOOTING.md) explains blocked jobs and recovery. Contributors should start with [Contributing](CONTRIBUTING.md) and use [Tooling](docs/TOOLING.md) for commands and validation.
 
 ## Documentation
 

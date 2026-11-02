@@ -10,10 +10,10 @@
 
 ## Contribute
 
-- [Contributing](../CONTRIBUTING.md) and [development guide](DEV_GUIDE.md)
+- [Contributing](../CONTRIBUTING.md): start the app, boundaries, checks and bug reports
 - [Tooling and validation](TOOLING.md) and [dependency constraints](DEPENDENCIES.md)
 - [Architecture](ARCHITECTURE.md), [domain vocabulary](../CONTEXT.md) and [architecture decisions](adr/)
-- [Design principles](DESIGN.md) and [CSS ownership](css-sanitization/STYLE_SYSTEM.md)
+- [Design system](DESIGN.md): principles, tokens, CSS owners, motion and preserved exceptions
 - [Electron development shell](ELECTRON.md) and [public landing page](../landing/README.md)
 - [Roadmap](../ROADMAP.md)
 

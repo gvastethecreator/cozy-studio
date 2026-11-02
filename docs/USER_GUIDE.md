@@ -68,7 +68,11 @@ Right-click a carousel thumbnail to act on that image without changing the selec
 
 **Undo.** Click **Undo** on the success notice, or open **Recent changes** in the **Tags** or **Collections** menu. The menu shows the last five changes, including changes made by an agent. Undo the newest active change first. It restores only the tags and memberships that change affected, so earlier ones stay. A newly created collection stays, empty. Studio keeps 20 changes per workspace; Undo does not move, archive or delete images.
 
-**Filter and search.** The **Tags** and **Collections** buttons filter Library. Search, Favorites and sorting still apply inside an open collection. **Unorganized**, next to **Favorites**, shows only the images with no tags and no collection in this workspace. Images leave that view as you organize them.
+**Filter and search.** The **Tags** and **Collections** buttons filter Library. Search, Favorites and sorting still apply inside an open collection. **Unorganized**, next to **Favorites**, shows only the images with no tags and no manual collection in this workspace. Images leave that view as you organize them.
+
+**Smart collections.** In **Collections**, choose **New smart collection** to save a filter. Combine search text or hashtags with favorites, Unorganized, provider, workflow, style and a date range. The provider, workflow and style lists show values present in this workspace. Saving opens the collection; its images and count update as matching images change. Search, Favorites and sorting can narrow the view further.
+
+The **Smart** marker distinguishes these collections. Open one and choose **Edit rules** to change its filter. Smart collections do not appear in image organization checklists, and you cannot add images to them by hand. An image that only matches a smart collection still counts as Unorganized. Deleting a smart collection removes its rule and leaves every image in place. Library archive export and import preserve the rules.
 
 Search Library with `#boss` to match that exact tag in the current workspace, or with `#boss #forest` to require both. You can combine tags with prompt text, Favorites and sorting. For metadata tags with spaces, use quotes, such as `#"imported reference"`.
 
@@ -103,7 +107,7 @@ Cozy Studio keeps its own data apart from your images. [Platform support](PLATFO
 | Sign-in tokens for ChatGPT, xAI and Google                                                 | A private file for the current user, never in SQLite                                                       |
 | Generated images                                                                           | `Cozy Studio` in your Pictures folder, or the folder you choose in onboarding or Settings → Files & naming |
 
-A portable launch keeps the Studio data folder inside the app folder unless you set `STUDIO_LIBRARY_DIR`.
+A portable ZIP has a launcher in its main folder and the application inside `app/`. Start Studio with that outer launcher. It keeps the default Studio data folder, `Cozy Studio Library`, beside `app/`, unless you set `STUDIO_LIBRARY_DIR`.
 
 ### File names and folders
 
@@ -264,4 +268,4 @@ Studio checks `origin/main` once when it starts and shows a notice when an updat
 
 It fast-forwards to the checked commit, runs `bun install --frozen-lockfile`, restarts the backend and the UI, and reconnects the page. If the install fails, Studio blocks new work and keeps the error visible. Retry installs the dependencies for the commit already applied, without fetching Git again.
 
-**Restart Studio** also works without an update. Save pending settings first. Portable archives and servers that you start another way cannot update or restart from Settings.
+**Restart Studio** also works without an update. Save pending settings first. Portable archives started with the launcher in their main folder can restart. Servers started without a managed launcher cannot update or restart from Settings.

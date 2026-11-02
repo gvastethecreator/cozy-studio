@@ -686,6 +686,9 @@ export interface CreateSpriteAtlasRunRequest {
   transparent?: boolean;
   chromaKey?: string;
   qaMode?: 'standard' | 'strict';
+  /** Cell size in px, at least 16. Defaults to the preset cell. */
+  cellWidth?: number;
+  cellHeight?: number;
 }
 
 export interface SpriteAtlasRowPromptResponse {

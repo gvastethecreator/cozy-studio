@@ -5,8 +5,10 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
-    // `bun run` and Vitest both read the checkout's .env.local. Blank the API base so tests use the
-    // default port, as in CI. ponytail: one key; a new VITE_ variable needs the same pin.
+    // The checkout's .env.local reaches tests: `bun run` loads it into process.env and Vite loads its
+    // VITE_ keys. Blank the API base so tests use the default port, as in CI; services/studioRuntime.ts
+    // and scripts/studio-onboard.ts treat a blank value as unset. ponytail: one key; pin any other
+    // .env.local key that a test starts to read.
     env: { VITE_STUDIO_API_BASE: '' },
     setupFiles: ['./scripts/vitest-browser-setup.ts'],
     include: ['**/*.test.ts', '**/*.test.tsx'],

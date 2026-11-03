@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 /** Build and boot the UI from a temporary checkout with every optional asset pack absent. */
-import { cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from 'node:child_process';
@@ -107,10 +108,32 @@ async function waitForPreview(url: string, child: ChildProcessWithoutNullStreams
 async function stopPreview(child: ChildProcessWithoutNullStreams) {
   if (child.exitCode !== null) return;
   if (process.platform === 'win32' && child.pid) {
-    spawnSync('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], {
+    const closed = new Promise<void>((resolve) => child.once('close', () => resolve()));
+    const termination = spawnSync('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], {
       encoding: 'utf8',
       windowsHide: true,
     });
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      // taskkill blocks JS while it stops the tree; count only the wait for close.
+      await Promise.race([
+        closed,
+        new Promise<void>((_, reject) => {
+          timeout = setTimeout(
+            () =>
+              reject(
+                termination.error ??
+                  new Error(
+                    `Preview process did not close after termination (taskkill exit ${termination.status}).`,
+                  ),
+              ),
+            2_000,
+          );
+        }),
+      ]);
+    } finally {
+      clearTimeout(timeout);
+    }
     return;
   }
   child.kill('SIGTERM');
@@ -171,7 +194,20 @@ async function runBrowserSmoke(tempDir: string, baseUrl: string) {
 
 let preview: ChildProcessWithoutNullStreams | null = null;
 try {
-  cpSync(root, tempRoot, { recursive: true, filter: shouldCopy });
+  // Copy the checkout's source inventory, not ignored worktrees or local runtime data.
+  const inventory = spawnSync(
+    'git',
+    ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
+    { cwd: root, encoding: 'utf8', windowsHide: true },
+  );
+  if (inventory.status !== 0) throw new Error('Cannot list source files for the core asset smoke.');
+  for (const relative of inventory.stdout.split('\0').filter(Boolean)) {
+    const source = path.join(root, relative);
+    if (!shouldCopy(source) || !existsSync(source)) continue;
+    const destination = path.join(tempRoot, relative);
+    mkdirSync(path.dirname(destination), { recursive: true });
+    cpSync(source, destination);
+  }
   symlinkSync(
     path.join(root, 'node_modules'),
     path.join(tempRoot, 'node_modules'),
@@ -266,5 +302,5 @@ try {
   }
 } finally {
   if (preview) await stopPreview(preview);
-  rmSync(tempRoot, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+  await rm(tempRoot, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
 }

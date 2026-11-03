@@ -23,17 +23,20 @@ import { createLocalApiSecurityMiddleware } from './localApiSecurity';
 
 const roots: string[] = [];
 const activeUpdates: ReturnType<typeof createRepositoryUpdates>[] = [];
+const finishPendingRequests: (() => void)[] = [];
 afterEach(async () => {
+  const testUpdates = activeUpdates.splice(0);
+  const testRoots = roots.splice(0);
+  for (const finish of finishPendingRequests.splice(0)) finish();
   // A timed-out assertion must not remove a checkout while Git still uses it.
   await vi.waitFor(
     () => {
-      for (const updates of activeUpdates)
+      for (const updates of testUpdates)
         expect(['checking', 'updating']).not.toContain(updates.status().phase);
     },
     { timeout: 5000 },
   );
-  activeUpdates.length = 0;
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+  for (const root of testRoots) rmSync(root, { recursive: true, force: true });
 });
 
 const git = (cwd: string, ...args: string[]) =>
@@ -68,11 +71,14 @@ beforeAll(() => {
   const remote = join(template, 'remote');
   mkdirSync(remote);
   git(remote, 'init', '-b', 'main');
+  // Repository maintenance is unrelated to the update behavior exercised by these fixtures.
+  git(remote, 'config', '--local', 'maintenance.auto', 'false');
   writeFileSync(join(remote, 'app.txt'), 'v1');
   writeFileSync(join(remote, 'package.json'), JSON.stringify({ version: '0.1.0' }));
   git(remote, 'add', '.');
   git(remote, 'commit', '-m', 'initial');
   git(template, 'clone', remote, join(template, 'studio'));
+  git(join(template, 'studio'), 'config', '--local', 'maintenance.auto', 'false');
   // A relative origin makes every copy fetch from its own remote.
   git(join(template, 'studio'), 'remote', 'set-url', 'origin', '../remote');
 });
@@ -313,13 +319,23 @@ describe('release channel in a Git checkout', () => {
 
   it('invalidates a checked commit when the saved channel changes and rejects a change during apply', async () => {
     let channel: RepositoryUpdateChannel = 'commits';
-    let resolveRelease!: (value: { version: string; tag: string; assets: [] }) => void;
-    const readRelease = vi.fn(
-      () =>
-        new Promise<{ version: string; tag: string; assets: [] }>((done) => {
-          resolveRelease = done;
-        }),
-    );
+    const release = { version: '0.1.1', tag: 'v0.1.1', assets: [] };
+    let finishCheck!: () => void;
+    const checkedRelease = new Promise<typeof release>((resolve) => {
+      finishCheck = () => resolve(release);
+    });
+    let finishApply!: () => void;
+    const appliedRelease = new Promise<typeof release>((resolve) => {
+      finishApply = () => resolve(release);
+    });
+    finishPendingRequests.push(() => {
+      finishCheck();
+      finishApply();
+    });
+    const readRelease = vi
+      .fn(async () => release)
+      .mockReturnValueOnce(checkedRelease)
+      .mockReturnValueOnce(appliedRelease);
     const f = fixture({ getChannel: () => channel, readRelease });
     const target = f.advance();
     f.git(f.remote, 'tag', 'v0.1.1');
@@ -334,12 +350,12 @@ describe('release channel in a Git checkout', () => {
     expect(() => f.updates.apply(target)).toThrow('Check for updates');
     const checked = f.updates.check();
     await vi.waitFor(() => expect(readRelease).toHaveBeenCalledTimes(1));
-    resolveRelease({ version: '0.1.1', tag: 'v0.1.1', assets: [] });
+    finishCheck();
     await checked;
     f.updates.apply(target);
     await vi.waitFor(() => expect(readRelease).toHaveBeenCalledTimes(2));
     channel = 'commits';
-    resolveRelease({ version: '0.1.1', tag: 'v0.1.1', assets: [] });
+    finishApply();
     await vi.waitFor(() => expect(f.updates.status().phase).toBe('error'), { timeout: 5000 });
     expect(f.updates.status()).toMatchObject({
       latestCommit: null,

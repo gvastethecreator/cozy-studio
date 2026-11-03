@@ -360,8 +360,8 @@ describe('portable root update loop', () => {
               [
                 '#!/bin/bash',
                 `version=${version}`,
-                'printf "%s|%s|%s|%s\\n" "$version" "$STUDIO_MANAGED_RESTART" "${STUDIO_PORTABLE_RESTART:-}" "$(cat .env.local)" >> ../events',
-                'if [ "$version" = old ] && [ ! -f ../restarted ]; then touch ../restarted; mv ../app.staged ../app.next; exit 75; fi',
+                'printf "%s|%s|%s|%s\\n" "$version" "$STUDIO_MANAGED_RESTART" "${STUDIO_PORTABLE_RESTART:-}" "$(< .env.local)" >> ../events',
+                'if [ "$version" = old ] && [ ! -f ../restarted ]; then : > ../restarted; mv ../app.staged ../app.next; exit 75; fi',
                 `if [ "$version" = new ] && [ "${fail}" = true ]; then exit 1; fi`,
                 'if [ -f .update-pending ]; then rm .update-pending; fi',
               ].join('\n'),

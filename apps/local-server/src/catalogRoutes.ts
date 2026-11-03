@@ -205,6 +205,15 @@ export function createCatalogRoutes({
     }
   });
 
+  routes.get('/suggestions', (c) => {
+    try {
+      const workspaceId = validateCatalogCollectionWorkspaceId(c.req.query('workspace_id'));
+      return c.json(catalogStore.suggestOrganization(workspaceId));
+    } catch (error) {
+      return c.json(collectionError(error), 400);
+    }
+  });
+
   routes.get('/facets', (c) => {
     try {
       return c.json(

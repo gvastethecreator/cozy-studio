@@ -17,10 +17,12 @@ import { ImageTagsEditor } from './ImageTagsEditor';
 import { ImageCollectionsEditor } from './ImageCollectionsEditor';
 import { ImageOrganizationPicker } from './ImageOrganizationPicker';
 import { ImageOrganizationDialog } from './ImageOrganizationDialog';
+import { OrganizeSuggestionsDialog } from './OrganizeSuggestionsDialog';
 import ToastContainer from './ToastContainer';
 import { ToastUiProvider } from '../contexts/ToastUiContext';
 import {
   getCatalogCollectionSelection,
+  getCatalogOrganizeSuggestions,
   organizeCatalogImages,
   undoCatalogOrganize,
   listCatalogTags,
@@ -31,6 +33,7 @@ import { getToastsSnapshot, removeToastFromStore } from '../contexts/toastStore'
 import { useCatalogOrganization } from '../hooks/useCatalogOrganization';
 import { applyCatalogTagChanges } from '../packages/shared/src/catalogTags';
 import type { CatalogOrganizeResult } from '../packages/shared/src';
+import { StudioApiError } from '../services/studio-api/http';
 
 vi.mock('../services/studio-api/catalog', () => ({
   CATALOG_ORGANIZATION_CHANGED: 'studio:catalog-organization-changed',
@@ -42,6 +45,7 @@ vi.mock('../services/studio-api/catalog', () => ({
     ),
   ),
   getCatalogCollectionSelection: vi.fn().mockResolvedValue([]),
+  getCatalogOrganizeSuggestions: vi.fn(),
   organizeCatalogImages: vi.fn(),
   undoCatalogOrganize: vi.fn(),
 }));
@@ -61,6 +65,77 @@ function organized(added: Record<string, string[]> = {}, removed: Record<string,
     removedFrom: null,
   } satisfies CatalogOrganizeResult;
 }
+
+it('keeps a lost organize response uncertain instead of retrying it as a no-op and claiming a full undo', async () => {
+  vi.mocked(getCatalogOrganizeSuggestions).mockResolvedValue({
+    total: 4,
+    scanned: 4,
+    ungrouped: 0,
+    groups: ['Known', 'Lost'].map((collection) => ({
+      collection,
+      reason: `Prompt: ${collection}`,
+      tags: [collection.toLowerCase()],
+      imageIds: [`${collection}-1`, `${collection}-2`],
+      previewUrls: [],
+    })),
+  });
+  vi.mocked(listCatalogCollections).mockResolvedValue([]);
+  const stored = new Set<string>();
+  let rejected = false;
+  vi.mocked(organizeCatalogImages)
+    .mockReset()
+    .mockImplementation(async (input) => {
+      if (input.addToCollection === 'Known') {
+        stored.add('Known');
+        return organized({ known: input.imageIds });
+      }
+      if (!rejected) {
+        rejected = true;
+        throw new StudioApiError('Collection name was rejected.', { status: 400 });
+      }
+      stored.add('Lost');
+      throw new TypeError('Connection lost after commit.');
+    });
+  vi.mocked(undoCatalogOrganize)
+    .mockReset()
+    .mockRejectedValueOnce(
+      new StudioApiError('Undo the newer change organize-lost first.', { status: 409 }),
+    )
+    .mockImplementationOnce(async () => {
+      stored.delete('Known');
+      return {
+        ...organized({}, { known: ['Known-1', 'Known-2'] }),
+        alreadyUndone: false,
+        skippedImageIds: [],
+      };
+    });
+  const onClose = vi.fn();
+  render(<OrganizeSuggestionsDialog workspaceId="default" onClose={onClose} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Apply' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry Apply' }));
+  const notice = await screen.findByText(
+    'Unknown result for Lost. This group may have been organized.',
+  );
+  expect(stored).toEqual(new Set(['Known', 'Lost']));
+  expect(organizeCatalogImages).toHaveBeenCalledTimes(3);
+  expect(screen.queryByRole('button', { name: 'Retry Apply' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Apply' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+  await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Undo stopped.'));
+  expect(screen.getByRole('alert').textContent).toContain('organize-lost');
+  expect(notice.isConnected).toBe(true);
+  expect(stored.has('Lost')).toBe(true);
+  // Another control uses Recent changes to undo the unknown operation first.
+  stored.delete('Lost');
+  fireEvent.click(screen.getByRole('button', { name: 'Retry Undo' }));
+  await screen.findByText('Confirmed changes undone. One group still has an unknown result.');
+  expect(undoCatalogOrganize).toHaveBeenLastCalledWith(organized().operationId);
+  expect(screen.queryByText(/^Organization undone\./)).toBeNull();
+  expect(notice.isConnected).toBe(true);
+  expect(screen.getByText(/Close this dialog, then open Recent changes/)).toBeDefined();
+  fireEvent.click(screen.getByRole('button', { name: 'Close to review changes' }));
+  expect(onClose).toHaveBeenCalledOnce();
+});
 
 /** Answers like the organize command: all or nothing, listing only the ids each tag changed. */
 function organizeTagsIn(stored: Map<string, string[]>, fail = () => false) {
@@ -223,16 +298,28 @@ it('adds and removes collection membership for a mixed selection and preserves f
   const checkbox = await screen.findByRole('checkbox', { name: 'Bosses' });
   expect(checkbox.getAttribute('aria-checked')).toBe('mixed');
   fireEvent.click(screen.getByRole('button', { name: 'Remove selected images from Bosses' }));
-  await waitFor(() => expect(checkbox.getAttribute('aria-checked')).toBe('false'));
-  fireEvent.click(checkbox);
-  await waitFor(() => expect(checkbox.getAttribute('aria-checked')).toBe('true'));
+  await waitFor(() =>
+    expect(screen.getByRole('checkbox', { name: 'Bosses' }).getAttribute('aria-checked')).toBe(
+      'false',
+    ),
+  );
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Bosses' }));
+  await waitFor(() =>
+    expect(screen.getByRole('checkbox', { name: 'Bosses' }).getAttribute('aria-checked')).toBe(
+      'true',
+    ),
+  );
   expect(organizeCatalogImages).toHaveBeenLastCalledWith({
     source: 'ui',
     ...selection,
     addToCollection: 'Bosses',
   });
-  fireEvent.click(checkbox);
-  await waitFor(() => expect(checkbox.getAttribute('aria-checked')).toBe('false'));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Bosses' }));
+  await waitFor(() =>
+    expect(screen.getByRole('checkbox', { name: 'Bosses' }).getAttribute('aria-checked')).toBe(
+      'false',
+    ),
+  );
   expect(organizeCatalogImages).toHaveBeenLastCalledWith({
     source: 'ui',
     ...selection,

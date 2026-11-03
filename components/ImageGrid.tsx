@@ -33,6 +33,7 @@ import { COMPARE_MAX_IMAGES } from './ImageComparison';
 import { ImageTagsMenu, ImageCollectionsMenu } from './ImageCollectionsMenu';
 import { parseCatalogSearch } from '../packages/shared/src';
 import { ImageOrganizationDialog } from './ImageOrganizationDialog';
+import { OrganizeSuggestionsDialog } from './OrganizeSuggestionsDialog';
 import { DemandMountedGsapDropdown } from './ui/DemandMountedGsapDropdown';
 import { copyImageToClipboard, downloadImage, generateSmartFilename } from '../utils/fileUtils';
 import Tooltip from './Tooltip';
@@ -1500,6 +1501,9 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
 }
 
 function ImageGridActions({ model }: { model: ImageGridModel }) {
+  const [suggestionsWorkspace, setSuggestionsWorkspace] = useState<string | null>(null);
+  if (suggestionsWorkspace && suggestionsWorkspace !== model.workspaceId)
+    setSuggestionsWorkspace(null);
   const {
     imageCount,
     isAllSelected,
@@ -1555,7 +1559,23 @@ function ImageGridActions({ model }: { model: ImageGridModel }) {
         isActive={showUnorganizedOnly}
         tooltipPosition="bottom"
       />
+      {showUnorganizedOnly && imageCount > 0 && (
+        <ActionButton
+          onClick={() => setSuggestionsWorkspace(model.workspaceId)}
+          icon={<FolderPlus width={16} height={16} />}
+          label="Suggest"
+          tooltipPosition="bottom"
+        />
+      )}
       <ImageGridBulkActions model={model} />
+      {suggestionsWorkspace === model.workspaceId && (
+        <OrganizeSuggestionsDialog
+          key={suggestionsWorkspace}
+          workspaceId={suggestionsWorkspace}
+          onClose={() => setSuggestionsWorkspace(null)}
+          onCatalogChanged={model.onRetryCatalog}
+        />
+      )}
     </div>
   );
 }

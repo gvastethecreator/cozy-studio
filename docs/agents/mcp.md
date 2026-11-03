@@ -79,14 +79,14 @@ The setting controls the MCP gateway, not the app's own UI and API. Local MCP cl
 | `studio_generate`, `studio_retry_batch`                            | write              | Queue generation, retry the failed jobs of a batch. Both use the user's provider account.                                                            |
 | `studio_cancel`                                                    | write, destructive | Cancel a queued or running job.                                                                                                                      |
 | `studio_import_reference`, `studio_import_reference_file`          | write              | Import an image reference.                                                                                                                           |
-| `studio_updates`                                                   | read               | App update status; `check: true` fetches `origin/main`.                                                                                              |
-| `studio_apply_update`                                              | write, destructive | Fast-forward to the checked commit, install and restart.                                                                                             |
+| `studio_updates`                                                   | read               | App update status with source and channel; `check: true` checks the selected channel.                                                                |
+| `studio_apply_update`                                              | write, destructive | Apply the checked Git or portable release update, then restart.                                                                                      |
 
 Every input object is strict: an unknown field rejects the call.
 
 ### Status and setup
 
-`studio_status` returns `{health, mcpAccess, mcpAccessLabel, unorganized: {total, workspaces: [{id, name, count}]}, update: {behind, latestCommit, canUpdate, blocker, checkedAt} | null}`. `mcpAccessLabel` is `Read only`, `Organize` or `Full control`. At Off, `studio_status` returns 403 with `access: "off"`, like every tool except `studio_guide`. `unorganized.total` counts live images with no tags and no manual collection in all workspaces. `unorganized.workspaces` lists each workspace with a count above zero. When Studio is behind `origin/main`, the result adds `notice`. When `unorganized.total` is above zero, it adds `organizeNotice`, which recommends organizing one workspace at a time.
+`studio_status` returns `{health, mcpAccess, mcpAccessLabel, unorganized: {total, workspaces: [{id, name, count}]}, update: {source, channel, currentVersion, latestVersion, behind, latestCommit, canUpdate, blocker, checkedAt} | null}`. `mcpAccessLabel` is `Read only`, `Organize` or `Full control`. At Off, `studio_status` returns 403 with `access: "off"`, like every tool except `studio_guide`. `unorganized.total` counts live images with no tags and no manual collection in all workspaces. `unorganized.workspaces` lists each workspace with a count above zero. When the selected channel has an update, the result adds `notice`. When `unorganized.total` is above zero, it adds `organizeNotice`, which recommends organizing one workspace at a time.
 
 `studio_onboarding` returns `{probe, readiness, chatgptAuth, signIn}`. `probe.facts.chatgptLoggedIn` is the ChatGPT sign-in state, and `probe.checks` lists each first-run check. Sign in is a user action in Studio Settings; no tool starts it.
 
@@ -177,7 +177,9 @@ Provider settings (`defaultProviderId`, `providerDefaults`), the output folder (
 
 `studio_remove_extension` takes `{extensionId}` and returns `{removed}`. Built-in and local packs cannot be removed.
 
-`studio_apply_update` takes the `latestCommit` from `studio_updates` with `check: true`. It needs `canUpdate`: the `main` branch, a clean checkout, no local commits ahead of `origin/main`, no active jobs and Studio started with `bun run dev`. Studio fast-forwards, installs dependencies and restarts itself.
+`studio_updates` reports `source` (`git` or `release`), `channel` (`commits` or `releases`), `currentVersion` and `latestVersion`. A Git checkout defaults to Commits and may choose Releases in Settings; the portable source always uses Releases.
+
+`studio_apply_update` takes the exact `latestCommit` returned by `studio_updates` with `check: true`. It is a Git commit hash for a checkout and the ZIP SHA-256 for a portable release. The checked channel must still be current and `canUpdate` must be true. Both sources require no active jobs and a managed launcher. Git also requires clean `main` with no local commits ahead of the checked target. A portable update requires a matching release asset and a verified digest. The Library, registered image destinations and configured extension roots must stay outside the app and recovery folders that an update would replace. Git fast-forwards and installs dependencies; the portable stages a replacement app. Both restart through their launcher.
 
 ### Import an image reference
 

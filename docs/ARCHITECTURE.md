@@ -65,6 +65,7 @@ All paths are under `apps/local-server/src/`. `appFactory.ts` composes the route
 - `jobRoutes.ts` and `persistentJobIntake.ts` own job intake. `providerExecutionPolicy.ts` resolves the execution fields: the explicit request, then the selected provider's default, then the bootstrap fallback.
 - `catalog.ts`, `catalogCollections.ts` and `catalogTags.ts` own Catalog Entries and the workspace-scoped collections and tags. A rename updates membership in one transaction. `db/` holds the SQLite connection, the migrations and the domain stores.
 - Smart Collections store a validated filter, not image memberships. Catalog reads combine that rule with the request filters; counts evaluate the same rule. `GET /api/catalog/facets` supplies the provider, workflow and style values present in the workspace.
+- `catalogOrganize.ts` groups the newest unorganized images from saved prompts, workflow and style metadata. `GET /api/catalog/suggestions` returns editable proposals without provider calls or writes. The UI applies each selected group through the atomic organize command and undoes its operation IDs newest first.
 - `libraryArchive.ts` owns the versioned archive manifest, streamed export and bounded import. `libraryArchiveRoutes.ts` exposes `GET /api/workspaces/:id/export` and `POST /api/workspaces/import`. Import remaps image and batch IDs, writes originals under `outputs/imports/<workspaceId>/`, and commits the workspace and metadata in one transaction. Failure removes only files written by that request.
 - `managedAssetPolicy.ts` validates provider assets against the storage folders that the job captured (`JobLibraryContext`). `workerAssetFinalizer.ts` owns recoverable file, Asset, Catalog and job finalization.
 - `worker.ts` runs one Effect `ManagedRuntime`. SQLite stays the job authority. The global and per-provider limits choose which jobs run. Capacity is released only after cleanup and finalization finish.
@@ -84,10 +85,11 @@ All paths are under `apps/local-server/src/`. `appFactory.ts` composes the route
 
 ### Updates
 
-`repositoryUpdates.ts` fast-forwards a clean `main` checkout through `/api/updates`.
+`appFactory.ts` selects one update controller for the process. `repositoryUpdates.ts` fast-forwards a clean `main` checkout; `releaseUpdates.ts` stages portable releases. Both use `/api/updates` and the existing mutation guard.
 
-- It refuses while jobs are queued or running. It blocks mutations during an update and after a failed install.
-- After the install, the backend exits with code 75, and `scripts/dev.ts` restarts only the processes it owns.
+- Git defaults to the Commits channel and may select Releases. The portable source always uses Releases. A channel change invalidates the checked update; Apply must match the checked source, channel and token.
+- Both refuse while jobs are queued or running and block mutations while applying. A failed Git dependency install keeps its retry lock. After installation, the backend exits with code 75, and its managed launcher restarts the processes it owns.
+- Portable updates require the matching target asset and its SHA-256 digest. Extraction is bounded and confined to the ZIP's `Cozy Studio/app/` entries. The staged manifest must match the checked version and target. Before apply and each cleanup, fresh protected roots include the Library, registered image destinations and External Output Sources, installed extensions and explicitly configured extension sources. Cleanup rejects overlaps with those roots, links, database files and `.studio` state before removing an app copy.
 - The portable root launcher manages exit 75 and swaps only the `app/` folder. The default data folder sits beside it. A new app keeps `.update-pending` until the server listens; a failed start restores `app.previous` and preserves the failed copy. Existing recovery folders are never overwritten by the launcher. Other unmanaged launch modes can check for updates but cannot update or restart.
 
 ## Generation flow
@@ -223,7 +225,9 @@ Scripts and the Codex SDK are automation surfaces for audits, migrations, tests 
 
 ## Storage maintenance
 
-Settings → Advanced & maintenance opens storage controls backed by `/api/maintenance`: storage audit, inline-payload compaction, thumbnail backfill and tooling-log pruning.
+Settings → Advanced & maintenance opens storage controls backed by `/api/maintenance`: storage audit, inline-payload compaction, thumbnail backfill, tooling-log pruning and duplicate review.
+
+Migration 20 adds a lazy 256-bit dHash cache on Catalog Entries. `POST /api/maintenance/catalog/duplicates` hashes bounded batches of live images in one workspace, then groups images within 16 bits of each group's keeper. Favorites, manual organization and age determine keeper priority. The UI requires review and uses the existing restorable archive command; a scan never archives images.
 
 Compaction and backfill stay plans until a write request carries its confirm token. The browser cannot run shell commands. The `storage:*` scripts are the automation equivalent.
 

@@ -74,6 +74,10 @@ Right-click a carousel thumbnail to act on that image without changing the selec
 
 The **Smart** marker distinguishes these collections. Open one and choose **Edit rules** to change its filter. Smart collections do not appear in image organization checklists, and you cannot add images to them by hand. An image that only matches a smart collection still counts as Unorganized. Deleting a smart collection removes its rule and leaves every image in place. Library archive export and import preserve the rules.
 
+**Suggestions.** Open **Unorganized** and choose **Suggest** to review groups based on saved prompts, workflows and styles. This uses no provider and spends no generation usage. Suggestions cover the newest 1000 unorganized images. Edit collection names and tags, and uncheck groups you do not want before applying them.
+
+Each selected group is one organize change. If a group fails, earlier completed groups stay applied and the dialog reports the failure. **Undo** restores confirmed changes newest first and keeps any created collections. It stops if a newer change from elsewhere must be undone first. If an apply response is lost, close the dialog and use **Recent changes** in Tags or Collections to check and undo that change before trying again. The dialog cannot undo a group whose result it could not confirm.
+
 Search Library with `#boss` to match that exact tag in the current workspace, or with `#boss #forest` to require both. You can combine tags with prompt text, Favorites and sorting. For metadata tags with spaces, use quotes, such as `#"imported reference"`.
 
 To rename items, choose tag colors or collection emojis, open Settings → **Tags & collections**. It shows the tags and collections of the current workspace only. Edit the row, then select **Save** or **Cancel**.
@@ -95,6 +99,12 @@ While images are generating, the Generate button shows the animated Cozy cup. Ho
 Open Settings → **Data folder & imports** → **Library archive**. **Export this workspace** downloads one ZIP with the original images, prompts, favorites, dates, tags, tag colors and collections. Missing files are listed in the archive.
 
 **Import a Library archive** accepts a Studio Library ZIP up to 1 GiB and opens a new workspace. The source workspace stays as it was. Invalid images and images above 64 MiB are skipped with a reason. Imported files get new IDs; references to local files, jobs and provider credentials are not restored. The metadata-only legacy workspace export remains export-only.
+
+### Review duplicate images
+
+In Settings → **Advanced & maintenance**, use **Duplicate images** to scan the current workspace. Studio compares visual similarity, so review each group before moving images. The first scan reads the originals; later scans reuse cached results.
+
+Studio prefers keeping a favorite, then an organized image, then the oldest. Other favorites are not selected for archiving automatically. Keep at least one image in every group. **Move to Archived Images** asks for confirmation, and those images can be restored from Archived Images.
 
 ## Where your files go
 
@@ -258,14 +268,14 @@ The host sets the worker capacity, which applies after a restart. `STUDIO_MAX_CO
 
 ## Updates and restart
 
-Studio checks `origin/main` once when it starts and shows a notice when an update is available. Connected agents see the same status through `studio_status`. In **Settings → Help & updates**, turn on **Notify me about updates** to also check every hour while Studio is visible. You can also check by hand.
+Studio checks its selected update channel when it starts and shows a notice when an update is available. Connected agents see the same source, channel and status through `studio_status`. In **Settings → Help & updates**, turn on **Notify me about updates** to also check every hour while Studio is visible. You can also check by hand.
 
-**Update and restart** needs all of these:
+Git checkouts default to **Commits**, which follows `origin/main`. They may select **Releases** to update only to a published release tag. Portable installs use **Releases** and show the installed and available versions.
 
-- Studio runs with `bun run dev`.
-- The checkout is a clean `main` with no local commits ahead of the remote. Studio reports local commits only when there is an update to apply.
-- No jobs are queued or running.
+**Update and restart** requires a managed launcher and no queued or running jobs. A Git checkout must be on clean `main`, without local commits ahead of the checked target. A portable install must keep its Library outside `app/` and start from the launcher in the main Cozy Studio folder.
 
-It fast-forwards to the checked commit, runs `bun install --frozen-lockfile`, restarts the backend and the UI, and reconnects the page. If the install fails, Studio blocks new work and keeps the error visible. Retry installs the dependencies for the commit already applied, without fetching Git again.
+Git updates fast-forward to the checked commit, run `bun install --frozen-lockfile`, restart the backend and UI, and reconnect the page. If installation fails, Studio blocks new work and keeps the error visible. Retry installs dependencies for the commit already applied, without fetching Git again.
+
+Portable updates download the matching release ZIP, verify its checksum and stage a new `app/` folder. The root launcher carries over `.env.local` and starts the new app. If it fails before the server begins listening, the launcher restores the previous app. The data folder stays in place; database backups are never restored automatically. See [platform support](PLATFORMS.md) for recovery and unsigned first-run instructions.
 
 **Restart Studio** also works without an update. Save pending settings first. Portable archives started with the launcher in their main folder can restart. Servers started without a managed launcher cannot update or restart from Settings.

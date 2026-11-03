@@ -60,6 +60,14 @@ _Avoid_: disk folder, Workspace, tag
 Saved filter inside one Workspace's Library. Studio evaluates its rule when reading images and counts. Images cannot be added by hand, and matching a Smart Collection does not make an image organized.
 _Avoid_: copied images, manual membership, output folder
 
+**Organization Suggestion**:
+Proposed collection and tags for a group of Unorganized Images in one Workspace. Studio uses saved prompts, workflows and styles. The user reviews the proposal before the organize command applies it; no provider runs.
+_Avoid_: automatic filing, image recognition, paid generation
+
+**Duplicate Review**:
+Workspace-scoped review of visually similar live Catalog Entries. The user chooses which images to keep and may move the others to Archived Images, where they can be restored.
+_Avoid_: exact-file guarantee, automatic deletion, purge
+
 **Library Organization**:
 The tags and manual Image Collection that a generation request asks Studio to apply to each Catalog Entry when it saves the entry.
 _Avoid_: auto-tagging, post-generation cleanup

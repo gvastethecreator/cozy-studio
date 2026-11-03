@@ -111,11 +111,11 @@ export const RecipeRouter: React.FC<RecipeRouterProps> = ({
   const LoadedAnimationSequenceRecipe = AnimationSequenceRecipe;
 
   return (
-    <ErrorBoundary fallbackMessage="A critical error occurred while rendering this recipe.">
+    <ErrorBoundary fallbackMessage="A critical error occurred while rendering this workflow.">
       <React.Suspense
         fallback={
           <LazySurfaceFallback
-            label="Loading recipe"
+            label="Loading workflow"
             className="grid h-full min-h-[420px] place-items-center bg-transparent text-[color:var(--wb-muted)]"
           />
         }

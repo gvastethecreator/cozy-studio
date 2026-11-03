@@ -40,7 +40,7 @@ import {
   type StudioSettingsDomainId,
 } from '../lib/studioSettingsDomains';
 import { SettingsFormPanel } from './settings/SettingsFormPanel';
-import { t } from '../lib/i18n';
+import { useT } from '../lib/i18n';
 import { en, type MessageKey } from '../lib/i18n/en';
 import { SettingsOutputSourcesPanel } from './settings/SettingsOutputSourcesPanel';
 import { SettingsExtensionsPanel } from './settings/SettingsExtensionsPanel';
@@ -83,242 +83,242 @@ interface StudioSettingsModalProps {
 
 const SETTINGS_SEARCH_ITEMS: {
   domain: StudioSettingsDomainId;
-  label: string;
-  description: string;
+  labelKey: MessageKey;
+  descriptionKey: MessageKey;
   target: string;
 }[] = [
   {
     domain: 'organization',
-    label: 'Tags and collections',
-    description: 'Names, colors and emoji',
+    labelKey: 'settings.search.organization.label',
+    descriptionKey: 'settings.search.organization.description',
     target: 'Manage tags',
   },
   {
     domain: 'general',
-    label: 'Language',
-    description: 'English or Spanish interface',
+    labelKey: 'settings.search.language.label',
+    descriptionKey: 'settings.search.language.description',
     target: 'settings.language.label',
   },
   {
     domain: 'general',
-    label: 'Startup workflow',
-    description: 'Choose what opens first',
+    labelKey: 'settings.search.startupWorkflow.label',
+    descriptionKey: 'settings.search.startupWorkflow.description',
     target: 'settings.general.startupWorkflow',
   },
   {
     domain: 'general',
-    label: 'Default style intensity',
-    description: 'Strength of newly added styles',
+    labelKey: 'settings.search.styleIntensity.label',
+    descriptionKey: 'settings.search.styleIntensity.description',
     target: 'settings.general.styleIntensity',
   },
   {
     domain: 'general',
-    label: 'Default style reference mode',
-    description: 'Preserve or reinterpret references',
+    labelKey: 'settings.search.referenceMode.label',
+    descriptionKey: 'settings.search.referenceMode.description',
     target: 'settings.general.referenceMode',
   },
   {
     domain: 'general',
-    label: 'Detailed style instructions',
-    description: 'Experimental style compiler',
+    labelKey: 'settings.search.detailedInstructions.label',
+    descriptionKey: 'settings.search.detailedInstructions.description',
     target: 'settings.general.detailedInstructions',
   },
   {
     domain: 'appearance',
-    label: 'Theme',
-    description: 'Light or dark appearance',
+    labelKey: 'settings.search.theme.label',
+    descriptionKey: 'settings.search.theme.description',
     target: 'Theme',
   },
   {
     domain: 'appearance',
-    label: 'Accent color',
-    description: 'Workspace colors',
+    labelKey: 'settings.search.accent.label',
+    descriptionKey: 'settings.search.accent.description',
     target: 'Accent: Violet',
   },
   {
     domain: 'appearance',
-    label: 'Motion',
-    description: 'Animation and reduced movement',
+    labelKey: 'settings.search.motion.label',
+    descriptionKey: 'settings.search.motion.description',
     target: 'Motion preference',
   },
   {
     domain: 'appearance',
-    label: 'Zoom sensitivity',
-    description: 'Scroll and pinch zoom speed in image previews',
+    labelKey: 'settings.search.zoom.label',
+    descriptionKey: 'settings.search.zoom.description',
     target: 'settings.appearance.zoomSensitivity',
   },
   {
     domain: 'appearance',
-    label: 'Tools panel position',
-    description: 'Left or right side',
+    labelKey: 'settings.search.toolsPosition.label',
+    descriptionKey: 'settings.search.toolsPosition.description',
     target: 'Tools panel position',
   },
   {
     domain: 'appearance',
-    label: 'Jobs panel position',
-    description: 'Left or right side',
+    labelKey: 'settings.search.jobsPosition.label',
+    descriptionKey: 'settings.search.jobsPosition.description',
     target: 'Jobs panel position',
   },
   {
     domain: 'appearance',
-    label: 'Compact workspace controls',
-    description: 'Control density',
+    labelKey: 'settings.search.compactControls.label',
+    descriptionKey: 'settings.search.compactControls.description',
     target: 'Compact workspace controls',
   },
   {
     domain: 'appearance',
-    label: 'Show all workspace results',
-    description: 'Carousel history across workflows',
+    labelKey: 'settings.search.allResults.label',
+    descriptionKey: 'settings.search.allResults.description',
     target: 'Show all workspace results',
   },
   {
     domain: 'appearance',
-    label: 'Clear review list on startup',
-    description: 'Hide past review and failed jobs',
+    labelKey: 'settings.search.clearReview.label',
+    descriptionKey: 'settings.search.clearReview.description',
     target: 'Clear review list on startup',
   },
   {
     domain: 'providers',
-    label: 'Accounts and sign in',
-    description: 'Provider connections and setup',
+    labelKey: 'settings.search.accounts.label',
+    descriptionKey: 'settings.search.accounts.description',
     target: '',
   },
   {
     domain: 'providers',
-    label: 'Default provider',
-    description: 'Choose who generates your images',
+    labelKey: 'settings.search.defaultProvider.label',
+    descriptionKey: 'settings.search.defaultProvider.description',
     target: '',
   },
   {
     domain: 'providers',
-    label: 'Models and execution',
-    description: 'Generation defaults and quality',
+    labelKey: 'settings.search.models.label',
+    descriptionKey: 'settings.search.models.description',
     target: 'Model and execution settings',
   },
   {
     domain: 'output',
-    label: 'Output directory',
-    description: 'Where new images are saved',
+    labelKey: 'settings.search.outputDirectory.label',
+    descriptionKey: 'settings.search.outputDirectory.description',
     target: 'Output directory',
   },
   {
     domain: 'output',
-    label: 'Folder structure',
-    description: 'Organize files by workspace, date or workflow',
+    labelKey: 'settings.search.folderStructure.label',
+    descriptionKey: 'settings.search.folderStructure.description',
     target: 'Output folder preset',
   },
   {
     domain: 'output',
-    label: 'Filename preset',
-    description: 'Choose how images are named',
+    labelKey: 'settings.search.filenamePreset.label',
+    descriptionKey: 'settings.search.filenamePreset.description',
     target: 'Filename preset',
   },
   {
     domain: 'output',
-    label: 'File name template',
-    description: 'Custom naming tokens',
+    labelKey: 'settings.search.filenameTemplate.label',
+    descriptionKey: 'settings.search.filenameTemplate.description',
     target: 'File name template',
   },
   {
     domain: 'library',
-    label: 'External folder to scan',
-    description: 'Find images to import',
+    labelKey: 'settings.search.externalFolder.label',
+    descriptionKey: 'settings.search.externalFolder.description',
     target: 'External folder to scan',
   },
   {
     domain: 'library',
-    label: 'Discover external images',
-    description: 'Automatic import discovery',
+    labelKey: 'settings.search.discoverImages.label',
+    descriptionKey: 'settings.search.discoverImages.description',
     target: 'Discover external images',
   },
   {
     domain: 'library',
-    label: 'Import sources',
-    description: 'Register a folder or import images',
+    labelKey: 'settings.search.importSources.label',
+    descriptionKey: 'settings.search.importSources.description',
     target: '',
   },
   {
     domain: 'library',
-    label: 'Library archive',
-    description: 'Export or import a workspace with its images',
-    target: 'Library archive',
+    labelKey: 'settings.search.libraryArchive.label',
+    descriptionKey: 'settings.search.libraryArchive.description',
+    target: 'Export this workspace',
   },
   {
     domain: 'library',
-    label: 'Export workspace metadata',
-    description: 'Legacy settings snapshot without images',
+    labelKey: 'settings.search.workspaceMetadata.label',
+    descriptionKey: 'settings.search.workspaceMetadata.description',
     target: 'Export workspace metadata',
   },
   {
     domain: 'extensions',
-    label: 'Style packs',
-    description: 'Installed styles and downloads',
+    labelKey: 'settings.search.stylePacks.label',
+    descriptionKey: 'settings.search.stylePacks.description',
     target: '',
   },
   {
     domain: 'extensions',
-    label: 'Workflow modules',
-    description: 'Enable or disable workflows',
+    labelKey: 'settings.search.workflowModules.label',
+    descriptionKey: 'settings.search.workflowModules.description',
     target: 'Workflow modules',
   },
   {
     domain: 'maintenance',
-    label: 'Agent access (MCP)',
-    description: 'Local agent permissions and automation',
+    labelKey: 'settings.search.agentAccess.label',
+    descriptionKey: 'settings.search.agentAccess.description',
     target: 'settings.agents.access',
   },
   {
     domain: 'maintenance',
-    label: 'Allowed import folders',
-    description: 'Folders agents can read to import image references',
+    labelKey: 'settings.search.importFolders.label',
+    descriptionKey: 'settings.search.importFolders.description',
     target: 'settings.agents.importFolders',
   },
   {
     domain: 'maintenance',
-    label: 'Storage audit',
-    description: 'Inspect Studio data storage',
-    target: 'Audit storage',
+    labelKey: 'settings.search.storageAudit.label',
+    descriptionKey: 'settings.search.storageAudit.description',
+    target: 'settings.maintenance.audit',
   },
   {
     domain: 'maintenance',
-    label: 'Database cleanup',
-    description: 'Plan storage compaction',
-    target: 'Plan database cleanup',
+    labelKey: 'settings.search.databaseCleanup.label',
+    descriptionKey: 'settings.search.databaseCleanup.description',
+    target: 'settings.maintenance.planCleanup',
   },
   {
     domain: 'maintenance',
-    label: 'Missing thumbnails',
-    description: 'Preview thumbnail repair',
-    target: 'Plan missing thumbnails',
+    labelKey: 'settings.search.missingThumbnails.label',
+    descriptionKey: 'settings.search.missingThumbnails.description',
+    target: 'settings.maintenance.planThumbnails',
   },
   {
     domain: 'maintenance',
-    label: 'Diagnostic logs',
-    description: 'Remove old tooling logs',
-    target: 'Prune diagnostic logs',
+    labelKey: 'settings.search.diagnosticLogs.label',
+    descriptionKey: 'settings.search.diagnosticLogs.description',
+    target: 'settings.maintenance.pruneLogs',
   },
   {
     domain: 'maintenance',
-    label: 'Rebuild Studio data',
-    description: 'Repair the Studio database',
-    target: 'Rebuild Studio data',
+    labelKey: 'settings.search.rebuild.label',
+    descriptionKey: 'settings.search.rebuild.description',
+    target: 'settings.maintenance.rebuild',
   },
   {
     domain: 'help',
-    label: 'Update notifications',
-    description: 'Check for new versions automatically',
+    labelKey: 'settings.search.updateNotifications.label',
+    descriptionKey: 'settings.search.updateNotifications.description',
     target: 'Notify me about updates',
   },
   {
     domain: 'help',
-    label: 'Studio updates',
-    description: 'Check, update or restart Studio',
+    labelKey: 'settings.search.updates.label',
+    descriptionKey: 'settings.search.updates.description',
     target: 'Check for updates',
   },
   {
     domain: 'help',
-    label: 'Getting started',
-    description: 'Workflows, references and results',
+    labelKey: 'settings.search.gettingStarted.label',
+    descriptionKey: 'settings.search.gettingStarted.description',
     target: 'Getting started with Studio',
   },
 ];
@@ -338,6 +338,7 @@ function SettingsDomainContent({
   providerOptions: string[];
   modal: StudioSettingsModalProps;
 }) {
+  const { t } = useT();
   const {
     isSaving,
     settings,
@@ -359,7 +360,10 @@ function SettingsDomainContent({
     onResetStudio,
   } = modal;
   const formDisabled = isSaving || !settings;
-  const domainLabel = STUDIO_SETTINGS_DOMAIN_TABS.find((tab) => tab.id === activeDomain)?.label;
+  const domainLabelKey = STUDIO_SETTINGS_DOMAIN_TABS.find(
+    (tab) => tab.id === activeDomain,
+  )?.labelKey;
+  const domainLabel = domainLabelKey ? t(domainLabelKey) : undefined;
   switch (activeDomain) {
     case 'general':
       return (
@@ -456,19 +460,18 @@ function SettingsDomainContent({
           <SettingsMaintenancePanel maintenance={maintenance} />
           <SettingsDuplicatesPanel />
           <details className="settings-disclosure">
-            <summary>Repair Studio data</summary>
-            <p className="studio-muted text-sm mb-3">
-              Rebuild the Studio data folder and database. Review the confirmation before
-              continuing.
-            </p>
+            <summary>{t('settings.maintenance.repairData')}</summary>
+            <p className="studio-muted text-sm mb-3">{t('settings.maintenance.rebuildHint')}</p>
             <button
               type="button"
               className="studio-ghost-control px-3"
-              aria-label="Rebuild Studio data"
+              aria-label={t('settings.maintenance.rebuild')}
               disabled={isResettingStudio || isSaving}
               onClick={() => void onResetStudio()}
             >
-              {isResettingStudio ? 'Rebuilding…' : 'Rebuild Studio data'}
+              {isResettingStudio
+                ? t('settings.maintenance.rebuilding')
+                : t('settings.maintenance.rebuild')}
             </button>
           </details>
         </div>
@@ -532,35 +535,36 @@ function SettingsSearch({
   onChange: (value: string) => void;
   onSelect: (domain: StudioSettingsDomainId, target: string) => void;
 }) {
+  const { t } = useT();
   const query = value.trim().toLowerCase();
   return (
     <div className="settings-search">
       <input
         className="studio-field"
         type="search"
-        aria-label="Search settings"
-        placeholder="Search settings…"
+        aria-label={t('settings.search.label')}
+        placeholder={t('settings.search.placeholder')}
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
       {value.trim() && (
-        <div className="settings-search-results" aria-label="Settings search results">
+        <div className="settings-search-results" aria-label={t('settings.search.results')}>
           {SETTINGS_SEARCH_ITEMS.filter((item) =>
-            `${item.label} ${item.description}`.toLowerCase().includes(query),
+            `${t(item.labelKey)} ${t(item.descriptionKey)}`.toLowerCase().includes(query),
           ).map((item) => (
             <button
-              key={item.label}
+              key={item.labelKey}
               type="button"
               className="studio-menu-item"
               onClick={() => onSelect(item.domain, item.target)}
             >
-              <strong>{item.label}</strong>
-              <small>{item.description}</small>
+              <strong>{t(item.labelKey)}</strong>
+              <small>{t(item.descriptionKey)}</small>
             </button>
           ))}
           {!SETTINGS_SEARCH_ITEMS.some((item) =>
-            `${item.label} ${item.description}`.toLowerCase().includes(query),
-          ) && <p role="status">No settings match this search.</p>}
+            `${t(item.labelKey)} ${t(item.descriptionKey)}`.toLowerCase().includes(query),
+          ) && <p role="status">{t('settings.search.empty')}</p>}
         </div>
       )}
     </div>
@@ -588,6 +592,7 @@ function SettingsDialogActions({
   onClose: () => void;
   onSave: () => Promise<void>;
 }) {
+  const { t } = useT();
   return (
     <div className="studio-dialog-actions">
       {showChanges && (
@@ -601,13 +606,13 @@ function SettingsDialogActions({
                   className="studio-hit-target underline"
                   onClick={onFixFileName}
                 >
-                  Fix filename template
+                  {t('settings.chrome.fixFilename')}
                 </button>
               </span>
             ) : isSaving ? (
-              'Saving settings…'
+              t('settings.chrome.savingSettings')
             ) : hasChanges ? (
-              'Unsaved changes'
+              t('settings.chrome.unsaved')
             ) : null}
           </span>
           <button
@@ -616,12 +621,12 @@ function SettingsDialogActions({
             className="studio-ghost-control px-4"
             onClick={onDiscard}
           >
-            Discard
+            {t('settings.chrome.discard')}
           </button>
         </>
       )}
       <button type="button" onClick={onClose} className="studio-ghost-control px-4">
-        Close
+        {t('settings.chrome.close')}
       </button>
       {showChanges && (
         <button
@@ -635,7 +640,7 @@ function SettingsDialogActions({
           ) : (
             <Save width={15} height={15} />
           )}
-          {isSaving ? 'Saving…' : 'Save'}
+          {isSaving ? t('settings.chrome.saving') : t('settings.chrome.save')}
         </button>
       )}
     </div>
@@ -643,9 +648,13 @@ function SettingsDialogActions({
 }
 
 /** `target` is a control's aria-label, or the message key of a translated one. */
-function focusSettingsControl(dialog: HTMLDialogElement | null, target: string) {
+function focusSettingsControl(
+  dialog: HTMLDialogElement | null,
+  target: string,
+  translate: (key: MessageKey) => string,
+) {
   const panel = dialog?.querySelector<HTMLElement>('.studio-settings-content');
-  const label = Object.hasOwn(en, target) ? t(target as MessageKey) : target;
+  const label = Object.hasOwn(en, target) ? translate(target as MessageKey) : target;
   const control = target
     ? panel?.querySelector<HTMLElement>(`[aria-label="${label}"]`)
     : panel?.querySelector<HTMLElement>('button, input, select');
@@ -661,6 +670,7 @@ function focusSettingsControl(dialog: HTMLDialogElement | null, target: string) 
 }
 
 export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = (props) => {
+  const { t } = useT();
   const { isOpen, onClose, settings, isLoading, isSaving, error, onRefresh, onUpdate } = props;
   const [formState, setFormState] = useState<StudioSettingsFormState>(
     createInitialStudioSettingsFormState,
@@ -689,21 +699,21 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = (props) =
     isOpen,
     requestClose,
     undefined,
-    '[aria-label="Close settings"]',
+    `[aria-label="${t('settings.chrome.closeSettings')}"]`,
   );
 
   const searchTarget = useRef<string | null>(null);
   const selectSearchTarget = (domain: StudioSettingsDomainId, target: string) => {
-    if (domain === activeDomain) focusSettingsControl(dialogRef.current, target);
+    if (domain === activeDomain) focusSettingsControl(dialogRef.current, target, t);
     else searchTarget.current = target;
     setActiveDomain(domain);
     setSearch('');
   };
   useLayoutEffect(() => {
     if (searchTarget.current === null) return;
-    focusSettingsControl(dialogRef.current, searchTarget.current);
+    focusSettingsControl(dialogRef.current, searchTarget.current, t);
     searchTarget.current = null;
-  }, [activeDomain, dialogRef]);
+  }, [activeDomain, dialogRef, t]);
 
   const [savedForm, setSavedForm] = useState(createInitialStudioSettingsFormState);
   const savedFormRef = useRef(savedForm);
@@ -766,14 +776,14 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = (props) =
             </div>
             <div>
               <h2 id="studio-settings-title" className="studio-dialog-title">
-                Studio Settings
+                {t('settings.chrome.title')}
               </h2>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
-              aria-label="Refresh settings"
+              aria-label={t('settings.chrome.refresh')}
               onClick={() => void onRefresh()}
               disabled={isLoading}
               className="studio-ghost-control disabled:opacity-60"
@@ -786,7 +796,7 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = (props) =
             </button>
             <button
               type="button"
-              aria-label="Close settings"
+              aria-label={t('settings.chrome.closeSettings')}
               onClick={requestClose}
               className="studio-ghost-control"
             >
@@ -798,22 +808,22 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = (props) =
         <SettingsSearch value={search} onChange={setSearch} onSelect={selectSearchTarget} />
         <div className="studio-settings-layout">
           <label className="studio-settings-section-select">
-            <span>Section</span>
+            <span>{t('settings.chrome.section')}</span>
             <select
               className="studio-field"
-              aria-label="Settings section"
+              aria-label={t('settings.chrome.sectionLabel')}
               value={activeDomain}
               onChange={(event) => setActiveDomain(event.target.value as StudioSettingsDomainId)}
             >
               {STUDIO_SETTINGS_DOMAIN_TABS.map((tab) => (
                 <option key={tab.id} value={tab.id}>
-                  {tab.label}
-                  {tab.id === 'output' && fileNameError ? ' · Error' : ''}
+                  {t(tab.labelKey)}
+                  {tab.id === 'output' && fileNameError ? ` ${t('settings.chrome.error')}` : ''}
                 </option>
               ))}
             </select>
           </label>
-          <nav className="studio-settings-nav" aria-label="Settings sections">
+          <nav className="studio-settings-nav" aria-label={t('settings.chrome.sections')}>
             {STUDIO_SETTINGS_DOMAIN_TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -822,11 +832,13 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = (props) =
                 aria-pressed={activeDomain === tab.id}
                 className={`studio-tab ${activeDomain === tab.id ? 'is-active' : ''}`}
               >
-                {tab.label}
+                {t(tab.labelKey)}
                 {tab.id === 'output' && fileNameError ? (
                   <>
                     {' '}
-                    <span className="text-[color:var(--wb-danger)]">· Error</span>
+                    <span className="text-[color:var(--wb-danger)]">
+                      {t('settings.chrome.error')}
+                    </span>
                   </>
                 ) : null}
               </button>
@@ -876,10 +888,10 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = (props) =
       </div>
       <ConfirmationModal
         isOpen={confirmDiscard}
-        title="Discard unsaved settings?"
-        description="Your saved settings will stay unchanged."
-        confirmLabel="Discard changes"
-        cancelLabel="Keep editing"
+        title={t('settings.chrome.discardTitle')}
+        description={t('settings.chrome.discardDescription')}
+        confirmLabel={t('settings.chrome.discardChanges')}
+        cancelLabel={t('settings.chrome.keepEditing')}
         tone="warning"
         onClose={() => setConfirmDiscard(false)}
         onConfirm={() => {

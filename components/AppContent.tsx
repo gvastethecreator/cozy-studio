@@ -72,7 +72,7 @@ function WorkspaceTabs({
       className="workbench-tabs"
       data-narrow={isNarrowWorkbench}
       role="tablist"
-      aria-label={isRecipe ? 'Recipe workspace' : 'Create workspace'}
+      aria-label={isRecipe ? 'Workflow workspace' : 'Create workspace'}
       onKeyDown={(event) => {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
         event.preventDefault();

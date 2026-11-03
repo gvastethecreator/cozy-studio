@@ -35,9 +35,9 @@ Input errors return 400 from both `studio_generate` and `studio_plan_generation`
 - `Use letters, numbers, underscores or hyphens in each hashtag.`, `Each hashtag can have up to 64 characters.`, `Use a collection name of up to 80 characters.`, `Collection name cannot include control characters.`, or code `invalid_library_organization`: fix `tags` or `collection`. A tag holds only letters, numbers, `_` and `-`. Studio removes a leading `#` and lowercases the tag.
 - `Catalog reference not found` with `imageId`: no Library image has that id. Find the image with `studio_catalog` and the `workspace_id` of the workspace where it should be.
 - `Catalog reference is unavailable` with `imageId`: the image is in the Archive (trash) or its file is missing. Choose another image. The user can restore it from the Archive.
-- `Unknown recipe. ...`, `Recipe Module <id> does not support ...`, a recipe parameter error or code `workflow_module_disabled`: see [workflows-and-recipes.md](workflows-and-recipes.md).
+- `Unknown workflow. ...`, `Workflow <id> does not support ...`, a workflow parameter error or code `workflow_module_disabled`: see [workflows-and-recipes.md](workflows-and-recipes.md).
 - `This workflow needs its run in the Studio UI (Workflows). studio_generate makes single images.`: Sprite Atlas and Animation Sequence runs work only in the Studio UI. Tell the user to run that workflow in Studio.
-- `Style <packId>/<presetId> is not installed. ...`, `styles uses the styles recipe. ...`, `Pass styles instead of compiled style fields.`, `The selected styles have no visual fields to apply.`, `Style pack <packId> cannot be read: ...`, or 400 with style `issues`: see [styles-and-packs.md](styles-and-packs.md).
+- `Style <packId>/<presetId> is not installed. ...`, `styles uses the styles workflow. ...`, `Pass styles instead of compiled style fields.`, `The selected styles have no visual fields to apply.`, `Style pack <packId> cannot be read: ...`, or 400 with style `issues`: see [styles-and-packs.md](styles-and-packs.md).
 - `Unknown ChatGPT image model. Use one of: <ids>.`: use one of the listed ids.
 - `This provider uses its Settings default model.`: only `chatgpt` and `codex` take `model`. Leave `model` out.
 - Code `chatgpt_transport_unavailable` (`ChatGPT Sign in is not ready. ...`): ask the user to sign in at Settings > Accounts & models. Do not switch to `codex`.
@@ -46,7 +46,7 @@ Input errors return 400 from both `studio_generate` and `studio_plan_generation`
 - Code `provider_not_registered` (`Provider is not registered.`): use a provider id from `studio_providers`.
 - Code `transparent_background_unavailable`: transparent output works only with `chatgpt`. Use `chatgpt`, or ask the user about an opaque background.
 - Code `chatgpt_execution_unsupported` or `codex_execution_unsupported`: the provider rejects the execution options. Read `error`. Leave `model` out or choose another one.
-- `Invalid Generation Task Spec` with `code`, `field`, `reason` and `issues`: the recipe input is invalid. Fix `field`. Check the recipe with `studio_recipes {id}`.
+- `Invalid Generation Task Spec` with `code`, `field`, `reason` and `issues`: the workflow input is invalid. Fix `field`. Check the workflow with `studio_recipes {id}`.
 - `Unmanaged Generation Task asset`: a reference is not a Library image. Pass Library image ids in `referenceIds`. Import local files first.
 - Another `code` with `field` from a provider check, for example for Grok: read `error` and `field`, then fix that field.
 - 409 `This request identity was already used for a different batch.`: a batch with this `requestId` was already accepted with other input, and it may be running. The batch id is the `requestId`: read it with `studio_batch` and report it. Start another batch only when the user asks for another run (**Plan before you spend**).

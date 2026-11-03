@@ -129,19 +129,19 @@ The file name tokens are `{date}`, `{time}`, `{timestamp}`, `{timestampUtc}`, `{
 - The default `{timestampUtc}` uses the job creation time in UTC, marked with `Z`, so clock and time zone changes do not reorder files. The custom `{date}`, `{time}` and `{timestamp}` tokens use local time.
 - `{prompt}` keeps the first meaningful words of your prompt. `{style}` keeps the style name, or the names of a style mix joined with `+`. An empty token drops its separator.
 
-Folder levels can use workspace, date, workflow, provider, model and recipe. The previous default template upgrades automatically. Custom templates and running jobs keep their captured choices. Existing files stay in place and stay in the catalog.
+Folder levels can use workspace, date, workflow, provider and model. The older `recipe` token also names the workflow; when none is selected, it uses `no-recipe`, while `workflow` uses `default`. Custom templates and running jobs keep their captured choices. Existing files stay in place and stay in the catalog.
 
 Downloads and ZIP exports keep their file names. Duplicate names in a ZIP get a numeric suffix. Studio never writes outside the registered folders and never overwrites existing outputs. The Library opens with the newest images first unless its URL selects another order.
 
 ### Embedded metadata
 
-New PNG, JPEG and WebP results carry the compiled generation prompt and the known image model inside the file, with the recipe, output settings and generation date. Codex app-server does not report its internal image model, so that field is `unknown`. Studio writes metadata without recompressing the image, and original downloads and ZIP exports keep it. Sharing the original file also shares this prompt.
+New PNG, JPEG and WebP results carry the compiled generation prompt and the known image model inside the file, with the workflow, output settings and generation date. Codex app-server does not report its internal image model, so that field is `unknown`. Studio writes metadata without recompressing the image, and original downloads and ZIP exports keep it. Sharing the original file also shares this prompt.
 
 Existing images are not rewritten automatically. A manual metadata rewrite rebuilds the prompt from the saved job with the current provider compiler.
 
 ### Convert or compress images
 
-Use the image action in Library, the image viewer or a recipe result. For several images, select them in Library and choose **Convert selected**. Choose JPG, WebP or PNG.
+Use the image action in Library, the image viewer or a workflow result. For several images, select them in Library and choose **Convert selected**. Choose JPG, WebP or PNG.
 
 - JPG and lossy WebP have a quality slider. WebP also offers lossless encoding. PNG has lossless compression levels.
 - JPG fills transparent areas with the chosen background color.

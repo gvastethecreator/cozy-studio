@@ -130,7 +130,7 @@ describe('prepareStudioGenerationRequest', () => {
 
     expect(request).toEqual({
       ok: false,
-      message: 'This recipe uses Codex. Switch provider or open a Grok recipe.',
+      message: 'This workflow uses Codex. Switch provider or open a Grok workflow.',
     });
   });
 });

@@ -24,7 +24,7 @@ Studio chrome uses Workbench UI 0.4.0 tokens (`--wb-*` and `--wbp-*`) with **Amb
 - Edges are `soft`. Presentation is `utility`: Studio does not ship Compose instrument editors, knobs or Workbench.js.
 - Lighting paints `.studio-surface`, `.studio-control`, `.studio-well`, `.studio-bar`, `.studio-popover`, `.studio-dialog` and the 0.4 dial and thumb targets when `supportsWorkbenchLighting()` is true. Otherwise `data-ambient-fallback="unsupported-css"` keeps flat Carbon or Paper colors.
 
-Do not treat the Create rail as a cream panel in Carbon. Generate uses a darkened accent fill so that its label stays readable. Overlays (Settings, Jobs, Trash, Activity, recipes) use the same `--wb-*` tokens and the same `studio-dialog`, `studio-field` and `studio-list-row` chrome as Create.
+Do not treat the Create rail as a cream panel in Carbon. Generate uses a darkened accent fill so that its label stays readable. Overlays (Settings, Jobs, Trash, Activity, workflows) use the same `--wb-*` tokens and the same `studio-dialog`, `studio-field` and `studio-list-row` chrome as Create.
 
 ## Typography
 
@@ -36,19 +36,19 @@ Do not treat the Create rail as a cream panel in Carbon. Generate uses a darkene
 
 `index.html` loads the Manrope font, `index.css` and `main.tsx`. `index.css` imports these sources in this order:
 
-| Source                              | Owns                                                                                       |
-| ----------------------------------- | ------------------------------------------------------------------------------------------ |
-| `tailwindcss`                       | Theme, one Preflight reset, generated utilities and Tailwind layers                        |
-| `styles/workbench-tokens.css`       | Theme colors, semantic aliases, ambient inputs and the shared action height                |
-| `styles/workbench-precision.css`    | Control size, typography, density and edge tokens                                          |
-| `styles/workbench-ambient.css`      | Workbench material and lighting paint                                                      |
-| `styles/workbench-studio.css`       | Studio-specific Workbench controls and ambient specificity bridges                         |
-| `styles/compact-style-selector.css` | Compact style selection, catalogs, tiles and disclosures                                   |
-| `styles/studio-foundation.css`      | Tailwind theme extensions, base defaults, shared utilities and CSS motion primitives       |
-| `styles/studio-workspace.css`       | Create and recipe composition, responsive rails, result tools, Library and viewer surfaces |
-| `styles/studio-organization.css`    | Tag and collection menus, organization editors and the carousel details panel              |
+| Source                              | Owns                                                                                         |
+| ----------------------------------- | -------------------------------------------------------------------------------------------- |
+| `tailwindcss`                       | Theme, one Preflight reset, generated utilities and Tailwind layers                          |
+| `styles/workbench-tokens.css`       | Theme colors, semantic aliases, ambient inputs and the shared action height                  |
+| `styles/workbench-precision.css`    | Control size, typography, density and edge tokens                                            |
+| `styles/workbench-ambient.css`      | Workbench material and lighting paint                                                        |
+| `styles/workbench-studio.css`       | Studio-specific Workbench controls and ambient specificity bridges                           |
+| `styles/compact-style-selector.css` | Compact style selection, catalogs, tiles and disclosures                                     |
+| `styles/studio-foundation.css`      | Tailwind theme extensions, base defaults, shared utilities and CSS motion primitives         |
+| `styles/studio-workspace.css`       | Create and workflow composition, responsive rails, result tools, Library and viewer surfaces |
+| `styles/studio-organization.css`    | Tag and collection menus, organization editors and the carousel details panel                |
 
-Vite uses the React and `@tailwindcss/vite` plugins. All CSS goes into one eager stylesheet that the lazy workflow routes share. Recipe components do not import CSS. There is no second Preflight, Sass pipeline, CSS Modules build or runtime CSS-in-JS engine.
+Vite uses the React and `@tailwindcss/vite` plugins. All CSS goes into one eager stylesheet that the lazy workflow routes share. Workflow components do not import CSS. There is no second Preflight, Sass pipeline, CSS Modules build or runtime CSS-in-JS engine.
 
 Import order is a contract. Workbench and workspace component rules are unlayered. The foundation keeps its `base` and `utilities` layers. Unlayered normal rules win over normal layered utilities. Do not move the component sheets into a new layer or reorder the imports during routine cleanup.
 
@@ -108,7 +108,7 @@ The landing site owns its styles under `landing/`. The Studio entry point does n
 | ID        | Owner and reason                                             | Evidence and review trigger                                                                                                                                           |
 | --------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | CSS-EX-01 | The react-scan development overlay must float above dialogs  | Now in `studio-foundation.css`; review by 2027-03-20 or when removing react-scan                                                                                      |
-| CSS-EX-02 | Mobile recipe menu geometry must win over inline placement   | Foundation/workspace rules; keep the earlier 390px evidence distinct from the 2026-09-26 audit. Review by 2027-03-20 or when dropdown positioning/mobile dock changes |
+| CSS-EX-02 | Mobile workflow menu geometry must win over inline placement | Foundation/workspace rules; keep the earlier 390px evidence distinct from the 2026-09-26 audit. Review by 2027-03-20 or when dropdown positioning/mobile dock changes |
 | CSS-EX-03 | Anchored style previews transition top/left for continuity   | `compact-style-selector.css`; layout cost not profiled. Review by 2027-03-20 or when profiling preview navigation                                                     |
 | CSS-EX-04 | WebKit and Mozilla range pseudo elements need separate rules | `workbench-studio.css`; review by 2027-03-20 or when supported browsers change                                                                                        |
 | CSS-EX-05 | Pixel-art rendering uses ordered compatibility values        | `studio-foundation.css`; review against explicit browser targets before removal                                                                                       |

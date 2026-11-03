@@ -23,7 +23,7 @@ The `cozy-studio-mcp` tools operate the user's running Cozy Studio. Each tool's 
    | Settings, Agent access, provider or model choice                             | [configure](references/configure.md)                             |
    | Choose, create, rename or delete a workspace                                 | [workspaces](references/workspaces.md)                           |
    | Tag, sort, file or clean up Library images                                   | [organize-library](references/organize-library.md)               |
-   | Choose a workflow or recipe                                                  | [workflows-and-recipes](references/workflows-and-recipes.md)     |
+   | Choose a workflow                                                            | [workflows](references/workflows-and-recipes.md)                 |
    | Generate, edit, import a reference, retry, cancel or compare                 | [generate-and-compare](references/generate-and-compare.md)       |
    | Find styles; install, update or remove packs                                 | [styles-and-packs](references/styles-and-packs.md)               |
    | Storage, disk use, the Archive                                               | [maintenance-and-cleanup](references/maintenance-and-cleanup.md) |

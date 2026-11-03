@@ -348,7 +348,7 @@ describe('Studio MCP boundary', () => {
     const batchesBefore = requests.filter(({ path }) => path === '/api/jobs/batches').length;
     for (const [rejected, error] of [
       [{ ...styled, styles: [{ ...styles[0], presetId: 'missing' }] }, 'is not installed'],
-      [{ ...styled, recipeId: 'remaster' }, 'styles uses the styles recipe'],
+      [{ ...styled, recipeId: 'remaster' }, 'styles uses the styles workflow'],
       [{ ...styled, model: 'gpt-image-9' }, 'Unknown ChatGPT image model'],
       [{ ...styled, providerId: 'grok' }, 'This provider uses its Settings default model'],
     ] as const) {

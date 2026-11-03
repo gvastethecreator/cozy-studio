@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { t } from '../lib/i18n';
 import type {
   CatalogCollection,
   CatalogOrganizeInput,
@@ -22,17 +23,31 @@ const EMPTY_COLLECTIONS: CatalogCollection[] = [];
 let organizeToastId: string | null = null;
 
 export function summarizeOrganizeCounts(counts: CatalogOrganizeHistoryEntry['counts']) {
-  const images = (count: number) => `${count} image${count === 1 ? '' : 's'}`;
+  const images = (count: number) => t('library.organize.imageCount', { count: String(count) });
   const parts = [
-    ...Object.entries(counts.tagsAdded).map(([tag, count]) => `Added #${tag} to ${images(count)}`),
-    ...Object.entries(counts.tagsRemoved).map(
-      ([tag, count]) => `Removed #${tag} from ${images(count)}`,
+    ...Object.entries(counts.tagsAdded).map(([tag, count]) =>
+      t('library.organize.addedTag', { tag, images: images(count) }),
+    ),
+    ...Object.entries(counts.tagsRemoved).map(([tag, count]) =>
+      t('library.organize.removedTag', { tag, images: images(count) }),
     ),
   ];
   if (counts.collection?.added)
-    parts.push(`Added ${images(counts.collection.added)} to ${counts.collection.name}`);
+    parts.push(
+      t('library.organize.addedCollection', {
+        count: String(counts.collection.added),
+        images: images(counts.collection.added),
+        name: counts.collection.name,
+      }),
+    );
   if (counts.removedFrom?.removed)
-    parts.push(`Removed ${images(counts.removedFrom.removed)} from ${counts.removedFrom.name}`);
+    parts.push(
+      t('library.organize.removedCollection', {
+        count: String(counts.removedFrom.removed),
+        images: images(counts.removedFrom.removed),
+        name: counts.removedFrom.name,
+      }),
+    );
   return parts.join('; ');
 }
 

@@ -141,10 +141,10 @@ export function buildGenerationTaskSpecFromRecipe({
   const negativePrompt = plan.negativePrompt || config.negativePrompt || null;
 
   if (module && !isRecipeTaskSupported(module, taskKind)) {
-    throw new Error(`Recipe Module ${module.id} does not support task ${taskKind}.`);
+    throw new Error(`Workflow ${module.id} does not support task ${taskKind}.`);
   }
   if (module && !isRecipeProviderSupported(module, providerId)) {
-    throw new Error(`Recipe Module ${module.id} does not support provider ${providerId}.`);
+    throw new Error(`Workflow ${module.id} does not support provider ${providerId}.`);
   }
   if (module) {
     const validation = validateRecipeParams(module, config.recipeParams ?? null);

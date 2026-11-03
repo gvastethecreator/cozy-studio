@@ -761,7 +761,7 @@ function RecipeResultStrip({
     <div
       ref={stripRef}
       className="recipe-result-strip"
-      aria-label={isStage ? 'Library results' : 'Recipe results'}
+      aria-label={isStage ? 'Library results' : 'Workflow results'}
       {...stripDrag}
     >
       {(isStage ? thumbnailWindow.map((entry) => entry.item) : images.slice(0, 20)).map(

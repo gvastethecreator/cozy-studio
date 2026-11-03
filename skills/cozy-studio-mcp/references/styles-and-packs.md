@@ -21,7 +21,7 @@ Studio compiles `styles` on the server with the same functions and Settings as t
 Pass `styles` to `studio_generate` or `studio_plan_generation`:
 
 - `styles: [{packId, presetId, strength?}]`, one to five presets. `strength` is 0.1 to 1. It defaults to the Settings style intensity (`defaultStyleIntensity`, 0.75 unless the user changed it). For a baseline without style, leave `styles` out.
-- `styles` runs the styles recipe. Leave `recipeId` out.
+- `styles` runs the styles workflow. Leave `recipeId` out.
 - `styleMode` sets how styles treat `referenceIds`. It defaults to the Settings `defaultStyleReferenceMode`, `preserve` unless the user changed it.
 
 | `styleMode`   | Legacy compiler                                                   | Intentional styles                                               |
@@ -35,7 +35,7 @@ Preview every styled call with `studio_plan_generation`. Its `styles` field give
 | Error                                                                               | Action                                                                                                                                  |
 | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `Style <packId>/<presetId> is not installed. Find presets with studio_find_styles.` | Use ids from `studio_find_styles`.                                                                                                      |
-| `styles uses the styles recipe. Leave recipeId out.`                                | Remove `recipeId`.                                                                                                                      |
+| `styles uses the styles workflow. Leave recipeId out.`                              | Remove `recipeId`.                                                                                                                      |
 | `Pass styles instead of compiled style fields.`                                     | Remove compiled fields, such as `selectedStyles` or `compilerVersion`, from `recipeParams`.                                             |
 | 400 with `issues`, code `PRESERVATION_NEEDS_CONTENT_REFERENCE`                      | Add a reference, or set `styleMode: "generate"`.                                                                                        |
 | 400 with `issues`, code `UNMIGRATED_PRESET`                                         | Replace the presets it names with presets that have `hasIntentionalPolicy: true`, or ask the user about the Intentional styles setting. |

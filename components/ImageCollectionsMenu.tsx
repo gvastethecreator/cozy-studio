@@ -33,7 +33,7 @@ function OrganizationMenuFooter({
   active,
   selectedImageIds,
   busy,
-  title,
+  kind,
   onChange,
   onManage,
   onDelete,
@@ -44,7 +44,7 @@ function OrganizationMenuFooter({
   active: CatalogCollection | undefined;
   selectedImageIds: string[];
   busy: boolean;
-  title: string;
+  kind: 'tag' | 'collection';
   onChange: (action: () => Promise<unknown>) => Promise<void>;
   onManage: () => void;
   onDelete: () => void;
@@ -53,10 +53,10 @@ function OrganizationMenuFooter({
   const { t } = useT();
   return (
     <>
-      <section aria-label="Recent changes" className="px-2 py-2 text-xs">
-        <p className="mb-2 text-[var(--wb-muted)]">Recent changes</p>
+      <section aria-label={t('library.organize.recent')} className="px-2 py-2 text-xs">
+        <p className="mb-2 text-[var(--wb-muted)]">{t('library.organize.recent')}</p>
         {historyError && <p role="alert">{historyError}</p>}
-        {!historyError && history.length === 0 && <p>No recent changes.</p>}
+        {!historyError && history.length === 0 && <p>{t('library.organize.noRecent')}</p>}
         {history.slice(0, 5).map((entry) => {
           const summary = summarizeOrganizeCounts(entry.counts);
           const newest = history.find((change) => !change.undoneAt);
@@ -69,22 +69,23 @@ function OrganizationMenuFooter({
                     minute: '2-digit',
                   })}
                 </time>{' '}
-                · {entry.source === 'ui' ? 'You' : 'Agent'} · {summary}
+                · {entry.source === 'ui' ? t('library.organize.you') : t('library.organize.agent')}{' '}
+                · {summary}
               </p>
               {entry.undoneAt ? (
-                <span>Undone</span>
+                <span>{t('library.organize.undone')}</span>
               ) : (
                 newest?.operationId === entry.operationId && (
                   <button
                     type="button"
                     role="menuitem"
                     disabled={busy}
-                    aria-label={`Undo: ${summary}`}
+                    aria-label={t('library.organize.undoLabel', { summary })}
                     onClick={() =>
                       void onChange(() => undoOrganization(entry.operationId, summary))
                     }
                   >
-                    Undo
+                    {t('library.organize.undo')}
                   </button>
                 )
               )}
@@ -113,7 +114,10 @@ function OrganizationMenuFooter({
               )
             }
           >
-            Add {selectedImageIds.length} selected to {active.name}
+            {t('library.organize.addSelected', {
+              count: String(selectedImageIds.length),
+              name: active.name,
+            })}
           </button>
           <button
             type="button"
@@ -129,16 +133,19 @@ function OrganizationMenuFooter({
               )
             }
           >
-            Remove {selectedImageIds.length} selected from {active.name}
+            {t('library.organize.removeSelected', {
+              count: String(selectedImageIds.length),
+              name: active.name,
+            })}
           </button>
         </>
       )}
       <button type="button" role="menuitem" onClick={onManage}>
-        Manage {title.toLowerCase()}…
+        {t(kind === 'tag' ? 'library.organize.manageTags' : 'library.organize.manageCollections')}
       </button>
       {active && (
         <button type="button" role="menuitem" disabled={busy} onClick={onDelete}>
-          Delete {active.name}…
+          {t('library.organize.deleteMenu', { name: active.name })}
         </button>
       )}
     </>
@@ -191,7 +198,7 @@ function OrganizationMenu({
         (cause: unknown) => {
           if (!cancelled && request === revision)
             setHistoryError(
-              cause instanceof Error ? cause.message : 'Could not load recent changes.',
+              cause instanceof Error ? cause.message : t('library.organize.historyError'),
             );
         },
       );
@@ -202,7 +209,7 @@ function OrganizationMenu({
       cancelled = true;
       window.removeEventListener(CATALOG_ORGANIZATION_CHANGED, refreshHistory);
     };
-  }, [workspaceId, open]);
+  }, [workspaceId, open, t]);
   const [limit, setLimit] = useState(15);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState('');
@@ -214,7 +221,8 @@ function OrganizationMenu({
   const search = parseCatalogSearch(query);
   const searchTags = new Set(search.tags);
   const isTag = kind === 'tag';
-  const [title, Icon] = isTag ? (['Tags', Hashtag] as const) : (['Collections', Folder] as const);
+  const title = t(isTag ? 'library.organize.tags' : 'library.organize.collections');
+  const Icon = isTag ? Hashtag : Folder;
   const changeCollection = async (action: () => Promise<unknown>) => {
     setBusy(true);
     setActionError('');
@@ -223,7 +231,7 @@ function OrganizationMenu({
       notifyCatalogOrganizationChanged();
       await onCatalogChanged?.();
     } catch (cause) {
-      setActionError(cause instanceof Error ? cause.message : 'Could not update collection.');
+      setActionError(cause instanceof Error ? cause.message : t('library.organize.updateError'));
     } finally {
       setBusy(false);
     }
@@ -308,7 +316,7 @@ function OrganizationMenu({
             setOpen(false);
           }}
         >
-          All images
+          {t('library.organize.allImages')}
         </button>
         <div
           className="organization-scroll"
@@ -355,16 +363,16 @@ function OrganizationMenu({
           ))}
           {limit < items.length && (
             <button type="button" role="menuitem" onClick={() => setLimit((value) => value + 15)}>
-              Show more
+              {t('library.organize.showMore')}
             </button>
           )}
         </div>
-        {loading && <p role="status">Loading…</p>}
+        {loading && <p role="status">{t('library.organize.loading')}</p>}
         {error && (
           <p role="alert">
             {error}{' '}
             <button type="button" onClick={refresh}>
-              Retry
+              {t('library.organize.retry')}
             </button>
           </p>
         )}
@@ -375,7 +383,7 @@ function OrganizationMenu({
           active={active}
           selectedImageIds={selectedImageIds}
           busy={busy}
-          title={title}
+          kind={kind}
           onChange={changeCollection}
           onEditRules={() => {
             setOpen(false);
@@ -412,9 +420,11 @@ function OrganizationMenu({
       )}
       <ConfirmationModal
         isOpen={confirmDelete && Boolean(active)}
-        title={`Delete ${active?.name ?? 'collection'}?`}
-        description="The images will stay in your Library."
-        confirmLabel="Delete collection"
+        title={t('library.organize.deleteTitle', {
+          name: active?.name ?? t('library.organize.collection'),
+        })}
+        description={t('library.organize.deleteHint')}
+        confirmLabel={t('library.organize.deleteCollection')}
         onClose={() => setConfirmDelete(false)}
         onConfirm={() =>
           changeCollection(async () => {

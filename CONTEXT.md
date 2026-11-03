@@ -124,7 +124,7 @@ _Avoid_: source spec, recipeContext, stored prompt
 
 **Provider Session Contract**:
 Stable provider-level instructions and output rules reused across jobs so each Compiled Provider Input only carries task-specific delta.
-_Avoid_: repeated prompt boilerplate, per-job system prompt, hidden recipe text
+_Avoid_: repeated prompt boilerplate, per-job system prompt, hidden workflow text
 
 **Provider Capability Catalog**:
 Fixed non-secret description of the Generation Providers supported by this build, used to project capability and readiness without pretending providers are runtime plugins.
@@ -134,10 +134,10 @@ _Avoid_: runtime plugin registry, Provider Secret store, route-local provider fa
 Backend seam that turns a job creation request into one durable Persistent Job, including provider selection, source-spec validation, reference persistence, event publication, and enqueue.
 _Avoid_: route-owned job creation, provider-named task intake, ad-hoc enqueue path
 
-**Recipe Provider Directives**:
-Compact provider-ready directive snapshot derived from Recipe Module Generation Task Spec metadata.
-They are the only recipe text that new jobs send to providers.
-Old stored specs without directives still replay their stored Recipe Context through a provider compiler fallback.
+**Workflow Provider Directives** (`RecipeProviderDirectives`):
+Compact provider-ready directive snapshot derived from Workflow Definition Generation Task Spec metadata.
+They are the only workflow text that new jobs send to providers.
+Old stored specs without directives still replay their stored `recipeContext` through a provider compiler fallback.
 _Avoid_: recipeContext, hidden prompt copy, lossy summary
 
 **Codex Product Runtime**:
@@ -148,24 +148,24 @@ _Avoid_: SDK runner, non-interactive command, generic automation path
 Auxiliary Codex SDK or script-driven workflow used for audits, verification, migrations, or maintenance outside the interactive product runtime.
 _Avoid_: primary runtime, UI generation engine, app-server replacement
 
-**Recipe Module**:
-Declarative reusable workflow that exposes metadata, parameter schema, assets, compatible tasks/providers, and a builder for a Generation Task Spec.
-_Avoid_: prompt component, recipe page, workflow string
+**Workflow Definition** (`RecipeDefinition`, with `RecipeModule` metadata):
+Declarative reusable workflow that exposes metadata, parameter schema, assets, compatible tasks/providers, and a builder for a Generation Task Spec. The UI calls these Workflows. Technical identifiers such as `RecipeModule`, `recipeId`, `recipeParams` and `studio_recipes` keep their existing names. A `WorkflowModule` separately groups features for Settings controls.
+_Avoid_: prompt component, workflow page, workflow string
 
-**Recipe Module Catalog**:
-Queryable index of Recipe Modules used by UI cards, scripts, and agents to inspect recipe identity, tasks, providers, and parameters without reading React pages.
-_Avoid_: recipe card copy, hardcoded recipes list, UI-only recipe metadata
+**Workflow Catalog**:
+Queryable index of Workflow Definitions used by UI cards, scripts, and agents to inspect workflow identity, tasks, providers, and parameters without reading React pages.
+_Avoid_: workflow card copy, hardcoded workflows list, UI-only workflow metadata
 
-**Recipe Discovery Projection**:
-Queryable discovery view over Recipe Modules and aliases for UI cards, scripts, and agents.
-_Avoid_: separate recipe search list, alias-only recipe module, duplicated catalog query
+**Workflow Discovery Projection**:
+Queryable discovery view over Workflow Definitions and aliases for UI cards, scripts, and agents.
+_Avoid_: separate workflow search list, alias-only workflow definition, duplicated catalog query
 
 **Animation Frame Handoff**:
 Provider-independent intent for one Animation Sequence frame operation, including task choice, executable references, correction input, variants, and metadata.
 _Avoid_: frame prompt copy, UI generation config, provider payload
 
 **Animation Sequence Run Coordinator**:
-Backend workflow owner for Animation Sequence runs. The React recipe submits Animation Frame Handoffs; the coordinator records each frame dispatch at job intake and reconciles frames from job events and at startup.
+Backend workflow owner for Animation Sequence runs. The workflow UI submits Animation Frame Handoffs; the coordinator records each frame dispatch at job intake and reconciles frames from job events and at startup.
 _Avoid_: React generation loop, browser batch scan, route-owned workflow
 
 **Animation Sequence Run View**:
@@ -260,8 +260,8 @@ Frontend image-grid budget that reserves Catalog card geometry and gives initial
 _Avoid_: blanket eager images, lazy LCP thumbnail, index-only image priority
 
 **Route Preload Budget**:
-Frontend routing budget that separates active navigation, idle route-shell preload, and explicit recipe hover/focus intent.
-_Avoid_: preload every recipe, route import fan-out, hidden startup work
+Frontend routing budget that separates active navigation, idle route-shell preload, and explicit workflow hover/focus intent.
+_Avoid_: preload every workflow, route import fan-out, hidden startup work
 
 **Local Generation Run**:
 Frontend seam that creates Persistent Jobs, waits for completion, and returns catalog-derived image results.
@@ -315,10 +315,10 @@ _Avoid_: direct repair command, secret-printing audit, destructive storage scan
 - A **Persistent Job** on the Codex app-server route executes one or more **Codex Turns**. ChatGPT HTTP jobs do not create Codex turns or threads.
 - A **Persistent Job** has one **Generation Task** and one **Generation Provider** selected through the **Provider Boundary**.
 - **Persistent Job Intake** creates Persistent Jobs and checks the **Provider Capability Catalog** plus runtime preflight to keep Generation Task and Generation Provider policy explicit.
-- A **Recipe Module** produces a **Generation Task Spec** for a **Generation Task**.
-- A **Recipe Module Catalog** exposes Recipe Module metadata for navigation, scripts, and agents. The **Recipe Discovery Projection** is the query view over modules and aliases.
+- A **Workflow Definition** produces a **Generation Task Spec** for a **Generation Task**.
+- A **Workflow Catalog** exposes Workflow Definition metadata for navigation, scripts, and agents. The **Workflow Discovery Projection** is the query view over modules and aliases.
 - An **Animation Frame Handoff** is dispatched and reconciled by the **Animation Sequence Run Coordinator**. The UI consumes an **Animation Sequence Run View**.
-- **Recipe Provider Directives** can attach to a **Generation Task Spec** when structured recipe data is strong enough to compile a compact prompt safely.
+- **Workflow Provider Directives** can attach to a **Generation Task Spec** when structured workflow data is strong enough to compile a compact prompt safely.
 - A **Generation Provider** compiles a **Generation Task Spec** into provider-specific execution.
 - A **Compiled Provider Input** is derived from a **Generation Task Spec**. It can be much smaller than the stored spec.
 - A **Provider Session Contract** supplies stable rules that do not need to be repeated in every **Compiled Provider Input**.
@@ -334,7 +334,7 @@ _Avoid_: direct repair command, secret-printing audit, destructive storage scan
 - A **Catalog Render Budget** keeps hot **Catalog Page** reads bounded per surface.
 - A **Catalog Card Action Surface** keeps secondary card commands available by intent instead of permanently mounted for every **Catalog Entry** card.
 - An **Image Grid Geometry Budget** keeps first-viewport Catalog thumbnails discoverable while off-viewport images remain lazy.
-- A **Route Preload Budget** lets the **Studio Shell** warm route surfaces by route and user intent without importing every **Recipe Module** surface on Home.
+- A **Route Preload Budget** lets the **Studio Shell** warm route surfaces by route and user intent without importing every **Workflow Definition** surface on Home.
 - **Studio Shell** materializes **Studio Runtime**, navigation state, overlays, and **Catalog Entries** into the renderable app layout.
 - **Studio Readiness** exposes **Studio Runtime**, **Studio Data Folder**, and Codex runtime diagnostics. Generation readiness is checked for the selected **Generation Provider**.
 - The **Command Center** exposes global status and commands, while deeper configuration and diagnostics open from it.
@@ -365,8 +365,8 @@ _Avoid_: direct repair command, secret-printing audit, destructive storage scan
 - **Generation Task** and **Generation Provider** are separate concepts. Task names do not encode provider names.
 - **Provider Capability Catalog** is a fixed build-time capability description, not runtime plugin machinery or a Provider Secret store.
 - **Persistent Job Intake** can accept compatibility aliases. New durable policy must preserve the **Generation Task** / **Generation Provider** split.
-- **Recipe Module** means a declarative workflow module, not a React-only page or a prebuilt prompt string.
-- **Recipe Discovery Projection** aliases help discovery. Aliases are not new **Recipe Modules**.
+- **Workflow Definition** means a declarative workflow module, not a React-only page or a prebuilt prompt string.
+- **Workflow Discovery Projection** aliases help discovery. Aliases are not new **Workflow Definitions**.
 - **Style Preset Manifest** preserves preset identity and editing locality. One edit must not risk a whole category in a giant pack file.
 - **Style Search Projection** derives from manifests, not from visual runtime pack shortcuts.
 - **Compiled Provider Input** is execution data, not the durable source of truth. The richer **Generation Task Spec** remains for traceability.

@@ -1,15 +1,15 @@
 # Code map: cozy-studio
 
-Generated: 2026-11-03T07:13:16Z | Commit: `ec8857eb5773` | Schema: 2
-Generation: `45a668bcf6baaa5aba3e1284b89261634d29671b8ab8e73d7b2632794fb47d7a`
+Generated: 2026-11-03T08:27:15Z | Commit: `14436b4ca786` | Schema: 2
+Generation: `7f27fd78d91502ab634c598ac46f30e419b64e6c14abdc8d02a0be03d815e265`
 Scope: . | Inventory: working-tree
-Nodes: 1045 | Edges: 7245 | Flows: 0
+Nodes: 1045 | Edges: 7247 | Flows: 0
 
 ## Coverage
 
 - Analysis: **partial**; 986 analyzed of 1004 included files.
 - Configuration files: 7; omitted untracked files: 0.
-- Unresolved references and analysis limits: 5296.
+- Unresolved references and analysis limits: 5322.
 - Static references and call paths do not prove runtime execution or test coverage.
 
 ## Modules
@@ -88,7 +88,7 @@ Nodes: 1045 | Edges: 7245 | Flows: 0
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/animationGifEncoder.ts` | calls
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/animationGifEncoder.ts` | imports
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/db/jobs.ts` | imports
-- Showing 50 of 7245 edges; JSON contains every edge and its evidence.
+- Showing 50 of 7247 edges; JSON contains every edge and its evidence.
 
 ## Unknown
 
@@ -96,14 +96,14 @@ Nodes: 1045 | Edges: 7245 | Flows: 0
 - `apps/local-server/src/animationSequenceRoutes.test.ts:31`: object-member-call-not-resolved (path)
 - `apps/local-server/src/animationSequenceRoutes.test.ts:56`: object-member-call-not-resolved (path)
 - `apps/local-server/src/animationSequenceRoutes.test.ts:56`: object-member-call-not-resolved (os)
-- `apps/local-server/src/animationSequenceRoutes.test.ts:58`: object-member-call-not-resolved (path)
-- `apps/local-server/src/animationSequenceRoutes.test.ts:59`: object-member-call-not-resolved (path)
-- `apps/local-server/src/animationSequenceRoutes.test.ts:68`: object-member-call-not-resolved (path)
-- `apps/local-server/src/animationSequenceRoutes.test.ts:101`: object-member-call-not-resolved (expect)
-- `apps/local-server/src/animationSequenceRoutes.test.ts:171`: object-member-call-not-resolved (expect)
-- `apps/local-server/src/animationSequenceRoutes.test.ts:180`: object-member-call-not-resolved (path)
-- `apps/local-server/src/animationSequenceRoutes.test.ts:180`: object-member-call-not-resolved (os)
-- `apps/local-server/src/animationSequenceRoutes.test.ts:206`: object-member-call-not-resolved (path)
+- `apps/local-server/src/animationSequenceRoutes.test.ts:57`: object-member-call-not-resolved (path)
+- `apps/local-server/src/animationSequenceRoutes.test.ts:57`: object-member-call-not-resolved (os)
+- `apps/local-server/src/animationSequenceRoutes.test.ts:60`: object-member-call-not-resolved (path)
+- `apps/local-server/src/animationSequenceRoutes.test.ts:61`: object-member-call-not-resolved (path)
+- `apps/local-server/src/animationSequenceRoutes.test.ts:70`: object-member-call-not-resolved (path)
+- `apps/local-server/src/animationSequenceRoutes.test.ts:103`: object-member-call-not-resolved (expect)
+- `apps/local-server/src/animationSequenceRoutes.test.ts:173`: object-member-call-not-resolved (expect)
+- `apps/local-server/src/animationSequenceRoutes.test.ts:177`: object-member-call-not-resolved (path)
 
 ## Flows
 
@@ -111,7 +111,7 @@ Nodes: 1045 | Edges: 7245 | Flows: 0
 
 ## Architecture changes
 
-- Nodes: +0 / -0; edges: +25 / -0.
+- Nodes: +0 / -0; edges: +2 / -0.
 - Boundary changes: 0; new cycles: 0.
 
 ## Read next

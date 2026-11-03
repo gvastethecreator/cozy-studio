@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
-  "source_commit": "ec8857eb5773c3b0a6e6607676d35133d2c03b0b",
+  "source_commit": "14436b4ca786384b6d57611d3bb93d600e42177b",
   "working_tree_dirty": true,
-  "generated_at": "2026-11-03T07:13:16Z",
-  "generation_id": "45a668bcf6baaa5aba3e1284b89261634d29671b8ab8e73d7b2632794fb47d7a",
+  "generated_at": "2026-11-03T08:27:15Z",
+  "generation_id": "7f27fd78d91502ab634c598ac46f30e419b64e6c14abdc8d02a0be03d815e265",
   "analysis": {
     "version": "syntax-1",
     "digest": "ae6d608d107619ec3efae990b53b43e523c90e8f5d2c3e86ab86c9e8ec95d260"
@@ -68,8 +68,8 @@
         "path": "apps/local-server/src/animationSequenceRoutes.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "1720ef419a381a7c3ef8f84051b4a162c0c3c19aa54953ba6fe395dc055eb677",
-        "size": 15140
+        "digest": "99a80030d495e75e5f6393964efc97cd13827b2656bed813e3c0401a292b10f6",
+        "size": 17606
       },
       {
         "path": "apps/local-server/src/animationSequenceRoutes.ts",
@@ -103,8 +103,8 @@
         "path": "apps/local-server/src/animationSequenceService.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "b2852ec15c9009282125b2dd5a9825447d2fb7edfebb1518099c92f9e865fb7f",
-        "size": 28955
+        "digest": "6b37b42aa1882c8ba352478c2cd0cc9755da03f47531893bb4ba9cd031100b49",
+        "size": 30124
       },
       {
         "path": "apps/local-server/src/antigravityExecutable.ts",
@@ -1783,8 +1783,8 @@
         "path": "apps/local-server/src/repositoryUpdates.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "8937771c9038dcf90b35c2efefe133028ed21fe406281bb5c8bffe6690fd04ff",
-        "size": 22387
+        "digest": "81acb8e3f0d31455efc6842f5cf87985744bc68e724704c9fefdad3f3ef86ff5",
+        "size": 22422
       },
       {
         "path": "apps/local-server/src/repositoryUpdates.ts",
@@ -1818,8 +1818,8 @@
         "path": "apps/local-server/src/runFolderStore.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "3dc47d6561eb55b79e4a787ae3998dc2345ad0709bdf665414eae8fd382bd952",
-        "size": 3099
+        "digest": "4e320efe5438f09008a9260f7c1235c40bd6b70d3a8eb4f22094227fa359571f",
+        "size": 5535
       },
       {
         "path": "apps/local-server/src/runtimeDoctorCache.test.ts",
@@ -1895,8 +1895,8 @@
         "path": "apps/local-server/src/spriteAtlasRoutes.test.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "a58b689ee9b65ea818026389092c751523b7b29b839e038ee84f427e7fbfba1c",
-        "size": 21478
+        "digest": "112359952894e8cc84305348706e8c74749347c1e87b4f4a91ab354a576fadf2",
+        "size": 24641
       },
       {
         "path": "apps/local-server/src/spriteAtlasRoutes.ts",
@@ -1923,8 +1923,8 @@
         "path": "apps/local-server/src/spriteAtlasService.ts",
         "origin": "tracked",
         "state": "present",
-        "digest": "66ca112f67d300cb65c3f9faed52480dc5ad81fa2976109ac392f7644c3cd51c",
-        "size": 46745
+        "digest": "de884a5ed79e2798418f2c1e066c2422fb1e077e3015eb2122ae4979cfbeff7c",
+        "size": 47723
       },
       {
         "path": "apps/local-server/src/sqliteUserStyles.ts",
@@ -5703,8 +5703,8 @@
         "path": "package.json",
         "origin": "tracked",
         "state": "present",
-        "digest": "599103a9e1bd015dcb3d2437eaf36f27b094f2ac0eaa297258173e03e7373514",
-        "size": 6616
+        "digest": "75e97d9d48f28eab1cd6eae10b40876dea1f07c09f7dfcdc56a897f9d4fd243a",
+        "size": 6602
       },
       {
         "path": "packages/shared/src/animationSequenceContracts.test.ts",
@@ -7072,12 +7072,12 @@
         "size": 955
       }
     ],
-    "digest": "987d7dd9bf1153716897e230829f642177f1c7d2c1c1d92566ba7f8176e77c3c"
+    "digest": "17b29733e1e359a7295efadcede86ab9e93f2cc9ff4a94a65935984fadd8a475"
   },
-  "source_digest": "9d1b4271b6f7c51e57c42c830c5e74b4cba85573b5ed8c4596c6d6012e806fbd",
+  "source_digest": "4e41235900bc5725888cccbcbb75358ba6aa8e51f7ec40c9dab908f02ae48622",
   "artifact_hashes": {
-    "codemap.json": "a6e05d4c41499c6c7ba35c5cdbb9a941c117423fad7bd363d4356ebb461db6fe",
-    "codemap.md": "9d6f9b6ad5cd29793a00899c6798ca9cbe92203e81ee19d108d474839e03ee3c",
-    "codemap.html": "8dfddc84e7f709f551d9362030ea3131d7c828a5e592ccb26136ab702f936511"
+    "codemap.json": "9e021bea7d951e4d414ab02b5861bd740c61b744d6f7b1444dbd445d742b093d",
+    "codemap.md": "1a8b4d6c80aad38abce70564dd01d3414a0c10703592e61138d59c6eb980303c",
+    "codemap.html": "d8ba12635b61b81897f2843072ca8ee8489475fe271a6dc18a6fcec200635027"
   }
 }

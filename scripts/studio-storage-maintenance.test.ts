@@ -6,9 +6,140 @@ import path from 'node:path';
 import {
   backfillMissingThumbnails,
   compactInlineImagePayloads,
+  computeImageDHash,
+  findCatalogDuplicates,
   readReferenceDedupeStats,
 } from './studio-storage-maintenance';
 import { resolveLibraryPathFromRoot } from '../apps/local-server/src/library';
+import { openTestDatabase } from '../apps/local-server/src/db/testDatabase';
+import { authoringSharp } from '../apps/local-server/src/sharpAuthoringAdapter';
+
+describe('catalog duplicate review', () => {
+  it('caches bounded scans, scopes live images and groups by keeper without similarity chains', async () => {
+    const db = openTestDatabase();
+    db.query(
+      "INSERT INTO libraries (id, name, path, created_at) VALUES ('test', 'Test', '/test', '2026-01-01')",
+    ).run();
+    const hashes: Record<string, string> = {
+      favorite: '0'.repeat(64),
+      near: 'ffff' + '0'.repeat(60),
+      chain: 'ffff8' + '0'.repeat(59),
+      organized: '0'.repeat(64),
+      otherOrganized: 'f'.repeat(64),
+      newerOrganized: 'f'.repeat(64),
+      older: 'f'.repeat(62) + '00',
+    };
+    const createdAt: Record<string, string> = {
+      otherOrganized: '2026-11-01T00:00:00Z',
+      newerOrganized: '2026-11-01T00:00:00.001Z',
+      older: '2026-01-01',
+    };
+    for (const id of [
+      ...Object.keys(hashes),
+      'missing',
+      'unreadable',
+      'otherWorkspace',
+      'archived',
+    ]) {
+      db.query(`INSERT INTO catalog_images
+        (id, library_id, file_path, public_url, mime_type, created_at, workspace_id, is_deleted, is_favorite, tags)
+        VALUES (?, 'test', ?, ?, 'image/png', ?, ?, ?, ?, ?)`).run(
+        id,
+        id,
+        `/library/${id}.png`,
+        createdAt[id] ?? '2026-02-01',
+        id === 'otherWorkspace' ? 'other' : 'default',
+        Number(id === 'archived'),
+        Number(id === 'favorite'),
+        ['organized', 'otherOrganized', 'newerOrganized'].includes(id) ? '["tag"]' : '[]',
+      );
+    }
+    let computeCalls = 0;
+    const dependencies = {
+      fileExists: (filePath: string) => filePath !== 'missing',
+      computeDHash: async (filePath: string) => {
+        computeCalls += 1;
+        if (filePath === 'unreadable') throw new Error('Unreadable');
+        return hashes[filePath]!;
+      },
+    };
+    const first = await findCatalogDuplicates(
+      db,
+      { workspaceId: 'default', hashLimit: 2 },
+      dependencies,
+    );
+    expect(first).toMatchObject({ hashedNow: 2, total: 9, checked: 2, pending: 7, groups: [] });
+    const complete = await findCatalogDuplicates(db, { workspaceId: 'default' }, dependencies);
+    expect(complete).toMatchObject({ hashedNow: 7, total: 9, checked: 9, pending: 0, skipped: 2 });
+    expect(
+      complete.groups.map((group) => ({
+        keeper: group.keeperId,
+        ids: group.images.map((image) => image.id),
+      })),
+    ).toEqual([
+      { keeper: 'favorite', ids: ['favorite', 'organized', 'near'] },
+      { keeper: 'otherOrganized', ids: ['otherOrganized', 'newerOrganized', 'older'] },
+    ]);
+    expect(complete.groups[0]!.images[0]!.isFavorite).toBe(true);
+    expect(
+      db
+        .query(
+          "SELECT id, dhash FROM catalog_images WHERE id IN ('missing', 'unreadable') ORDER BY id",
+        )
+        .all(),
+    ).toEqual([
+      { id: 'missing', dhash: '' },
+      { id: 'unreadable', dhash: '' },
+    ]);
+    expect(
+      db.query("SELECT dhash FROM catalog_images WHERE id IN ('otherWorkspace', 'archived')").all(),
+    ).toEqual([{ dhash: null }, { dhash: null }]);
+    const cached = await findCatalogDuplicates(db, { workspaceId: 'default' }, dependencies);
+    expect(cached).toEqual({ ...complete, hashedNow: 0 });
+    expect(computeCalls).toBe(8);
+  });
+
+  it('matches a JPEG resave of a gradient and separates its mirror with 256-bit dHash', async () => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'cozy-dhash-'));
+    try {
+      const width = 256;
+      const pixels = Buffer.alloc(width * width * 3);
+      for (let y = 0; y < width; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          for (let channel = 0; channel < 3; channel += 1)
+            pixels[(y * width + x) * 3 + channel] = x;
+        }
+      }
+      const original = path.join(directory, 'gradient.png');
+      const jpeg = path.join(directory, 'gradient.jpg');
+      const mirror = path.join(directory, 'mirror.png');
+      await authoringSharp(pixels, { raw: { width, height: width, channels: 3 } })
+        .png()
+        .toFile(original);
+      await authoringSharp(original).jpeg({ quality: 70 }).toFile(jpeg);
+      await authoringSharp(original).flop().png().toFile(mirror);
+      const [pngHash, jpegHash, mirrorHash] = await Promise.all(
+        [original, jpeg, mirror].map(computeImageDHash),
+      );
+      const distance = (left: string, right: string) =>
+        left
+          .split('')
+          .reduce(
+            (total, digit, index) =>
+              total +
+              (Number.parseInt(digit, 16) ^ Number.parseInt(right[index]!, 16))
+                .toString(2)
+                .replaceAll('0', '').length,
+            0,
+          );
+      expect(pngHash).toMatch(/^[a-f0-9]{64}$/);
+      expect(distance(pngHash!, jpegHash!)).toBeLessThanOrEqual(16);
+      expect(distance(pngHash!, mirrorHash!)).toBeGreaterThan(16);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+});
 
 describe('compactInlineImagePayloads', () => {
   it('omits inline image bytes while preserving non-inline task data', () => {

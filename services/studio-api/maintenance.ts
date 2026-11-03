@@ -1,10 +1,18 @@
 import type {
+  CatalogDuplicateScanResult,
   StorageMaintenanceAuditReport,
   StorageMaintenanceCompactResult,
   StorageMaintenanceThumbnailBackfillResult,
   ToolingLogsPruneResult,
 } from '../../packages/shared/src';
 import { request } from './http';
+
+export async function findCatalogDuplicates(input: { workspaceId: string; hashLimit?: number }) {
+  return request<CatalogDuplicateScanResult>('/api/maintenance/catalog/duplicates', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
 
 export async function getStorageMaintenanceAudit() {
   return request<StorageMaintenanceAuditReport>('/api/maintenance/storage/audit');

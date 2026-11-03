@@ -2,6 +2,38 @@ import { describe, expect, it, vi } from 'vitest';
 import { createMaintenanceRoutes } from './maintenanceRoutes';
 
 describe('maintenanceRoutes', () => {
+  it('requires a workspace and bounds duplicate scans without accepting a custom threshold', async () => {
+    const findDuplicates = vi.fn(async () => ({
+      hashedNow: 2,
+      pending: 3,
+      checked: 2,
+      total: 5,
+      skipped: 0,
+      groups: [],
+    }));
+    const routes = createMaintenanceRoutes({ findDuplicates });
+    for (const body of [
+      {},
+      null,
+      { workspaceId: ' ' },
+      { workspaceId: 'default', hashLimit: 51 },
+    ]) {
+      const response = await routes.request('/catalog/duplicates', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+      expect(response.status).toBe(400);
+    }
+    expect(findDuplicates).not.toHaveBeenCalled();
+    const response = await routes.request('/catalog/duplicates', {
+      method: 'POST',
+      body: JSON.stringify({ workspaceId: 'default', hashLimit: 2, maxDistance: 256 }),
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ pending: 3, checked: 2, total: 5 });
+    expect(findDuplicates).toHaveBeenCalledWith({ workspaceId: 'default', hashLimit: 2 });
+  });
+
   it('returns the storage audit report', async () => {
     const readStorageAudit = vi.fn(async () => ({
       libraryDir: 'D:/library',

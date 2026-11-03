@@ -4,6 +4,7 @@ import { validateOutputTemplate } from '../packages/shared/src/outputLayout';
 import { SettingsGeneralPanel } from './settings/SettingsGeneralPanel';
 import { SettingsOrganizationPanel } from './settings/SettingsOrganizationPanel';
 import { SettingsUpdatesPanel } from './settings/SettingsUpdatesPanel';
+import { SettingsDuplicatesPanel } from './settings/SettingsDuplicatesPanel';
 import { SettingsLibraryArchivePanel } from './settings/SettingsLibraryArchivePanel';
 import { StudioHelpGuide } from './StudioHelpGuide';
 import { ConfirmationModal } from './ConfirmationModal';
@@ -446,6 +447,7 @@ function SettingsDomainContent({
             </label>
           </fieldset>
           <SettingsMaintenancePanel maintenance={maintenance} />
+          <SettingsDuplicatesPanel />
           <details className="settings-disclosure">
             <summary>Repair Studio data</summary>
             <p className="studio-muted text-sm mb-3">

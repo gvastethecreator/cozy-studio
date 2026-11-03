@@ -12,6 +12,8 @@ import { resolveLibraryPathFromRoot } from '../apps/local-server/src/library';
 export {
   backfillMissingThumbnails,
   compactInlineImagePayloads,
+  computeImageDHash,
+  findCatalogDuplicates,
   readReferenceDedupeStats,
 } from '../apps/local-server/src/storageMaintenance';
 

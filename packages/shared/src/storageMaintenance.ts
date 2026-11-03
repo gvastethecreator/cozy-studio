@@ -1,5 +1,26 @@
 export type StorageMaintenanceMode = 'dry-run' | 'write';
 
+export interface CatalogDuplicateImage {
+  id: string;
+  thumbnailUrl: string | null;
+  publicUrl: string;
+  createdAt: string;
+  isFavorite: boolean;
+  recipeId: string | null;
+  width: number | null;
+  height: number | null;
+  fileSizeBytes: number | null;
+}
+
+export interface CatalogDuplicateScanResult {
+  hashedNow: number;
+  pending: number;
+  checked: number;
+  total: number;
+  skipped: number;
+  groups: Array<{ keeperId: string; images: CatalogDuplicateImage[] }>;
+}
+
 export interface StorageMaintenanceBackup {
   backupDir: string;
   files: string[];

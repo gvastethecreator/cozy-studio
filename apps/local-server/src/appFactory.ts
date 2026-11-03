@@ -1,5 +1,7 @@
 import { createMcpRoutes } from './mcpRoutes';
 import { randomUUID } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { delimiter, resolve } from 'node:path';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { createLibraryArchiveRoutes } from './libraryArchiveRoutes';
@@ -100,6 +102,8 @@ import { createAssetLogRoutes } from './assetLogRoutes';
 import { createRuntimeRoutes } from './runtimeRoutes';
 import { createStudioControlRoutes } from './studioControlRoutes';
 import { createRepositoryUpdates } from './repositoryUpdates';
+import { createReleaseUpdates, studioAppRoot } from './releaseUpdates';
+import { readExternalOutputSourceRegistry } from './outputSources';
 import { createRepositoryUpdateRoutes } from './repositoryUpdateRoutes';
 import { listRecoverableJobs } from './db/jobs';
 import { createMaintenanceRoutes } from './maintenanceRoutes';
@@ -287,10 +291,26 @@ export async function createStudioApp(
   app.use('/api/*', (c, next) =>
     c.req.path === '/api/workspaces/import' ? next() : standardBodyLimit(c, next),
   );
-  const updates = createRepositoryUpdates({
+  const updateOptions = {
     restart: options.restart,
     isBusy: () => activeMutations > 0 || listRecoverableJobs().length > 0,
-  });
+  };
+  const updates = existsSync(resolve(studioAppRoot, 'portable.json'))
+    ? createReleaseUpdates({
+        ...updateOptions,
+        getProtectedRoots: () => [
+          getSettings().libraryDir,
+          ...listLibraries().map((library) => library.path),
+          ...readExternalOutputSourceRegistry(settingsStorage).sources.map((source) => source.path),
+          ...(process.env.STUDIO_EXTENSION_SOURCES?.split(delimiter).some(Boolean)
+            ? resolveExtensionSources()
+            : [resolveExtensionInstallDir()]),
+        ],
+      })
+    : createRepositoryUpdates({
+        ...updateOptions,
+        getChannel: () => readEditableStudioSettings(settingsStorage).updateChannel,
+      });
   // Failures (offline, not a Git checkout) stay in the update status; startup never waits.
   if (options.checkUpdatesOnStart) void updates.check();
   const updateBlockedMessage =

@@ -59,9 +59,11 @@ bun run dev
 
 On Windows, keep `-c core.longpaths=true`. Some workflow asset paths are about 160 characters long, and a clone into a deep folder fails without it.
 
-Then open the UI at <http://localhost:17222>. To update a checkout later, use **Settings → Help & updates**. It fast-forwards `main`, installs dependencies and restarts Studio.
+Then open the UI at <http://localhost:17222>. To update a checkout later, use **Settings → Help & updates**. **Commits on main** is the default; select **Releases** to follow published release tags. Both fast-forward a clean `main`, install dependencies and restart Studio.
 
 **Portable ZIP.** No portable ZIPs are published yet. To get one, build your own ZIP from a checkout with `bun run build` and then `bun run portable:build`. [Tooling](docs/TOOLING.md) lists the targets for each OS and CPU. Extract the ZIP and follow [PORTABLE.txt](PORTABLE.txt) to launch it. [Platform support](docs/PLATFORMS.md) lists the OS requirements.
+
+The portable root launcher starts `app/`; its default Studio data folder stays beside that folder. Portable updates use published releases, verify the ZIP and replace only `app/`. The first release is planned as `0.1.1` and is unsigned. Read the [first-run and recovery steps](docs/PLATFORMS.md#releases-and-updates).
 
 **Ask an agent.** Open this folder in Claude Code, Codex or Cursor and ask for first setup, or use Copy prompt on the onboarding screen. The prompt points at `skills/cozy-studio-setup/SKILL.md`.
 

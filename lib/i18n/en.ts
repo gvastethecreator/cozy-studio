@@ -1,5 +1,20 @@
 // Source dictionary. Plain strings take {name} params; plural entries pick a form from {count}.
 export const en = {
+  'updates.channel': 'Update channel',
+  'updates.releases': 'Releases (recommended)',
+  'updates.commits': 'Commits on main',
+  'updates.portable': 'Portable installs always use published releases.',
+  'updates.git':
+    'Releases updates to the latest published release tag. Commits follows main. Save the channel before checking.',
+  'updates.available': 'Studio version {version} is available.',
+  'updates.current': 'Studio has the latest published release or a newer version.',
+  'updates.staging': 'Downloading and verifying the Studio release…',
+  'updates.confirmRelease':
+    'Studio will download version {version}, verify it and restart. Your images, settings and Studio data folder stay where they are. This page will reconnect automatically.',
+  'updates.confirmGitRelease':
+    'Studio will update to release {version}, install dependencies and restart. This page will reconnect automatically.',
+  'updates.notice':
+    'Studio version {version} is available. Open Settings → Help & updates to update and restart.',
   'smartCollection.new': 'New smart collection',
   'smartCollection.edit': 'Edit smart collection',
   'smartCollection.editRules': 'Edit rules…',

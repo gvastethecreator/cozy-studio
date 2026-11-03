@@ -331,6 +331,10 @@ export function createMcpRoutes({
         const health = await get('/api/health');
         // Startup fetches origin/main once, so agents learn about updates on their first call.
         const update = (await readJson('/api/updates')) as {
+          source?: 'git' | 'release';
+          channel?: 'commits' | 'releases';
+          currentVersion?: string | null;
+          latestVersion?: string | null;
           behind?: number;
           latestCommit?: string | null;
           canUpdate?: boolean;
@@ -359,6 +363,10 @@ export function createMcpRoutes({
           mcpAccessLabel: STUDIO_MCP_ACCESS_LABELS[settings.mcpAccess],
           unorganized: { total, workspaces: unorganizedWorkspaces },
           update: update && {
+            source: update.source,
+            channel: update.channel,
+            currentVersion: update.currentVersion ?? null,
+            latestVersion: update.latestVersion ?? null,
             behind,
             latestCommit: update.latestCommit ?? null,
             canUpdate: update.canUpdate ?? false,
@@ -366,7 +374,7 @@ export function createMcpRoutes({
             checkedAt: update.checkedAt ?? null,
           },
           ...(behind > 0 && {
-            notice: `Studio is ${behind} commit${behind === 1 ? '' : 's'} behind origin/main. Tell the user an update is available and ask before applying it with studio_apply_update, or point them to Settings → Help & updates.`,
+            notice: `${update?.channel === 'releases' ? `Studio version ${update.latestVersion} is available.` : `Studio is ${behind} commit${behind === 1 ? '' : 's'} behind origin/main.`} Tell the user an update is available and ask before applying it with studio_apply_update, or point them to Settings → Help & updates.`,
           }),
           ...(total > 0 && {
             organizeNotice: `${total} image${total === 1 ? '' : 's'} in ${workspaceCount} workspace${workspaceCount === 1 ? '' : 's'} ${total === 1 ? 'has' : 'have'} no tags or collection (see unorganized.workspaces). Recommend organizing them one workspace at a time: propose a scheme, apply only after the user confirms.`,

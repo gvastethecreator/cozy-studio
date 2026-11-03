@@ -1,31 +1,45 @@
 Cozy Studio portable start
 ===========================
 
-Each portable ZIP is built for one operating system and CPU architecture:
-windows-x64, windows-arm64, linux-x64, linux-arm64, macos-x64 or
-macos-arm64. macos-arm64 is for Apple Silicon; macos-x64 is for Intel Macs.
-Linux needs glibc 2.28 or newer, Bash and a browser (not musl/Alpine).
-macOS needs macOS 13 or newer.
+Each ZIP targets one OS and CPU: windows-x64, windows-arm64, linux-x64,
+linux-arm64, macos-x64 or macos-arm64. macos-arm64 is for Apple Silicon;
+macos-x64 is for Intel Macs. Linux needs glibc 2.28 or newer, Bash and a
+browser (not musl/Alpine). macOS needs macOS 13 or newer.
 
-The ZIP includes its own Bun runtime, so no global Bun install is needed.
-Extract the ZIP before you start it.
+Extract the complete ZIP. Inside "Cozy Studio", open the root launcher:
+  Windows: Cozy Studio.bat
+  macOS: Cozy Studio.command
+  Linux: Cozy Studio.sh
 
-Windows: open scripts/Cozy Studio.bat.
-macOS: open scripts/Cozy Studio.command. If needed, run:
-  chmod +x "scripts/Cozy Studio.command"
-Linux: open scripts/Cozy Studio.sh or run:
-  bash "scripts/Cozy Studio.sh"
-If an extractor drops Unix executable permissions, run:
-  chmod +x runtime/bun scripts/portable-launch.sh scripts/Cozy\ Studio.*
+The app/ subfolder includes Bun and the application. No global Bun or Codex
+install is needed. The launcher starts a local server and opens a browser.
+If the browser does not open, use the printed URL. The ZIP does not bundle ChatGPT login.
+Sign in from Studio after it opens.
 
-The launcher locates the app from its own path, starts one local-server process
-and opens a browser. If automatic browser opening fails, open the printed URL.
-Codex CLI is not required to open the app or connect ChatGPT. The launcher
-does not bundle ChatGPT login. Sign in from Studio after it opens.
+The first release is planned as 0.1.1 and is unsigned. For a trusted download:
+  Windows: before extraction, right-click the ZIP, open Properties, select
+  Unblock and apply. If SmartScreen intervenes, More info > Run anyway may
+  be available. Organization policy can prevent this override.
+  macOS: run xattr -dr com.apple.quarantine "/path/to/Cozy Studio".
+  You can also approve a blocked app in System Settings > Privacy & Security
+  > Open Anyway. Removing quarantine from the folder includes bundled libraries.
+  Linux: if executable permissions were lost, run inside the extracted folder:
+  chmod +x "Cozy Studio.sh" app/scripts/portable-launch.sh app/runtime/bun
 
-If STUDIO_LIBRARY_DIR is unset, these wrappers use "Cozy Studio Library"
-inside the app folder, beside scripts/. An explicit Library path is preserved.
-Generated images still use the configured images destination.
+Without STUDIO_LIBRARY_DIR, the Studio data folder is "Cozy Studio Library"
+beside app/. An explicit path is preserved. Generated images keep their
+configured destination. If an older ZIP has its data folder inside app/,
+stop Studio and move it beside app/ before updating.
+If STUDIO_LIBRARY_DIR points to that folder, set it to the new absolute path.
+Keep registered Output Folders and custom extension folders outside app/ too.
+The updater checks their current paths before staging and cleaning app copies.
 
-See docs/PLATFORMS.md for paths, permissions and what to include in an
-error report.
+Settings > Help & updates checks published releases for this OS and CPU.
+Studio verifies the ZIP digest and staged version before restarting. Only
+app/ is replaced. Always use the root launcher for update and restart.
+If the new server fails before readiness, the launcher restores app.previous
+and preserves app.failed. It does not restore the database. Do not put data
+in app.next, app.next.tmp, app.previous or app.failed; a later update cleans
+only verified app copies without Studio data or symbolic links.
+
+See app/docs/PLATFORMS.md for paths, recovery and native verification limits.

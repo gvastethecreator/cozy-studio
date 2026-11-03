@@ -253,16 +253,10 @@ export async function buildPortable(targetName: string) {
     [
       `Cozy Studio portable: ${targetName}`,
       target.requirements,
-      `Start: ${target.launcher}`,
-      target.platform === 'win32'
-        ? 'Open the launcher after extracting the complete ZIP.'
-        : `If executable permissions were not preserved: chmod +x "${target.launcher}" app/scripts/portable-launch.sh app/runtime/bun`,
-      `Includes Bun ${version}, production dependencies and the built UI. No global Bun or Codex install is needed to open Studio.`,
-      'ChatGPT login and other provider accounts remain user-owned. Sign in from Studio.',
-      'The default Studio Data Folder is Cozy Studio Library beside app/. An explicit STUDIO_LIBRARY_DIR is preserved.',
-      'Only app/ is replaced during updates. Start from this root launcher to allow update and restart.',
+      `Runtime: Bun ${version}`,
       'See app/runtime/BUN-LICENSE.md, app/runtime/BUN-SOURCE.txt and app/LICENSE for notices.',
       '',
+      readFileSync(path.join(repoRoot, 'PORTABLE.txt'), 'utf8'),
     ].join('\n'),
   );
 

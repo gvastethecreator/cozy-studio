@@ -390,7 +390,14 @@ function SettingsDomainContent({
               />
             </label>
           </fieldset>
-          <SettingsUpdatesPanel hasUnsavedChanges={hasChanges} />
+          <SettingsUpdatesPanel
+            hasUnsavedChanges={hasChanges}
+            channel={formState.updateChannel}
+            onChannelChange={(updateChannel) =>
+              setFormState((current) => ({ ...current, updateChannel }))
+            }
+            disabled={formDisabled}
+          />
           <StudioHelpGuide />
         </div>
       );

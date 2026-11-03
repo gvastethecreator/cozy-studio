@@ -15,7 +15,11 @@ const ToastContainer: React.FC = () => {
   const dialog = useDialogPortalHost();
 
   return createPortal(
-    <div className="fixed top-4 right-4 z-50 flex w-full max-w-sm flex-col gap-3">
+    <div
+      className={`fixed right-4 z-50 flex w-[calc(100%-2rem)] max-w-sm flex-col gap-3 ${
+        dialog ? 'top-20' : 'top-[calc(var(--studio-mobile-header-height)+1rem)] sm:top-16'
+      }`}
+    >
       <AnimatePresence>
         {toasts.map((toast) => (
           <Toast key={toast.id} toast={toast} onDismiss={removeToast} />

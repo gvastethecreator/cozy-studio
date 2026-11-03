@@ -185,8 +185,9 @@ describe('portable launchers', () => {
       expect(source).not.toMatch(/electron/i);
     }
     expect(note).toMatch(/Linux/i);
-    expect(note).toContain('scripts/Cozy Studio.command');
-    expect(note).toContain('scripts/Cozy Studio.sh');
+    expect(note).toContain('macOS: Cozy Studio.command');
+    expect(note).toContain('Linux: Cozy Studio.sh');
+    expect(note).toContain('Only\napp/ is replaced');
     expect(note).toContain('does not bundle ChatGPT login');
     expect(missingBunMessage()).toContain(ONBOARDING_BUN_INSTALL_URL);
     expect(missingCodexCliMessage()).toContain(ONBOARDING_CODEX_INSTALL_URL);

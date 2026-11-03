@@ -1,6 +1,21 @@
 import type { Dictionary } from './en';
 
 export const es: Dictionary = {
+  'updates.channel': 'Canal de actualizaciones',
+  'updates.releases': 'Versiones publicadas (recomendado)',
+  'updates.commits': 'Commits de main',
+  'updates.portable': 'Las instalaciones portables siempre usan versiones publicadas.',
+  'updates.git':
+    'Versiones publicadas usa la etiqueta de la última versión publicada. Commits sigue main. Guarda el canal antes de comprobar.',
+  'updates.available': 'La versión {version} de Studio está disponible.',
+  'updates.current': 'Studio tiene la última versión publicada o una más reciente.',
+  'updates.staging': 'Descargando y verificando la versión de Studio…',
+  'updates.confirmRelease':
+    'Studio descargará la versión {version}, la verificará y se reiniciará. Tus imágenes, ajustes y carpeta de datos de Studio permanecerán donde están. Esta página se reconectará automáticamente.',
+  'updates.confirmGitRelease':
+    'Studio se actualizará a la versión {version}, instalará las dependencias y se reiniciará. Esta página se reconectará automáticamente.',
+  'updates.notice':
+    'La versión {version} de Studio está disponible. Abre Ajustes → Ayuda y actualizaciones para actualizar y reiniciar.',
   'smartCollection.new': 'Nueva colección inteligente',
   'smartCollection.edit': 'Editar colección inteligente',
   'smartCollection.editRules': 'Editar reglas…',

@@ -18,7 +18,7 @@ Portable wrappers set `STUDIO_PORTABLE=1`. The default Studio data folder is `Co
 
 ## Portable ZIP requirements
 
-No portable ZIPs are published yet. [Tooling](TOOLING.md) explains how to build one. Each ZIP targets one OS and CPU: `windows-x64`, `windows-arm64`, `linux-x64`, `linux-arm64`, `macos-x64` or `macos-arm64`.
+Download portable ZIPs from [Releases](https://github.com/gvastethecreator/cozy-studio/releases). [Tooling](TOOLING.md) explains how to build one. Each ZIP targets one OS and CPU: `windows-x64`, `windows-arm64`, `linux-x64`, `linux-arm64`, `macos-x64` or `macos-arm64`. Read the release notes for the native verification limits of each asset.
 
 - Linux needs glibc 2.28 or newer. musl and Alpine are not supported.
 - macOS needs version 13 or newer.
@@ -28,7 +28,7 @@ The ZIP contains a `Cozy Studio/` folder with a root launcher and an `app/` subf
 
 ## Releases and updates
 
-The first release is planned as `0.1.1`. The initial ZIPs are unsigned. Download only from this repository's Releases page and check the supplied SHA-256 before opening them.
+Portable releases start at `0.1.1`. The initial ZIPs are unsigned. Download only from this repository's Releases page and check the supplied SHA-256 before opening them.
 
 - **Windows:** before extracting, right-click the ZIP, open **Properties**, select **Unblock** and apply. If SmartScreen shows "Windows protected your PC", select **More info → Run anyway** when available. Managed devices can prevent this override. See [Microsoft's file-unblock guidance](https://learn.microsoft.com/powershell/module/microsoft.powershell.utility/unblock-file).
 - **macOS:** for a trusted extracted folder, run `xattr -dr com.apple.quarantine "/path/to/Cozy Studio"`. This also removes quarantine from bundled libraries. In macOS 15 and later, a blocked app can also be approved in **System Settings → Privacy & Security → Open Anyway**. See [Apple's first-run guidance](https://support.apple.com/102445).

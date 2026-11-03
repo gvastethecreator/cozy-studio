@@ -14,6 +14,7 @@ type TaskStep = {
   label: string;
   command: string;
   args: string[];
+  env?: Record<string, string>;
   appendExtraArgs?: boolean;
   consoleMode?: 'full' | 'tail';
   tailLineCount?: number;
@@ -226,7 +227,12 @@ const TASKS: Record<string, TaskDefinition> = {
   'validate:release': {
     description: 'Release gate: validate plus domain, docs, and hygiene checks.',
     steps: [
-      { label: 'Validate', command: 'bun', args: ['run', 'scripts/tooling-task.ts', 'validate'] },
+      {
+        label: 'Validate',
+        command: 'bun',
+        args: ['run', 'scripts/tooling-task.ts', 'validate'],
+        env: { VITE_STUDIO_API_BASE: '' },
+      },
       {
         label: 'Providers Verify',
         command: 'bun',
@@ -434,7 +440,7 @@ async function runStep(step: TaskStep, log: NodeJS.WritableStream, extraArgs: st
 
   const child = spawn(step.command, stepArgs, {
     cwd: ROOT_DIR,
-    env: process.env,
+    env: { ...process.env, ...step.env },
     shell: false,
   });
 

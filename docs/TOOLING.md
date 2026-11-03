@@ -6,7 +6,14 @@ Cozy Studio uses **Bun** as package manager and backend runtime. Use `bun` or `b
 
 The repository and CI pin Bun `1.4.2` through `packageManager` and the workflow setup step. Use `bun install` for a local dependency refresh. Use `bun install --frozen-lockfile` for reproducible validation and CI. `bun install` does not remove packages that `bun.lock` no longer lists, so `bun run validate` starts by listing them (`scripts/verify-installed-deps.ts`) without failing the gate. To fix, run `rm -rf node_modules && bun install`.
 
-`bun run portable:build [target]` builds a portable ZIP after `bun run build`. Targets are `windows-x64`, `windows-arm64`, `linux-x64`, `linux-arm64`, `macos-x64` and `macos-arm64`; the default matches the build host. It verifies the official pinned Bun release SHA-256, includes that target's unmodified executable and notices, and installs production dependencies with explicit OS/CPU options into an isolated folder under `.scratch/portable/`. Native install scripts are disabled for cross-platform safety; the required prebuilt Sharp binary must be present. Each archive has its own launcher, executable permissions, target record and SHA-256. The ZIP leaves out the package-manager CLI shims of the build host.
+`bun run portable:build [target]` builds a portable ZIP from the UI prepared by `bun run validate:release`. Targets are `windows-x64`, `windows-arm64`, `linux-x64`, `linux-arm64`, `macos-x64` and `macos-arm64`; the default matches the build host. It verifies the official pinned Bun release SHA-256, includes that target's unmodified executable and notices, and installs production dependencies with explicit OS/CPU options into an isolated folder under `.scratch/portable/`. Native install scripts are disabled for cross-platform safety; the required prebuilt Sharp binary must be present. Each archive has its own launcher, executable permissions, target record and SHA-256. The ZIP leaves out the package-manager CLI shims of the build host.
+
+The release gate sets `VITE_STUDIO_API_BASE` to an empty string for its validation and UI build. This makes the UI use the portable server's selected port and prevents `.env.local` from baking a development API address into the ZIP. `portable:build` copies the existing `dist`; setting the variable only when packaging is too late. Build the UI once, then reuse it for all targets. Normal `build` and `build:ui` commands still support a separate API address for development and preview.
+
+```bash
+bun run validate:release
+bun run portable:build windows-x64
+```
 
 These ZIPs are local artifacts. The command does not publish a release, and it does not include user Library data, credentials or `.env.local`. A cross-built ZIP needs a native startup check on its target OS and CPU. [Platform support](PLATFORMS.md) lists the OS requirements, and `PORTABLE.txt` inside the ZIP explains how to launch it.
 
@@ -76,7 +83,7 @@ To make a release:
 
 1. On `main`, commit the new `version` in `package.json`.
 2. Wait until CI is green for that commit.
-3. Tag that commit and push only the tag: `git tag v0.1.0 <commit>`, then `git push origin v0.1.0`.
+3. Tag that commit and push only the tag: `git tag v0.1.1 <commit>`, then `git push origin v0.1.1`.
 4. The `Release` workflow (`.github/workflows/release.yml`) starts. It stops if the tag does not match `package.json`. Then it runs `bun run validate:release`, builds the ZIPs for all six targets with `bun run portable:build`, and creates a draft GitHub Release with the ZIPs and a `SHA256SUMS` file.
 5. Read the draft and edit its notes. Then publish it by hand. The workflow never publishes a release.
 

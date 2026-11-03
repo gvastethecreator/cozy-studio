@@ -28,9 +28,18 @@ describe('pruneToolingLogs', () => {
 });
 
 describe('tooling gate aliases', () => {
-  it('keeps validate:full as an alias of the release gate', () => {
+  it('keeps the release gate portable and validate:full as its alias', () => {
     expect(getToolingTaskDefinition('validate:full')?.steps).toEqual([
       expect.objectContaining({ args: ['run', 'scripts/tooling-task.ts', 'validate:release'] }),
     ]);
+    expect(getToolingTaskDefinition('validate:release')?.steps[0]).toMatchObject({
+      args: ['run', 'scripts/tooling-task.ts', 'validate'],
+      env: { VITE_STUDIO_API_BASE: '' },
+    });
+    for (const task of ['build', 'build:ui', 'validate']) {
+      const build = getToolingTaskDefinition(task)?.steps.find((step) => step.label === 'UI Build');
+      expect(build).toBeDefined();
+      expect(build?.env).toBeUndefined();
+    }
   });
 });

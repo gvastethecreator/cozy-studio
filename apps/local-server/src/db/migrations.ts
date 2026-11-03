@@ -514,6 +514,13 @@ const DATABASE_MIGRATIONS = [
       database.run('ALTER TABLE catalog_collections ADD COLUMN rule_json TEXT');
     },
   },
+  {
+    version: 20,
+    name: 'catalog-image-dhash',
+    migrate(database: Database) {
+      database.run('ALTER TABLE catalog_images ADD COLUMN dhash TEXT');
+    },
+  },
 ] as const;
 
 function backfillJobOperationalColumns(database: Database) {

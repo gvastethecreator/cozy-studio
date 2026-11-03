@@ -22,9 +22,9 @@ describe('migrateDatabase', () => {
     expect(
       database.query("SELECT name, rule_json FROM catalog_collections WHERE id = 'manual'").get(),
     ).toEqual({ name: 'Manual', rule_json: null });
-    expect(database.query('SELECT MAX(version) AS version FROM schema_migrations').get()).toEqual({
-      version: 19,
-    });
+    expect(
+      database.query('SELECT version, name FROM schema_migrations WHERE version = 19').all(),
+    ).toEqual([{ version: 19, name: 'catalog-smart-collections' }]);
   });
 
   it('creates composite catalog indexes for hot workspace and gallery queries', () => {

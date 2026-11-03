@@ -40,6 +40,7 @@ export interface StudioSettingsFormState {
   outputFileNameTemplate: string;
   autoDetectOutputSources: boolean;
   notifyOnUpdates: boolean;
+  updateChannel: EditableStudioSettings['updateChannel'];
   clearReviewJobsOnStartup: boolean;
   toolsPanelSide: EditableStudioSettings['toolsPanelSide'];
   jobsPanelSide: EditableStudioSettings['jobsPanelSide'];
@@ -70,6 +71,7 @@ export function createInitialStudioSettingsFormState(): StudioSettingsFormState 
       createDefaultEditableStudioSettings().outputOrganization.fileNameTemplate,
     autoDetectOutputSources: true,
     notifyOnUpdates: false,
+    updateChannel: 'commits',
     clearReviewJobsOnStartup: false,
     toolsPanelSide: 'left',
     jobsPanelSide: 'right',
@@ -98,6 +100,7 @@ export function getStudioSettingsFormState(
     outputFileNameTemplate: settings.outputOrganization.fileNameTemplate,
     autoDetectOutputSources: settings.autoDetectOutputSources,
     notifyOnUpdates: settings.notifyOnUpdates,
+    updateChannel: settings.updateChannel,
     clearReviewJobsOnStartup: settings.clearReviewJobsOnStartup,
     toolsPanelSide: settings.toolsPanelSide,
     jobsPanelSide: settings.jobsPanelSide,
@@ -133,6 +136,7 @@ export function buildStudioSettingsPatch(
     },
     autoDetectOutputSources: formState.autoDetectOutputSources,
     notifyOnUpdates: formState.notifyOnUpdates,
+    updateChannel: formState.updateChannel,
     clearReviewJobsOnStartup: formState.clearReviewJobsOnStartup,
     toolsPanelSide: formState.toolsPanelSide,
     jobsPanelSide: formState.jobsPanelSide,

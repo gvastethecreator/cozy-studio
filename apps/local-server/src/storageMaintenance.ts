@@ -3,6 +3,8 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSyn
 import path from 'node:path';
 
 import type {
+  CatalogDuplicateImage,
+  CatalogDuplicateScanResult,
   StorageMaintenanceAuditReport,
   StorageMaintenanceBackup,
   StorageMaintenanceCompactResult,
@@ -12,6 +14,7 @@ import type {
 import { getSettings } from './config';
 import { ensureThumbnailVariant } from './libraryAssetVariants';
 import { resolveLibraryPathFromRoot } from './library';
+import { authoringSharp } from './sharpAuthoringAdapter';
 
 type JsonObject = Record<string, unknown>;
 
@@ -61,6 +64,136 @@ export interface CompactStorageMaintenanceOptions extends StorageMaintenanceWrit
 
 export interface ThumbnailBackfillStorageMaintenanceOptions extends StorageMaintenanceWriteOptions {
   limit?: number;
+}
+
+export const CATALOG_DUPLICATE_MAX_DISTANCE = 16;
+
+export interface CatalogDuplicateScanOptions {
+  workspaceId: string;
+  hashLimit?: number;
+  maxDistance?: number;
+}
+
+export async function computeImageDHash(filePath: string): Promise<string> {
+  const pixels = await authoringSharp(filePath)
+    .flatten({ background: '#ffffff' })
+    .greyscale()
+    .resize(17, 16, { fit: 'fill' })
+    .raw()
+    .toBuffer();
+  let hash = '';
+  for (let y = 0; y < 16; y += 1) {
+    for (let x = 0; x < 16; x += 4) {
+      let nibble = 0;
+      for (let bit = 0; bit < 4; bit += 1) {
+        const offset = y * 17 + x + bit;
+        nibble = (nibble << 1) | Number(pixels[offset]! < pixels[offset + 1]!);
+      }
+      hash += nibble.toString(16);
+    }
+  }
+  return hash;
+}
+
+function hashWords(hash: string) {
+  return Array.from({ length: 8 }, (_, index) =>
+    Number.parseInt(hash.slice(index * 8, index * 8 + 8), 16),
+  );
+}
+
+function hashDistance(left: number[], right: number[]) {
+  let distance = 0;
+  for (let index = 0; index < 8; index += 1) {
+    let word = left[index]! ^ right[index]!;
+    word -= (word >>> 1) & 0x55555555;
+    word = (word & 0x33333333) + ((word >>> 2) & 0x33333333);
+    distance += (((word + (word >>> 4)) & 0x0f0f0f0f) * 0x01010101) >>> 24;
+  }
+  return distance;
+}
+
+export async function findCatalogDuplicates(
+  db: SqliteDatabase,
+  {
+    workspaceId,
+    hashLimit = 50,
+    maxDistance = CATALOG_DUPLICATE_MAX_DISTANCE,
+  }: CatalogDuplicateScanOptions,
+  {
+    computeDHash = computeImageDHash,
+    fileExists = existsSync,
+  }: {
+    computeDHash?: (filePath: string) => Promise<string>;
+    fileExists?: (filePath: string) => boolean;
+  } = {},
+): Promise<CatalogDuplicateScanResult> {
+  const liveScope = "is_deleted = 0 AND COALESCE(workspace_id, 'default') = ?";
+  const rows = db
+    .query(`SELECT id, file_path FROM catalog_images
+    WHERE ${liveScope} AND dhash IS NULL ORDER BY created_at DESC, id ASC LIMIT ?`)
+    .all(workspaceId, Math.min(50, Math.max(1, Math.floor(hashLimit)))) as Array<{
+    id: string;
+    file_path: string;
+  }>;
+  for (const row of rows) {
+    let hash = '';
+    try {
+      if (fileExists(row.file_path)) hash = await computeDHash(row.file_path);
+    } catch {
+      // Unreadable images remain visible in the scan's skipped count.
+    }
+    db.query('UPDATE catalog_images SET dhash = ? WHERE id = ? AND dhash IS NULL').run(
+      hash,
+      row.id,
+    );
+  }
+  const counts = db
+    .query(`SELECT COUNT(*) AS total,
+    COALESCE(SUM(dhash IS NULL), 0) AS pending, COALESCE(SUM(dhash = ''), 0) AS skipped
+    FROM catalog_images WHERE ${liveScope}`)
+    .get(workspaceId) as { total: number; pending: number; skipped: number };
+  const result: CatalogDuplicateScanResult = {
+    ...counts,
+    checked: counts.total - counts.pending,
+    hashedNow: rows.length,
+    groups: [],
+  };
+  if (counts.pending > 0) return result;
+
+  const images = db
+    .query(`SELECT id, thumbnail_url AS thumbnailUrl, public_url AS publicUrl,
+    created_at AS createdAt, is_favorite AS isFavorite, recipe_id AS recipeId,
+    width, height, file_size_bytes AS fileSizeBytes, dhash,
+    (json_array_length(CASE WHEN json_valid(tags) THEN tags ELSE '[]' END) > 0 OR EXISTS (
+      SELECT 1 FROM catalog_collection_images
+      JOIN catalog_collections ON catalog_collections.id = catalog_collection_images.collection_id
+      WHERE catalog_collection_images.image_id = catalog_images.id
+        AND catalog_collections.workspace_id = COALESCE(catalog_images.workspace_id, 'default')
+        AND catalog_collections.rule_json IS NULL
+    )) AS organized
+    FROM catalog_images WHERE ${liveScope} AND dhash <> ''
+    ORDER BY is_favorite DESC, organized DESC, julianday(created_at) ASC, id ASC`)
+    .all(workspaceId) as Array<
+    Omit<CatalogDuplicateImage, 'isFavorite'> & {
+      isFavorite: number;
+      dhash: string;
+      organized: number;
+    }
+  >;
+  const groups: Array<{ keeperId: string; words: number[]; images: CatalogDuplicateImage[] }> = [];
+  // ponytail: O(n x groups) per workspace, about 1 s at 10k images; bucket by hash prefix if workspaces grow past that.
+  for (const { dhash, organized: _organized, ...row } of images) {
+    const words = hashWords(dhash);
+    const image = { ...row, isFavorite: Boolean(row.isFavorite) };
+    const group = groups.find((candidate) => hashDistance(words, candidate.words) <= maxDistance);
+    if (group) group.images.push(image);
+    else groups.push({ keeperId: row.id, words, images: [image] });
+  }
+  result.groups = groups
+    .filter((group) => group.images.length > 1)
+    .sort((left, right) => right.images.length - left.images.length)
+    .map(({ keeperId, images }) => ({ keeperId, images }));
+  return result;
 }
 
 const INLINE_IMAGE_DATA_URL_RE = /^data:(image\/[a-z0-9.+-]+);base64,(.*)$/is;

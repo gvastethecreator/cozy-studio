@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import React from 'react';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDefaultEditableStudioSettings } from '../packages/shared/src';
 import { StudioSettingsModal } from './StudioSettingsModal';
@@ -12,6 +12,20 @@ import {
   OUTPUT_SUBFOLDER_PRESETS,
 } from '../lib/studioSettingsForm';
 import { STUDIO_SETTINGS_DOMAIN_TABS } from '../lib/studioSettingsDomains';
+import { findCatalogDuplicates } from '../services/studio-api/maintenance';
+import { archiveCatalogByFilter } from '../services/studio-api/catalog';
+
+const workspaceState = vi.hoisted(() => ({
+  activeWorkspaceId: 'default',
+  workspaces: [{ id: 'default', name: 'Test workspace' }],
+  createWorkspace: vi.fn(),
+}));
+vi.mock('../contexts/WorkspaceContext', () => ({ useWorkspaceState: () => workspaceState }));
+vi.mock('../services/studio-api/maintenance', () => ({ findCatalogDuplicates: vi.fn() }));
+vi.mock('../services/studio-api/catalog', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  archiveCatalogByFilter: vi.fn(),
+}));
 
 const theme = vi.hoisted(() => ({
   preferences: {},
@@ -24,7 +38,7 @@ vi.mock('../hooks/useTheme', async (importOriginal) => ({
   useTheme: () => theme,
 }));
 vi.mock('../contexts/GlobalContext', () => ({
-  useWorkspaceState: () => ({ activeWorkspaceId: 'default', createWorkspace: vi.fn() }),
+  useWorkspaceState: () => workspaceState,
   useToastUi: () => ({ addToast: vi.fn() }),
 }));
 
@@ -99,6 +113,85 @@ it('explains blocked saving from every section and returns focus to the invalid 
 });
 
 describe('StudioSettingsModal provider defaults', () => {
+  it('keeps favorites by default, requires a keeper and reports actual archive results after rescanning', async () => {
+    const images = ['keeper', 'favorite', 'copy', 'locked'].map((id) => ({
+      id,
+      thumbnailUrl: null,
+      publicUrl: `/library/${id}.png`,
+      createdAt: '2026-01-01',
+      isFavorite: id === 'keeper' || id === 'favorite',
+      recipeId: 'default',
+      width: 256,
+      height: 256,
+      fileSizeBytes: 100,
+    }));
+    vi.mocked(findCatalogDuplicates)
+      .mockResolvedValueOnce({
+        hashedNow: 4,
+        pending: 0,
+        checked: 4,
+        total: 4,
+        skipped: 0,
+        groups: [{ keeperId: 'keeper', images }],
+      })
+      .mockResolvedValueOnce({
+        hashedNow: 0,
+        pending: 0,
+        checked: 3,
+        total: 3,
+        skipped: 0,
+        groups: [{ keeperId: 'keeper', images: images.filter((image) => image.id !== 'copy') }],
+      });
+    vi.mocked(archiveCatalogByFilter).mockResolvedValueOnce({
+      ok: true,
+      action: 'archive',
+      matchedCount: 2,
+      changedCount: 1,
+      failed: [{ id: 'locked', reason: 'operation_failed', message: 'File is locked' }],
+    });
+    renderSettingsModal();
+    fireEvent.click(screen.getByRole('button', { name: 'Advanced & maintenance' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Find duplicates in Test workspace' }));
+    await screen.findByText('Checked 4 of 4 images');
+    expect(
+      (screen.getByRole('checkbox', { name: 'Archive image keeper' }) as HTMLInputElement).checked,
+    ).toBe(false);
+    expect(
+      (screen.getByRole('checkbox', { name: 'Archive image favorite' }) as HTMLInputElement)
+        .checked,
+    ).toBe(false);
+    expect(
+      (screen.getByRole('checkbox', { name: 'Archive image copy' }) as HTMLInputElement).checked,
+    ).toBe(true);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Archive image keeper' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Archive image favorite' }));
+    expect(screen.getByText('Keep at least one image in each group.')).toBeTruthy();
+    expect(
+      (screen.getByRole('button', { name: 'Move 4 to Archived Images' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Archive image keeper' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Archive image favorite' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Move 2 to Archived Images' }));
+    expect(archiveCatalogByFilter).not.toHaveBeenCalled();
+    const confirmation = screen.getByRole('dialog', { name: 'Move 2 to Archived Images' });
+    expect(confirmation.textContent).toContain('restored from Archived Images');
+    fireEvent.click(
+      within(confirmation).getByRole('button', { name: 'Move 2 to Archived Images' }),
+    );
+    await waitFor(() =>
+      expect(archiveCatalogByFilter).toHaveBeenCalledWith({
+        ids: ['copy', 'locked'],
+        workspaceId: 'default',
+      }),
+    );
+    await screen.findByText('Checked 3 of 3 images');
+    expect(screen.getByText('Moved 1 to Archived Images.')).toBeTruthy();
+    expect(screen.getByText('locked: File is locked')).toBeTruthy();
+    expect(screen.queryByRole('checkbox', { name: 'Archive image copy' })).toBeNull();
+    expect(findCatalogDuplicates).toHaveBeenCalledTimes(2);
+  });
+
   it('round-trips editable provider defaults including nullable resets', () => {
     const settings = createDefaultEditableStudioSettings();
     settings.providerDefaults.codex = {

@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import type { RepositoryUpdateStatus } from '../../packages/shared/src/repositoryUpdates';
+import type {
+  RepositoryUpdateChannel,
+  RepositoryUpdateStatus,
+} from '../../packages/shared/src/repositoryUpdates';
 import {
   applyRepositoryUpdate,
   checkRepositoryUpdates,
@@ -9,14 +12,17 @@ import {
   restartStudio,
 } from '../../services/studio-api/updates';
 import { ConfirmationModal } from '../ConfirmationModal';
-import { formatDateTime } from '../../lib/i18n';
+import { formatDateTime, t, useT } from '../../lib/i18n';
 
 function useRepositoryUpdates() {
   const [status, setStatus] = useState<RepositoryUpdateStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [confirmation, setConfirmation] = useState<'update' | 'restart' | null>(null);
+  const [confirmation, setConfirmation] = useState<{
+    action: 'update' | 'restart';
+    status: RepositoryUpdateStatus;
+  } | null>(null);
   const updating = status?.phase === 'updating' || status?.phase === 'restarting';
   useEffect(() => {
     let disposed = false;
@@ -58,14 +64,14 @@ function useRepositoryUpdates() {
   }
   async function confirm() {
     if (!status || !confirmation) return;
-    const action = confirmation;
+    const { action, status: reviewedStatus } = confirmation;
     setConfirmation(null);
     setBusy(true);
     setError(null);
     try {
       const result =
         action === 'update'
-          ? await applyRepositoryUpdate(status.latestCommit!)
+          ? await applyRepositoryUpdate(reviewedStatus.latestCommit!)
           : await restartStudio();
       rememberStudioRestart(result.instanceId);
       setStatus(result);
@@ -94,14 +100,20 @@ function updateStatusText(status: RepositoryUpdateStatus | null, busy: boolean) 
   const updating = status?.phase === 'updating' || status?.phase === 'restarting';
   return updating
     ? status.phase === 'updating'
-      ? 'Updating Studio and installing dependencies…'
+      ? status.source === 'release'
+        ? t('updates.staging')
+        : 'Updating Studio and installing dependencies…'
       : 'Restarting Studio… This page will reconnect automatically.'
     : status?.phase === 'checking' || busy
       ? 'Checking for updates…'
       : status?.behind
-        ? `${status.behind} new commit${status.behind === 1 ? '' : 's'} available on main.`
+        ? status.channel === 'releases'
+          ? t('updates.available', { version: status.latestVersion ?? '' })
+          : `${status.behind} new commit${status.behind === 1 ? '' : 's'} available on main.`
         : status?.checkedAt && !status.error
-          ? 'Studio is up to date with main.'
+          ? status.channel === 'releases'
+            ? t('updates.current')
+            : 'Studio is up to date with main.'
           : 'Check for Studio updates.';
 }
 
@@ -113,13 +125,17 @@ function UpdateConfirmation({
   return (
     <ConfirmationModal
       isOpen={confirmation !== null}
-      title={confirmation === 'update' ? 'Update and restart Studio?' : 'Restart Studio?'}
+      title={confirmation?.action === 'update' ? 'Update and restart Studio?' : 'Restart Studio?'}
       description={
-        confirmation === 'update'
-          ? 'Studio will download the new commits, install dependencies, and restart. This page will reconnect automatically.'
+        confirmation?.action === 'update'
+          ? confirmation.status.source === 'release'
+            ? t('updates.confirmRelease', { version: confirmation.status.latestVersion ?? '' })
+            : confirmation.status.channel === 'releases'
+              ? t('updates.confirmGitRelease', { version: confirmation.status.latestVersion ?? '' })
+              : 'Studio will download the new commits, install dependencies, and restart. This page will reconnect automatically.'
           : 'Studio will restart and this page will reconnect automatically.'
       }
-      confirmLabel={confirmation === 'update' ? 'Update and restart' : 'Restart Studio'}
+      confirmLabel={confirmation?.action === 'update' ? 'Update and restart' : 'Restart Studio'}
       tone="accent"
       onClose={() => setConfirmation(null)}
       onConfirm={confirm}
@@ -140,9 +156,15 @@ function UpdateStatusSummary({
   const displayedError = error || status?.error || connectionError;
   return (
     <>
-      {status?.currentCommit && (
+      {(status?.currentCommit || status?.currentVersion) && (
         <p className="studio-muted text-xs">
-          Installed: {status.currentCommit.slice(0, 8)}
+          Installed:{' '}
+          {status.currentVersion
+            ? `v${status.currentVersion.replace(/^v/, '')}`
+            : status.currentCommit?.slice(0, 8)}
+          {status.currentVersion && status.currentCommit
+            ? ` · ${status.currentCommit.slice(0, 8)}`
+            : ''}
           {status.checkedAt ? ` · Last checked: ${formatDateTime(status.checkedAt)}` : ''}
         </p>
       )}
@@ -156,7 +178,18 @@ function UpdateStatusSummary({
   );
 }
 
-export function SettingsUpdatesPanel({ hasUnsavedChanges }: { hasUnsavedChanges: boolean }) {
+export function SettingsUpdatesPanel({
+  hasUnsavedChanges,
+  channel,
+  onChannelChange,
+  disabled,
+}: {
+  hasUnsavedChanges: boolean;
+  channel: RepositoryUpdateChannel;
+  onChannelChange: (channel: RepositoryUpdateChannel) => void;
+  disabled: boolean;
+}) {
+  useT();
   const {
     status,
     busy,
@@ -173,6 +206,22 @@ export function SettingsUpdatesPanel({ hasUnsavedChanges }: { hasUnsavedChanges:
   return (
     <section className="settings-form-stack" aria-label="Studio updates">
       <h3 className="studio-dialog-title">Studio updates</h3>
+      <label className="settings-form-stack">
+        <span>{t('updates.channel')}</span>
+        <select
+          className="h-10 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-3 text-sm text-[color:var(--wb-ink)]"
+          aria-label={t('updates.channel')}
+          value={status?.source === 'release' ? 'releases' : channel}
+          disabled={disabled || busy || updating || status?.source === 'release'}
+          onChange={(event) => onChannelChange(event.target.value as RepositoryUpdateChannel)}
+        >
+          <option value="releases">{t('updates.releases')}</option>
+          <option value="commits">{t('updates.commits')}</option>
+        </select>
+      </label>
+      <p className="studio-muted text-xs">
+        {t(status?.source === 'release' ? 'updates.portable' : 'updates.git')}
+      </p>
       <p className="studio-muted text-sm" role="status">
         {updateStatusText(status, busy)}
       </p>
@@ -181,7 +230,7 @@ export function SettingsUpdatesPanel({ hasUnsavedChanges }: { hasUnsavedChanges:
         <button
           type="button"
           className="studio-ghost-control px-4 disabled:opacity-60"
-          disabled={busy || updating || status?.phase === 'checking'}
+          disabled={controlsDisabled || status?.phase === 'checking'}
           aria-label="Check for updates"
           onClick={() => void check()}
         >
@@ -191,7 +240,7 @@ export function SettingsUpdatesPanel({ hasUnsavedChanges }: { hasUnsavedChanges:
           type="button"
           className="studio-primary-control disabled:opacity-60"
           disabled={controlsDisabled || !status?.canUpdate}
-          onClick={() => setConfirmation('update')}
+          onClick={() => status && setConfirmation({ action: 'update', status })}
         >
           Update and restart
         </button>
@@ -199,7 +248,7 @@ export function SettingsUpdatesPanel({ hasUnsavedChanges }: { hasUnsavedChanges:
           type="button"
           className="studio-ghost-control px-4 disabled:opacity-60"
           disabled={controlsDisabled || !status?.canRestart}
-          onClick={() => setConfirmation('restart')}
+          onClick={() => status && setConfirmation({ action: 'restart', status })}
         >
           Restart Studio
         </button>

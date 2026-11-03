@@ -1,6 +1,21 @@
 import type { Dictionary } from './en';
 
 export const es: Dictionary = {
+  'updates.channel': 'Canal de actualizaciones',
+  'updates.releases': 'Versiones publicadas (recomendado)',
+  'updates.commits': 'Commits de main',
+  'updates.portable': 'Las instalaciones portables siempre usan versiones publicadas.',
+  'updates.git':
+    'Versiones publicadas usa la etiqueta de la última versión publicada. Commits sigue main. Guarda el canal antes de comprobar.',
+  'updates.available': 'La versión {version} de Studio está disponible.',
+  'updates.current': 'Studio tiene la última versión publicada o una más reciente.',
+  'updates.staging': 'Descargando y verificando la versión de Studio…',
+  'updates.confirmRelease':
+    'Studio descargará la versión {version}, la verificará y se reiniciará. Tus imágenes, ajustes y carpeta de datos de Studio permanecerán donde están. Esta página se reconectará automáticamente.',
+  'updates.confirmGitRelease':
+    'Studio se actualizará a la versión {version}, instalará las dependencias y se reiniciará. Esta página se reconectará automáticamente.',
+  'updates.notice':
+    'La versión {version} de Studio está disponible. Abre Ajustes → Ayuda y actualizaciones para actualizar y reiniciar.',
   'smartCollection.new': 'Nueva colección inteligente',
   'smartCollection.edit': 'Editar colección inteligente',
   'smartCollection.editRules': 'Editar reglas…',
@@ -31,6 +46,33 @@ export const es: Dictionary = {
   'smartCollection.facetsError': 'No se pudieron cargar los filtros del espacio de trabajo.',
   'smartCollection.saveError': 'No se pudo guardar la colección inteligente.',
   'settings.general.startup': 'Inicio',
+  'settings.duplicates.heading': 'Imágenes duplicadas',
+  'settings.duplicates.hint':
+    'Revisa las imágenes similares de este espacio antes de archivar las copias. Las favoritas no se seleccionan de forma predeterminada.',
+  'settings.duplicates.scan': 'Buscar duplicados en {workspace}',
+  'settings.duplicates.starting': 'Comprobando imágenes…',
+  'settings.duplicates.progress': '{checked} de {total} imágenes comprobadas',
+  'settings.duplicates.skipped': 'Se omitieron {count} imágenes ausentes o ilegibles.',
+  'settings.duplicates.none': 'No se encontraron duplicados.',
+  'settings.duplicates.group': 'Grupo {number} · {count} imágenes',
+  'settings.duplicates.openImage': 'Abrir imagen completa {id}',
+  'settings.duplicates.select': 'Archivar imagen {id}',
+  'settings.duplicates.archive': 'Archivar',
+  'settings.duplicates.kept': 'Conservar',
+  'settings.duplicates.favorite': 'Favorita',
+  'settings.duplicates.unknownDimensions': 'Dimensiones no disponibles',
+  'settings.duplicates.unknownSize': 'Tamaño de archivo no disponible',
+  'settings.duplicates.workflow': 'Workflow: {name}',
+  'settings.duplicates.keepOne': 'Conserva al menos una imagen de cada grupo.',
+  'settings.duplicates.move': 'Mover {count} a Imágenes archivadas',
+  'settings.duplicates.confirm':
+    'Podrás restaurar estas imágenes desde Imágenes archivadas. Revisa la selección: las imágenes similares pueden incluir distintos fotogramas de un Workflow o variaciones.',
+  'settings.duplicates.cancel': 'Cancelar',
+  'settings.duplicates.archiving': 'Moviendo imágenes…',
+  'settings.duplicates.archived': 'Se movieron {count} a Imágenes archivadas.',
+  'settings.duplicates.failed': 'No se pudieron archivar {count} imágenes:',
+  'settings.duplicates.scanError': 'No se pudieron buscar duplicados.',
+  'settings.duplicates.archiveError': 'No se pudo archivar la imagen.',
   'settings.general.startupWorkflow': 'Flujo de inicio',
   'settings.general.startupWorkflowHint': 'Se usa al abrir Studio y en los espacios nuevos.',
   'settings.general.defaultWorkflow': 'Predeterminado',

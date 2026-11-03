@@ -6,6 +6,7 @@ import type {
   CatalogImage,
   CatalogOrganizeInput,
   CatalogOrganizeResult,
+  CatalogOrganizeSuggestion,
   CatalogOrganizeUndoResult,
   CatalogOrganizeHistoryEntry,
   CatalogPage,
@@ -86,6 +87,7 @@ export interface StudioCatalogStore {
   deleteCollection(id: string): boolean;
   /** One transaction: every image and change is checked first, so a rejection changes nothing. */
   organizeImages(input: CatalogOrganizeInput): CatalogOrganizeResult;
+  suggestOrganization(workspaceId: string): CatalogOrganizeSuggestion;
   undoOrganize(operationId: string): CatalogOrganizeUndoResult | null;
   listOrganizeHistory(workspaceId: string, limit?: number): CatalogOrganizeHistoryEntry[];
   listTags(workspaceId: string): CatalogTag[];
@@ -94,10 +96,11 @@ export interface StudioCatalogStore {
 }
 
 export async function createDefaultCatalogStore(): Promise<StudioCatalogStore> {
-  const [catalog, collections, tags] = await Promise.all([
+  const [catalog, collections, tags, organize] = await Promise.all([
     import('./catalog'),
     import('./catalogCollections'),
     import('./catalogTags'),
+    import('./catalogOrganize'),
   ]);
   const {
     getCatalogImage,
@@ -154,6 +157,7 @@ export async function createDefaultCatalogStore(): Promise<StudioCatalogStore> {
     },
     deleteCollection: deleteCatalogCollection,
     organizeImages: organizeCatalogImages,
+    suggestOrganization: organize.suggestCatalogOrganization,
     undoOrganize: undoCatalogOrganize,
     listOrganizeHistory: listCatalogOrganizeHistory,
     listTags: listCatalogTags,

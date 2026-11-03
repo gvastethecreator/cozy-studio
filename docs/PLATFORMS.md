@@ -4,17 +4,17 @@ Studio runs a local Bun server and opens a browser. Windows, macOS and Linux sha
 
 ## Start
 
-| Mode                           | Command or launcher           |
-| ------------------------------ | ----------------------------- |
-| Source development             | `bun run dev`                 |
-| Built app, normal user storage | `bun run start`               |
-| Windows portable               | `scripts/Cozy Studio.bat`     |
-| macOS portable                 | `scripts/Cozy Studio.command` |
-| Linux portable                 | `scripts/Cozy Studio.sh`      |
+| Mode                           | Command or launcher   |
+| ------------------------------ | --------------------- |
+| Source development             | `bun run dev`         |
+| Built app, normal user storage | `bun run start`       |
+| Windows portable ZIP           | `Cozy Studio.bat`     |
+| macOS portable ZIP             | `Cozy Studio.command` |
+| Linux portable ZIP             | `Cozy Studio.sh`      |
 
 Portable and built-app modes need `dist/`. A source checkout makes it with `bun run build`. Launchers find the app folder from their own location, not from the terminal's current folder. If browser opening is not available, use the printed loopback URL.
 
-Portable wrappers set `STUDIO_PORTABLE=1`. Without an explicit Library path, the Library is stored inside the app folder. This does not move existing data or change where credentials are stored. [PORTABLE.txt](../PORTABLE.txt) explains how to launch a ZIP.
+Portable wrappers set `STUDIO_PORTABLE=1`. The default Studio data folder is `Cozy Studio Library` beside `app/`. This does not move existing data or change where credentials are stored. [PORTABLE.txt](../PORTABLE.txt) explains how to launch a ZIP.
 
 ## Portable ZIP requirements
 
@@ -24,16 +24,33 @@ No portable ZIPs are published yet. [Tooling](TOOLING.md) explains how to build 
 - macOS needs version 13 or newer.
 - x64 builds need SSE4.2.
 
-The ZIP includes its Bun runtime (`runtime/bun.exe` on Windows, `runtime/bun` on Linux and macOS), the matching production dependencies, license notices and a `portable.json` target record. Launchers prefer this runtime and add its folder to `PATH` for child processes.
+The ZIP contains a `Cozy Studio/` folder with a root launcher and an `app/` subfolder. `app/` includes its Bun runtime (`runtime/bun.exe` on Windows, `runtime/bun` on Linux and macOS), production dependencies, license notices and a `portable.json` version and target record. Launchers prefer this runtime and add its folder to `PATH` for child processes.
+
+## Releases and updates
+
+The first release is planned as `0.1.1`. The initial ZIPs are unsigned. Download only from this repository's Releases page and check the supplied SHA-256 before opening them.
+
+- **Windows:** before extracting, right-click the ZIP, open **Properties**, select **Unblock** and apply. If SmartScreen shows "Windows protected your PC", select **More info → Run anyway** when available. Managed devices can prevent this override. See [Microsoft's file-unblock guidance](https://learn.microsoft.com/powershell/module/microsoft.powershell.utility/unblock-file).
+- **macOS:** for a trusted extracted folder, run `xattr -dr com.apple.quarantine "/path/to/Cozy Studio"`. This also removes quarantine from bundled libraries. In macOS 15 and later, a blocked app can also be approved in **System Settings → Privacy & Security → Open Anyway**. See [Apple's first-run guidance](https://support.apple.com/102445).
+- **Linux:** if extraction drops executable permissions, run `chmod +x "Cozy Studio.sh" app/scripts/portable-launch.sh app/runtime/bun` inside the extracted folder.
+
+Open **Settings → Help & updates** to check and apply an update. Portable installs always use the latest published release for their OS and CPU. Studio checks the asset's SHA-256 digest, stages only its `app/` files, verifies the version and target, then asks the root launcher to restart. The root launcher stays in place. Downloads made by Studio do not use a browser's quarantine metadata; these first-run steps apply to browser downloads.
+
+Git checkouts default to **Commits on main**. They can select **Releases (recommended)** to update only to the latest published release tag. Save the channel before checking. Both channels require a clean `main` branch and a fast-forward; local changes and diverged commits block the update. Jobs and mutations also block an update.
+
+The root launcher swaps `app.next` into `app/` and retains `app.previous` while the new server starts. If startup fails before readiness, it restores the old app and preserves the failed copy as `app.failed`. A later update removes these recovery copies only after checking that they contain app code and no Studio data, SQLite files or symbolic links. A blocked cleanup leaves the folders for manual review. Startup rollback does not restore or rewrite the database; migration backups remain in the Studio data folder for manual recovery.
+
+An update is blocked if the Studio data folder, a registered Output Folder or a user extension folder overlaps `app/`. These paths also protect recovery copies from cleanup. For an older ZIP built with an internal `Cozy Studio Library`, stop Studio and move that folder beside `app/` before updating. If `STUDIO_LIBRARY_DIR` points to that folder, set it to the new absolute path. Keep custom `STUDIO_EXTENSION_INSTALL_DIR` and `STUDIO_EXTENSION_SOURCES` folders outside `app/`.
 
 ## Default paths
 
-| Data                       | Windows                                          | macOS                                               | Linux                                                |
-| -------------------------- | ------------------------------------------------ | --------------------------------------------------- | ---------------------------------------------------- |
-| Library                    | `%LOCALAPPDATA%/Cozy Studio/Library`             | `~/Library/Application Support/Cozy Studio/Library` | `$XDG_DATA_HOME/cozy-studio/Library`                 |
-| Installed extensions       | Same app-data root, `Extensions`                 | Same app-data root, `Extensions`                    | Same app-data root, `Extensions`                     |
-| Studio sign-in credentials | App-data root, `auth/studio-oauth.json`          | App-data root, `auth/studio-oauth.json`             | `$XDG_STATE_HOME/cozy-studio/auth/studio-oauth.json` |
-| Generated images           | Windows Pictures Known Folder plus `Cozy Studio` | `~/Pictures/Cozy Studio`                            | XDG Pictures directory plus `Cozy Studio`            |
+| Data                        | Windows                                          | macOS                                               | Linux                                                |
+| --------------------------- | ------------------------------------------------ | --------------------------------------------------- | ---------------------------------------------------- |
+| Studio data folder          | `%LOCALAPPDATA%/Cozy Studio/Library`             | `~/Library/Application Support/Cozy Studio/Library` | `$XDG_DATA_HOME/cozy-studio/Library`                 |
+| Portable Studio data folder | `Cozy Studio Library` beside `app/`              | `Cozy Studio Library` beside `app/`                 | `Cozy Studio Library` beside `app/`                  |
+| Installed extensions        | Same app-data root, `Extensions`                 | Same app-data root, `Extensions`                    | Same app-data root, `Extensions`                     |
+| Studio sign-in credentials  | App-data root, `auth/studio-oauth.json`          | App-data root, `auth/studio-oauth.json`             | `$XDG_STATE_HOME/cozy-studio/auth/studio-oauth.json` |
+| Generated images            | Windows Pictures Known Folder plus `Cozy Studio` | `~/Pictures/Cozy Studio`                            | XDG Pictures directory plus `Cozy Studio`            |
 
 Linux defaults are `~/.local/share` for XDG data and `~/.local/state` for XDG state. Relative XDG base directories are ignored. Pictures uses `XDG_PICTURES_DIR`, then `user-dirs.dirs` under the XDG config directory, then `~/Pictures`. If XDG turns off Pictures by setting it to your home folder, set `STUDIO_IMAGES_DIR`. Studio reads `user-dirs.dirs` as data; it never runs its shell contents.
 

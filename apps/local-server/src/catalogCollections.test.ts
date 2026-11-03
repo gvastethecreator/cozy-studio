@@ -9,6 +9,7 @@ import {
   updateCatalogTag,
 } from './catalogTags';
 import { queryCatalog } from './catalog';
+import { groupUnorganizedImages } from './catalogOrganize';
 import {
   createCatalogCollection,
   deleteCatalogCollection,
@@ -73,6 +74,81 @@ function openTestDatabase() {
 }
 
 describe('catalog collections', () => {
+  it('groups unorganized images by style, workflow and prompt words without smart targets', () => {
+    const image = (id: string, prompt: string | null, recipeParams?: Record<string, unknown>) => ({
+      id,
+      prompt,
+      recipeId: 'styles',
+      generationConfig: recipeParams ? { recipeParams } : null,
+      thumbnailUrl: `/library/thumbs/${id}.webp`,
+    });
+    const images = [
+      image('water-1', 'common castle', {
+        selectedStyles: [{ presetName: 'Watercolor', enabled: true }],
+      }),
+      image('water-2', 'common castle', { presetName: 'Watercolor' }),
+      image('pixel-1', 'common robot', { presetName: 'Pixel Art' }),
+      image('pixel-2', 'common robot', { presetName: 'Pixel Art' }),
+      image('prompt-1', 'common BOSQUE para una imagen'),
+      image('prompt-2', 'common bosque'),
+      image('import', null, {
+        presetName: 'Watercolor',
+        selectedStyles: [{ presetName: 'Watercolor', enabled: false }],
+      }),
+    ];
+    const grouped = groupUnorganizedImages(images, {
+      tagNames: ['CASTLE'],
+      collections: [{ name: 'WATERCOLOR', kind: 'manual' }],
+    });
+    expect(grouped).toEqual({
+      total: 7,
+      scanned: 7,
+      ungrouped: 1,
+      groups: [
+        {
+          reason: 'Style: Watercolor',
+          collection: 'WATERCOLOR',
+          tags: ['watercolor', 'common', 'CASTLE'],
+          imageIds: ['water-1', 'water-2'],
+          previewUrls: ['/library/thumbs/water-1.webp', '/library/thumbs/water-2.webp'],
+        },
+        {
+          reason: 'Style: Pixel Art',
+          collection: 'Pixel Art',
+          tags: ['pixel-art', 'common', 'robot'],
+          imageIds: ['pixel-1', 'pixel-2'],
+          previewUrls: ['/library/thumbs/pixel-1.webp', '/library/thumbs/pixel-2.webp'],
+        },
+        {
+          reason: 'Prompt: bosque',
+          collection: 'Bosque',
+          tags: ['bosque', 'common'],
+          imageIds: ['prompt-1', 'prompt-2'],
+          previewUrls: ['/library/thumbs/prompt-1.webp', '/library/thumbs/prompt-2.webp'],
+        },
+      ],
+    });
+    const workflow = groupUnorganizedImages(
+      images.slice(4).map((item) => ({ ...item, recipeId: 'character-lab' })),
+      { tagNames: [], collections: [] },
+    );
+    expect(workflow.groups[0]).toMatchObject({
+      reason: 'Workflow: character-lab',
+      collection: 'character-lab',
+      imageIds: ['prompt-1', 'prompt-2'],
+    });
+    expect(workflow.ungrouped).toBe(1);
+    expect(
+      groupUnorganizedImages(
+        images.slice(0, 2).map((item) => ({ ...item, prompt: null })),
+        {
+          tagNames: [],
+          collections: [{ name: 'watercolor', kind: 'smart' }],
+        },
+      ),
+    ).toMatchObject({ groups: [], ungrouped: 2 });
+  });
+
   it('renames valid tags without rewriting malformed legacy tag data', () => {
     const { sqlite, database } = openTestDatabase();
     try {

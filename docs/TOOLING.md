@@ -10,6 +10,10 @@ The repository and CI pin Bun `1.4.2` through `packageManager` and the workflow 
 
 These ZIPs are local artifacts. The command does not publish a release, and it does not include user Library data, credentials or `.env.local`. A cross-built ZIP needs a native startup check on its target OS and CPU. [Platform support](PLATFORMS.md) lists the OS requirements, and `PORTABLE.txt` inside the ZIP explains how to launch it.
 
+Each ZIP has a `Cozy Studio/` root with a launcher and `app/`. The version in `app/portable.json` comes from `package.json`; it must match the release tag without the `v` prefix. The default Studio data folder is created beside `app/`, outside the update swap. Do not put user data in `app.next`, `app.next.tmp`, `app.previous` or `app.failed`.
+
+The first release is planned as `0.1.1`. Release preparation builds and verifies the target ZIPs before creating the `v0.1.1` tag. With owner approval, push that tag to run `.github/workflows/release.yml`; it builds all six targets and creates a draft release. Inspect the assets and checksums, then publish the draft only with separate owner approval. The first release is unsigned; include the [first-run steps](PLATFORMS.md#releases-and-updates) and native verification limits in its notes. GitHub must expose a `sha256:` asset digest for portable auto-update; an asset without it is rejected.
+
 The Studio application is one Bun package. The separate `landing/` site has its own package and lockfile. Nested `apps/*` and `packages/*` folders are source boundaries, not separate package manifests, until real `package.json` files exist.
 
 `tsconfig.json` is the aggregate compatibility config that `vp check` uses. Environment truth lives in `tsconfig.web.json`, `apps/local-server/tsconfig.json`, `packages/shared/tsconfig.json`, `tsconfig.scripts.json`, and `tsconfig.browser-scripts.json`.

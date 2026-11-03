@@ -8,6 +8,7 @@ import {
   type CatalogFacets,
   type CatalogOrganizeInput,
   type CatalogOrganizeResult,
+  type CatalogOrganizeSuggestion,
   type CatalogOrganizeUndoResult,
   type CatalogOrganizeHistoryEntry,
   type CatalogTag,
@@ -97,6 +98,12 @@ export async function organizeCatalogImages(input: CatalogOrganizeInput) {
     method: 'POST',
     body: JSON.stringify(input),
   });
+}
+
+export async function getCatalogOrganizeSuggestions(workspaceId: string) {
+  return request<CatalogOrganizeSuggestion>(
+    `/api/catalog/suggestions?${new URLSearchParams({ workspace_id: workspaceId })}`,
+  );
 }
 
 export async function deleteCatalogImage(imageId: string) {

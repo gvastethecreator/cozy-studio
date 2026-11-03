@@ -243,6 +243,7 @@ function createFakeCatalogStore(overrides?: Partial<StudioCatalogStore>): Studio
     }),
     undoOrganize: vi.fn(() => null),
     listOrganizeHistory: vi.fn(() => []),
+    suggestOrganization: vi.fn(() => ({ total: 0, scanned: 0, ungrouped: 0, groups: [] })),
   };
 
   return { ...store, ...overrides };

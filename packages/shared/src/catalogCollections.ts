@@ -205,6 +205,20 @@ export interface CatalogOrganizeInput {
   removeFromCollection?: string;
 }
 
+/** Metadata-only proposals for the newest unorganized images in one workspace. */
+export interface CatalogOrganizeSuggestion {
+  total: number;
+  scanned: number;
+  ungrouped: number;
+  groups: {
+    reason: string;
+    collection: string;
+    tags: string[];
+    imageIds: string[];
+    previewUrls: string[];
+  }[];
+}
+
 /** The ids each change touched; images that already had a tag or membership are not listed. */
 export interface CatalogOrganizeResult {
   operationId: string | null;

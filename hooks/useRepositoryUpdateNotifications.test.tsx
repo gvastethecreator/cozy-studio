@@ -80,3 +80,23 @@ it('adds hourly checks when enabled and notifies once per remote commit', async 
   });
   expect(api.check).toHaveBeenCalledTimes(2);
 });
+
+it('announces a release version for portable updates', async () => {
+  vi.useFakeTimers();
+  api.status.mockResolvedValue({
+    ...checked(1, 'digest'),
+    source: 'release',
+    channel: 'releases',
+    latestVersion: '0.1.2',
+  });
+  const addToast = vi.fn();
+  renderHook(() => useRepositoryUpdateNotifications(false, addToast));
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(0);
+  });
+  expect(addToast).toHaveBeenCalledWith(
+    'Studio version 0.1.2 is available. Open Settings → Help & updates to update and restart.',
+    'info',
+    0,
+  );
+});

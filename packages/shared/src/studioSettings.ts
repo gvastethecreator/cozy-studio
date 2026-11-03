@@ -3,6 +3,7 @@ import type { GenerationProviderId } from './generationContracts';
 import { isPreferredWorkflow, type PreferredWorkflow } from './workflowCatalog';
 import { normalizeDisabledWorkflowModules, type WorkflowModuleId } from './workflowModules';
 import { isRecord } from './types';
+import type { RepositoryUpdateChannel } from './repositoryUpdates';
 
 const EDITABLE_STUDIO_SETTINGS_VERSION = 'editable-studio-settings/v2' as const;
 
@@ -42,6 +43,7 @@ export interface EditableStudioSettings {
   defaultOutputMode: StudioOutputMode;
   autoDetectOutputSources: boolean;
   notifyOnUpdates: boolean;
+  updateChannel: RepositoryUpdateChannel;
   clearReviewJobsOnStartup: boolean;
   toolsPanelSide: 'left' | 'right';
   jobsPanelSide: 'left' | 'right';
@@ -74,6 +76,7 @@ export interface EditableStudioSettingsPatch {
   defaultOutputMode?: StudioOutputMode;
   autoDetectOutputSources?: boolean;
   notifyOnUpdates?: boolean;
+  updateChannel?: RepositoryUpdateChannel;
   clearReviewJobsOnStartup?: boolean;
   toolsPanelSide?: 'left' | 'right';
   jobsPanelSide?: 'left' | 'right';
@@ -198,6 +201,7 @@ export function createDefaultEditableStudioSettings(): EditableStudioSettings {
     defaultOutputMode: 'studio_library',
     autoDetectOutputSources: true,
     notifyOnUpdates: false,
+    updateChannel: 'commits',
     clearReviewJobsOnStartup: false,
     toolsPanelSide: 'left',
     jobsPanelSide: 'right',
@@ -232,6 +236,8 @@ export function sanitizeEditableStudioSettingsPatch(value: unknown): EditableStu
   if (!isRecord(value)) return {};
 
   const patch: EditableStudioSettingsPatch = {};
+  if (value.updateChannel === 'commits' || value.updateChannel === 'releases')
+    patch.updateChannel = value.updateChannel;
   if (value.language === 'en' || value.language === 'es') patch.language = value.language;
   if (value.toolsPanelSide === 'left' || value.toolsPanelSide === 'right')
     patch.toolsPanelSide = value.toolsPanelSide;
@@ -411,6 +417,7 @@ export function mergeEditableStudioSettingsPatch(
     mcpAccess: patch.mcpAccess ?? current.mcpAccess ?? 'read',
     mcpAllowedImportRoots: patch.mcpAllowedImportRoots ?? current.mcpAllowedImportRoots ?? [],
     notifyOnUpdates: patch.notifyOnUpdates ?? current.notifyOnUpdates ?? false,
+    updateChannel: patch.updateChannel ?? current.updateChannel ?? 'commits',
     clearReviewJobsOnStartup:
       patch.clearReviewJobsOnStartup ?? current.clearReviewJobsOnStartup ?? false,
     toolsPanelSide: patch.toolsPanelSide ?? current.toolsPanelSide ?? 'left',

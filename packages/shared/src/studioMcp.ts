@@ -171,6 +171,7 @@ export const studioMcpSettingsPatch = z
       })
       .optional(),
     notifyOnUpdates: z.boolean().optional(),
+    updateChannel: z.enum(['commits', 'releases']).optional(),
   })
   .refine((patch) => Object.keys(patch).length > 0, 'Provide at least one setting.');
 
@@ -393,7 +394,7 @@ export const studioMcpTools = {
   studio_update_settings: {
     access: 'write',
     description:
-      'Change agent-safe Studio Settings: language (en or es), preferredWorkflow, disabledWorkflowModules, defaultStyleIntensity (0.1 to 1), defaultStyleReferenceMode, intentionalStylesV1, outputOrganization and notifyOnUpdates. Needs Full control access. Provider settings, the output folder, Agent access and import folders stay user-only; use the studio_generate model field to pick a model for one call. Returns the saved settings.',
+      'Change agent-safe Studio Settings: language (en or es), preferredWorkflow, disabledWorkflowModules, defaultStyleIntensity (0.1 to 1), defaultStyleReferenceMode, intentionalStylesV1, outputOrganization, notifyOnUpdates and updateChannel (commits or releases; portable installs always use releases). Needs Full control access. Provider settings, the output folder, Agent access and import folders stay user-only; use the studio_generate model field to pick a model for one call. Returns the saved settings.',
     schema: studioMcpSettingsPatch,
   },
   studio_available_extensions: {
@@ -421,13 +422,13 @@ export const studioMcpTools = {
   studio_updates: {
     access: 'read',
     description:
-      'Read Studio app update status. check: true fetches origin/main first and returns latestCommit for studio_apply_update.',
+      'Read Studio app update status, source (git or release) and effective channel (commits or releases). check: true checks origin/main or the latest published release. latestCommit is the apply token: a Git commit for checkouts or the ZIP SHA-256 for portable installs.',
     schema: z.strictObject({ check: z.boolean().default(false) }),
   },
   studio_apply_update: {
     access: 'write',
     description:
-      'Fast-forward Studio to the checked latestCommit, install dependencies and restart Studio automatically. Needs Full control access and no active jobs. Ask the user first. Poll studio_status until Studio is back.',
+      'Apply the checked latestCommit token and restart Studio. Git checkouts fast-forward to the checked commit or release tag and install dependencies. Portable installs verify and stage the release ZIP. Needs Full control access and no active jobs. Ask the user first. Poll studio_status until Studio is back.',
     schema: z.strictObject({ commit: z.string().regex(/^[a-f0-9]{40,64}$/) }),
   },
 } as const satisfies Record<

@@ -956,6 +956,15 @@ describe('catalog routes', () => {
       (filters) => calls.push(filters ?? {}),
     );
     const routes = createRoutes(store);
+    expect((await routes.request('/suggestions')).status).toBe(400);
+    const suggestions = await routes.request('/suggestions?workspace_id=default');
+    expect(suggestions.status).toBe(200);
+    await expect(suggestions.json()).resolves.toEqual({
+      total: 1,
+      scanned: 1,
+      ungrouped: 1,
+      groups: [],
+    });
     const rejected = await routes.request('/collections', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -973,6 +982,9 @@ describe('catalog routes', () => {
     });
     expect(created.status).toBe(201);
     await expect(created.json()).resolves.toMatchObject({ name: 'Bosses', imageCount: 1 });
+    await expect(
+      (await routes.request('/suggestions?workspace_id=default')).json(),
+    ).resolves.toEqual({ total: 0, scanned: 0, ungrouped: 0, groups: [] });
     const listed = await routes.request('/collections?workspace_id=default');
     const collections = (await listed.json()) as Array<{ id: string }>;
     expect(collections).toHaveLength(1);

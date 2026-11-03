@@ -137,6 +137,16 @@ describe('Studio MCP boundary', () => {
         request: async (path, init) => {
           const body = typeof init?.body === 'string' ? JSON.parse(init.body) : null;
           requests.push({ path, body });
+          if (path === '/api/updates')
+            return Response.json({
+              source: 'release',
+              channel: 'releases',
+              currentVersion: '0.1.1',
+              latestVersion: '0.1.2',
+              latestCommit: 'a'.repeat(64),
+              behind: 1,
+              canUpdate: true,
+            });
           const catalogImage = images[path.slice('/api/catalog/'.length)];
           if (path.startsWith('/api/catalog/') && catalogImage && !init?.method)
             return Response.json(catalogImage);
@@ -423,6 +433,13 @@ describe('Studio MCP boundary', () => {
     const total = 3 * workspaces.length;
     expect(await (await call('studio_status')).json()).toMatchObject({
       mcpAccessLabel: 'Organize',
+      update: {
+        source: 'release',
+        channel: 'releases',
+        currentVersion: '0.1.1',
+        latestVersion: '0.1.2',
+      },
+      notice: expect.stringContaining('Studio version 0.1.2 is available.'),
       unorganized: {
         total,
         workspaces: workspaces.map(({ id, name }) => ({ id, name, count: 3 })),
@@ -646,6 +663,7 @@ describe('Studio MCP boundary', () => {
       { disabledWorkflowModules: ['styles'] },
       { toolsPanelSide: 'left' },
       { preferredWorkflow: 'not-a-workflow' },
+      { updateChannel: 'nightly' },
       {},
     ])
       expect((await call('studio_update_settings', forbidden)).status).toBe(400);
@@ -653,6 +671,7 @@ describe('Studio MCP boundary', () => {
 
     const patch = {
       language: 'es',
+      updateChannel: 'releases',
       disabledWorkflowModules: ['camera'],
       outputOrganization: { subfolderTokens: ['date'] },
     };
@@ -694,5 +713,8 @@ describe('Studio MCP boundary', () => {
       path: '/api/updates/apply',
       body: { commit },
     });
+    const digest = 'b'.repeat(64);
+    expect((await call('studio_apply_update', { commit: digest })).status).toBe(200);
+    expect(requests.at(-1)).toMatchObject({ path: '/api/updates/apply', body: { commit: digest } });
   });
 });

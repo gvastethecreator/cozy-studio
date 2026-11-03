@@ -7,6 +7,7 @@ import {
   readPendingStudioRestart,
 } from '../services/studio-api/updates';
 import { useLatestRef } from './useLatestRef';
+import { t } from '../lib/i18n';
 
 const STARTUP_POLL_MS = 3000;
 const STARTUP_POLL_LIMIT = 20;
@@ -21,7 +22,9 @@ export function useRepositoryUpdateNotifications(
       return;
     notifiedCommit.current = result.latestCommit;
     addToast(
-      `A Studio update is available (${result.behind} new commit${result.behind === 1 ? '' : 's'}). Open Settings → Help & updates to update and restart.`,
+      result.channel === 'releases'
+        ? t('updates.notice', { version: result.latestVersion ?? '' })
+        : `A Studio update is available (${result.behind} new commit${result.behind === 1 ? '' : 's'}). Open Settings → Help & updates to update and restart.`,
       'info',
       0, // Stays until dismissed: an update notice is easy to miss in a timed toast.
     );

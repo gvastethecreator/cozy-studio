@@ -19,6 +19,7 @@ describe('studioSettings', () => {
       defaultOutputMode: 'studio_library',
       autoDetectOutputSources: true,
       notifyOnUpdates: false,
+      updateChannel: 'commits',
       clearReviewJobsOnStartup: false,
       toolsPanelSide: 'left',
       jobsPanelSide: 'right',
@@ -73,6 +74,7 @@ describe('studioSettings', () => {
       defaultProviderId: 'fal',
       apiKey: 'must-not-persist',
       language: 'fr',
+      updateChannel: 'nightly',
       toolsPanelSide: 'invalid',
       jobsPanelSide: null,
       disabledWorkflowModules: ['timeline', 'not-a-module', 'remaster', 'timeline'],
@@ -107,6 +109,7 @@ describe('studioSettings', () => {
         language: 'es',
         commandCenterCompactMode: true,
         notifyOnUpdates: true,
+        updateChannel: 'releases',
         clearReviewJobsOnStartup: true,
         toolsPanelSide: 'right',
         jobsPanelSide: 'left',
@@ -134,6 +137,8 @@ describe('studioSettings', () => {
     expect(settings.language).toBe('es');
     expect(settings.commandCenterCompactMode).toBe(true);
     expect(settings.notifyOnUpdates).toBe(true);
+    expect(settings.updateChannel).toBe('releases');
+    expect(normalizeEditableStudioSettings(settings).updateChannel).toBe('releases');
     expect(settings.clearReviewJobsOnStartup).toBe(true);
     expect(normalizeEditableStudioSettings(settings).toolsPanelSide).toBe('right');
     expect(normalizeEditableStudioSettings(settings).jobsPanelSide).toBe('left');

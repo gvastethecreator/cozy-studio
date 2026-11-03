@@ -81,7 +81,7 @@ Done when your inventory has as many images as the `total` of the last page.
 
 - Work one page (100 rows) at a time: open its images, write each image's planned change into the working file, then go to the next page. The working file, not your context, holds the decisions.
 - Open images as **Look through thumbnails** says. If `filePath` does not open either, mark the image as missing.
-- Group the images by prompt and tags first. For a large group, look at a few images to confirm it, and open every image only to choose near duplicates and the best take. Tell the user which groups you sampled.
+- Group the images by prompt and tags, then inspect each image's thumbnail before proposing its tags or collection. A large group still needs per-image review; sampling does not cover unseen images.
 - Compare similar images to find near duplicates, the best take and the variants.
 - Sort by what the user needs: subject, use, variant and status.
 - If your client cannot open local files, group by prompt and tags only. Tell the user that you did not look at the images.
@@ -160,3 +160,5 @@ Give these steps when the user wants to organize by hand, or when Agent access s
 5. Do steps 3-4 again until the grid shows "Every image in this workspace has tags or a collection."
 
 To rename tags and collections, or to set tag colors and collection emojis, the user opens Settings > **Tags & collections**. To delete a collection, the user opens **Collections** in the Library toolbar. Its images stay in the Library.
+
+For suggestions, turn on **Unorganized**, then click **Suggest**. Studio uses stored prompts, styles and workflows without provider usage. The user reviews and edits the proposed organization before applying it; suggestions do not change images by themselves. If the panel covers only the newest images, report its stated scope instead of treating it as a full-workspace review.

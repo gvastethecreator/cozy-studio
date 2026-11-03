@@ -32,7 +32,9 @@ try {
   } else {
     console.warn(`node_modules has ${extraneous.length} package(s) that bun.lock does not pin:`);
     for (const line of extraneous) console.warn(`  ${line}`);
-    console.warn('Local results can differ from CI. Fix: rm -rf node_modules && bun install');
+    console.warn(
+      'Local results can differ from CI. Follow docs/TOOLING.md#clean-dependency-install.',
+    );
   }
 } catch (error) {
   // Report only: a missing or unreadable install must not fail the gate.

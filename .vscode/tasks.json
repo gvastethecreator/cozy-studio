@@ -79,6 +79,16 @@
       "group": "test"
     },
     {
+      "label": "📦 Release check",
+      "detail": "Run the release gate and prepare the UI for the portable server's selected port.",
+      "type": "process",
+      "command": "bun",
+      "args": ["run", "validate:release"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
       "label": "🔌 Provider status",
       "detail": "Check configured routes and model availability without generating images. This does not verify account quota or update installed CLIs.",
       "type": "process",

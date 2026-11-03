@@ -2,17 +2,19 @@
 
 Start with the fast diagnostics. Then find your symptom below. Each section gives the check and the fix. Provider setup steps are in the [user guide](USER_GUIDE.md#providers).
 
-Paths that start with `.studio/` are inside the Studio Library folder, not in the checkout. [Platform support](PLATFORMS.md#default-paths) lists where the Library is on each OS.
+Paths that start with `.studio/` are inside the Studio data folder, not in the checkout. [Platform support](PLATFORMS.md#default-paths) lists its location on each OS.
+
+The terminal commands below assume a source checkout. For a portable ZIP, use the [root launcher for your OS](PLATFORMS.md#start), the in-app onboarding checklist and **Settings → Advanced & maintenance** for diagnostics. No global Bun installation is needed. If the browser does not open, use the URL printed by the launcher.
 
 ## Fast diagnostics
 
 1. Run `bun run studio:onboard --probe` or use the in-app onboarding checklist.
-2. Run `bun run studio:init` when the Bootstrap Configuration or the Studio Library still needs repair.
+2. Run `bun run studio:init` when the Bootstrap Configuration or the Studio data folder still needs repair.
 3. Use the running Studio instance if there is one. If none is running, start the UI and backend with `bun run dev`.
 4. Run `bun run providers:preflight` for the selected provider. Use `bun run runtime:doctor` only for the Codex route.
 5. Open `http://localhost:17223/api/health` (or your configured API port).
 
-## Setup and Library
+## Setup and data folder
 
 ### First run is not finished
 
@@ -27,19 +29,21 @@ bun run studio:onboard --setup
 
 Mutating steps need an explicit yes. On a TTY the command asks `[y/N]`. Agents that already have user authority can pass `--yes`. A no leaves the disk unchanged.
 
-### The Library is in the wrong folder
+### The Studio data folder is in the wrong location
 
-The default Studio Library is `Library` inside the private Cozy Studio app-data folder (`%LOCALAPPDATA%\Cozy Studio` on Windows). To keep or choose another Library folder, set an absolute path in `.env.local`:
+In a source checkout, the default Studio data folder is `Library` inside the private Cozy Studio app-data folder (`%LOCALAPPDATA%\Cozy Studio` on Windows). To keep or choose another folder, set an absolute path in `.env.local`. For example, on Windows:
 
 ```env
 STUDIO_LIBRARY_DIR=D:\Cozy Studio Library
 ```
 
-Then run `bun run studio:init`. Studio keeps an existing `STUDIO_LIBRARY_DIR`. It does not migrate an older library automatically.
+On macOS or Linux, use an absolute path for that OS, such as `/Users/you/Cozy Studio Data` or `/home/you/Cozy Studio Data`. Then run `bun run studio:init`. Studio keeps an existing `STUDIO_LIBRARY_DIR`. Selecting a new folder does not copy or move the old data.
+
+Portable ZIPs default to `Cozy Studio Library` beside `app/`. Keep that data outside `app/` so updates can replace the app safely. See [paths and overrides](PLATFORMS.md#default-paths) for all launch modes.
 
 ### New images are not in the folder I expected
 
-External folder to scan is an import source, not the generation destination. Generate writes to the images folder chosen in onboarding or Settings → Files & naming, which is Pictures/Cozy Studio on a new library. A new destination applies to new jobs; existing files do not move.
+External folder to scan is an import source, not the generation destination. Generate writes to the images folder chosen in onboarding or Settings → Files & naming, which defaults to the OS Pictures folder plus `Cozy Studio`. A new destination applies to new jobs; existing files do not move.
 
 ### A provider check fails next to saved settings
 
@@ -75,7 +79,7 @@ Symptoms: a checkout that worked before the update no longer starts jobs, `app-s
 
 1. Stop the old `bun run dev` process and start it again. Managed shutdown closes the UI, the backend and the owned `codex app-server` process tree.
 2. Run `bun run runtime:doctor`. Make sure that it selects a supported desktop, npm, Bun or PATH launcher with `app-server` capability.
-3. Open `http://localhost:17223/api/health`. `checks.onboardingReady` is true when the Library is ready and either Studio ChatGPT Sign in or Codex CLI + app-server + Local Codex Session is ready.
+3. Open `http://localhost:17223/api/health`. `checks.onboardingReady` is true when the Studio data folder is ready and either Studio ChatGPT Sign in or Codex CLI + app-server + Local Codex Session is ready.
 4. If you set `STUDIO_CODEX_CLI_PATH` or `CODEX_CLI_PATH`, point it at a stable launcher. Never pin a release-specific vendor path.
 
 ### An old `codex` install is selected
@@ -129,7 +133,7 @@ The preflight must report `canAttempt=true`. If it does not, sign in with xAI fr
 Studio also rejects these Grok jobs before they are queued:
 
 - unresolved remote references
-- source files outside the Studio Library that the job captured
+- source files outside the Studio data folder that the job captured
 - more than five CLI source images or three HTTP edit source images
 - unsupported explicit aspect ratios
 - output counts other than one
@@ -163,7 +167,7 @@ bun run providers:preflight -- --provider=antigravity
 
 Studio needs a current CLI with the headless stream, sandbox, model and permission controls. If `agy models` reports an authentication error, open `agy` and complete Google authentication. Set `STUDIO_ANTIGRAVITY_CLI_PATH` to an absolute native executable path only when normal discovery selects the wrong binary.
 
-Edit sources must already be inside the Studio Library that the job captured. A ready preflight proves the CLI, login, flags and model discovery. It does not prove image credits or account access; only a live generation does.
+Edit sources must already be inside the Studio data folder that the job captured. A ready preflight proves the CLI, login, flags and model discovery. It does not prove image credits or account access; only a live generation does.
 
 ## Startup
 
@@ -178,6 +182,8 @@ Use `bun run dev`, or run `dev:server` and `dev:ui` in parallel.
 Symptoms: startup stops with "Studio did not update the database".
 
 Before Studio changes the database for a new version, it keeps a copy of the old database in `.studio/state/pre-migration/` inside your Studio data folder (the newest 3 copies). If that copy cannot be written, Studio does not update the database and does not start. Free disk space or fix access to that folder, then start Studio again. If Studio still does not start, stop it and ask for help before you replace any file.
+
+For a portable update, start through the root launcher. If the new server fails before readiness, the launcher restores the previous app and keeps `app.failed` for review; it does not restore the database. Keep the recovery folders when an update reports a blocked cleanup. [Portable update recovery](PLATFORMS.md#releases-and-updates) explains the protected paths and recovery copies.
 
 ### Ports are busy
 
@@ -206,7 +212,7 @@ Do not delete `.studio/studio.sqlite` to get past the error. If it still fails, 
 
 ## Storage and logs
 
-### The Library uses too much disk space
+### The Studio data folder uses too much disk space
 
 Run `bun run storage:audit`. It reports SQLite size, WAL and SHM files, logs, transcripts, references, historical inline payloads, missing thumbnails, duplicate references and compactable payloads. It does not print private content. In the app, Settings → Advanced & maintenance runs the same audit and the plans below.
 

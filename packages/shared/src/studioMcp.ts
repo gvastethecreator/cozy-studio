@@ -96,7 +96,7 @@ export const generationInput = z.strictObject({
     .min(1)
     .max(80)
     .optional()
-    .describe('Project name. Studio uses the workspace with this name, or creates it.'),
+    .describe('Workspace name. Studio uses the workspace with this name, or creates it.'),
   tags: tagNames.describe(
     '2-5 lowercase hashtags put on every output: subject, project, variant (for example cover, neon-city, cmp-ink). Reuse names from studio_workspaces. [] only if the user asked for no tags.',
   ),
@@ -141,7 +141,7 @@ export const generationInput = z.strictObject({
     .max(200)
     .optional()
     .describe(
-      'Model for this call only, without changing Settings. chatgpt: a GPT Image model id such as gpt-image-2.5-flare. codex: a Codex model. Other providers use their Settings default.',
+      'Model for this call only, without changing Settings. chatgpt: a GPT Image model id such as gpt-image-2.5-flare. codex: a Codex model. Omit model for other providers; they use their Settings default.',
     ),
 });
 export type StudioGenerationInput = z.infer<typeof generationInput>;

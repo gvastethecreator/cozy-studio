@@ -13,5 +13,5 @@ Persistent Job Intake records the complete executable queue before work begins. 
 - Pending work survives refresh before its first item starts.
 - Generation requests dispatch directly to Persistent Job Intake. Backend worker concurrency owns waiting.
 - Retry, cancellation, recovery, and progress have one durable lifecycle.
-- Job Summaries carry the compact workspace, recipe, and aspect-ratio facts needed for refresh-safe presentation.
+- Job Summaries carry the compact workspace, workflow, and aspect-ratio facts needed for refresh-safe presentation.
 - The former browser queue, backend-link reconciliation, cooldown, and Force mode are removed. They are not kept as compatibility machinery.

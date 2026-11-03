@@ -2,7 +2,7 @@
 
 A workspace holds the images of one project. Its images, tags (with their colors) and collections are its Library. Each image belongs to one workspace, and each collection belongs to one workspace. The same tag name in another workspace is a different tag. For tag and collection names, use the filing scheme in [organize-library.md](organize-library.md).
 
-The Default workspace has the id `default` and the name `Default`. It cannot be deleted. Imported images go into it.
+The Default workspace has the id `default` and the name `Default`. It cannot be deleted. Individual reference imports go into it. A Library ZIP import creates a new workspace instead.
 
 ## Choose a workspace
 
@@ -20,13 +20,17 @@ Done when you have one `workspaceId` or `workspaceName`, and the names that it a
 
 ## Create a workspace
 
-Only `studio_generate` creates a workspace, from `workspaceName`. It needs Full control access. No agent tool creates an empty workspace. The user can create one with **Create workspace** (+) in the header.
+Among MCP tools, only `studio_generate` creates a workspace, from `workspaceName`. It needs Full control access. No agent tool creates an empty workspace. The user can create one with **Create workspace** (+) in the header, or import a Library ZIP as described below.
 
 - Studio first looks for a workspace with that name, trimmed and without case. If there is none, Studio creates one with the id `ws-` plus the first 12 hex characters of the SHA-256 of the lowercase name. The same name always gives the same id, so a retry after a timeout with the same `workspaceName` uses the same workspace.
 - `studio_plan_generation` creates nothing. For a new workspace, its result has `workspace.willCreate: true`. When you confirm the plan, tell the user the name of the new workspace.
 - Use the project name that the user uses, up to 80 characters.
 
 Done when `studio_workspaces` lists the workspace after the batch is queued.
+
+## Import or export a Library ZIP
+
+The user opens Settings > **Data folder & imports > Library archive**. Export downloads the active workspace's original images, tags and collections. Import accepts a Library ZIP up to 1 GiB and creates and selects a new workspace; it does not merge into Default or replace an existing workspace. Report missing or skipped images from the result. These controls have no MCP tool.
 
 ## Read a workspace
 

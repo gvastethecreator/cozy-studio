@@ -1,12 +1,14 @@
 # Maintenance and cleanup
 
-Agent maintenance is read-only. No MCP tool deletes, archives, compacts, prunes or resets. You inspect, explain and propose. The user does every write.
+Agent Library and storage maintenance is read-only. No MCP tool deletes or archives images, compacts storage, prunes logs or resets Studio data. You inspect, explain and propose; the user applies these changes. App updates and pack removal use separate tools and consent rules in [SKILL.md](../SKILL.md).
 
 ## "Clean up my library" means organize
 
 Follow [organize-library.md](organize-library.md). Propose tags and collections, not deletion.
 
-If the user wants images out of the Library, they archive the images in Studio: select the images, then click **Archive selected (N)** in the Library toolbar. The **Archive** button in the header opens the archived images. There the user restores them or deletes them permanently.
+If the user wants images out of the Library, they archive the images in Studio: select the images, then click **Archive selected (N)** in the Library toolbar. **Tools > Archive** in the header opens the archived images. There the user restores them or deletes them permanently.
+
+For duplicate review, direct the user to Settings > Advanced & maintenance > **Duplicate images**. The scan covers the active workspace and reports missing or unreadable files. The user reviews each group, keeps at least one image, and confirms which copies move to Archived Images. This does not permanently delete them.
 
 ## Check Studio state
 
@@ -46,7 +48,7 @@ Show the dry-run result. Then give the user the control or the command. The conf
 | Create missing thumbnails | Storage maintenance > **Plan missing thumbnails**, then **Apply plan**.                                                                                                                           | `bun run storage:thumbnails:backfill -- --limit=1000 --write --confirm=backfill-thumbnails`. |
 | Prune diagnostic logs     | Storage maintenance > **Prune diagnostic logs**.                                                                                                                                                  | `bun run tooling:logs:prune`                                                                 |
 | Hide finished jobs        | **Clear** in the Jobs header. It keeps the images and the job records.                                                                                                                            |                                                                                              |
-| Empty the Archive         | **Archive** in the header, then **Delete permanently**. This cannot be undone.                                                                                                                    |                                                                                              |
+| Empty the Archive         | **Tools > Archive** in the header, then **Delete permanently**. This cannot be undone.                                                                                                            |                                                                                              |
 | Rebuild Studio data       | Settings > Advanced & maintenance > **Rebuild Studio data**. It deletes and recreates the Studio data folder for all workspaces: assets, references, thumbnails, archived items and the database. |                                                                                              |
 
 **Leave user-only actions to the user** says when to mention emptying the Archive or **Rebuild Studio data**. For a stuck Studio, start with the audit and [troubleshooting.md](troubleshooting.md).

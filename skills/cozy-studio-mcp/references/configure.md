@@ -6,7 +6,7 @@ The user sets Agent access (MCP) in Settings > Advanced & maintenance. Studio re
 
 - Off (`off`): no Studio tool. Every call returns 403. `studio_guide` still works.
 - Read only (`read`), the default: every read tool, including `studio_plan_generation` and `studio_find_styles`.
-- Organize (`organize`): adds `studio_organize_images` and `studio_undo_organize`, which change tags and collection membership of existing images. It never deletes, archives or moves images and never uses provider usage.
+- Organize (`organize`): adds `studio_organize_images`, `studio_undo_organize` and `studio_save_smart_collection`. These change tags, manual collection membership or saved Smart Collection rules. They never delete, archive or move images and never use provider usage.
 - Full control (`write`): adds `studio_generate`, `studio_retry_batch`, `studio_cancel`, `studio_import_reference`, `studio_import_reference_file`, `studio_update_settings`, `studio_install_extension`, `studio_remove_extension` and `studio_apply_update`.
 
 Rules:
@@ -28,6 +28,7 @@ Rules:
 - `outputOrganization.subfolderTokens`: up to 6 of `workspace`, `date`, `provider`, `model`, `recipe` and `workflow`, in folder order. The list replaces the saved list. `[]` means no subfolders. [Files & naming > Folder structure]
 - `outputOrganization.fileNameTemplate`: up to 120 characters, without `< > : " / \ | ? *`. Tokens: `{date}`, `{time}`, `{timestamp}`, `{timestampUtc}`, `{generation}`, `{workspace}`, `{workflow}`, `{provider}`, `{model}`, `{job}`, `{jobId}`, `{recipe}`, `{prompt}` and `{style}`. The default is `{timestampUtc}_{generation}_{style}_{prompt}`. [Files & naming > File name template]
 - `notifyOnUpdates`: `true` or `false`. When true, Studio checks for updates every hour while it is visible. [Help & updates > Update notifications]
+- `updateChannel`: `commits` or `releases`. A Git checkout defaults to Commits; portable installs always use Releases. Read `studio_updates.channel` for the effective channel. [Help & updates > Update channel]
 
 1. Read the current values.
    - Call `studio_settings`.
@@ -46,7 +47,7 @@ Rules:
 
 - `studio_generate` and `studio_plan_generation` use `providerId: "chatgpt"` unless the call sets another provider. They do not read the Settings default provider. [SKILL.md](../SKILL.md) says when to use `codex`.
 - `studio_providers` shows each provider's readiness without secret values. Use a provider that it shows as ready.
-- To use another model, set `model` on that one `studio_generate` call. Do not change a default. `chatgpt` takes `gpt-image-2.5-flare`, `gpt-image-2.5-sunburst` or `gpt-image-2`. `codex` takes a Codex model. Every other provider uses its Settings default.
+- To use another model, set `model` on that one `studio_generate` call. Do not change a default. `chatgpt` takes `gpt-image-2.5-flare`, `gpt-image-2.5-sunburst` or `gpt-image-2`. `codex` takes a Codex model. Omit `model` for every other provider; it uses its Settings default and rejects that field.
 
 ## Key-based providers
 
@@ -65,18 +66,19 @@ Some providers read a key from `.env.local` in the checkout, for example `OPENAI
 
 Agents cannot do these. Tell the user where to do them.
 
-| Action                                                                | Where                                                                             |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Sign in or out (ChatGPT, xAI, Google)                                 | Settings > Accounts & models                                                      |
-| Default provider, model defaults, execution settings                  | Settings > Accounts & models                                                      |
-| Output directory                                                      | Settings > Files & naming > Output directory                                      |
-| External folders, import sources, metadata export                     | Settings > Data folder & imports                                                  |
-| Rename or recolor tags and collections                                | Settings > Tags & collections                                                     |
-| Agent access, Allowed import folders                                  | Settings > Advanced & maintenance                                                 |
-| Storage cleanup, thumbnail repair, log cleanup, Rebuild Studio data   | Settings > Advanced & maintenance                                                 |
-| Empty the Archive (permanent)                                         | **Archive** in the header > **Delete permanently** (deletes every archived image) |
-| Delete a workspace                                                    | The workspace menu > Delete workspace                                             |
-| Private pack hub password                                             | Settings > Styles & workflows                                                     |
-| Provider keys, ports, Studio data folder, pack sources, worker limits | `.env.local`, then restart Studio                                                 |
+| Action                                                                       | Where                                                                                     |
+| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Sign in or out (ChatGPT, xAI, Google)                                        | Settings > Accounts & models                                                              |
+| Default provider, model defaults, execution settings                         | Settings > Accounts & models                                                              |
+| Output directory                                                             | Settings > Files & naming > Output directory                                              |
+| External folders, import sources, metadata export, Library ZIP import/export | Settings > Data folder & imports                                                          |
+| Rename or recolor tags and collections                                       | Settings > Tags & collections                                                             |
+| Agent access, Allowed import folders                                         | Settings > Advanced & maintenance                                                         |
+| Storage cleanup, thumbnail repair, log cleanup, Rebuild Studio data          | Settings > Advanced & maintenance                                                         |
+| Review duplicates and archive selected copies                                | Settings > Advanced & maintenance > Duplicate images                                      |
+| Empty the Archive (permanent)                                                | **Tools > Archive** in the header > **Delete permanently** (deletes every archived image) |
+| Delete a workspace                                                           | The workspace menu > Delete workspace                                                     |
+| Private pack hub password                                                    | Settings > Styles & workflows                                                             |
+| Provider keys, ports, Studio data folder, pack sources, worker limits        | `.env.local`, then restart Studio                                                         |
 
 Removing a style pack and applying an app update are agent tools, but they need the user's agreement first: see [SKILL.md](../SKILL.md).

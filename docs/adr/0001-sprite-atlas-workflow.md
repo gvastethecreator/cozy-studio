@@ -1,4 +1,4 @@
-# ADR 0001: Sprite Atlas Workflow Recipe
+# ADR 0001: Sprite Atlas workflow
 
 ## Status
 
@@ -6,12 +6,12 @@ Accepted.
 
 ## Decision
 
-Add a new `sprite-atlas` Recipe Module and route-lazy workbench UI. Keep the existing `spritesheet` recipe as the lightweight one-shot grid generator.
+Add a new `sprite-atlas` workflow module (`RecipeModule`) and route-lazy workbench UI. Keep the existing `spritesheet` workflow as the lightweight one-shot grid generator.
 
 The `sprite-atlas` workflow is a local-first run folder workflow:
 
 - a Sprite Atlas Run stores request, prompts, layout guides, raw rows, extracted frames, curation data, atlas outputs, a manifest, and QA reports
-- the recipe uses provider-independent task kind `sprite_sheet`
+- the workflow uses provider-independent task kind `sprite_sheet`
 - row art is produced by existing Codex or image generation jobs, one row or state at a time
 - deterministic workflow actions prepare, import, extract, compose, and QA run folder artifacts
 - final atlas artifacts are catalog-compatible, with `manifest.json.frame_layout` as runtime source of truth
@@ -19,7 +19,7 @@ The `sprite-atlas` workflow is a local-first run folder workflow:
 The UI must expose the workflow as a recoverable production workbench:
 
 - preset discovery is browsable and filterable
-- run history is visible inside the recipe
+- run history is visible inside the workflow
 - row progress is visible at a glance
 - prompts and layout guides are inspectable per row
 - rows are queued one at a time, and rows without a job or an import are counted as open
@@ -42,7 +42,7 @@ New run state and extracted working frames live in `.studio/state/sprite-atlas/<
 
 Positive:
 
-- Sprite Atlas becomes a real production workflow instead of a prompt-only recipe.
+- Sprite Atlas provides a production workflow with persistent runs.
 - The UI can explain blocked stages and partial progress.
 - Existing provider separation remains intact. No provider-specific task names are introduced.
 - The workflow can support sprites, tilesets, textures, asset packs, and custom atlas contracts.

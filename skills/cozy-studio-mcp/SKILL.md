@@ -17,17 +17,17 @@ The `cozy-studio-mcp` tools operate the user's running Cozy Studio. Each tool's 
 
 2. Classify the request and read its reference.
 
-   | Request                                                                      | Reference                                                        |
-   | ---------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-   | Studio offline, Agent access Off, after an update, "Unknown Studio MCP tool" | [setup-and-repair](references/setup-and-repair.md)               |
-   | Settings, Agent access, provider or model choice                             | [configure](references/configure.md)                             |
-   | Choose, create, rename or delete a workspace                                 | [workspaces](references/workspaces.md)                           |
-   | Tag, sort, file or clean up Library images                                   | [organize-library](references/organize-library.md)               |
-   | Choose a workflow                                                            | [workflows](references/workflows-and-recipes.md)                 |
-   | Generate, edit, import a reference, retry, cancel or compare                 | [generate-and-compare](references/generate-and-compare.md)       |
-   | Find styles; install, update or remove packs                                 | [styles-and-packs](references/styles-and-packs.md)               |
-   | Storage, disk use, the Archive                                               | [maintenance-and-cleanup](references/maintenance-and-cleanup.md) |
-   | An error or an unexpected result                                             | [troubleshooting](references/troubleshooting.md)                 |
+   | Request                                                                                   | Reference                                                        |
+   | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+   | Studio offline, Agent access Off, check or apply an app update, "Unknown Studio MCP tool" | [setup-and-repair](references/setup-and-repair.md)               |
+   | Settings, Agent access, provider or model choice                                          | [configure](references/configure.md)                             |
+   | Choose, create, rename or delete a workspace                                              | [workspaces](references/workspaces.md)                           |
+   | Tag, sort, file or clean up Library images                                                | [organize-library](references/organize-library.md)               |
+   | Choose a workflow                                                                         | [workflows](references/workflows-and-recipes.md)                 |
+   | Generate, edit, import a reference, retry, cancel or compare                              | [generate-and-compare](references/generate-and-compare.md)       |
+   | Find styles; install, update or remove packs                                              | [styles-and-packs](references/styles-and-packs.md)               |
+   | Storage, disk use, the Archive                                                            | [maintenance-and-cleanup](references/maintenance-and-cleanup.md) |
+   | An error or an unexpected result                                                          | [troubleshooting](references/troubleshooting.md)                 |
    - One read call, such as a list of workspaces, needs no reference.
    - Done when you read the reference for each branch of the request.
 

@@ -14,15 +14,15 @@ This command starts the UI and the backend together. If a healthy instance is al
 
 The app uses React with Vite+, a Bun/Hono local API and SQLite through `bun:sqlite`. Read the relevant [architecture](docs/ARCHITECTURE.md) section before you change a product boundary. [CONTEXT.md](CONTEXT.md) defines the domain terms.
 
-In VS Code, open **Terminal → Run Task**. The tracked tasks are Dev, Test, Check, Format, Build, Validate, Provider status, Runtime, Styles, Docs and Logs. [tasks.json](.vscode/tasks.json) has their exact labels and commands. Runtime diagnoses the optional Codex route, not ChatGPT authentication.
+In VS Code, open **Terminal → Run Task**. The tracked tasks are Dev, Test, Check, Format, Build, Validate, Release check, Provider status, Runtime, Styles, Docs and Logs. [tasks.json](.vscode/tasks.json) has their exact labels and commands. Runtime diagnoses the optional Codex route, not ChatGPT authentication.
 
 ## Boundaries and safety
 
 - Keep the local-first ChatGPT path working without `OPENAI_API_KEY`.
 - Workspace is the durable organization entity. Persistent Jobs store `workspace_id`. Do not restore Project APIs on the generation path.
 - Provider execution and credentials stay behind backend adapters. A unit test or preflight does not authorize a live generation.
-- Use isolated temporary libraries in tests. Never change a real user's Studio Library to validate a code change.
-- Keep user images, logs, SQLite databases, Studio Library data, `.env.local`, scratch captures and secrets out of Git. Reviewed product assets and documentation screenshots stay at their tracked locations.
+- Use isolated temporary Studio data folders in tests. Never change a real user's data to validate a code change.
+- Keep user images, logs, SQLite databases, Studio data folders, `.env.local`, scratch captures and secrets out of Git. Reviewed product assets and documentation screenshots stay at their tracked locations.
 - Document new environment variables in `.env.example` and in the relevant user or contributor guide. Document public scripts in [Tooling](docs/TOOLING.md).
 - For dependency work, follow [Dependencies](docs/DEPENDENCIES.md). Do not update packages as part of an unrelated fix.
 - Preserve unrelated work and existing product contracts.
@@ -40,7 +40,7 @@ In the pull request, explain the resulting behavior and list the commands and th
 
 ## Report a bug
 
-Include the operating system, Bun version, selected provider, command or UI steps, expected result and actual result. Include a provider CLI version only when that provider uses it. Attach only relevant, sanitized log excerpts from `logs/tooling/` or the Studio Library. Remove credentials, private prompts and personal paths. For a platform failure, [Platform support](docs/PLATFORMS.md) lists the extra fields.
+Include the operating system, Bun version, selected provider, command or UI steps, expected result and actual result. Include a provider CLI version only when that provider uses it. Attach only relevant, sanitized log excerpts from `logs/tooling/` or the Studio data folder. Remove credentials, private prompts and personal paths. For a platform failure, [Platform support](docs/PLATFORMS.md) lists the extra fields.
 
 Use the [private security channel](SECURITY.md) for vulnerabilities. Other issues and feature requests belong in [GitHub Issues](https://github.com/gvastethecreator/cozy-studio/issues).
 

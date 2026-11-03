@@ -9,7 +9,7 @@ Accepted
 Cozy Extensions are installed content packages, separate from the application bundle.
 
 - A **Cozy Extension** is a versioned content package. It contains data files and images only. It never contains code that Studio runs. This keeps the Provider Capability Catalog rule: providers are not runtime plugins.
-- The first and only extension kind is `style-pack`. Other declarative kinds, such as recipes, can come later under the same rules.
+- The first and only extension kind is `style-pack`. Other declarative kinds, such as workflow content, can come later under the same rules.
 - Each extension has an `extension.json` manifest. The validated schema and compatibility contract live in [extensions.ts](../../packages/shared/src/extensions.ts); use them when authoring a package.
 - Extension ids use a `publisher.name` namespace. A preset's global id is `<extensionId>/<presetId>`, so two extensions can never collide.
 - Studio reads extensions from **Extension Sources**. A source is either a local folder or a GitHub repository that publishes extensions as release assets. Studio supports many sources at once. Supported sources are:
@@ -29,11 +29,11 @@ Cozy Extensions are installed content packages, separate from the application bu
 
 ### Workflow modules
 
-Every workflow except `default` is an optional built-in module. Default includes optional style tools; styled generations keep the core `styles` recipe contract. Examples of optional modules are Character Lab, Sprite Atlas, Animation Sequence and Camera Angles.
+Every workflow except `default` is an optional built-in module. Default includes optional style tools; styled generations keep the core `styles` contract. Examples of optional modules are Character Lab, Sprite Atlas, Animation Sequence and Camera Angles.
 
 - A module is Studio code. It ships and is versioned with the app. It is not a Cozy Extension and is never downloaded.
 - Settings → Styles & workflows lists modules next to installed extensions, and the user can turn each module on or off.
-- A disabled module is unavailable in navigation and new job intake. Backend guards enforce module availability. Existing jobs and assets stay in the Studio Library.
+- A disabled module is unavailable in navigation and new job intake. Backend guards enforce module availability. Existing jobs and assets stay in their workspaces.
 - `workflow-content` is not a supported extension kind. Adding one requires a separate content contract and validation; it must not introduce executable code.
 - Workflows written by third parties would need extensions that run code. That needs its own ADR with signing, sandboxing and a stable API.
 

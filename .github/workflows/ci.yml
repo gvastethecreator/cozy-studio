@@ -58,7 +58,7 @@ jobs:
   portability-macos:
     name: macOS portability smoke
     runs-on: macos-latest
-    # Runs on pushes to main, not on pull requests. docs/PLATFORMS.md requires this per-OS smoke.
+    # Covers macOS init, migration and API behavior on main; release support still needs native proof.
     if: github.event_name == 'push'
     steps:
       - name: Checkout

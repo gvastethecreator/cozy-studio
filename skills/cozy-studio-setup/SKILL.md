@@ -8,14 +8,19 @@ description: 'Cozy Studio setup and onboarding. Use for first run or a welcome-s
 Use when a user asks to make this repo ready for first run, or when the welcome
 screen provides a setup handoff prompt.
 
+This procedure initializes a source checkout. If the application folder contains
+`portable.json`, use the root launcher and `PORTABLE.txt` instead; the portable
+bundle includes Bun and can start without `.env.local`. For MCP startup or update
+repair, read `skills/cozy-studio-mcp/references/setup-and-repair.md`.
+
 ## Objective
 
 Bring a Cozy Studio checkout to a runnable local state:
 
 - dependencies installed and repo scripts runnable
 - `.env.local` bootstrap present and sane
-- Studio Library initialized outside the repo
-- SQLite migrations, default library, and default workspace created
+- Studio data folder initialized outside the repo
+- SQLite migrations applied and the Default workspace created
 - requested image route ready; ordinary image jobs use ChatGPT after Studio Settings Sign in
 - UI and backend start cleanly
 - Codex CLI and `codex app-server` only when the user explicitly wants the Codex provider
@@ -38,7 +43,7 @@ The product loop is detect, consent, mutate, stream, re-validate. One primary CT
 3. Codex route explicitly requested and Codex CLI missing: open <https://github.com/openai/codex>.
    Never silent-install Codex. Run `codex login` only when the user explicitly wants the
    Codex app-server route.
-4. Studio Library or Bootstrap Configuration missing: in-app Setup, or
+4. Studio data folder or Bootstrap Configuration missing: in-app Setup, or
    `bun run studio:onboard --setup`. A setup request authorizes these ordinary setup steps; reuse that consent.
 5. Codex route explicitly requested, and Codex Product Runtime is not ready: start app-server
    through the local backend. ChatGPT HTTP setup does not start app-server; preserve
@@ -49,9 +54,11 @@ Ask your agent copies the Setup Prompt for any coding agent; it does not need Co
 `bun run studio:onboard --ask-codex` still opens Codex with it. Grok Imagine is an optional provider
 row, never a Studio installer.
 
-Default Studio Library is `Library` inside the private Cozy Studio app-data folder
-(`%LOCALAPPDATA%\Cozy Studio` on Windows). Existing `STUDIO_LIBRARY_DIR` is kept. Do not
-auto-migrate an older library. The External folder to scan setting is an import source, not the generate destination.
+The default Studio data folder is `Library` inside the private Cozy Studio app-data
+folder (`%LOCALAPPDATA%\Cozy Studio` on Windows). `docs/PLATFORMS.md` lists the macOS
+and Linux paths. Existing `STUDIO_LIBRARY_DIR` is kept. Do not auto-migrate an older
+data folder. Each workspace's Library is its images, tags and collections, not a
+separate disk folder. The External folder to scan setting is an import source, not the generation destination.
 New generations go to Pictures/Cozy Studio, or the images folder chosen in onboarding.
 The current naming template and an example are in `docs/USER_GUIDE.md` and Settings → Files & naming; preserve the configured template.
 
@@ -61,7 +68,7 @@ The current naming template and an example are in `docs/USER_GUIDE.md` and Setti
 - Never commit or print Provider Secret values.
 - Do not store Provider Secrets in SQLite, catalog metadata, logs,
   screenshots, docs, or committed files.
-- Do not delete, move, compact, or rewrite Studio Library data unless the user
+- Do not delete, move, compact, or rewrite Studio data or Library images unless the user
   explicitly confirms that destructive operation.
 - Keep generated images, SQLite files, transcripts, logs, local outputs, and
   `.env.local` uncommitted.
@@ -86,16 +93,16 @@ only its needed components and hooks.
    - Bun can run repo scripts. Collect tool metadata only when it helps diagnosis.
    - Check existing processes and configured ports before starting services. Reuse a healthy instance.
    - For an explicitly requested Codex provider: Codex Runtime Doctor, selected executable, and app-server support. These do not block ChatGPT HTTP setup.
-   - make sure that `.env.local` exists without printing secret values
+   - Check whether `.env.local` exists without printing secret values.
    - inspect `package.json` scripts
 
 2. Initialize local bootstrap.
    - Run `bun install` only when dependencies are missing or stale enough to
      block scripts. Never silent-install Bun or Codex CLI.
    - Prefer `bun run studio:onboard --setup` (or in-app Setup) when the probe says
-     library or Bootstrap Configuration is missing and setup is authorized.
-   - Run `bun run studio:init` when `.env.local`, Studio Library folders,
-     SQLite state, default library, or default workspace are missing after that.
+     the Studio data folder or Bootstrap Configuration is missing and setup is authorized.
+   - Run `bun run studio:init` when `.env.local`, Studio data folders,
+     SQLite state or the Default workspace are missing after that.
    - Keep existing `.env.local` values unless they are invalid. If editing is
      needed, preserve user-specific paths and never add secrets.
 
@@ -119,7 +126,7 @@ only its needed components and hooks.
      and supported scripts are healthy. App-server support and Local Codex Session apply only to the Codex route.
    - For occupied ports, identify conflicting ports from `.env.local` and
      suggest safe alternative values.
-   - For Studio Library failures, fix missing folders via `bun run studio:init`
+   - For Studio data folder failures, fix missing folders via `bun run studio:init`
      or report permissions/path blockers.
    - For provider-secret checks, report only configured/missing/invalid state
      and source names, never values.

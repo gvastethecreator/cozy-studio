@@ -8,17 +8,17 @@ Open Settings from the app header. Settings starts in **Creation & startup**. Se
 
 An invalid or empty filename template blocks Save and stays visible in the footer from any section. **Fix filename template** returns to the field. Provider settings and the onboarding **Connections** open **Accounts & models**.
 
-| Section                | Use it for                                                       |
-| ---------------------- | ---------------------------------------------------------------- |
-| Creation & startup     | Startup workflow, workflow for new workspaces and style defaults |
-| Appearance & layout    | Theme, accent, motion and panel positions                        |
-| Accounts & models      | Sign in, provider selection and model execution defaults         |
-| Files & naming         | Generated image destination, subfolders and filename templates   |
-| Data folder & imports  | Scan and import external images; export workspace metadata       |
-| Tags & collections     | Rename tags and collections; set tag colors and emojis           |
-| Styles & workflows     | Install style packs and enable built-in workflows                |
-| Advanced & maintenance | Agent access, allowed import folders, diagnostics and repair     |
-| Help & updates         | The Cozy guide, update checks and managed restart                |
+| Section                | Use it for                                                                    |
+| ---------------------- | ----------------------------------------------------------------------------- |
+| Creation & startup     | Language, startup workflow, workflow for new workspaces and style defaults    |
+| Appearance & layout    | Theme, accent, motion and panel positions                                     |
+| Accounts & models      | Sign in, provider selection and model execution defaults                      |
+| Files & naming         | Generated image destination, subfolders and filename templates                |
+| Data folder & imports  | Scan external images; export and import Library ZIPs with images and metadata |
+| Tags & collections     | Rename tags and collections; set tag colors and emojis                        |
+| Styles & workflows     | Install style packs and enable built-in workflows                             |
+| Advanced & maintenance | Agent access, allowed import folders, diagnostics and repair                  |
+| Help & updates         | The Cozy guide, update checks and managed restart                             |
 
 A direct workflow link takes priority over the startup workflow.
 
@@ -28,7 +28,7 @@ A direct workflow link takes priority over the startup workflow.
 
 - **Off**
 - **Read only** (the default)
-- **Organize**: also adds tags and collections to existing images
+- **Organize**: also changes tags and collection memberships, undoes organize changes and saves smart collections
 - **Full control**: also generation, imports, settings, style packs and updates
 
 To let an agent import local image references by path, set **Agent access (MCP)** to **Full control**. Enter one absolute path per line in **Allowed import folders**, then save. The permission includes subfolders. An empty list turns off import by path. Studio copies and optimizes the image and does not change the source. See [Studio MCP](agents/mcp.md#import-an-image-reference) for the limits and tool inputs.
@@ -39,7 +39,7 @@ The header labels **Workspace** and **Workflow** separately. Workspace chooses t
 
 Library search, Favorites and sorting apply to the whole workspace before the results are paged. Selections stay with each workspace while you search or load more images. The selection bar shows how many selected images are not shown now. Download, convert and archive selected act on that full selection. **Archive workspace** shows a fresh count and includes images hidden by filters.
 
-**Delete workspace**, in the workspace menu in the header, moves the images of that workspace to Archived Images (the **Archive** button in the header) and deletes its tags and collections. You cannot delete Default. When you restore an image of a deleted workspace, it comes back in a workspace named `Imported (…)`, with its tags but without their old colors.
+**Delete workspace**, in the workspace menu in the header, moves the images of that workspace to Archived Images (**Tools → Archive** in the header) and deletes its tags and collections. You cannot delete Default. When you restore an image of a deleted workspace, it comes back in a workspace named `Imported (…)`, with its tags but without their old colors.
 
 Studio has no control that moves images to another workspace. A move through the local API changes only the image's workspace: the image keeps its tags and leaves the collections of its old workspace. The file stays where it is, also when its folder name has the old workspace name.
 

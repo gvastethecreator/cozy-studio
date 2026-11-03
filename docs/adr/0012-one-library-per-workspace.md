@@ -27,4 +27,4 @@ This extends [ADR 0006](0006-workspace-as-canonical-scope.md).
 - `studio_status` returns `unorganized: {total, workspaces: [{id, name, count}]}` instead of `library: {unorganized}`.
 - `GET /api/catalog/search` is removed. Use `GET /api/catalog` with `workspace_id` and `q`.
 - `StudioWorkspace.libraryId` and `CatalogWorkspaceSummary.libraryIds` are removed. The `workspaces.library_id` column stays in SQLite, unused.
-- Earlier ADRs say "Studio Library" for the Studio data folder.
+- Earlier revisions of the ADRs use "Studio Library" for the Studio data folder.

@@ -62,14 +62,18 @@ Windows honors redirected Pictures folders, including network paths. If Windows 
 - Settings → Files & naming changes the output destination for new jobs. Existing jobs keep their captured destination and existing files stay in place.
 - `STUDIO_EXTENSION_INSTALL_DIR` selects the extension store. `STUDIO_EXTENSION_SOURCES` accepts local source folders separated by `;` on Windows and `:` on macOS/Linux. Relative extension paths resolve from the app's working directory.
 - For the optional Codex provider, `STUDIO_CODEX_CLI_PATH` or `CODEX_CLI_PATH` selects a launcher. `CODEX_HOME` selects its absolute config, skill and generated-image root; otherwise it uses `~/.codex`. Studio discovers Unix Bun installs under `~/.bun/bin` as well as local/npm installs and PATH.
-- Existing Libraries and credential files are never migrated automatically. Changing an environment variable selects another location; it does not copy the old contents.
-- Keep the Library writable by the current user. Do not repair permission errors by running Studio as administrator or root. Inspect the selected path first.
+- Existing Studio data folders and credential files are never migrated automatically. Changing an environment variable selects another location; it does not copy the old contents.
+- Keep the Studio data folder writable by the current user. Do not repair permission errors by running Studio as administrator or root. Inspect the selected path first.
 
 For contributors: `platformHome.ts`, `platformDirectories.ts`, `config.ts`, `platformPaths.ts` and `auth/store.ts` under `apps/local-server/src/` own path resolution. Fix a resolution defect there, not with a UI-specific path rule.
 
 ## Report a platform failure
 
-Follow the [bug report steps](../CONTRIBUTING.md#report-a-bug). For a platform failure, also include the OS version, CPU architecture and launch mode. Run `bun run studio:onboard --probe` for a read-only setup report; its `host` field includes the OS, architecture, Bun and Node versions. For a Codex failure, also run `bun run runtime:doctor`. For another provider, run `bun run providers:preflight`.
+Follow the [bug report steps](../CONTRIBUTING.md#report-a-bug). For a platform failure, also include the OS version, CPU architecture and launch mode.
+
+For a source checkout, run `bun run studio:onboard --probe` from the checkout root. The report's `host` field includes the OS, architecture, Bun and Node versions. For a Codex failure, also run `bun run runtime:doctor`. For another provider, run `bun run providers:preflight`.
+
+For a portable ZIP, open the root launcher for your OS and use the in-app onboarding checklist and **Settings → Advanced & maintenance**. Include the app version, printed URL and relevant launcher error. No global Bun installation is needed. If Studio cannot start, report the launcher error first. Do not run checkout setup or repair commands inside `app/`: their offline probe can inspect the checkout defaults instead of the portable data folder, and missing `.env.local` is valid for portable installs.
 
 The probe can contain account-related status and personal paths. Redact usernames, private directories and account identifiers before posting it. Never attach `.env.local`, the credential file, SQLite databases or complete transcripts. Use the [private security channel](../SECURITY.md) for exposure of credentials or files.
 

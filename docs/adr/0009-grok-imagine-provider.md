@@ -30,6 +30,6 @@ Limits that callers must follow:
 
 - Provider id is `grok`.
 - Tasks stay the existing image generation and image-edit kinds.
-- Default can select this provider, with optional styles. The styles recipe uses the same provider-independent recipe directives as the other image providers.
-- Both paths import verified images into the captured Studio Library.
+- Default can select this provider, with optional styles. Styled generations keep the core `styles` contract and use the same provider-independent workflow directives as the other image providers.
+- Both paths save verified images to the registered output destination captured by each job, then register them in its workspace Library.
 - Deterministic tests use fixture sessions. A real image smoke needs explicit consent for that run.

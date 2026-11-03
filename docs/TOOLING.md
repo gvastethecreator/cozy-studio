@@ -4,7 +4,7 @@
 
 Cozy Studio uses **Bun** as package manager and backend runtime. Use `bun` or `bunx` for operational scripts. Do not use `npm`, `npx`, `pnpm`, or `yarn` for those scripts.
 
-The repository and CI pin Bun `1.4.2` through `packageManager` and the workflow setup step. Use `bun install` for a local dependency refresh. Use `bun install --frozen-lockfile` for reproducible validation and CI. `bun install` does not remove packages that `bun.lock` no longer lists, so `bun run validate` starts by listing them (`scripts/verify-installed-deps.ts`) without failing the gate. To fix, run `rm -rf node_modules && bun install`.
+The repository and CI pin Bun `1.4.2` through `packageManager` and the workflow setup step. Use `bun install` for a local dependency refresh. Use `bun install --frozen-lockfile` for reproducible validation and CI. `bun install` does not remove packages that `bun.lock` no longer lists, so `bun run validate` starts by listing them (`scripts/verify-installed-deps.ts`) without failing the gate. Follow [Clean dependency install](#clean-dependency-install) to repair that drift.
 
 `bun run portable:build [target]` builds a portable ZIP from the UI prepared by `bun run validate:release`. Targets are `windows-x64`, `windows-arm64`, `linux-x64`, `linux-arm64`, `macos-x64` and `macos-arm64`; the default matches the build host. It verifies the official pinned Bun release SHA-256, includes that target's unmodified executable and notices, and installs production dependencies with explicit OS/CPU options into an isolated folder under `.scratch/portable/`. Native install scripts are disabled for cross-platform safety; the required prebuilt Sharp binary must be present. Each archive has its own launcher, executable permissions, target record and SHA-256. The ZIP leaves out the package-manager CLI shims of the build host.
 
@@ -70,6 +70,25 @@ The UI build checks chunk budgets. Keep optional surfaces demand-loaded and pres
 Follow the scoped update workflow in [Dependencies](DEPENDENCIES.md). It also lists the pinned packages. Keep unrelated packages unchanged.
 
 If `bun install` stalls on Windows, see [Troubleshooting](TROUBLESHOOTING.md).
+
+### Clean dependency install
+
+Use this repair when installed packages no longer match `bun.lock`. Stop the dev server and other commands using this checkout first. Confirm that your current directory is the checkout root and that `node_modules` is its own dependency folder, not a link to a shared install. Removing that folder requires the owner's approval when an agent performs the repair. Keep `bun.lock` unchanged.
+
+In PowerShell:
+
+```powershell
+Remove-Item -LiteralPath .\node_modules -Recurse -Force -ErrorAction Stop
+bun install --frozen-lockfile
+```
+
+In a POSIX shell:
+
+```sh
+rm -rf -- node_modules && bun install --frozen-lockfile
+```
+
+Then run `bun run scripts/verify-installed-deps.ts` to check the new install. It reports drift without changing files or failing the gate.
 
 ## CI
 

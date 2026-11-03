@@ -310,6 +310,7 @@ describe('release channel in a Git checkout', () => {
       getChannel: () => 'releases',
       readRelease,
     });
+    activeUpdates.push(restarted);
     expect(await restarted.check()).toMatchObject({
       currentVersion: '0.1.1',
       latestVersion: '0.1.2',

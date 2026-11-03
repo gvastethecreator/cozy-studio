@@ -11,7 +11,7 @@ The walkthrough screenshots show the running Studio interface, captured on 2026-
 
 ## Build
 
-You need Bun and Node 22.22 or newer.
+You need Bun and Node 22.23.4 or newer.
 
 ```bash
 cd landing

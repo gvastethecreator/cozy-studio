@@ -12,7 +12,7 @@ type RegisteredRecipeId = Exclude<RecipeId, null>;
 export function getRecipeModuleUiModel(recipeId: RegisteredRecipeId) {
   const module = getRecipeModule(recipeId);
   if (!module) {
-    throw new Error(`Recipe Module ${recipeId} is not registered.`);
+    throw new Error(`Workflow ${recipeId} is not registered.`);
   }
 
   return {

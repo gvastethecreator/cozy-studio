@@ -85,7 +85,7 @@ export function collectGrokImagineJobIssues({
     issues.push({
       code: 'unsupported_grok_recipe',
       field: 'sourceSpec.recipeId',
-      message: 'This recipe uses Codex.',
+      message: 'This workflow uses Codex.',
     });
   }
 

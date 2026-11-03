@@ -94,8 +94,8 @@ All paths are under `apps/local-server/src/`. `appFactory.ts` composes the route
 
 ## Generation flow
 
-1. The UI collects the prompt, recipe, attachments, provider, batch count and workspace. `useGenerationPipeline` hands them to the local generation runner. No browser queue owns the job lifecycle.
-2. The runner resolves Recipe Module data and builds provider-independent Generation Task Specs. With no active style, Default submits a normal generation. Active styles use the `styles` recipe contract.
+1. The UI collects the prompt, workflow, attachments, provider, batch count and workspace. `useGenerationPipeline` hands them to the local generation runner. No browser queue owns the job lifecycle.
+2. The runner resolves workflow definition data (`RecipeDefinition` and its `RecipeModule` metadata) and builds provider-independent Generation Task Specs. With no active style, Default submits a normal generation. Active styles use the `styles` workflow contract.
 3. The backend captures each item's storage folders (`JobLibraryContext`: the Studio data folder and the output folder) and execution policy. It commits the requested count, the ordered membership and all jobs in one SQLite transaction before dispatch.
 4. The Provider Boundary compiles each spec into provider-specific input. New Codex jobs capture `codex app-server`, and new ChatGPT jobs capture subscription HTTP. Historical jobs keep their captured contract. Other providers run only when a concrete preflight passes.
 5. Completed jobs write Local Assets to the output folder, and Catalog Entries, transcripts and logs to the Studio data folder. HTTP results keep their original pixels. A different returned aspect ratio is an `asset.dimensions.info` event, not a reason for review.
@@ -175,7 +175,7 @@ Runtime Doctor probes the resolved stable launcher before fallback candidates. R
 
 Generation Tasks and Generation Providers stay separate:
 
-- Recipe Modules produce Generation Task Specs. Recipe Provider Directives are the only recipe text in a new spec. An older spec replays its Recipe Context through the compiler fallback.
+- Workflow definitions (`RecipeDefinition`) produce Generation Task Specs. Workflow provider directives (`RecipeProviderDirectives`) are the only workflow text in a new spec. An older spec replays its stored `recipeContext` through the compiler fallback.
 - Providers compile specs into Compiled Provider Inputs.
 - Provider-specific secrets, SDKs, retries and output discovery stay behind backend adapters.
 - Provider Secrets stay out of SQLite-backed Studio Settings, job metadata, logs, transcripts, screenshots and docs.
@@ -213,7 +213,7 @@ ComfyUI uses one configured API workflow template, and Studio does not start Com
 
 Heavy or optional UI mounts only when it is visible or the user asks for it.
 
-- Recipe pages are route-lazy. Style catalog search, Style Pack data, YAML parsing, ZIP export and Three.js load on demand.
+- Workflow pages are route-lazy. Style catalog search, Style Pack data, YAML parsing, ZIP export and Three.js load on demand.
 - Settings, diagnostics and provider internals open from explicit surfaces.
 - `bun run lint` (the `no-restricted-imports` overrides in `vite.config.ts`) and `ui:chunks:verify` guard against eager imports.
 

@@ -127,7 +127,7 @@ export const generationInput = z.strictObject({
     .max(5)
     .optional()
     .describe(
-      'Installed style presets from studio_find_styles, compiled the way the Studio UI compiles them. Uses the styles recipe: leave recipeId out. strength (0.1 to 1) defaults to the Settings style intensity. For a baseline without style, leave styles out.',
+      'Installed style presets from studio_find_styles, compiled the way the Studio UI compiles them. Uses the styles workflow: leave recipeId out. strength (0.1 to 1) defaults to the Settings style intensity. For a baseline without style, leave styles out.',
     ),
   styleMode: z
     .enum(['generate', 'preserve', 'reinterpret'])
@@ -191,7 +191,7 @@ export const studioMcpTools = {
   studio_recipes: {
     access: 'read',
     description:
-      'List generation recipes as summaries; q filters them. With id, return one recipe with its parameter schemas and defaults. uiOnly recipes run only in the Studio UI. Use recipe IDs and parameters with studio_generate.',
+      'List generation workflows as summaries; q filters them. With id, return one workflow with its parameter schemas and defaults. uiOnly workflows run only in the Studio UI. Use workflow IDs and parameters as recipeId and recipeParams with studio_generate.',
     schema: z.strictObject({
       id: z.string().min(1).max(100).optional(),
       q: z.string().max(200).optional(),

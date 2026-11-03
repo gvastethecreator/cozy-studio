@@ -68,7 +68,7 @@ function ConnectedRecipePage({
   const chrome = useGenerationChrome();
   const { activeWorkspaceId } = useWorkspaceState();
   if (!draft.isDraftReady || chrome.recipe.activeRecipe !== activeRecipe)
-    return <LazySurfaceFallback label="Loading recipe draft" />;
+    return <LazySurfaceFallback label="Loading workflow draft" />;
 
   return (
     <Component

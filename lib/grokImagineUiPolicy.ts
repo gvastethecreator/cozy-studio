@@ -164,7 +164,7 @@ export function resolveGrokImagineGenerateBlock({
   if (recipeId && !isGrokImagineRecipeId(recipeId)) {
     return {
       code: 'unsupported_grok_recipe',
-      message: 'This recipe uses Codex. Switch provider or open a Grok recipe.',
+      message: 'This workflow uses Codex. Switch provider or open a Grok workflow.',
     };
   }
 

@@ -102,7 +102,7 @@ async function buildGenerationRequest(
   const recipe = input.recipeId
     ? RECIPE_DISCOVERY_CATALOG.find((entry) => entry.id === input.recipeId)
     : null;
-  if (input.recipeId && !recipe) return { error: 'Unknown recipe. Use studio_recipes.' };
+  if (input.recipeId && !recipe) return { error: 'Unknown workflow. Use studio_recipes.' };
   if (recipe && UI_ONLY_RECIPES.has(recipe.targetRecipeId))
     return {
       error:
@@ -111,7 +111,7 @@ async function buildGenerationRequest(
   if (COMPILED_STYLE_FIELDS.some((key) => Object.hasOwn(input.recipeParams ?? {}, key)))
     return { error: 'Pass styles instead of compiled style fields.' };
   if (input.styles && recipe && recipe.targetRecipeId !== 'styles')
-    return { error: 'styles uses the styles recipe. Leave recipeId out.' };
+    return { error: 'styles uses the styles workflow. Leave recipeId out.' };
   // Same scope as the Studio toolbar; MCP never falls back silently to another image model.
   let execution: Partial<JobExecutionOptions> | undefined;
   if (input.model && input.providerId === 'chatgpt') {
@@ -190,7 +190,7 @@ async function buildGenerationRequest(
       config,
     });
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Invalid generation recipe' };
+    return { error: error instanceof Error ? error.message : 'Invalid generation workflow' };
   }
   // The normal intake resolves execution defaults from Studio Settings.
   delete sourceSpec.metadata.execution;
@@ -391,7 +391,7 @@ export function createMcpRoutes({
           const entry = RECIPE_DISCOVERY_CATALOG.find((recipe) => recipe.id === recipeId);
           return entry
             ? c.json({ ...entry, ...uiOnly(entry.targetRecipeId) })
-            : c.json({ error: 'Unknown recipe. Call studio_recipes without id.' }, 400);
+            : c.json({ error: 'Unknown workflow. Call studio_recipes without id.' }, 400);
         }
         return c.json({
           recipes: searchRecipeCatalog({ query: q }, RECIPE_DISCOVERY_CATALOG).map((recipe) => ({

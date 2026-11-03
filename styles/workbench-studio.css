@@ -920,9 +920,10 @@
   }
   .studio-settings-section-select {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
     flex-shrink: 0;
-    gap: 10px;
+    gap: 6px;
     padding: 10px 16px;
     border-bottom: var(--wb-border-width) solid var(--wb-line);
     font-size: 12px;

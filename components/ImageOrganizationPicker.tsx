@@ -1,5 +1,6 @@
 import { organizeWithUndo } from '../hooks/useCatalogOrganization';
 import React, { useEffect, useRef, useState } from 'react';
+import { useT } from '../lib/i18n';
 import type { GeneratedImage } from '../types';
 import type { CatalogCollectionSelection, CatalogOrganizeResult } from '../packages/shared/src';
 import { applyOrganizeResult, useCatalogOrganization } from '../hooks/useCatalogOrganization';
@@ -20,6 +21,7 @@ export function ImageOrganizationPicker({
   images: GeneratedImage[];
   onSaved?: () => void;
 }) {
+  const { t } = useT();
   const {
     tags,
     collections: availableCollections,
@@ -63,13 +65,15 @@ export function ImageOrganizationPicker({
       },
       (cause: unknown) => {
         if (!cancelled)
-          setError(cause instanceof Error ? cause.message : 'Could not load collections.');
+          setError(
+            cause instanceof Error ? cause.message : t('library.picker.loadCollectionsError'),
+          );
       },
     );
     return () => {
       cancelled = true;
     };
-  }, [workspaceId, idsKey, revision, kind, availableCollections]);
+  }, [workspaceId, idsKey, revision, kind, availableCollections, t]);
   const save = async (work: () => Promise<unknown>) => {
     if (busyRef.current) return;
     busyRef.current = true;
@@ -80,7 +84,7 @@ export function ImageOrganizationPicker({
       onSaved?.();
       setRevision((value) => value + 1);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not save.');
+      setError(cause instanceof Error ? cause.message : t('library.picker.saveError'));
     } finally {
       busyRef.current = false;
       setBusy(false);
@@ -181,11 +185,11 @@ export function ImageOrganizationPicker({
         ))}
         {limit < items.length && (
           <button type="button" role="menuitem" onClick={() => setLimit((value) => value + 15)}>
-            Show more
+            {t('library.picker.showMore')}
           </button>
         )}
       </div>
-      {loading && <p role="status">Loading…</p>}
+      {loading && <p role="status">{t('library.picker.loading')}</p>}
       {(error || loadError) && (
         <p role="alert">
           {error || loadError}{' '}
@@ -197,7 +201,7 @@ export function ImageOrganizationPicker({
               setRevision((value) => value + 1);
             }}
           >
-            Retry
+            {t('library.picker.retry')}
           </button>
         </p>
       )}

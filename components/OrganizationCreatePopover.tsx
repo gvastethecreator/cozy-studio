@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useT } from '../lib/i18n';
 import { organizeWithUndo } from '../hooks/useCatalogOrganization';
 import {
   createCatalogCollection,
@@ -20,6 +21,8 @@ export function OrganizationCreatePopover({
   imageIds?: string[];
   onCreated?: (value: { name: string; id?: string }) => void | Promise<void>;
 }) {
+  const { t } = useT();
+  const title = t(kind === 'tag' ? 'library.organize.newTag' : 'library.organize.newCollection');
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [appearance, setAppearance] = useState<string | null>(null);
@@ -34,12 +37,12 @@ export function OrganizationCreatePopover({
         aria-expanded={open}
         onClick={() => setOpen(!open)}
       >
-        ＋ New {kind}
+        ＋ {title}
       </button>
       {open && (
         <dialog
           open
-          aria-label={`New ${kind}`}
+          aria-label={title}
           className="studio-panel-dialog organization-create-popover studio-popover"
           onKeyDown={(event) => {
             event.stopPropagation();
@@ -75,7 +78,9 @@ export function OrganizationCreatePopover({
                   notifyCatalogOrganizationChanged();
                   await onCreated?.(value);
                 } catch (cause) {
-                  setError(cause instanceof Error ? cause.message : 'Could not create.');
+                  setError(
+                    cause instanceof Error ? cause.message : t('library.organize.createError'),
+                  );
                 } finally {
                   setBusy(false);
                 }
@@ -83,12 +88,20 @@ export function OrganizationCreatePopover({
             }}
           >
             <input
-              aria-label={`New ${kind} name`}
+              aria-label={t(
+                kind === 'tag'
+                  ? 'library.organize.newTagName'
+                  : 'library.organize.newCollectionName',
+              )}
               autoFocus
               className="studio-well w-full"
               value={name}
               maxLength={kind === 'tag' ? 64 : 80}
-              placeholder={kind === 'tag' ? 'Tag name' : 'Collection name'}
+              placeholder={
+                kind === 'tag'
+                  ? t('library.organize.tagName')
+                  : t('library.organize.collectionName')
+              }
               onChange={(event) => setName(event.target.value)}
             />
             {kind === 'tag' ? (
@@ -101,7 +114,7 @@ export function OrganizationCreatePopover({
               className="studio-primary-control"
               disabled={busy || !name.trim()}
             >
-              {busy ? 'Creating…' : 'Create'}
+              {busy ? t('library.organize.creating') : t('library.organize.create')}
             </button>
             {error && <p role="alert">{error}</p>}
           </form>

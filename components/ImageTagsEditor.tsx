@@ -5,6 +5,7 @@ import type { GeneratedImage } from '../types';
 import { applyOrganizeResult, useCatalogOrganization } from '../hooks/useCatalogOrganization';
 import { CATALOG_ORGANIZATION_CHANGED } from '../services/studio-api/catalog';
 import type { CatalogOrganizeResult } from '../packages/shared/src';
+import { useT } from '../lib/i18n';
 
 export function ImageTagsEditor({
   images,
@@ -15,6 +16,7 @@ export function ImageTagsEditor({
   onSaved?: () => void;
   workspaceId?: string;
 }) {
+  const { t } = useT();
   const { tags: definitions } = useCatalogOrganization(workspaceId);
   const inputId = useId();
   const [imageTags, setImageTags] = useState(() =>
@@ -76,7 +78,7 @@ export function ImageTagsEditor({
       if (clearInput) setInput('');
       setSaved(true);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not save tags. Try again.');
+      setError(cause instanceof Error ? cause.message : t('library.picker.saveTagsError'));
     } finally {
       savingRef.current = false;
       setSaving(false);
@@ -84,8 +86,8 @@ export function ImageTagsEditor({
   };
 
   return (
-    <section aria-label="Image tags" className="space-y-2 text-xs">
-      <h3 className="text-[color:var(--wb-muted)]">Tags</h3>
+    <section aria-label={t('library.picker.imageTags')} className="space-y-2 text-xs">
+      <h3 className="text-[color:var(--wb-muted)]">{t('library.picker.tags')}</h3>
       <div className="flex flex-wrap gap-1.5">
         {[...tagCounts].map(([tag, count]) => (
           <span
@@ -103,7 +105,7 @@ export function ImageTagsEditor({
               <button
                 type="button"
                 className="studio-ghost-control rounded px-1"
-                aria-label={`Add tag ${tag} to all selected images`}
+                aria-label={t('library.picker.addTagToAll', { tag })}
                 disabled={saving}
                 onClick={() => void save({ addTags: [tag] })}
               >
@@ -113,7 +115,7 @@ export function ImageTagsEditor({
             <button
               type="button"
               className="studio-ghost-control rounded px-1"
-              aria-label={`Remove tag ${tag}`}
+              aria-label={t('library.picker.removeTag', { tag })}
               disabled={saving}
               onClick={() => void save({ removeTags: [tag] })}
             >
@@ -129,13 +131,13 @@ export function ImageTagsEditor({
             const added = parseImageHashtags(input);
             if (added.length) void save({ addTags: added }, true);
           } catch (cause) {
-            setError(cause instanceof Error ? cause.message : 'Invalid hashtags.');
+            setError(cause instanceof Error ? cause.message : t('library.picker.invalidHashtags'));
           }
         }}
         className="flex flex-wrap gap-2"
       >
         <label htmlFor={inputId} className="sr-only">
-          Add hashtags
+          {t('library.picker.addHashtags')}
         </label>
         <input
           id={inputId}
@@ -146,7 +148,7 @@ export function ImageTagsEditor({
             setSaved(false);
           }}
           disabled={saving}
-          placeholder="#character #boss"
+          placeholder={t('library.picker.hashtagPlaceholder')}
           aria-invalid={!!error}
           aria-describedby={error ? `${inputId}-error` : undefined}
           maxLength={2200}
@@ -157,17 +159,17 @@ export function ImageTagsEditor({
           disabled={saving || !input.trim()}
           className="studio-ghost-control rounded px-3 py-2"
         >
-          {saving ? 'Saving…' : 'Add tags'}
+          {saving ? t('library.picker.saving') : t('library.picker.addTags')}
         </button>
       </form>
       {error && (
         <p id={`${inputId}-error`} role="alert" className="text-[color:var(--wb-danger)]">
-          {error} Your input is kept. Try again.
+          {error} {t('library.picker.inputKept')}
         </p>
       )}
       {!error && saved && (
         <p role="status" className="text-[color:var(--wb-muted)]">
-          Tags saved.
+          {t('library.picker.tagsSaved')}
         </p>
       )}
     </section>

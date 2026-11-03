@@ -162,13 +162,13 @@ describe('recipeModules', () => {
     const styles = getRecipeModule('styles');
 
     expect(camera && validateRecipeParams(camera, { azimuth: 400 }).errors).toEqual([
-      'Recipe Module camera parameter azimuth is above maximum 180.',
+      'Workflow camera parameter azimuth is above maximum 180.',
     ]);
     expect(spritesheet && validateRecipeParams(spritesheet, { grid: '13x13' }).errors).toEqual([
-      'Recipe Module spritesheet parameter grid has unsupported option: 13x13.',
+      'Workflow spritesheet parameter grid has unsupported option: 13x13.',
     ]);
     expect(styles && validateRecipeParams(styles, { presetId: 'SP01-001' }).errors).toEqual([
-      'Recipe Module styles requires parameter presetName.',
+      'Workflow styles requires parameter presetName.',
     ]);
     expect(
       styles &&
@@ -618,6 +618,6 @@ describe('recipeModules', () => {
           },
         },
       }),
-    ).toThrow('Recipe Module styles does not support provider fal.');
+    ).toThrow('Workflow styles does not support provider fal.');
   });
 });

@@ -1,5 +1,6 @@
 import { organizeWithUndo } from '../hooks/useCatalogOrganization';
 import React, { useEffect, useId, useRef, useState } from 'react';
+import { useT } from '../lib/i18n';
 import type { CatalogCollectionSelection, CatalogOrganizeInput } from '../packages/shared/src';
 import {
   getCatalogCollectionSelection,
@@ -15,6 +16,7 @@ export function ImageCollectionsEditor({
   imageIds: string[];
   onSaved?: () => void;
 }) {
+  const { t } = useT();
   const inputId = useId();
   const [collections, setCollections] = useState<CatalogCollectionSelection[] | null>(null);
   const [name, setName] = useState('');
@@ -39,13 +41,15 @@ export function ImageCollectionsEditor({
       },
       (cause: unknown) => {
         if (!cancelled)
-          setError(cause instanceof Error ? cause.message : 'Could not load collections.');
+          setError(
+            cause instanceof Error ? cause.message : t('library.picker.loadCollectionsError'),
+          );
       },
     );
     return () => {
       cancelled = true;
     };
-  }, [workspaceId, selectionKey, revision]);
+  }, [workspaceId, selectionKey, revision, t]);
 
   // All or nothing: a rejected call changes no image.
   const organize = (
@@ -63,7 +67,7 @@ export function ImageCollectionsEditor({
       onSaved?.();
       setCollections(await getCatalogCollectionSelection(workspaceId, imageIds));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not update collections. Try again.');
+      setError(cause instanceof Error ? cause.message : t('library.picker.updateCollectionsError'));
     } finally {
       saving.current = false;
       setBusy(false);
@@ -71,8 +75,8 @@ export function ImageCollectionsEditor({
   };
 
   return (
-    <section aria-label="Image collections" className="space-y-2 text-xs">
-      <h3 className="text-[color:var(--wb-muted)]">Collections</h3>
+    <section aria-label={t('library.picker.imageCollections')} className="space-y-2 text-xs">
+      <h3 className="text-[color:var(--wb-muted)]">{t('library.picker.collections')}</h3>
       {collections ? (
         <div className="max-h-60 space-y-1 overflow-y-auto">
           {collections.map((collection) => {
@@ -114,7 +118,9 @@ export function ImageCollectionsEditor({
                 {some && !all && (
                   <button
                     type="button"
-                    aria-label={`Remove selected images from ${collection.name}`}
+                    aria-label={t('library.picker.removeSelectedFromCollection', {
+                      name: collection.name,
+                    })}
                     disabled={busy}
                     className="studio-ghost-control rounded px-2 py-1"
                     onClick={() =>
@@ -129,7 +135,7 @@ export function ImageCollectionsEditor({
           })}
         </div>
       ) : (
-        !error && <p role="status">Loading collections…</p>
+        !error && <p role="status">{t('library.picker.loadingCollections')}</p>
       )}
       <form
         className="flex gap-2"
@@ -140,7 +146,7 @@ export function ImageCollectionsEditor({
         }}
       >
         <label htmlFor={inputId} className="sr-only">
-          New collection
+          {t('library.picker.newCollection')}
         </label>
         <input
           id={inputId}
@@ -148,7 +154,7 @@ export function ImageCollectionsEditor({
           maxLength={80}
           disabled={busy || !collections}
           onChange={(event) => setName(event.target.value)}
-          placeholder="New collection"
+          placeholder={t('library.picker.newCollection')}
           className="studio-well min-w-0 flex-1 px-2 py-2"
         />
         <button
@@ -156,10 +162,10 @@ export function ImageCollectionsEditor({
           disabled={busy || !collections || !name.trim()}
           className="studio-ghost-control rounded px-3 py-2"
         >
-          Create
+          {t('library.picker.create')}
         </button>
       </form>
-      {busy && <p role="status">Saving collections…</p>}
+      {busy && <p role="status">{t('library.picker.savingCollections')}</p>}
       {error && (
         <div role="alert" className="text-[color:var(--wb-danger)]">
           {error}
@@ -169,7 +175,7 @@ export function ImageCollectionsEditor({
               className="studio-ghost-control ml-2 rounded px-2 py-1"
               onClick={() => setRevision((value) => value + 1)}
             >
-              Retry
+              {t('library.picker.retry')}
             </button>
           )}
         </div>

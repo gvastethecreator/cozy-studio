@@ -1,14 +1,16 @@
+import type { MessageKey } from './i18n/en';
+
 export const STUDIO_SETTINGS_DOMAIN_TABS = [
-  { id: 'general', label: 'Creation & startup' },
-  { id: 'appearance', label: 'Appearance & layout' },
-  { id: 'providers', label: 'Accounts & models' },
-  { id: 'output', label: 'Files & naming' },
-  { id: 'library', label: 'Data folder & imports' },
-  { id: 'organization', label: 'Tags & collections' },
-  { id: 'extensions', label: 'Styles & workflows' },
-  { id: 'maintenance', label: 'Advanced & maintenance' },
-  { id: 'help', label: 'Help & updates' },
-] as const;
+  { id: 'general', labelKey: 'settings.nav.general' },
+  { id: 'appearance', labelKey: 'settings.nav.appearance' },
+  { id: 'providers', labelKey: 'settings.nav.providers' },
+  { id: 'output', labelKey: 'settings.nav.output' },
+  { id: 'library', labelKey: 'settings.nav.library' },
+  { id: 'organization', labelKey: 'settings.nav.organization' },
+  { id: 'extensions', labelKey: 'settings.nav.extensions' },
+  { id: 'maintenance', labelKey: 'settings.nav.maintenance' },
+  { id: 'help', labelKey: 'settings.nav.help' },
+] as const satisfies readonly { id: string; labelKey: MessageKey }[];
 
 export type StudioSettingsDomainId = (typeof STUDIO_SETTINGS_DOMAIN_TABS)[number]['id'];
 

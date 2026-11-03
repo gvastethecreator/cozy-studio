@@ -12,6 +12,7 @@ import {
   OUTPUT_SUBFOLDER_PRESETS,
 } from '../lib/studioSettingsForm';
 import { STUDIO_SETTINGS_DOMAIN_TABS } from '../lib/studioSettingsDomains';
+import { setLanguage, t } from '../lib/i18n';
 import { findCatalogDuplicates } from '../services/studio-api/maintenance';
 import { archiveCatalogByFilter } from '../services/studio-api/catalog';
 
@@ -44,6 +45,7 @@ vi.mock('../contexts/GlobalContext', () => ({
 
 afterEach(() => {
   cleanup();
+  setLanguage('en');
   Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
 });
 
@@ -88,6 +90,30 @@ function renderSettingsModal() {
     }),
   );
 }
+
+it('finds Spanish settings and focuses maintenance and Library archive controls', () => {
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: vi.fn(),
+  });
+  setLanguage('es');
+  renderSettingsModal();
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar ajustes' }), {
+    target: { value: 'almacenamiento' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: /Auditoría de almacenamiento/ }));
+  expect(document.activeElement).toBe(
+    screen.getByRole('button', { name: t('settings.maintenance.audit') }),
+  );
+  expect(screen.getByRole('searchbox', { name: 'Buscar ajustes' })).toHaveProperty('value', '');
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar ajustes' }), {
+    target: { value: 'archivo de biblioteca' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: /Archivo de Biblioteca/ }));
+  expect(document.activeElement).toBe(
+    screen.getByRole('button', { name: 'Export this workspace' }),
+  );
+});
 
 it('explains blocked saving from every section and returns focus to the invalid filename', () => {
   Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
@@ -239,12 +265,12 @@ describe('StudioSettingsModal provider defaults', () => {
       within(nav)
         .getAllByRole('button')
         .map((button) => button.textContent),
-    ).toEqual(STUDIO_SETTINGS_DOMAIN_TABS.map((tab) => tab.label));
+    ).toEqual(STUDIO_SETTINGS_DOMAIN_TABS.map((tab) => t(tab.labelKey)));
     // Tags and Styles panels need the workspace provider and live in their own files.
     for (const tab of STUDIO_SETTINGS_DOMAIN_TABS.filter(
       ({ id }) => id !== 'organization' && id !== 'extensions',
     )) {
-      fireEvent.click(screen.getByRole('button', { name: tab.label }));
+      fireEvent.click(screen.getByRole('button', { name: t(tab.labelKey) }));
       expect(document.body.textContent).not.toContain('Preferred Output Path');
       expect(document.querySelector('[class*="bg-zinc-950"]')).toBeNull();
     }

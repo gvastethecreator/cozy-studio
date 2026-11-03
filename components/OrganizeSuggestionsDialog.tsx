@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useT } from '../lib/i18n';
 import { createPortal } from 'react-dom';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import {
@@ -35,6 +36,7 @@ export function OrganizeSuggestionsDialog({
   onClose: () => void;
   onCatalogChanged?: () => void;
 }) {
+  const { t } = useT();
   const [phase, setPhase] = useState<Phase>('loading');
   const [groups, setGroups] = useState<ReviewGroup[]>([]);
   const [suggestion, setSuggestion] = useState<CatalogOrganizeSuggestion | null>(null);
@@ -72,14 +74,14 @@ export function OrganizeSuggestionsDialog({
         if (!cancelled)
           setError({
             action: 'load',
-            message: cause instanceof Error ? cause.message : 'Could not load suggestions.',
+            message: cause instanceof Error ? cause.message : t('library.suggestions.loadError'),
           });
       },
     );
     return () => {
       cancelled = true;
     };
-  }, [workspaceId, revision]);
+  }, [workspaceId, revision, t]);
 
   const updateGroup = (index: number, patch: Partial<ReviewGroup>) =>
     setGroups((current) =>
@@ -119,10 +121,11 @@ export function OrganizeSuggestionsDialog({
     try {
       // Validate the edited proposals before applying the first group.
       const inputs = pending.map(({ group, index }) => {
-        currentName = group.collection.trim() || `Group ${index + 1}`;
+        currentName =
+          group.collection.trim() || t('library.suggestions.group', { number: String(index + 1) });
         const addTags = [...new Set([...group.tags, ...parseImageHashtags(group.tagDraft)])];
         if (!group.collection.trim() && !addTags.length) {
-          throw new Error('Add a collection name or at least one tag, or uncheck this group.');
+          throw new Error(t('library.suggestions.emptyGroup'));
         }
         return {
           index,
@@ -157,12 +160,18 @@ export function OrganizeSuggestionsDialog({
         changed = true;
         setError({
           action: 'apply',
-          message: `${currentName}: ${cause instanceof Error ? cause.message : 'The response was lost.'} The result could not be confirmed.`,
+          message: t('library.suggestions.unconfirmedError', {
+            name: currentName,
+            error: cause instanceof Error ? cause.message : t('library.suggestions.lostResponse'),
+          }),
         });
       } else {
         setError({
           action: 'apply',
-          message: `${currentName}: ${cause instanceof Error ? cause.message : 'Could not organize this group.'} Completed groups are kept. Retry applies only the remaining groups.`,
+          message: t('library.suggestions.partialError', {
+            name: currentName,
+            error: cause instanceof Error ? cause.message : t('library.suggestions.organizeError'),
+          }),
         });
       }
       setPhase('review');
@@ -190,7 +199,10 @@ export function OrganizeSuggestionsDialog({
       setError({
         action: 'undo',
         conflict,
-        message: `${conflict ? 'Undo stopped. ' : 'Undo was not confirmed. '}${cause instanceof Error ? cause.message : 'Could not undo this change.'} ${conflict ? 'Remaining recorded changes are kept.' : 'Retry Undo checks the same recorded change.'}`,
+        message: t(
+          conflict ? 'library.suggestions.undoConflict' : 'library.suggestions.undoUnconfirmed',
+          { error: cause instanceof Error ? cause.message : t('library.suggestions.undoError') },
+        ),
       });
     } finally {
       setPhase('done');
@@ -202,7 +214,7 @@ export function OrganizeSuggestionsDialog({
     <dialog
       ref={dialogRef}
       aria-modal="true"
-      aria-label="Suggested organization"
+      aria-label={t('library.suggestions.title')}
       className="studio-modal fixed inset-0 z-110 flex items-center justify-center p-4"
       onClick={(event) => event.stopPropagation()}
     >
@@ -210,14 +222,14 @@ export function OrganizeSuggestionsDialog({
       <div className="studio-dialog relative max-h-[85vh] w-full max-w-2xl overflow-y-auto p-5">
         <header className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold">Suggested organization</h2>
+            <h2 className="text-sm font-semibold">{t('library.suggestions.title')}</h2>
             <p className="mt-1 text-xs text-[color:var(--wb-muted)]">
-              Review groups from this workspace's unorganized images.
+              {t('library.suggestions.intro')}
             </p>
           </div>
           <button
             type="button"
-            aria-label="Close suggested organization"
+            aria-label={t('library.suggestions.close')}
             disabled={busy}
             onClick={close}
             className="studio-ghost-control rounded px-2 py-1"
@@ -227,7 +239,7 @@ export function OrganizeSuggestionsDialog({
         </header>
         {phase === 'loading' && !error && (
           <p role="status" className="py-6 text-sm">
-            Finding groups…
+            {t('library.suggestions.finding')}
           </p>
         )}
         {error && (
@@ -242,29 +254,22 @@ export function OrganizeSuggestionsDialog({
                 onClick={() => setRevision((value) => value + 1)}
                 className="studio-ghost-control mt-2 rounded px-3 py-2"
               >
-                Retry
+                {t('library.suggestions.retry')}
               </button>
             )}
-            {error.conflict && (
-              <p className="mt-2">
-                Use Recent changes in Tags or Collections to undo newer changes first.
-              </p>
-            )}
+            {error.conflict && <p className="mt-2">{t('library.suggestions.conflictHint')}</p>}
           </div>
         )}
         {suggestion && !groups.length && (
-          <p className="py-6 text-sm">No groups found. Organize these images by hand.</p>
+          <p className="py-6 text-sm">{t('library.suggestions.none')}</p>
         )}
         {uncertainGroup && (
           <div
             role="status"
             className="mb-4 rounded border border-amber-400/30 bg-amber-400/10 p-3 text-xs"
           >
-            <p>Unknown result for {uncertainGroup.name}. This group may have been organized.</p>
-            <p className="mt-1">
-              Close this dialog, then open Recent changes in Tags or Collections to check and undo
-              the change before trying again. Undo here covers only confirmed groups.
-            </p>
+            <p>{t('library.suggestions.unknownGroup', { name: uncertainGroup.name })}</p>
+            <p className="mt-1">{t('library.suggestions.unknownHint')}</p>
           </div>
         )}
         {applied.length > 0 && (
@@ -274,13 +279,26 @@ export function OrganizeSuggestionsDialog({
           >
             {undoStarted && !undoable.length
               ? uncertainGroup
-                ? 'Confirmed changes undone. One group still has an unknown result.'
-                : 'Organization undone. Created collections are kept.'
-              : `${uncertainGroup ? 'Confirmed: organized' : 'Organized'} ${organizedIds.size} images${collectionCount ? ` into ${collectionCount} collections` : ' with tags'}.`}
+                ? t('library.suggestions.confirmedUndone')
+                : t('library.suggestions.allUndone')
+              : t(
+                  collectionCount
+                    ? uncertainGroup
+                      ? 'library.suggestions.confirmedCollections'
+                      : 'library.suggestions.organizedCollections'
+                    : uncertainGroup
+                      ? 'library.suggestions.confirmedTags'
+                      : 'library.suggestions.organizedTags',
+                  {
+                    count: String(organizedIds.size),
+                    collections: t('library.suggestions.collectionCount', {
+                      count: String(collectionCount),
+                    }),
+                  },
+                )}
             {skippedCount > 0 && (
               <p className="mt-1 text-xs">
-                {skippedCount} images could not be restored because they changed or are no longer
-                available.
+                {t('library.suggestions.skipped', { count: String(skippedCount) })}
               </p>
             )}
           </div>
@@ -300,32 +318,42 @@ export function OrganizeSuggestionsDialog({
                   disabled={busy || saved || !!uncertainGroup}
                   className="studio-well p-3"
                 >
-                  <legend className="sr-only">Group {index + 1}</legend>
+                  <legend className="sr-only">
+                    {t('library.suggestions.group', { number: String(index + 1) })}
+                  </legend>
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
-                      aria-label={`Include group ${index + 1}`}
+                      aria-label={t('library.suggestions.include', { number: String(index + 1) })}
                       checked={group.included}
                       onChange={(event) => updateGroup(index, { included: event.target.checked })}
                     />
                     <label className="flex-1 text-xs">
-                      Collection name{' '}
-                      {existing && <span className="text-[color:var(--wb-muted)]">(existing)</span>}
+                      {t('library.suggestions.collectionLabel')}{' '}
+                      {existing && (
+                        <span className="text-[color:var(--wb-muted)]">
+                          {t('library.suggestions.existing')}
+                        </span>
+                      )}
                       <input
-                        aria-label={`Collection name for group ${index + 1}`}
+                        aria-label={t('library.suggestions.collectionName', {
+                          number: String(index + 1),
+                        })}
                         value={group.collection}
                         maxLength={80}
-                        placeholder="Empty for tags only"
+                        placeholder={t('library.suggestions.collectionPlaceholder')}
                         onChange={(event) => updateGroup(index, { collection: event.target.value })}
                         className="studio-well mt-1 w-full px-2 py-2"
                       />
                     </label>
                     <span className="text-xs text-[color:var(--wb-muted)]">
                       {uncertainGroup?.index === index
-                        ? 'Result unknown'
+                        ? t('library.suggestions.unknown')
                         : saved
-                          ? 'Applied'
-                          : `${group.imageIds.length} images`}
+                          ? t('library.suggestions.applied')
+                          : t('library.suggestions.imageCount', {
+                              count: String(group.imageIds.length),
+                            })}
                     </span>
                   </div>
                   <p className="mt-2 text-xs text-[color:var(--wb-muted)]">{group.reason}</p>
@@ -334,7 +362,10 @@ export function OrganizeSuggestionsDialog({
                       <button
                         key={tag}
                         type="button"
-                        aria-label={`Remove tag ${tag} from group ${index + 1}`}
+                        aria-label={t('library.suggestions.removeTag', {
+                          tag,
+                          number: String(index + 1),
+                        })}
                         onClick={() =>
                           updateGroup(index, { tags: group.tags.filter((value) => value !== tag) })
                         }
@@ -344,10 +375,10 @@ export function OrganizeSuggestionsDialog({
                       </button>
                     ))}
                     <input
-                      aria-label={`Add tags to group ${index + 1}`}
+                      aria-label={t('library.suggestions.addTags', { number: String(index + 1) })}
                       value={group.tagDraft}
                       onChange={(event) => updateGroup(index, { tagDraft: event.target.value })}
-                      placeholder="Add #tags"
+                      placeholder={t('library.suggestions.tagPlaceholder')}
                       className="studio-well min-w-0 flex-1 px-2 py-1 text-xs"
                     />
                   </div>
@@ -357,7 +388,10 @@ export function OrganizeSuggestionsDialog({
                         <img
                           key={`${url}-${preview}`}
                           src={toStudioAssetUrl(url)}
-                          alt={`Group ${index + 1} preview ${preview + 1}`}
+                          alt={t('library.suggestions.preview', {
+                            number: String(index + 1),
+                            preview: String(preview + 1),
+                          })}
                           className="h-16 w-16 rounded object-cover"
                         />
                       ))}
@@ -370,16 +404,18 @@ export function OrganizeSuggestionsDialog({
         )}
         {suggestion && !undoStarted && !uncertainGroup && phase !== 'done' && (
           <p className="mt-4 text-xs text-[color:var(--wb-muted)]">
-            {remaining} images stay unorganized.
+            {t('library.suggestions.remaining', { count: String(remaining) })}
           </p>
         )}
         <p className="mt-2 text-xs text-[color:var(--wb-muted)]">
-          Uses prompts, styles and workflows. No provider usage.
+          {t('library.suggestions.usage')}
         </p>
         {suggestion && suggestion.total > suggestion.scanned && (
           <p className="mt-1 text-xs text-[color:var(--wb-muted)]">
-            Suggestions cover the newest {suggestion.scanned} of {suggestion.total} unorganized
-            images.
+            {t('library.suggestions.coverage', {
+              scanned: String(suggestion.scanned),
+              total: String(suggestion.total),
+            })}
           </p>
         )}
         <footer className="mt-5 flex justify-end gap-2">
@@ -390,7 +426,11 @@ export function OrganizeSuggestionsDialog({
               onClick={() => void undo()}
               className="studio-ghost-control rounded border border-[color:var(--wb-line)] px-3 py-2 text-xs"
             >
-              {phase === 'undoing' ? 'Undoing…' : error?.action === 'undo' ? 'Retry Undo' : 'Undo'}
+              {phase === 'undoing'
+                ? t('library.suggestions.undoing')
+                : error?.action === 'undo'
+                  ? t('library.suggestions.retryUndo')
+                  : t('library.suggestions.undo')}
             </button>
           )}
           {!undoStarted &&
@@ -404,10 +444,10 @@ export function OrganizeSuggestionsDialog({
                 className="studio-ghost-control rounded border border-[color:var(--wb-line)] px-3 py-2 text-xs"
               >
                 {phase === 'applying'
-                  ? 'Applying…'
+                  ? t('library.suggestions.applying')
                   : error?.action === 'apply'
-                    ? 'Retry Apply'
-                    : 'Apply'}
+                    ? t('library.suggestions.retryApply')
+                    : t('library.suggestions.apply')}
               </button>
             )}
           <button
@@ -416,7 +456,9 @@ export function OrganizeSuggestionsDialog({
             onClick={close}
             className="studio-ghost-control rounded border border-[color:var(--wb-line)] px-3 py-2 text-xs"
           >
-            {uncertainGroup ? 'Close to review changes' : 'Done'}
+            {uncertainGroup
+              ? t('library.suggestions.closeToReview')
+              : t('library.suggestions.done')}
           </button>
         </footer>
       </div>

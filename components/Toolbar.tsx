@@ -786,7 +786,7 @@ function ToolbarDockPrompt({ model }: { model: ToolbarModel }) {
         {activeRecipeIndicator && (
           <div
             data-active-recipe-card={activeRecipeIndicator.id}
-            aria-label={`Active recipe: ${activeRecipeIndicator.title}. ${activeRecipeIndicator.summary}.`}
+            aria-label={`Active workflow: ${activeRecipeIndicator.title}. ${activeRecipeIndicator.summary}.`}
             data-tooltip={`${activeRecipeIndicator.title}: ${activeRecipeIndicator.summary}`}
             className={`group flex h-10 min-h-10 min-w-[6rem] max-w-[10.75rem] flex-[0_1_10.75rem] items-center gap-1.5 overflow-hidden rounded-[var(--wb-radius)] border px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-[border-color,background-color,box-shadow] hover:shadow-[0_0_18px_rgba(255,255,255,0.05)] sm:flex-[0_0_10.75rem] ${activeRecipeIndicator.toneClassName}`}
           >
@@ -795,7 +795,7 @@ function ToolbarDockPrompt({ model }: { model: ToolbarModel }) {
             />
             <span className="min-w-0">
               <span className="block text-[length:var(--wbp-label)] font-semibold leading-none tracking-[0.12em] opacity-60">
-                Recipe
+                Workflow
               </span>
               <span className="block truncate text-[11px] font-semibold leading-tight tracking-[0.06em] text-[color:var(--wb-ink)]">
                 {activeRecipeIndicator.title}

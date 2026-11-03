@@ -71,6 +71,7 @@ export function SettingsLibraryArchivePanel() {
           className="studio-ghost-control px-3"
           disabled={busy}
           onClick={() => void exportWorkspace()}
+          aria-label="Export this workspace"
         >
           Export this workspace
         </button>

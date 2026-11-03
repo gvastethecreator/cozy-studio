@@ -1,3 +1,5 @@
+import { useT } from '../lib/i18n';
+import type { MessageKey } from '../lib/i18n/en';
 import type { LibraryFilters } from '../hooks/useLibraryUrlState';
 import { CozyLoader as Loader2 } from './CozyMascot';
 import React, { useRef, useState, useMemo, useSyncExternalStore } from 'react';
@@ -141,69 +143,69 @@ const EMPTY_GENERATION_PLACEHOLDERS: StudioGenerationPlaceholder[] = [];
 const IMAGE_GRID_SORT_OPTIONS = [
   {
     value: 'desc',
-    label: 'Created newest',
-    description: 'Recent generations first',
+    labelKey: 'library.sort.newest',
+    descriptionKey: 'library.sort.newestDescription',
   },
   {
     value: 'asc',
-    label: 'Created oldest',
-    description: 'Oldest generations first',
+    labelKey: 'library.sort.oldest',
+    descriptionKey: 'library.sort.oldestDescription',
   },
   {
     value: 'prompt',
-    label: 'Prompt A-Z',
-    description: 'Alphabetical prompt order',
+    labelKey: 'library.sort.prompt',
+    descriptionKey: 'library.sort.promptDescription',
   },
   {
     value: 'prompt_desc',
-    label: 'Prompt Z-A',
-    description: 'Reverse prompt order',
+    labelKey: 'library.sort.promptDesc',
+    descriptionKey: 'library.sort.promptDescDescription',
   },
   {
     value: 'ratio',
-    label: 'Aspect ratio',
-    description: 'Group by output format',
+    labelKey: 'library.sort.ratio',
+    descriptionKey: 'library.sort.ratioDescription',
   },
   {
     value: 'id',
-    label: 'Image ID',
-    description: 'Stable file/id order',
+    labelKey: 'library.sort.id',
+    descriptionKey: 'library.sort.idDescription',
   },
 ] satisfies Array<{
   value: ImageGridSortOption;
-  label: string;
-  description: string;
+  labelKey: MessageKey;
+  descriptionKey: MessageKey;
 }>;
 
 const IMAGE_GRID_VIEW_OPTIONS = [
   {
     value: 'grid',
-    label: 'Grid',
-    description: 'Uniform thumbnails',
+    labelKey: 'library.view.grid',
+    descriptionKey: 'library.view.gridDescription',
     Icon: LayoutGrid,
   },
   {
     value: 'mosaic',
-    label: 'Mosaic',
-    description: 'Real aspect ratios',
+    labelKey: 'library.view.mosaic',
+    descriptionKey: 'library.view.mosaicDescription',
     Icon: LayoutCollage,
   },
   {
     value: 'list',
-    label: 'List',
-    description: 'Dense rows',
+    labelKey: 'library.view.list',
+    descriptionKey: 'library.view.listDescription',
     Icon: LayoutList,
   },
   {
     value: 'cards',
-    label: 'Cards',
-    description: 'Image cards',
+    labelKey: 'library.view.cards',
+    descriptionKey: 'library.view.cardsDescription',
     Icon: LayoutCards,
   },
 ] satisfies Array<{
   value: ImageGridViewMode;
-  label: string;
-  description: string;
+  labelKey: MessageKey;
+  descriptionKey: MessageKey;
   Icon: React.ElementType<{ size?: number; className?: string }>;
 }>;
 
@@ -1270,6 +1272,7 @@ function useImageGrid(props: ImageGridProps) {
 }
 type ImageGridModel = ReturnType<typeof useImageGrid>;
 function ImageGridView({ model }: { model: ImageGridModel }) {
+  const { t } = useT();
   const {
     imageCount,
     generationPlaceholders,
@@ -1297,8 +1300,13 @@ function ImageGridView({ model }: { model: ImageGridModel }) {
         className="absolute bottom-2 left-3 z-30 rounded bg-[color:var(--wb-panel)] px-2 py-1 text-xs"
         role="status"
       >
-        {selectedImageCount} selected · {imageCount} loaded · {totalCount} results
-        {hiddenSelectedImageCount > 0 && ` · ${hiddenSelectedImageCount} selected not shown`}
+        {t('library.selectionStatus', {
+          selected: String(selectedImageCount),
+          loaded: String(imageCount),
+          total: String(totalCount),
+        })}
+        {hiddenSelectedImageCount > 0 &&
+          t('library.hiddenSelected', { count: String(hiddenSelectedImageCount) })}
       </p>
       <ImageGridToolbar model={model} />
       {model.organizationImages && (
@@ -1318,7 +1326,7 @@ function ImageGridView({ model }: { model: ImageGridModel }) {
           {showFavoritesOnly && imageCount === 0 && generationPlaceholders.length === 0 && (
             <div className="flex min-h-[45vh] items-center justify-center text-center">
               <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_3%,transparent)] px-4 py-3 text-xs font-semibold text-[color:var(--wb-muted)]">
-                No favorite images in this workspace.
+                {t('library.noFavoritesWorkspace')}
               </div>
             </div>
           )}
@@ -1334,6 +1342,7 @@ function ImageGridView({ model }: { model: ImageGridModel }) {
 }
 
 function ImageGridToolbar({ model }: { model: ImageGridModel }) {
+  const { t } = useT();
   const {
     searchQuery,
     onLibraryFiltersChange,
@@ -1350,20 +1359,20 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
     sortOrder,
   } = model;
   return (
-    <div className="library-toolbar studio-bar" aria-label="Library controls">
+    <div className="library-toolbar studio-bar" aria-label={t('library.controls')}>
       <label className="library-search">
-        <span className="sr-only">Search library</span>
+        <span className="sr-only">{t('library.search')}</span>
         <input
           type="search"
-          aria-label="Search library"
-          placeholder="Search images or #tags"
-          title="Search the whole workspace. Use #tag for exact tags; multiple hashtags must all match."
+          aria-label={t('library.search')}
+          placeholder={t('library.searchPlaceholder')}
+          title={t('library.searchHint')}
           value={searchQuery}
           onChange={(event) => onLibraryFiltersChange({ q: event.target.value })}
           className="studio-well"
         />
       </label>
-      <div className="library-toolbar-actions" role="toolbar" aria-label="Library actions">
+      <div className="library-toolbar-actions" role="toolbar" aria-label={t('library.actions')}>
         <ImageTagsMenu
           workspaceId={model.workspaceId}
           query={searchQuery}
@@ -1384,10 +1393,12 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
         <ImageGridActions model={model} />
         <div
           role="group"
-          aria-label={`Image view: ${activeViewOption.label}`}
+          aria-label={t('library.viewActive', { view: t(activeViewOption.labelKey) })}
           className="flex h-10 items-center gap-1 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-1 shadow-2xl backdrop-blur-md"
         >
-          {IMAGE_GRID_VIEW_OPTIONS.map(({ value, label, description, Icon }) => {
+          {IMAGE_GRID_VIEW_OPTIONS.map(({ value, labelKey, descriptionKey, Icon }) => {
+            const label = t(labelKey);
+            const description = t(descriptionKey);
             const selected = value === viewMode;
 
             return (
@@ -1395,7 +1406,7 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
                 <button
                   type="button"
                   onClick={() => handleViewModeChange(value)}
-                  aria-label={`${label} view`}
+                  aria-label={t('library.viewLabel', { view: label })}
                   aria-pressed={selected}
                   className={`flex min-h-8 min-w-8 touch-manipulation items-center justify-center rounded-[var(--wb-radius)] transition-[background-color,color,transform,box-shadow] focus-visible:ring-2 focus-visible:ring-white/25 ${
                     selected
@@ -1409,12 +1420,12 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
             );
           })}
         </div>
-        <Tooltip content="Thumbnail size" position="bottom">
+        <Tooltip content={t('library.thumbnailSize')} position="bottom">
           <label className="studio-control flex items-center gap-2 px-2 text-[color:var(--wb-muted)]">
             <Photo width={15} height={15} />
             <input
               type="range"
-              aria-label="Thumbnail size"
+              aria-label={t('library.thumbnailSize')}
               min={MIN_THUMBNAIL_SIZE}
               max={MAX_THUMBNAIL_SIZE}
               step={THUMBNAIL_SIZE_STEP}
@@ -1425,12 +1436,12 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
           </label>
         </Tooltip>
         <div className="relative">
-          <Tooltip content="Sort Images" position="bottom">
+          <Tooltip content={t('library.sortTooltip')} position="bottom">
             <button
               ref={sortButtonRef}
               type="button"
               onClick={() => setIsSortMenuOpen((open) => !open)}
-              aria-label={`Sort images: ${activeSortOption.label}`}
+              aria-label={t('library.sortActive', { label: t(activeSortOption.labelKey) })}
               aria-haspopup="menu"
               aria-expanded={isSortMenuOpen}
               aria-controls={sortMenuId}
@@ -1441,8 +1452,8 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
               }`}
             >
               <ArrowUpDown width={16} height={16} />
-              <span className="hidden max-w-28 truncate text-[length:var(--wbp-label)] font-semibold tracking-normal lg:inline">
-                {activeSortOption.label}
+              <span className="hidden max-w-32 truncate text-[length:var(--wbp-label)] font-semibold tracking-normal lg:inline">
+                {t(activeSortOption.labelKey)}
               </span>
             </button>
           </Tooltip>
@@ -1455,7 +1466,7 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
             className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-64 overflow-hidden p-1.5"
           >
             <div className="px-2 pb-1 pt-1 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]">
-              Sort images
+              {t('library.sortHeading')}
             </div>
             <div className="grid gap-1">
               {IMAGE_GRID_SORT_OPTIONS.map((option) => {
@@ -1480,10 +1491,10 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
                   >
                     <span className="min-w-0">
                       <span className="block truncate text-[length:var(--wbp-label)] font-semibold tracking-normal">
-                        {option.label}
+                        {t(option.labelKey)}
                       </span>
                       <span className="mt-0.5 block truncate text-[length:var(--wbp-label)] font-semibold normal-case tracking-normal text-[color:var(--wb-dim)]">
-                        {option.description}
+                        {t(option.descriptionKey)}
                       </span>
                     </span>
                     {selected ? (
@@ -1501,6 +1512,7 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
 }
 
 function ImageGridActions({ model }: { model: ImageGridModel }) {
+  const { t } = useT();
   const [suggestionsWorkspace, setSuggestionsWorkspace] = useState<string | null>(null);
   if (suggestionsWorkspace && suggestionsWorkspace !== model.workspaceId)
     setSuggestionsWorkspace(null);
@@ -1531,8 +1543,8 @@ function ImageGridActions({ model }: { model: ImageGridModel }) {
           }
           label={
             isAllSelected || imageCount === 0
-              ? 'Deselect all'
-              : `Select loaded images (${imageCount})`
+              ? t('library.deselectAll')
+              : t('library.selectLoaded', { count: String(imageCount) })
           }
           isActive={isAllSelected}
           tooltipPosition="bottom"
@@ -1548,14 +1560,14 @@ function ImageGridActions({ model }: { model: ImageGridModel }) {
             strokeWidth={2.5}
           />
         }
-        label="Favorites"
+        label={t('library.favorites')}
         isActive={showFavoritesOnly}
         tooltipPosition="bottom"
       />
       <ActionButton
         onClick={() => onLibraryFiltersChange({ unorganized: !showUnorganizedOnly })}
         icon={<Label width={16} height={16} strokeWidth={2.5} />}
-        label="Unorganized"
+        label={t('library.unorganized')}
         isActive={showUnorganizedOnly}
         tooltipPosition="bottom"
       />
@@ -1563,7 +1575,7 @@ function ImageGridActions({ model }: { model: ImageGridModel }) {
         <ActionButton
           onClick={() => setSuggestionsWorkspace(model.workspaceId)}
           icon={<FolderPlus width={16} height={16} />}
-          label="Suggest"
+          label={t('library.suggest')}
           tooltipPosition="bottom"
         />
       )}
@@ -1581,6 +1593,7 @@ function ImageGridActions({ model }: { model: ImageGridModel }) {
 }
 
 function ImageGridBulkActions({ model }: { model: ImageGridModel }) {
+  const { t } = useT();
   const {
     imageCount,
     sortedImages,
@@ -1605,15 +1618,15 @@ function ImageGridBulkActions({ model }: { model: ImageGridModel }) {
             icon={<Download width={16} height={16} />}
             label={
               isExporting
-                ? 'Preparing download…'
-                : `Download ${imageCount} image${imageCount === 1 ? '' : 's'}`
+                ? t('library.preparingDownload')
+                : t('library.downloadCount', { count: String(imageCount) })
             }
             tooltipPosition="bottom"
           />
           <ActionButton
             onClick={onClearWorkspace}
             icon={<Trash2 width={16} height={16} />}
-            label="Archive workspace images"
+            label={t('library.archiveWorkspace')}
             variant="danger"
             tooltipPosition="bottom"
           />
@@ -1624,7 +1637,7 @@ function ImageGridBulkActions({ model }: { model: ImageGridModel }) {
           <ActionButton
             onClick={() => model.setOrganizationImages(selectedImages)}
             icon={<FolderPlus width={16} height={16} />}
-            label={`Tags and collections (${selectedImageCount} selected)`}
+            label={t('library.organizeSelected', { count: String(selectedImageCount) })}
             tooltipPosition="bottom"
           />
           {selectedImages.length >= 2 && onCompareSelected && (
@@ -1634,8 +1647,8 @@ function ImageGridBulkActions({ model }: { model: ImageGridModel }) {
               icon={<ViewColumns2 width={16} height={16} />}
               label={
                 selectedImages.length > COMPARE_MAX_IMAGES
-                  ? `Compare up to ${COMPARE_MAX_IMAGES} images`
-                  : `Compare ${selectedImages.length} images`
+                  ? t('library.compareLimit', { count: String(COMPARE_MAX_IMAGES) })
+                  : t('library.compareCount', { count: String(selectedImages.length) })
               }
               tooltipPosition="bottom"
             />
@@ -1645,7 +1658,9 @@ function ImageGridBulkActions({ model }: { model: ImageGridModel }) {
             disabled={isExporting}
             icon={<Download width={16} height={16} />}
             label={
-              isExporting ? 'Preparing download…' : `Download selected (${selectedImageCount})`
+              isExporting
+                ? t('library.preparingDownload')
+                : t('library.downloadSelected', { count: String(selectedImageCount) })
             }
             tooltipPosition="bottom"
           />
@@ -1653,14 +1668,14 @@ function ImageGridBulkActions({ model }: { model: ImageGridModel }) {
             <ActionButton
               onClick={() => openConversion(selectedImages)}
               icon={<Photo width={16} height={16} />}
-              label={`Convert selected (${selectedImageCount})`}
+              label={t('library.convertSelected', { count: String(selectedImageCount) })}
               tooltipPosition="bottom"
             />
           )}
           <ActionButton
             onClick={() => onDeleteSelected(selectedImages)}
             icon={<Trash2 width={16} height={16} />}
-            label={`Archive selected (${selectedImageCount})`}
+            label={t('library.archiveSelected', { count: String(selectedImageCount) })}
             variant="danger"
             tooltipPosition="bottom"
           />
@@ -1671,12 +1686,13 @@ function ImageGridBulkActions({ model }: { model: ImageGridModel }) {
 }
 
 function ImageGridEmptyState({ model }: { model: ImageGridModel }) {
+  const { t } = useT();
   const { catalogError, onRetryCatalog, isCatalogLoading } = model;
   return (
     <div className="flex h-full w-full items-center justify-center px-6 text-center">
       {catalogError ? (
         <div className="max-w-md rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-950/20 p-4 text-sm text-[color:var(--wb-danger)] ">
-          <div className="font-semibold">Catalog failed to load</div>
+          <div className="font-semibold">{t('library.catalogError')}</div>
           <div className="mt-1 text-[color:var(--wb-danger)] ">{catalogError}</div>
           {onRetryCatalog && (
             <button
@@ -1684,12 +1700,12 @@ function ImageGridEmptyState({ model }: { model: ImageGridModel }) {
               onClick={onRetryCatalog}
               className="mt-3 rounded-[var(--wb-radius)] border border-rose-300/2 px-3 py-1.5 text-xs font-bold tracking-normal text-[color:var(--wb-danger)]  hover:bg-rose-300/10"
             >
-              Retry
+              {t('library.retry')}
             </button>
           )}
         </div>
       ) : isCatalogLoading ? (
-        <p role="status">Loading images…</p>
+        <p role="status">{t('library.loadingImages')}</p>
       ) : (
         <ImageGridNoMatches model={model} />
       )}
@@ -1812,6 +1828,7 @@ function ImageGridVirtualCells({ model }: { model: ImageGridModel }) {
 }
 
 function ImageGridPagination({ model }: { model: ImageGridModel }) {
+  const { t } = useT();
   const {
     sourceImageCount,
     totalCount,
@@ -1825,7 +1842,7 @@ function ImageGridPagination({ model }: { model: ImageGridModel }) {
   return (
     <div className="flex flex-col items-center gap-3 py-6 text-center">
       <div className="text-[length:var(--wbp-label)] font-semibold tabular-nums tracking-normal text-[color:var(--wb-muted)]">
-        {sourceImageCount} / {totalCount} loaded
+        {t('library.loadedCount', { loaded: String(sourceImageCount), total: String(totalCount) })}
       </div>
       {catalogError && (
         <div className="max-w-lg text-xs text-[color:var(--wb-danger)] ">{catalogError}</div>
@@ -1838,7 +1855,7 @@ function ImageGridPagination({ model }: { model: ImageGridModel }) {
           className="inline-flex items-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_6%,transparent)] px-4 py-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isCatalogLoading ? <Loader2 size={18} /> : <RefreshCw width={14} height={14} />}
-          {isCatalogLoading ? 'Loading' : 'Load more'}
+          {isCatalogLoading ? t('library.loading') : t('library.loadMore')}
         </button>
       )}
       {!hasMore && catalogError && onRetryCatalog && (
@@ -1847,7 +1864,7 @@ function ImageGridPagination({ model }: { model: ImageGridModel }) {
           onClick={onRetryCatalog}
           className="rounded-[var(--wb-radius)] border border-rose-300/2 bg-rose-500/10 px-4 py-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-danger)]  hover:bg-rose-500/20"
         >
-          Retry
+          {t('library.retry')}
         </button>
       )}
     </div>
@@ -1855,6 +1872,7 @@ function ImageGridPagination({ model }: { model: ImageGridModel }) {
 }
 
 function ImageGridNoMatches({ model }: { model: ImageGridModel }) {
+  const { t } = useT();
   const {
     searchQuery,
     showFavoritesOnly,
@@ -1867,20 +1885,20 @@ function ImageGridNoMatches({ model }: { model: ImageGridModel }) {
   return (
     <div className="max-w-md space-y-3">
       <h2 className="text-lg font-semibold">
-        {filtered ? 'No matching images' : 'Your library starts here'}
+        {filtered ? t('library.noMatches') : t('library.startHere')}
       </h2>
       <p className="text-sm text-[color:var(--wb-muted)]">
         {showUnorganizedOnly && (collectionId || parseCatalogSearch(searchQuery).tags.length)
-          ? 'The Unorganized filter hides every image with a tag or a collection. Turn it off to see these images.'
+          ? t('library.unorganizedFilterHint')
           : searchQuery
-            ? `No results for “${searchQuery}” in this workspace.`
+            ? t('library.noResultsQuery', { query: searchQuery })
             : collectionId
-              ? 'No images in this collection.'
+              ? t('library.emptyCollection')
               : showFavoritesOnly
-                ? 'No favorite images in this view.'
+                ? t('library.noFavoritesView')
                 : showUnorganizedOnly
-                  ? 'Every image in this workspace has tags or a collection.'
-                  : 'Create an image to add your first result to this workspace.'}
+                  ? t('library.allOrganized')
+                  : t('library.createFirst')}
       </p>
       {filtered ? (
         <button
@@ -1896,12 +1914,12 @@ function ImageGridNoMatches({ model }: { model: ImageGridModel }) {
           }}
         >
           {collectionId && !searchQuery && !showFavoritesOnly && !showUnorganizedOnly
-            ? 'Show all images'
-            : 'Clear filters'}
+            ? t('library.showAll')
+            : t('library.clearFilters')}
         </button>
       ) : (
         <button type="button" className="studio-ghost-control px-4 py-2" onClick={onCreate}>
-          Create an image
+          {t('library.createImage')}
         </button>
       )}
     </div>

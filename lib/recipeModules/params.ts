@@ -59,19 +59,19 @@ export function validateRecipeParams(
   for (const parameter of module.parameters) {
     const value = input[parameter.id];
     if (parameter.required && (value === undefined || value === null || value === '')) {
-      errors.push(`Recipe Module ${module.id} requires parameter ${parameter.id}.`);
+      errors.push(`Workflow ${module.id} requires parameter ${parameter.id}.`);
       continue;
     }
     if (value === undefined || value === null) continue;
 
     if (parameter.kind === 'number' && typeof value !== 'number') {
-      errors.push(`Recipe Module ${module.id} parameter ${parameter.id} must be a number.`);
+      errors.push(`Workflow ${module.id} parameter ${parameter.id} must be a number.`);
     }
     if (parameter.kind === 'boolean' && typeof value !== 'boolean') {
-      errors.push(`Recipe Module ${module.id} parameter ${parameter.id} must be a boolean.`);
+      errors.push(`Workflow ${module.id} parameter ${parameter.id} must be a boolean.`);
     }
     if (parameter.kind === 'record' && (typeof value !== 'object' || Array.isArray(value))) {
-      errors.push(`Recipe Module ${module.id} parameter ${parameter.id} must be a record.`);
+      errors.push(`Workflow ${module.id} parameter ${parameter.id} must be a record.`);
     }
     const optionValue =
       typeof value === 'string' || typeof value === 'number' ? String(value) : null;
@@ -82,18 +82,18 @@ export function validateRecipeParams(
       !new Set(parameter.options).has(optionValue)
     ) {
       errors.push(
-        `Recipe Module ${module.id} parameter ${parameter.id} has unsupported option: ${optionValue}.`,
+        `Workflow ${module.id} parameter ${parameter.id} has unsupported option: ${optionValue}.`,
       );
     }
     if (parameter.kind === 'number' && typeof value === 'number') {
       if (parameter.min !== undefined && value < parameter.min) {
         errors.push(
-          `Recipe Module ${module.id} parameter ${parameter.id} is below minimum ${parameter.min}.`,
+          `Workflow ${module.id} parameter ${parameter.id} is below minimum ${parameter.min}.`,
         );
       }
       if (parameter.max !== undefined && value > parameter.max) {
         errors.push(
-          `Recipe Module ${module.id} parameter ${parameter.id} is above maximum ${parameter.max}.`,
+          `Workflow ${module.id} parameter ${parameter.id} is above maximum ${parameter.max}.`,
         );
       }
     }

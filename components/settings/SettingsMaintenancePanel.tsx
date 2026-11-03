@@ -9,7 +9,13 @@ import type {
   ToolingLogsPruneResult,
 } from '../../packages/shared/src/storageMaintenance';
 import { createStorageRepairPlanFromAudit } from '../../packages/shared/src/storageMaintenance';
-import { formatBytes } from '../../lib/i18n';
+import { useT } from '../../lib/i18n';
+import type { MessageKey } from '../../lib/i18n/en';
+
+const MAINTENANCE_MODE_LABELS = {
+  'dry-run': 'settings.maintenance.modePreview',
+  write: 'settings.maintenance.modeWrite',
+} as const satisfies Record<StorageMaintenanceCompactResult['mode'], MessageKey>;
 
 export interface SettingsMaintenancePanelProps {
   maintenance: {
@@ -47,15 +53,19 @@ function RepairPlanDetails({
 }: {
   repairPlan: ReturnType<typeof createStorageRepairPlanFromAudit> | null;
 }) {
+  const { t, formatBytes } = useT();
   if (!repairPlan) return null;
   return (
     <div className="mt-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
       <div className="mb-2 flex items-center justify-between gap-3">
         <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]">
-          Repair Plan
+          {t('settings.maintenance.repairPlan')}
         </div>
         <div className="font-mono text-[length:var(--wbp-label)] font-bold text-[color:var(--wb-muted)]">
-          {repairPlan.summary.itemCount} items / {formatBytes(repairPlan.summary.totalBytes)}
+          {t('settings.maintenance.planSummary', {
+            count: String(repairPlan.summary.itemCount),
+            bytes: formatBytes(repairPlan.summary.totalBytes),
+          })}
         </div>
       </div>
       {repairPlan.items.length > 0 ? (
@@ -90,7 +100,7 @@ function RepairPlanDetails({
         </div>
       ) : (
         <div className="text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-dim)]">
-          No repair actions recommended by the current audit.
+          {t('settings.maintenance.noRepairs')}
         </div>
       )}
     </div>
@@ -105,6 +115,7 @@ function MaintenanceResults({
   SettingsMaintenancePanelProps['maintenance'],
   'compactResult' | 'thumbnailBackfillResult' | 'toolingLogsPruneResult'
 >) {
+  const { t, formatBytes } = useT();
   const compactRows = getCompactChangedRows(compactResult);
   const compactBytes = getCompactOmittedBytes(compactResult);
   return (
@@ -113,28 +124,45 @@ function MaintenanceResults({
         <div className="mt-3 grid gap-2 text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-muted)] md:grid-cols-3">
           {compactResult ? (
             <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
-              <span className="text-[color:var(--wb-ink)]">Compact {compactResult.mode}</span>
+              <span className="text-[color:var(--wb-ink)]">
+                {t('settings.maintenance.compactResult', {
+                  mode: t(MAINTENANCE_MODE_LABELS[compactResult.mode]),
+                })}
+              </span>
               <div className="mt-1 font-mono text-[color:var(--wb-muted)]">
-                {compactRows} rows / {formatBytes(compactBytes)}
+                {t('settings.maintenance.compactSummary', {
+                  count: String(compactRows),
+                  bytes: formatBytes(compactBytes),
+                })}
               </div>
             </div>
           ) : null}
           {thumbnailBackfillResult ? (
             <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
               <span className="text-[color:var(--wb-ink)]">
-                Thumbs {thumbnailBackfillResult.mode}
+                {t('settings.maintenance.thumbnailResult', {
+                  mode: t(MAINTENANCE_MODE_LABELS[thumbnailBackfillResult.mode]),
+                })}
               </span>
               <div className="mt-1 font-mono text-[color:var(--wb-muted)]">
-                {thumbnailBackfillResult.wroteRows} wrote / {thumbnailBackfillResult.plannedRows}{' '}
-                planned / {thumbnailBackfillResult.missingSourceFiles} missing
+                {t('settings.maintenance.thumbnailSummary', {
+                  wrote: String(thumbnailBackfillResult.wroteRows),
+                  planned: String(thumbnailBackfillResult.plannedRows),
+                  missing: String(thumbnailBackfillResult.missingSourceFiles),
+                })}
               </div>
             </div>
           ) : null}
           {toolingLogsPruneResult ? (
             <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
-              <span className="text-[color:var(--wb-ink)]">Logs pruned</span>
+              <span className="text-[color:var(--wb-ink)]">
+                {t('settings.maintenance.logsPruned')}
+              </span>
               <div className="mt-1 font-mono text-[color:var(--wb-muted)]">
-                {toolingLogsPruneResult.pruned} files / keep {toolingLogsPruneResult.retainPerTask}
+                {t('settings.maintenance.logsSummary', {
+                  count: String(toolingLogsPruneResult.pruned),
+                  retain: String(toolingLogsPruneResult.retainPerTask),
+                })}
               </div>
             </div>
           ) : null}
@@ -145,6 +173,7 @@ function MaintenanceResults({
 }
 
 export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePanelProps) {
+  const { t, formatBytes } = useT();
   const {
     audit,
     compactResult,
@@ -174,14 +203,19 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
   );
   const handleWriteCompact = () =>
     setConfirmation({
-      message: `Compact ${compactRows} historical rows (${formatBytes(compactBytes)})? A local SQLite backup will be created first. Original images stay in your library.`,
+      message: t('settings.maintenance.confirmCompact', {
+        count: String(compactRows),
+        bytes: formatBytes(compactBytes),
+      }),
       action: () => {
         void compactStorage({ write: true, confirm: 'compact-inline-payloads' });
       },
     });
   const handleWriteThumbnails = () =>
     setConfirmation({
-      message: `Create ${thumbnailBackfillResult?.plannedRows ?? 0} missing thumbnails? A local SQLite backup will be created first.`,
+      message: t('settings.maintenance.confirmThumbnails', {
+        count: String(thumbnailBackfillResult?.plannedRows ?? 0),
+      }),
       action: () => {
         void backfillThumbnails({ write: true, confirm: 'backfill-thumbnails', limit: 1000 });
       },
@@ -192,15 +226,15 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
-            Storage maintenance
+            {t('settings.maintenance.heading')}
           </h3>
           <p className="mt-1 text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-dim)]">
-            Inspect storage before planning repairs.
+            {t('settings.maintenance.hint')}
           </p>
         </div>
         <button
           type="button"
-          aria-label="Audit storage"
+          aria-label={t('settings.maintenance.audit')}
           onClick={() => void refreshAudit()}
           disabled={isLoadingAudit}
           className="flex h-9 items-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] disabled:opacity-40"
@@ -210,7 +244,7 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
           ) : (
             <RefreshCw width={13} height={13} />
           )}
-          Audit storage
+          {t('settings.maintenance.audit')}
         </button>
       </div>
 
@@ -218,7 +252,7 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
         <div className="grid gap-2 md:grid-cols-4">
           <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
             <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]">
-              SQLite
+              {t('settings.maintenance.sqlite')}
             </div>
             <div className="mt-1 font-mono text-xs font-bold text-[color:var(--wb-ink)]">
               {audit.database.formattedBytes}
@@ -226,7 +260,7 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
           </div>
           <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
             <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]">
-              Inline data
+              {t('settings.maintenance.inlineData')}
             </div>
             <div className="mt-1 font-mono text-xs font-bold text-[color:var(--wb-ink)]">
               {formatBytes(inlineBytes)}
@@ -234,7 +268,7 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
           </div>
           <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
             <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]">
-              Missing thumbnails
+              {t('settings.maintenance.missingThumbnails')}
             </div>
             <div className="mt-1 font-mono text-xs font-bold text-[color:var(--wb-ink)]">
               {audit.catalog.missingThumbnails}
@@ -242,7 +276,7 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
           </div>
           <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
             <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-dim)]">
-              Diagnostic logs
+              {t('settings.maintenance.diagnosticLogs')}
             </div>
             <div className="mt-1 font-mono text-xs font-bold text-[color:var(--wb-ink)]">
               {audit.directories.toolingLogs?.formattedBytes ?? '0 B'}
@@ -251,7 +285,7 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
         </div>
       ) : (
         <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3 text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-dim)]">
-          Audit storage to see usage and suggested repairs.
+          {t('settings.maintenance.empty')}
         </div>
       )}
 
@@ -259,21 +293,21 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
         <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
           <div className="mb-3 flex items-center gap-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
             <Database width={14} height={14} className="text-[color:var(--wb-muted)]" />
-            Database cleanup
+            {t('settings.maintenance.databaseCleanup')}
           </div>
           <p className="mb-3 text-xs text-[color:var(--wb-muted)]">
-            Remove redundant inline data; keep original images.
+            {t('settings.maintenance.databaseHint')}
           </p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              aria-label="Plan database cleanup"
+              aria-label={t('settings.maintenance.planCleanup')}
               onClick={() => void compactStorage()}
               disabled={isCompactRunning}
               className="flex h-8 items-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] disabled:opacity-40"
             >
               {isCompactRunning ? <LoaderCircle size={13} className="animate-spin" /> : null}
-              Preview cleanup
+              {t('settings.maintenance.previewCleanup')}
             </button>
             <button
               type="button"
@@ -281,7 +315,7 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
               disabled={isCompactRunning || compactResult?.mode !== 'dry-run' || compactRows === 0}
               className="h-8 rounded-[var(--wb-radius)] border border-amber-400/2 bg-amber-500/10 px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-warning)]  transition-colors hover:bg-amber-500/15 disabled:opacity-40"
             >
-              Apply plan
+              {t('settings.maintenance.applyPlan')}
             </button>
           </div>
         </div>
@@ -289,21 +323,21 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
         <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
           <div className="mb-3 flex items-center gap-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
             <FileImage width={14} height={14} className="text-[color:var(--wb-muted)]" />
-            Thumbnails
+            {t('settings.maintenance.thumbnails')}
           </div>
           <p className="mb-3 text-xs text-[color:var(--wb-muted)]">
-            Create previews for images without thumbnails.
+            {t('settings.maintenance.thumbnailsHint')}
           </p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              aria-label="Plan missing thumbnails"
+              aria-label={t('settings.maintenance.planThumbnails')}
               onClick={() => void backfillThumbnails({ limit: 1000 })}
               disabled={isThumbnailRunning}
               className="flex h-8 items-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] disabled:opacity-40"
             >
               {isThumbnailRunning ? <LoaderCircle size={13} className="animate-spin" /> : null}
-              Preview repair
+              {t('settings.maintenance.previewRepair')}
             </button>
             <button
               type="button"
@@ -315,7 +349,7 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
               }
               className="h-8 rounded-[var(--wb-radius)] border border-emerald-400/2 bg-emerald-500/10 px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-success)]  transition-colors hover:bg-emerald-500/15 disabled:opacity-40"
             >
-              Apply plan
+              {t('settings.maintenance.applyPlan')}
             </button>
           </div>
         </div>
@@ -323,25 +357,24 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
         <div className="rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3">
           <div className="mb-3 flex items-center gap-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
             <RefreshCw width={14} height={14} className="text-[color:var(--wb-muted)]" />
-            Diagnostic logs
+            {t('settings.maintenance.diagnosticLogs')}
           </div>
           <button
             type="button"
             onClick={() =>
               setConfirmation({
-                message:
-                  'Remove older tooling logs, keeping the newest 20 per task? Generated images and jobs are preserved.',
+                message: t('settings.maintenance.confirmLogs'),
                 action: () => {
                   void pruneToolingLogs({ retainPerTask: 20 });
                 },
               })
             }
-            aria-label="Prune diagnostic logs"
+            aria-label={t('settings.maintenance.pruneLogs')}
             disabled={isPruneRunning}
             className="flex h-8 items-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] px-3 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] disabled:opacity-40"
           >
             {isPruneRunning ? <LoaderCircle size={13} className="animate-spin" /> : null}
-            Remove old logs
+            {t('settings.maintenance.removeOldLogs')}
           </button>
         </div>
       </div>
@@ -355,10 +388,10 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
       />
       <ConfirmationModal
         isOpen={Boolean(confirmation)}
-        title="Confirm maintenance"
+        title={t('settings.maintenance.confirmTitle')}
         description={confirmation?.message ?? ''}
-        confirmLabel="Continue"
-        cancelLabel="Cancel"
+        confirmLabel={t('settings.maintenance.continue')}
+        cancelLabel={t('settings.maintenance.cancel')}
         tone="warning"
         onClose={() => setConfirmation(null)}
         onConfirm={() => {

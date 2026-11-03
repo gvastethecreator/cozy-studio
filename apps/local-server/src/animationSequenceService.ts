@@ -331,13 +331,41 @@ export function createAnimationSequenceService({
     return updated;
   }
 
-  function getRun(runId: string) {
-    return readRunRecord<AnimationSequenceRun>(
+  async function getRun(runId: string) {
+    const stored = await readRunRecord<AnimationSequenceRun>(
       readLibraryDir(),
       'animation-sequence',
       safeSegment(runId),
       'animation-sequence-run.json',
     );
+    if (!stored) return null;
+    const { record: run, rebasePath, runDir, statusPath } = stored;
+    return {
+      ...run,
+      paths: {
+        runDir,
+        statusPath,
+        outputContext: run.paths.outputContext
+          ? { ...run.paths.outputContext, rootPath: rebasePath(run.paths.outputContext.rootPath) }
+          : undefined,
+        requestPath: rebasePath(run.paths.requestPath),
+        framePlanPath: rebasePath(run.paths.framePlanPath),
+        promptsDir: rebasePath(run.paths.promptsDir),
+        referencesDir: rebasePath(run.paths.referencesDir),
+        rawDir: rebasePath(run.paths.rawDir),
+        framesDir: rebasePath(run.paths.framesDir),
+        exportsDir: rebasePath(run.paths.exportsDir),
+        gifPath: rebasePath(run.paths.gifPath),
+        qaReportPath: rebasePath(run.paths.qaReportPath),
+      },
+      frames: run.frames.map((frame) => ({
+        ...frame,
+        promptPath: rebasePath(frame.promptPath),
+        rawPath: rebasePath(frame.rawPath),
+        framePath: rebasePath(frame.framePath),
+      })),
+      exports: run.exports.map((item) => ({ ...item, path: rebasePath(item.path) })),
+    };
   }
 
   /** Copies a managed source image into the frame. The frame blocks when it is missing or off-size. */

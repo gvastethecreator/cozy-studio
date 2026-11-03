@@ -1,10 +1,22 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+} from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createGenerationTaskSpec, type Job } from '../../../packages/shared/src';
+import {
+  createGenerationTaskSpec,
+  type Job,
+  type SpriteAtlasRun,
+} from '../../../packages/shared/src';
 import { createSpriteAtlasRoutes } from './spriteAtlasRoutes';
 import { createSpriteAtlasService } from './spriteAtlasService';
 
@@ -46,8 +58,19 @@ async function writeSquareProviderImage(filePath: string, size: number, bandHeig
 describe('spriteAtlasRoutes', () => {
   it('creates run artifacts and composes imported rows into a production atlas', async () => {
     const root = mkdtempSync(path.join(os.tmpdir(), 'sprite-atlas-routes-'));
+    const copiedRoot = mkdtempSync(path.join(os.tmpdir(), 'sprite-atlas-copied-'));
+    const externalRoot = `${root}-external`;
     try {
-      const routes = createSpriteAtlasRoutes({ readLibraryDir: () => root });
+      let libraryDir = root;
+      const routes = createSpriteAtlasRoutes({
+        readLibraryDir: () => libraryDir,
+        readOutputContext: () => ({
+          libraryId: 'test',
+          rootPath: libraryDir,
+          output: { libraryId: 'out', rootPath: externalRoot },
+          outputOrganization: { subfolderTokens: [], fileNameTemplate: 'reserved-atlas' },
+        }),
+      });
 
       const presetsResponse = await routes.request('/presets');
       expect(presetsResponse.status).toBe(200);
@@ -224,8 +247,61 @@ describe('spriteAtlasRoutes', () => {
         status: 'qa_passed',
         qa: { ok: true, mode: 'generated_art' },
       });
+
+      const original = (await (await routes.request(`/runs/${run.id}`)).json()) as SpriteAtlasRun;
+      const originalStatus = readFileSync(original.paths.statusPath);
+      const originalAtlas = readFileSync(original.paths.atlasPath);
+      cpSync(root, copiedRoot, { recursive: true });
+      const legacyRunDir = path.join(copiedRoot, 'outputs', 'sprite-atlas', run.id);
+      mkdirSync(path.dirname(legacyRunDir), { recursive: true });
+      renameSync(path.join(copiedRoot, path.relative(root, original.paths.runDir)), legacyRunDir);
+      libraryDir = copiedRoot;
+      const copied = (await (await routes.request(`/runs/${run.id}`)).json()) as SpriteAtlasRun;
+      for (const key of Object.keys(original.paths) as Array<keyof SpriteAtlasRun['paths']>) {
+        const expected =
+          key === 'atlasPath' || key === 'manifestPath'
+            ? original.paths[key]
+            : path.join(legacyRunDir, path.relative(original.paths.runDir, original.paths[key]));
+        expect(copied.paths[key]).toBe(expected);
+      }
+      expect(copied.paths.atlasPath).toBe(path.join(externalRoot, 'reserved-atlas.png'));
+      for (const [index, row] of copied.rows.entries()) {
+        for (const key of ['promptPath', 'layoutGuidePath', 'rawPath'] as const) {
+          expect(row[key]).toBe(
+            path.join(
+              legacyRunDir,
+              path.relative(original.paths.runDir, original.rows[index][key]!),
+            ),
+          );
+        }
+        expect(row.normalization?.sourcePath).toBe(
+          path.join(
+            legacyRunDir,
+            path.relative(original.paths.runDir, original.rows[index].normalization!.sourcePath),
+          ),
+        );
+      }
+      expect((await routes.request(`/runs/${run.id}/rows/idle/prompt`)).status).toBe(200);
+      expect((await routes.request(`/runs/${run.id}/compose`, { method: 'POST' })).status).toBe(
+        200,
+      );
+      await expect(
+        (await routes.request(`/runs/${run.id}/qa`, { method: 'POST' })).json(),
+      ).resolves.toMatchObject({
+        status: 'qa_passed',
+        qa: { ok: true },
+      });
+      const review = await routes.request(`/runs/${run.id}/visual-review`, { method: 'POST' });
+      expect(review.status).toBe(200);
+      expect(JSON.parse(readFileSync(copied.paths.statusPath, 'utf8')).visualReview.status).toBe(
+        'accepted',
+      );
+      expect(readFileSync(original.paths.statusPath)).toEqual(originalStatus);
+      expect(readFileSync(original.paths.atlasPath)).toEqual(originalAtlas);
     } finally {
       rmSync(root, { recursive: true, force: true });
+      rmSync(copiedRoot, { recursive: true, force: true });
+      rmSync(externalRoot, { recursive: true, force: true });
     }
   }, 30_000);
 

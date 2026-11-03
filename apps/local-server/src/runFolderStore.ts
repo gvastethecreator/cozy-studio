@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { resolveLibraryPathFromRoot } from './library';
+import { isPathInside } from './pathContainment';
 
 /** Run folder helpers shared by the Sprite Atlas and Animation Sequence workflows. */
 
@@ -44,18 +45,81 @@ export async function writeJson(filePath: string, value: unknown) {
   }
 }
 
-/** Reads a run record from `state/<workflow>/<runId>`, then from the legacy `outputs` folder. */
-export async function readRunRecord<T>(
+function storedPathApi(value: string) {
+  return /^[a-z]:[\\/]|^\\\\|^\/\/[^/]/i.test(value) ? path.win32 : path.posix;
+}
+
+/** Rebase owned paths only; output folders outside the original data folder stay captured. */
+function createRunPathRebaser(
+  libraryDir: string,
+  workflow: string,
+  storedRunDir: string,
+  runDir: string,
+) {
+  if (!isPathInside(libraryDir, runDir)) {
+    throw new Error(
+      `Cannot relocate ${workflow} run: its directory escapes the current data folder.`,
+    );
+  }
+  const api = storedPathApi(storedRunDir);
+  const workflowDir = api.dirname(storedRunDir);
+  const sectionDir = api.dirname(workflowDir);
+  const section = api.basename(sectionDir);
+  const storedRoot =
+    api.basename(workflowDir) !== workflow
+      ? null
+      : section === 'outputs'
+        ? api.dirname(sectionDir)
+        : section === 'state' && api.basename(api.dirname(sectionDir)) === '.studio'
+          ? api.dirname(api.dirname(sectionDir))
+          : null;
+  if (!api.isAbsolute(storedRunDir) || !storedRoot) {
+    throw new Error(`Cannot relocate ${workflow} run: the stored run directory is invalid.`);
+  }
+
+  function relativeInside(root: string, target: string) {
+    if (storedPathApi(target) !== api || !api.isAbsolute(target)) return null;
+    const relative = api.relative(root, target);
+    if (relative === '..' || relative.startsWith(`..${api.sep}`) || api.isAbsolute(relative))
+      return null;
+    return relative;
+  }
+
+  return function rebasePath<T extends string | null | undefined>(value: T): T {
+    if (!value) return value;
+    const rootRelative = relativeInside(storedRoot, value);
+    if (rootRelative === null) return value;
+    const runRelative = relativeInside(storedRunDir, value);
+    const destination = runRelative === null ? libraryDir : runDir;
+    const relative = runRelative ?? rootRelative;
+    const rebased = path.join(destination, ...relative.split(api.sep));
+    if (!isPathInside(destination, rebased, { allowRoot: true })) {
+      throw new Error(`Cannot relocate ${workflow} run: a path escapes the current data folder.`);
+    }
+    return rebased as T;
+  };
+}
+
+/** Locate state before legacy outputs; the discovered record owns its next write location. */
+export async function readRunRecord<T extends { paths: { runDir: string } }>(
   libraryDir: string,
   workflow: string,
   runId: string,
   fileName: string,
 ) {
-  return (
-    (await readJson<T>(
-      resolveLibraryPathFromRoot(libraryDir, 'state', workflow, runId, fileName),
-    )) ?? readJson<T>(resolveLibraryPathFromRoot(libraryDir, 'outputs', workflow, runId, fileName))
-  );
+  for (const section of ['state', 'outputs']) {
+    const statusPath = resolveLibraryPathFromRoot(libraryDir, section, workflow, runId, fileName);
+    const record = await readJson<T>(statusPath);
+    if (!record) continue;
+    const runDir = path.dirname(statusPath);
+    return {
+      record,
+      runDir,
+      statusPath,
+      rebasePath: createRunPathRebaser(libraryDir, workflow, record.paths.runDir, runDir),
+    };
+  }
+  return null;
 }
 
 /** Every stored run of a workflow, newest first. */

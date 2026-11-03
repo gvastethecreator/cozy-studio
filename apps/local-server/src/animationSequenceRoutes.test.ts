@@ -1,9 +1,9 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
 import { describe, expect, it, vi } from 'vitest';
-import type { CatalogImage, Job } from '../../../packages/shared/src';
+import type { AnimationSequenceRun, CatalogImage, Job } from '../../../packages/shared/src';
 
 import { createAnimationSequenceRoutes } from './animationSequenceRoutes';
 
@@ -54,14 +54,16 @@ function createCatalogImage(id: string, filePath: string): CatalogImage {
 describe('animationSequenceRoutes', () => {
   it('creates a run, attaches managed frame images, exports GIF, and writes QA', async () => {
     const root = mkdtempSync(path.join(os.tmpdir(), 'animation-sequence-routes-'));
+    const copiedRoot = mkdtempSync(path.join(os.tmpdir(), 'animation-sequence-copied-'));
     try {
+      let libraryDir = root;
       const sourceA = path.join(root, 'source-a.png');
       const sourceB = path.join(root, 'source-b.png');
       await writeFixturePng(sourceA, '#ff0000');
       await writeFixturePng(sourceB, 'rgba(0,0,255,0.4)');
 
       const routes = createAnimationSequenceRoutes({
-        readLibraryDir: () => root,
+        readLibraryDir: () => libraryDir,
         readOutputContext: () => ({
           libraryId: 'test',
           rootPath: root,
@@ -171,8 +173,56 @@ describe('animationSequenceRoutes', () => {
           issues: expect.arrayContaining(['GIF export is missing or stale.']),
         },
       });
+
+      const statusRelative = path.join(
+        '.studio',
+        'state',
+        'animation-sequence',
+        run.id,
+        'animation-sequence-run.json',
+      );
+      const originalStatus = readFileSync(path.join(root, statusRelative));
+      const original = JSON.parse(originalStatus.toString()) as AnimationSequenceRun;
+      const originalGif = readFileSync(original.paths.gifPath);
+      cpSync(root, copiedRoot, { recursive: true });
+      libraryDir = copiedRoot;
+      expect((await routes.request(`/runs/${run.id}/frames/frame-0001/prompt`)).status).toBe(200);
+      const copiedExport = await routes.request(`/runs/${run.id}/export-gif`, {
+        method: 'POST',
+        body: JSON.stringify({ fps: 8, loop: true }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      expect(copiedExport.status).toBe(200);
+      const copied = JSON.parse(
+        readFileSync(path.join(copiedRoot, statusRelative), 'utf8'),
+      ) as AnimationSequenceRun;
+      for (const key of Object.keys(original.paths) as Array<keyof AnimationSequenceRun['paths']>) {
+        if (key === 'outputContext') continue;
+        expect(copied.paths[key]).toBe(
+          path.join(copiedRoot, path.relative(root, original.paths[key])),
+        );
+      }
+      expect(copied.paths.outputContext).toEqual({
+        libraryId: 'out',
+        rootPath: path.join(copiedRoot, 'final'),
+      });
+      for (const [index, frame] of copied.frames.entries()) {
+        for (const key of ['promptPath', 'rawPath', 'framePath'] as const) {
+          expect(frame[key]).toBe(
+            path.join(copiedRoot, path.relative(root, original.frames[index][key]!)),
+          );
+        }
+      }
+      expect(copied.exports[0].path).toBe(copied.paths.gifPath);
+      expect(copied.exports[0].publicUrl).toBe(exportPayload.export.publicUrl);
+      const copiedQa = await routes.request(`/runs/${run.id}/qa`, { method: 'POST' });
+      await expect(copiedQa.json()).resolves.toMatchObject({ qa: { ok: true } });
+      expect((await routes.request(`/runs/${run.id}/files/gif`)).status).toBe(200);
+      expect(readFileSync(path.join(root, statusRelative))).toEqual(originalStatus);
+      expect(readFileSync(original.paths.gifPath)).toEqual(originalGif);
     } finally {
       rmSync(root, { recursive: true, force: true });
+      rmSync(copiedRoot, { recursive: true, force: true });
     }
   }, 60_000);
 

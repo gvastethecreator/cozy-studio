@@ -588,7 +588,33 @@ export function createSpriteAtlasService({
       safeSegment(runId),
       'status.json',
     );
-    return stored ? normalizeRun(stored) : null;
+    if (!stored) return null;
+    const { record, rebasePath, runDir, statusPath } = stored;
+    const run = normalizeRun(record);
+    return {
+      ...run,
+      paths: {
+        runDir,
+        statusPath,
+        requestPath: rebasePath(run.paths.requestPath),
+        promptsDir: rebasePath(run.paths.promptsDir),
+        layoutGuidesDir: rebasePath(run.paths.layoutGuidesDir),
+        rawDir: rebasePath(run.paths.rawDir),
+        framesDir: rebasePath(run.paths.framesDir),
+        atlasPath: rebasePath(run.paths.atlasPath),
+        manifestPath: rebasePath(run.paths.manifestPath),
+        qaReportPath: rebasePath(run.paths.qaReportPath),
+      },
+      rows: run.rows.map((row) => ({
+        ...row,
+        promptPath: rebasePath(row.promptPath),
+        layoutGuidePath: rebasePath(row.layoutGuidePath),
+        rawPath: rebasePath(row.rawPath),
+        normalization: row.normalization
+          ? { ...row.normalization, sourcePath: rebasePath(row.normalization.sourcePath) }
+          : null,
+      })),
+    };
   }
 
   /** Imports an image into a row in memory and on disk. The caller saves the run. */

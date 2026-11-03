@@ -136,6 +136,7 @@ All paths are under `apps/local-server/src/`. `appFactory.ts` composes the route
 - `resolveStudioDataRoot` in `apps/local-server/src/config.ts` resolves the private app-data folder. The Studio data folder is its `Library` folder, and extensions are in `Extensions`. [Platform support](PLATFORMS.md#default-paths) has the table for each OS. Internal state of the Studio data folder is under `.studio/`.
 - A new Studio data folder registers `Cozy Studio` in the OS Pictures folder (or `STUDIO_IMAGES_DIR`) as an output folder (a `libraries` row of kind `output`) and selects it as the output directory. Existing destinations are kept. Without a selected output directory, generations use `outputs/` inside the Studio data folder.
 - SQLite assigns a continuous output generation number at job admission. The same owner always gets the same number, also after a restart. Existing files are never renamed, and ZIP exports never overwrite entries.
+- `runFolderStore.ts` locates Sprite Atlas and Animation Sequence records in the current Studio data folder. On read, their services rebase stored paths inside the previous data root to the current root. Run state is saved beside the record that was read; reserved filenames and external Output Folder destinations stay unchanged. Moving a data folder does not rewrite unrelated catalog or job paths.
 
 ### Extensions and style authoring
 

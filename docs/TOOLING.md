@@ -6,6 +6,8 @@ Cozy Studio uses **Bun** as package manager and backend runtime. Use `bun` or `b
 
 The repository and CI pin Bun `1.4.4` through `packageManager` and the workflow setup step. Use `bun install` for a local dependency refresh. Use `bun install --frozen-lockfile` for reproducible validation and CI. `bun install` does not remove packages that `bun.lock` no longer lists, so `bun run validate` starts by listing them (`scripts/verify-installed-deps.ts`) without failing the gate. Follow [Clean dependency install](#clean-dependency-install) to repair that drift.
 
+VS Code tasks run `bun` from the editor's `PATH`; `packageManager` does not switch that executable. Check `bun --version` in the editor's terminal before validation. Put the intended Bun installation directory, including `bunx`, first on `PATH` before starting the editor, then reopen it after changing `PATH`. Keep machine-specific executable paths in local editor settings.
+
 `bun run portable:build [target]` builds a portable ZIP from the UI prepared by `bun run validate:release`. Targets are `windows-x64`, `windows-arm64`, `linux-x64`, `linux-arm64`, `macos-x64` and `macos-arm64`; the default matches the build host. It verifies the official pinned Bun release SHA-256, includes that target's unmodified executable and notices, and installs production dependencies with explicit OS/CPU options into an isolated folder under `.scratch/portable/`. Native install scripts are disabled for cross-platform safety; the required prebuilt Sharp binary must be present. Each archive has its own launcher, executable permissions, target record and SHA-256. The ZIP leaves out the package-manager CLI shims of the build host.
 
 The release gate sets `VITE_STUDIO_API_BASE` to an empty string for its validation and UI build. This makes the UI use the portable server's selected port and prevents `.env.local` from baking a development API address into the ZIP. `portable:build` copies the existing `dist`; setting the variable only when packaging is too late. Build the UI once, then reuse it for all targets. Normal `build` and `build:ui` commands still support a separate API address for development and preview.
@@ -60,6 +62,8 @@ Use one validation level per integration. Each broader gate includes the narrowe
 ## Complete test pass
 
 `bun run test` runs the complete Vitest suite. `vitest.config.ts` pins `VITE_STUDIO_API_BASE` to empty, so a custom port in `.env.local` does not change test results; a new `VITE_` variable that tests read needs the same pin. Native Bun cases use `bun:sqlite` and `Bun.Image` and are excluded from Vitest; `bun run test:bun` runs them. `validate` runs both.
+
+`bun run test:coverage -- path/to/test.ts` adds V8 coverage through the pinned `@vitest/coverage-v8` package. It runs under Node through Vitest and is separate from the normal validation gate.
 
 The full test task limits Vitest to eight workers, to avoid Windows filesystem and process contention. Set `VITEST_MAX_WORKERS` to a positive integer only when you need a different local limit.
 

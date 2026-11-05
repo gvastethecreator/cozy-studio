@@ -29,6 +29,7 @@
     },
     {
       "label": "🧪 Test",
+      "detail": "Run Vitest. Native Bun cases have a separate task; Validate runs both.",
       "type": "process",
       "command": "bun",
       "args": ["run", "test"],
@@ -38,6 +39,16 @@
         "kind": "test",
         "isDefault": true
       }
+    },
+    {
+      "label": "🧪 Bun tests",
+      "detail": "Run native SQLite, image pipeline and MCP cases excluded from Vitest.",
+      "type": "process",
+      "command": "bun",
+      "args": ["run", "test:bun"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "test"
     },
     {
       "label": "🧹 Check",
@@ -57,6 +68,16 @@
       "problemMatcher": []
     },
     {
+      "label": "🔎 Typecheck",
+      "detail": "Check web, server, shared and script environment boundaries.",
+      "type": "process",
+      "command": "bun",
+      "args": ["run", "typecheck:environments"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
       "label": "🏗️ Build",
       "type": "process",
       "command": "bun",
@@ -67,6 +88,16 @@
         "kind": "build",
         "isDefault": true
       }
+    },
+    {
+      "label": "🏗️ Landing build",
+      "detail": "Build the separate landing site for /cozy-studio/ and sync its vendor assets.",
+      "type": "process",
+      "command": "bun",
+      "args": ["run", "build"],
+      "options": { "cwd": "${workspaceFolder}/landing" },
+      "problemMatcher": [],
+      "group": "build"
     },
     {
       "label": "✅ Validate",

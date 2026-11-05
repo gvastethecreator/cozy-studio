@@ -5,7 +5,7 @@
 <p align="center">
   <a href="https://github.com/gvastethecreator/cozy-studio/actions/workflows/ci.yml"><img alt="CI status" src="https://shieldcn.dev/github/ci/gvastethecreator/cozy-studio.svg?workflow=ci&branch=main&variant=secondary&size=xs" /></a>
   <a href="https://gvastethecreator.github.io/cozy-studio/"><img alt="Project site" src="https://shieldcn.dev/badge/site-pages-087f86.svg?logo=githubpages&variant=branded&size=xs" /></a>
-  <a href="https://bun.com"><img alt="Bun 1.4.2" src="https://shieldcn.dev/badge/runtime-Bun%201.4.2-000000.svg?logo=bun&variant=branded&size=xs" /></a>
+  <a href="https://bun.com"><img alt="Bun 1.4.4" src="https://shieldcn.dev/badge/runtime-Bun%201.4.4-000000.svg?logo=bun&variant=branded&size=xs" /></a>
   <a href="https://github.com/gvastethecreator/cozy-studio/stargazers"><img alt="GitHub stars" src="https://shieldcn.dev/github/stars/gvastethecreator/cozy-studio.svg?variant=secondary&size=xs" /></a>
   <a href="LICENSE"><img alt="MIT license" src="https://shieldcn.dev/github/license/gvastethecreator/cozy-studio.svg?variant=secondary&size=xs" /></a>
 </p>

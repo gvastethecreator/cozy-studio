@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { CatalogImage } from '../packages/shared/src';
 import { DEFAULT_GENERATION_CONFIG } from '../constants';
+import { buildGenerationTaskSpecFromRecipe } from '../lib/recipeModules';
+import { collectDirectGifJobIssues } from '../packages/shared/src/openaiImageContract';
 import {
   buildGenerationConfigFromCatalogImage,
   getCatalogRegenerateIssue,
@@ -89,9 +91,10 @@ describe('buildGenerationConfigFromCatalogImage', () => {
     expect(config.batchCount).toBe(3);
   });
 
-  it('rehydrates execution model, reasoning, and speed from catalog generation config', () => {
+  it('rehydrates execution choices and direct GIF output for Regenerate', () => {
     const config = buildGenerationConfigFromCatalogImage(
       createCatalogImage({
+        mimeType: 'image/gif',
         generationConfig: {
           prompt: 'Hero portrait',
           aspectRatio: '1:1',
@@ -107,6 +110,49 @@ describe('buildGenerationConfigFromCatalogImage', () => {
     expect(config.executionModel).toBe('gpt-5.3-codex-spark');
     expect(config.executionReasoningEffort).toBe('medium');
     expect(config.executionSpeed).toBe('fast');
+    const alias = buildGenerationConfigFromCatalogImage(
+      createCatalogImage({
+        providerId: 'chatgpt',
+        generationConfig: { codexImageModel: 'gpt-image-2.6-sunburst' },
+      }),
+    );
+    expect(alias.codexImageModel).toBe('gpt-image-2.6-sunburst');
+    expect(config.outputMimeType).toBe('image/gif');
+    const sourceSpec = buildGenerationTaskSpecFromRecipe({
+      id: 'regenerate-gif',
+      providerId: 'openai',
+      config,
+    });
+    expect(sourceSpec.output.mimeType).toBe('image/gif');
+    expect(
+      collectDirectGifJobIssues({
+        providerId: 'openai',
+        imageModel: 'gpt-image-2.6-sunburst',
+        sourceSpec,
+      }),
+    ).toEqual([]);
+    expect(
+      collectDirectGifJobIssues({
+        providerId: 'chatgpt',
+        imageModel: 'gpt-image-2',
+        sourceSpec,
+      })[0]?.code,
+    ).toBe('gif_output_unavailable');
+    const saved = buildGenerationConfigFromCatalogImage(
+      createCatalogImage({
+        jobId: null,
+        generationConfig: { outputMimeType: 'image/gif' },
+      }),
+    );
+    expect(saved.outputMimeType).toBe('image/gif');
+    expect(
+      buildGenerationConfigFromCatalogImage(
+        createCatalogImage({
+          jobId: null,
+          mimeType: 'image/gif',
+        }),
+      ).outputMimeType,
+    ).toBe('image/png');
   });
 
   it('replays the saved source assets and stops Regenerate when a required source is gone', () => {

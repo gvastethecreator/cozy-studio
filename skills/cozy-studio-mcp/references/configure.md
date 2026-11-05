@@ -47,7 +47,7 @@ Rules:
 
 - `studio_generate` and `studio_plan_generation` use `providerId: "chatgpt"` unless the call sets another provider. They do not read the Settings default provider. [SKILL.md](../SKILL.md) says when to use `codex`.
 - `studio_providers` shows each provider's readiness without secret values. Use a provider that it shows as ready.
-- To use another model, set `model` on that one `studio_generate` call. Do not change a default. `chatgpt` takes `gpt-image-2.5-flare`, `gpt-image-2.5-sunburst` or `gpt-image-2`. `codex` takes a Codex model. Omit `model` for every other provider; it uses its Settings default and rejects that field.
+- To use another model, set `model` on that one `studio_generate` call. Do not change a default. `chatgpt` takes `gpt-image-2.6-flare`, `gpt-image-2.6-sunburst`, `gpt-image-2.5-flare`, `gpt-image-2.5-sunburst` or `gpt-image-2`. The 2.6 names request static-image aliases; a generic reported model does not confirm the exact variant. `codex` takes a Codex model. Omit `model` for every other provider; it uses its Settings default and rejects that field.
 
 ## Key-based providers
 

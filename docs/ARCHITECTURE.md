@@ -190,6 +190,7 @@ Generation Tasks and Generation Providers stay separate:
 
 - **Codex:** new jobs use app-server and `providerOptions.codex`. Historical jobs keep their captured transport and options. An explicit Standard speed on an accepted job stays Standard when the global defaults change.
 - **ChatGPT:** new jobs use subscription HTTP and `providerOptions.chatgpt`, without the Codex executable. The credential store keeps its internal `codex` identifier, so existing sign-ins stay connected.
+- ChatGPT image choice uses the explicit request, then `providerDefaults.chatgpt.imageModel`, then GPT Image 2.5 Flare. Static 2.6 names are requested aliases. File metadata and `studio_job` with `detail: true` keep `model` as requested or captured. File `reported_image_model` and MCP `reportedImageModel` appear only with explicit server evidence from `remoteExecution.reportedImageModel`; a generic identifier does not prove the requested variant. Regenerate restores the requested alias.
 - The composer hides resolution controls because the subscription endpoint does not reliably honor the output size. Saved requests keep their captured size contract.
 - The public [image generation guide](https://developers.openai.com/api/docs/guides/image-generation) defines the size limits. It does not prove subscription entitlement.
 - HTTP persists a submission marker before its single POST. A lost acknowledgement or a restart moves the job to review, with no second POST and no CLI fallback. Only a confirmed rejection permits a new retry.
@@ -200,6 +201,7 @@ Generation Tasks and Generation Providers stay separate:
 
 - **Grok Imagine** uses authenticated xAI HTTP when ready. The signed-in Grok Build CLI runs only when HTTP is unavailable or the explicit fallback policy allows it. It uses a bounded headless session and an exact `image_gen` or `image_edit` allowlist.
 - **Antigravity** runs one sandboxed headless CLI session with one `generate_image` call. Studio stages managed references in a temporary workspace and leaves CLI credentials and history untouched.
+- The OpenAI Images adapter uses `/v1/images/generations` for direct GIF output with GPT Image 2.6 Flare or Sunburst. Intake checks the captured model and text-only task before queueing. The ChatGPT subscription route does not offer GIF generation.
 - **Untested:** Google, fal.ai, OpenAI Images, Replicate and ComfyUI follow documented API shapes but have not run against the live services. Hosted adapters read keys from backend environment variables only.
 - `isUntestedGenerationProvider` in `packages/shared/src/generationContracts.ts` drives the Untested label.
 

@@ -29,6 +29,7 @@ import type { SubscriptionHttpDiagnostic } from '../../../../packages/shared/src
 import { ProviderExecutionUncertainError } from '../workerErrors';
 import { resolveCodexExecutionPolicy } from '../../../../packages/shared/src/codexExecutionContract';
 import { consumeSseJson } from './subscriptionSse';
+import type { SubscriptionHttpSubmission } from '../../../../packages/shared/src';
 
 type ReadLocalFile = (path: string) => Uint8Array;
 
@@ -69,15 +70,48 @@ function toInputImagePart(item: CodexImagegenInputItem, readFile: ReadLocalFile)
   return { type: 'input_image', image_url: `data:${mime};base64,${data}` };
 }
 
-function extractImageCandidates(value: unknown): { final: string | null; partial: string | null } {
+type ReportedImageModel = {
+  reportedImageModel: string;
+  reportedImageModelSource: NonNullable<SubscriptionHttpSubmission['reportedImageModelSource']>;
+};
+
+function readReturnedModel(value: unknown): string | null {
+  return typeof value === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,199}$/.test(value)
+    ? value
+    : null;
+}
+
+function extractImageCandidates(value: unknown): {
+  final: string | null;
+  partial: string | null;
+  reportedModel: ReportedImageModel | null;
+} {
   let finalB64: string | null = null;
   let partialB64: string | null = null;
+  let reportedModel: ReportedImageModel | null = null;
+  const response = isRecord(value) && isRecord(value.response) ? value.response : null;
+  if (Array.isArray(response?.tools)) {
+    for (const tool of response.tools) {
+      if (!isRecord(tool) || tool.type !== 'image_generation') continue;
+      const model = readReturnedModel(tool.model);
+      if (model)
+        reportedModel = { reportedImageModel: model, reportedImageModelSource: 'response.tools' };
+    }
+  }
   const walk = (node: unknown) => {
     if (Array.isArray(node)) {
       for (const child of node) walk(child);
       return;
     }
     if (!isRecord(node)) return;
+    if (node.type === 'image_generation_call') {
+      const model = readReturnedModel(node.model);
+      if (model)
+        reportedModel = {
+          reportedImageModel: model,
+          reportedImageModelSource: 'image_generation_call',
+        };
+    }
     if (node.type === 'image_generation_call' && typeof node.result === 'string' && node.result) {
       if (node.status == null || node.status === 'completed') {
         finalB64 = node.result;
@@ -89,7 +123,7 @@ function extractImageCandidates(value: unknown): { final: string | null; partial
     for (const child of Object.values(node)) walk(child);
   };
   walk(value);
-  return { final: finalB64, partial: partialB64 };
+  return { final: finalB64, partial: partialB64, reportedModel };
 }
 
 function sseFailureMessage(event: Record<string, unknown>, secrets: readonly string[]) {
@@ -319,6 +353,9 @@ export function createChatgptResponsesImageExecutor({
     providerOperation(
       Effect.gen(function* () {
         const providerId = job.providerId === 'chatgpt' ? 'chatgpt' : 'codex';
+        if (job.sourceSpec?.output.mimeType === 'image/gif') {
+          throw new Error('Animated GIF output requires the OpenAI Images API provider.');
+        }
         if (job.remoteExecution) {
           if (
             job.remoteExecution.providerId === providerId &&
@@ -405,8 +442,16 @@ export function createChatgptResponsesImageExecutor({
           providerOperation(
             Effect.gen(function* () {
               let response: Awaited<ReturnType<ExternalProviderFetch>>;
+              let reportedModel: ReportedImageModel | null = null;
+              const checkpoint = (phase: SubscriptionHttpSubmission['phase']) =>
+                job.checkpointRemoteExecution!({
+                  providerId,
+                  phase,
+                  startedAt,
+                  ...(reportedModel ?? {}),
+                });
               job.signal?.throwIfAborted();
-              job.checkpointRemoteExecution!({ providerId, phase: 'submitting', startedAt });
+              checkpoint('submitting');
               try {
                 response = Result.getOrThrowWith(
                   yield* Effect.result(
@@ -471,7 +516,7 @@ export function createChatgptResponsesImageExecutor({
                   );
                 }
                 if (response.status === 401) invalidateAccessToken(failure.message);
-                job.checkpointRemoteExecution!({ providerId, phase: 'failed', startedAt });
+                checkpoint('failed');
                 throw failure;
               }
 
@@ -489,6 +534,18 @@ export function createChatgptResponsesImageExecutor({
                       if (failedEvent) return;
                       const found = extractImageCandidates(event);
                       if (found.final) finalB64 = found.final;
+                      const candidate = found.reportedModel;
+                      if (
+                        candidate &&
+                        (candidate.reportedImageModelSource === 'image_generation_call' ||
+                          reportedModel?.reportedImageModelSource !== 'image_generation_call') &&
+                        (candidate.reportedImageModel !== reportedModel?.reportedImageModel ||
+                          candidate.reportedImageModelSource !==
+                            reportedModel?.reportedImageModelSource)
+                      ) {
+                        reportedModel = candidate;
+                        checkpoint('submitting');
+                      }
                     }),
                   ),
                   (error) => error,
@@ -506,7 +563,7 @@ export function createChatgptResponsesImageExecutor({
                 );
               }
               if (failedEvent) {
-                job.checkpointRemoteExecution!({ providerId, phase: 'failed', startedAt });
+                checkpoint('failed');
                 const failure = classifySseFailure(
                   failedEvent,
                   [token],
@@ -536,16 +593,18 @@ export function createChatgptResponsesImageExecutor({
                       image: { data: finalB64, mimeType: 'image/png' },
                       requestAttempts: 1,
                       startedAt,
-                      diagnostics: { runtime: 'subscription_http', quality, size },
+                      diagnostics: {
+                        runtime: 'subscription_http',
+                        quality,
+                        size,
+                        requestedImageModel: imageModel,
+                        ...(reportedModel ?? {}),
+                      },
                       files: { resolveLibraryPath: resolveLibraryPathFn, mkdir, writeFile, now },
                     }).pipe(
                       Effect.tap(() =>
                         providerSync(() => {
-                          job.checkpointRemoteExecution!({
-                            providerId,
-                            phase: 'completed',
-                            startedAt,
-                          });
+                          checkpoint('completed');
                         }),
                       ),
                       Effect.uninterruptible,

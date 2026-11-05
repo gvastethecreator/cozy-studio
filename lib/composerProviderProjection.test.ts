@@ -88,6 +88,8 @@ describe('composerProviderProjection', () => {
     expect(projection.execution.summary).toContain('Flare');
     expect(projection.execution.selectedImageModel?.id).toBe('gpt-image-2.5-flare');
     expect(projection.execution.imageModels.map((model) => model.id)).toEqual([
+      'gpt-image-2.6-flare',
+      'gpt-image-2.6-sunburst',
       'gpt-image-2.5-flare',
       'gpt-image-2.5-sunburst',
       'gpt-image-2',

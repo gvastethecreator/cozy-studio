@@ -201,6 +201,17 @@ export function createWorkerController({
   }
 
   function buildCatalogGenerationConfigFromJob(job: Job) {
+    const remote = job.remoteExecution;
+    const reportedImageModel =
+      remote && remote.providerId !== 'comfy' ? remote.reportedImageModel : undefined;
+    const imageModelMetadata = {
+      ...(job.providerId === 'chatgpt'
+        ? {
+            codexImageModel: job.execution?.providerOptions?.chatgpt?.image?.model,
+          }
+        : {}),
+      ...(reportedImageModel ? { reportedImageModel } : {}),
+    };
     if (job.sourceSpec) {
       const executionOptions = resolveExecutionOptions(job.execution);
 
@@ -211,11 +222,13 @@ export function createWorkerController({
         attachments: job.sourceSpec.assets,
         aspectRatio: job.sourceSpec.output.aspectRatio,
         imageSize: job.sourceSpec.output.imageSize,
+        outputMimeType: job.sourceSpec.output.mimeType,
         outputBackground:
           job.sourceSpec.output.background === 'transparent' ? 'transparent' : 'workflow',
         negativePrompt: job.sourceSpec.negativePrompt,
         temperature: 0.8,
         model: 'codex-imagegen',
+        ...imageModelMetadata,
         executionModel: executionOptions.model,
         executionReasoningEffort: executionOptions.reasoningEffort,
         executionSpeed: executionOptions.serviceTier ?? 'standard',
@@ -237,6 +250,7 @@ export function createWorkerController({
       negativePrompt: parsedPrompt.negativePrompt,
       temperature: 0.8,
       model: 'codex-imagegen',
+      ...imageModelMetadata,
       executionModel: executionOptions.model,
       executionReasoningEffort: executionOptions.reasoningEffort,
       executionSpeed: executionOptions.serviceTier ?? 'standard',

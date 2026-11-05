@@ -21,6 +21,7 @@ import {
   type ExternalProviderFetch,
 } from './externalProviderResults';
 import { DEFAULT_OPENAI_IMAGE_MODEL } from './providerExecutionDefaults';
+import { collectDirectGifJobIssues } from '../../../../packages/shared/src/openaiImageContract';
 
 export interface OpenaiImagesExecutorDependencies {
   env?: Record<string, string | undefined>;
@@ -85,8 +86,20 @@ export function createOpenaiImagesExecutor({
         const startedAt = now();
         const model =
           payload.model?.trim() || env.OPENAI_IMAGE_MODEL?.trim() || DEFAULT_OPENAI_IMAGE_MODEL;
-        const size = openaiImageSize(payload.output.aspectRatio);
-        const requestBody = { model, prompt: payload.prompt, ...(size ? { size } : {}) };
+        const gifOutput = payload.output.mimeType === 'image/gif';
+        const gifIssues = collectDirectGifJobIssues({
+          providerId,
+          imageModel: model,
+          sourceSpec: { task: compiledInput.task, assets: payload.assets, output: payload.output },
+        });
+        if (gifIssues.length > 0) throw new Error(gifIssues[0]!.message);
+        const size = gifOutput ? 'auto' : openaiImageSize(payload.output.aspectRatio);
+        const requestBody = {
+          model,
+          prompt: payload.prompt,
+          ...(size ? { size } : {}),
+          ...(gifOutput ? { output_format: 'gif', n: 1 } : {}),
+        };
         const { response, attempts: requestAttempts } = yield* fetchExternalProviderWithRetry({
           label: 'OpenAI Images request',
           fetch: fetchFn,
@@ -127,7 +140,8 @@ export function createOpenaiImagesExecutor({
           job,
           compiledInput,
           responseJson: json,
-          image: { data: first.b64_json, mimeType: null },
+          image: { data: first.b64_json, mimeType: gifOutput ? 'image/gif' : null },
+          requireAnimation: gifOutput,
           requestAttempts,
           startedAt,
           diagnostics: { requestFieldNames: Object.keys(requestBody).sort() },

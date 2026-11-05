@@ -1,5 +1,9 @@
 # Generate and compare
 
+For a direct animated GIF, set `outputFormat: "gif"` and `providerId: "openai"` with a text prompt describing motion and no references. The OpenAI Images provider needs a configured key and a GPT Image 2.6 Flare or Sunburst model. This route uses API credits.
+
+For static ChatGPT images, the 2.6 model names request aliases. Report the requested `model` separately from `reportedImageModel` when present. A generic reported identifier does not confirm the exact variant.
+
 This file runs a generation from plan to report, and compares styles, providers, models or style modes on one prompt. `studio_generate` and `studio_retry_batch` need Full control access. The rules in [SKILL.md](../SKILL.md) apply to every step, mainly **Organize while generating**, **Plan before you spend** and **Retry with the same requestId**.
 
 ## Generation loop

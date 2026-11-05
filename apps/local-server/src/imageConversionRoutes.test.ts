@@ -101,6 +101,7 @@ describe('Catalog image conversion', () => {
       await embedMetadata(source.filePath, {
         prompt: 'Actual request — 日本語 🦊',
         model: 'actual-image-model',
+        reportedImageModel: 'server-reported-image-model',
         generatedAt: '2026-10-03T18:30:42Z',
         studioVersion: '0.0.0',
       });
@@ -126,12 +127,14 @@ describe('Catalog image conversion', () => {
             sourceCatalogId: source.id,
             sourceJobId: 'job-1',
             originalModel: 'actual-image-model',
+            originalReportedImageModel: 'server-reported-image-model',
           },
         },
       });
       expect(await extractMetadata(result.image.filePath)).toMatchObject({
         prompt: 'Actual request — 日本語 🦊',
         model: 'actual-image-model',
+        reportedImageModel: 'server-reported-image-model',
       });
       const output = await readFile(result.image.filePath);
       expect(result).toMatchObject({ sourceBytes: original.length, outputBytes: output.length });

@@ -1,9 +1,13 @@
 import type { ProviderDefaultSettings } from '../../packages/shared/src/studioSettings';
+import { useId } from 'react';
+import { DIRECT_GIF_IMAGE_MODELS } from '../../packages/shared/src/openaiImageContract';
 import {
   CODEX_HTTP_CHAT_MODEL,
   CODEX_HTTP_IMAGE_DISPLAY_NAME,
+  CODEX_HTTP_IMAGE_MODELS,
   CODEX_HTTP_MODEL,
   CODEX_HTTP_REASONING,
+  isCodexHttpImageModel,
 } from '../../packages/shared/src/codexExecutionContract';
 
 function ChatGptExecutionDefaults({
@@ -13,6 +17,7 @@ function ChatGptExecutionDefaults({
   value: ProviderDefaultSettings;
   onChange: (patch: Partial<ProviderDefaultSettings>) => void;
 }) {
+  const aliasNoteId = useId();
   const incompatible =
     (value.model && value.model !== CODEX_HTTP_CHAT_MODEL) ||
     (value.reasoningEffort && value.reasoningEffort !== CODEX_HTTP_REASONING) ||
@@ -22,8 +27,31 @@ function ChatGptExecutionDefaults({
       <p className="text-xs text-[color:var(--wb-ink)]">
         ChatGPT HTTP · {CODEX_HTTP_MODEL.displayName}
       </p>
-      <p className="text-xs text-[color:var(--wb-muted)]">
-        {CODEX_HTTP_IMAGE_DISPLAY_NAME} · Medium · Managed
+      <p className="text-xs text-[color:var(--wb-muted)]">Medium quality · Managed execution</p>
+      <label className="flex flex-col gap-2">
+        <span className="text-xs text-[color:var(--wb-dim)]">Image model</span>
+        <select
+          aria-label="ChatGPT default image model"
+          aria-describedby={aliasNoteId}
+          className="studio-input"
+          value={value.imageModel ?? ''}
+          onChange={(event) =>
+            onChange({
+              imageModel: isCodexHttpImageModel(event.target.value) ? event.target.value : null,
+            })
+          }
+        >
+          <option value="">Studio default ({CODEX_HTTP_IMAGE_DISPLAY_NAME})</option>
+          {CODEX_HTTP_IMAGE_MODELS.map((model) => (
+            <option key={model.id} value={model.id}>
+              {model.displayName}
+              {model.id.startsWith('gpt-image-2.6-') ? ' (requested alias)' : ''}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p id={aliasNoteId} className="text-xs text-[color:var(--wb-muted)]">
+        The 2.6 names request aliases. ChatGPT may report a generic image model instead.
       </p>
       {incompatible ? (
         <p role="status" className="text-xs text-[color:var(--wb-warning)] ">
@@ -61,10 +89,12 @@ function ProviderModelField({
   providerDefaultModel?: string | null;
   isAgentCli: boolean;
 }) {
+  const suggestionsId = useId();
+  const isOpenAI = value.providerId === 'openai';
   const modelOptions = availableModels ?? [];
   const storedModel = value.model?.trim() || '';
   const unavailableModel = storedModel && !modelOptions.includes(storedModel);
-  const hasModels = modelOptions.length > 0;
+  const hasModels = !isOpenAI && modelOptions.length > 0;
   const defaultSource = isAgentCli ? 'CLI' : 'Provider';
   const defaultLabel = providerDefaultModel
     ? `${defaultSource} default (${providerDefaultModel})`
@@ -92,13 +122,23 @@ function ProviderModelField({
           ))}
         </select>
       ) : (
-        <input
-          value={value.model ?? ''}
-          onChange={(event) => onChange({ model: event.target.value.trim() || null })}
-          placeholder="Provider default"
-          aria-label="Provider default model"
-          className="h-10 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-3 font-mono text-xs text-[color:var(--wb-ink)] outline-none transition-colors placeholder:text-[color:var(--wb-dim)] focus:border-accent-400/2"
-        />
+        <>
+          <input
+            value={value.model ?? ''}
+            onChange={(event) => onChange({ model: event.target.value.trim() || null })}
+            placeholder={isOpenAI ? defaultLabel : 'Provider default'}
+            list={isOpenAI ? suggestionsId : undefined}
+            aria-label="Provider default model"
+            className="h-10 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-3 font-mono text-xs text-[color:var(--wb-ink)] outline-none transition-colors placeholder:text-[color:var(--wb-dim)] focus:border-accent-400/2"
+          />
+          {isOpenAI ? (
+            <datalist id={suggestionsId}>
+              {DIRECT_GIF_IMAGE_MODELS.map((model) => (
+                <option key={model} value={model} />
+              ))}
+            </datalist>
+          ) : null}
+        </>
       )}
       {hasModels && unavailableModel ? (
         <p

@@ -168,7 +168,14 @@ describe('Toolbar composer chrome', () => {
     fireEvent.click(button);
     expect(props.onGenerate).toHaveBeenCalledWith(
       'A lantern',
-      { recipeId: null, codexTransport: 'subscription_http', imageSize: undefined, batchCount: 4 },
+      {
+        recipeId: null,
+        codexTransport: 'subscription_http',
+        imageSize: undefined,
+        batchCount: 4,
+        outputMimeType: 'image/png',
+        codexImageModel: 'gpt-image-2.5-flare',
+      },
       { preventModal: true },
     );
   });
@@ -279,6 +286,70 @@ describe('Toolbar composer chrome', () => {
       true,
     );
     expect(updateConfig).toHaveBeenCalledWith('outputBackground', 'workflow');
+  });
+
+  it('submits GIF explicitly and clears it when the generation context changes', () => {
+    const draft = config({ batchCount: 1 });
+    const view = renderToolbar({
+      activeProviderId: 'openai',
+      providerDefaultImageModel: 'gpt-image-2.6-flare',
+      generationConfig: draft,
+    });
+    const format = () => screen.getByRole('combobox', { name: 'Output format' });
+    const chooseGif = () => fireEvent.change(format(), { target: { value: 'image/gif' } });
+    expect(format()).toHaveProperty('value', 'image/png');
+    chooseGif();
+    fireEvent.click(screen.getByRole('button', { name: 'Generate 1 animated GIF' }));
+    expect(view.props.onGenerate).toHaveBeenCalledWith(
+      'A lantern',
+      expect.objectContaining({ outputMimeType: 'image/gif' }),
+      { preventModal: true },
+    );
+
+    view.rerender(
+      <Toolbar
+        {...view.props}
+        activeProviderId="openai"
+        providerDefaultImageModel="gpt-image-2.6-sunburst"
+      />,
+    );
+    expect(format()).toHaveProperty('value', 'image/png');
+    chooseGif();
+    fireEvent.click(screen.getByRole('button', { name: 'Generate 1 animated GIF' }));
+    expect(view.props.onGenerate).toHaveBeenLastCalledWith(
+      'A lantern',
+      expect.objectContaining({ outputMimeType: 'image/gif' }),
+      { preventModal: true },
+    );
+    view.rerender(<Toolbar {...view.props} providerDefaultImageModel="gpt-image-2" />);
+    expect(format()).toHaveProperty('value', 'image/png');
+    expect(
+      screen.getByRole('option', { name: 'Animated GIF · select GPT Image 2.6' }),
+    ).toHaveProperty('disabled', true);
+    view.rerender(<Toolbar {...view.props} generationConfig={draft} />);
+    expect(format()).toHaveProperty('value', 'image/png');
+    chooseGif();
+    view.rerender(
+      <Toolbar
+        {...view.props}
+        generationConfig={{
+          ...draft,
+          attachments: [{ id: 'source', name: 'Source', dataUrl: '/source.png', strength: 1 }],
+        }}
+      />,
+    );
+    expect(format()).toHaveProperty('value', 'image/png');
+    expect(screen.getByRole('option', { name: 'Animated GIF' })).toHaveProperty('disabled', true);
+    view.rerender(
+      <Toolbar {...view.props} generationConfig={{ ...draft, outputBackground: 'transparent' }} />,
+    );
+    expect(screen.getByRole('option', { name: 'Animated GIF' })).toHaveProperty('disabled', true);
+    view.rerender(<Toolbar {...view.props} activeProviderId="chatgpt" generationConfig={draft} />);
+    expect(screen.queryByRole('combobox', { name: 'Output format' })).toBeNull();
+    view.rerender(<Toolbar {...view.props} activeProviderId="codex" generationConfig={draft} />);
+    expect(screen.queryByRole('combobox', { name: 'Output format' })).toBeNull();
+    view.rerender(<Toolbar {...view.props} activeRecipe="remaster" generationConfig={draft} />);
+    expect(screen.getByRole('option', { name: 'Animated GIF' })).toHaveProperty('disabled', true);
   });
 
   it('blocks Remaster click and shortcut until a source is attached', () => {
@@ -414,7 +485,14 @@ describe('Toolbar composer chrome', () => {
     fireEvent.click(generate);
     expect(onGenerate).toHaveBeenCalledWith(
       'A lantern with no style preset',
-      { recipeId: null, codexTransport: 'subscription_http', imageSize: undefined, batchCount: 4 },
+      {
+        recipeId: null,
+        codexTransport: 'subscription_http',
+        imageSize: undefined,
+        batchCount: 4,
+        outputMimeType: 'image/png',
+        codexImageModel: 'gpt-image-2.5-flare',
+      },
       { preventModal: true },
     );
   });
@@ -630,8 +708,9 @@ describe('Toolbar composer chrome', () => {
 
   it('hides unreliable size controls while keeping ChatGPT model selection', () => {
     const updateConfig = vi.fn();
-    renderToolbar({
+    const view = renderToolbar({
       activeProviderId: 'chatgpt',
+      providerDefaultImageModel: 'gpt-image-2.6-sunburst',
       codexTransport: 'subscription_http',
       codexAvailableTransports: ['codex_app_server', 'subscription_http'],
       generationConfig: config({
@@ -647,17 +726,39 @@ describe('Toolbar composer chrome', () => {
 
     expect(screen.queryByRole('button', { name: /Image size:/ })).toBeNull();
     expect(updateConfig).not.toHaveBeenCalled();
+    const imageModelChip = () => screen.getByRole('button', { name: /chatgpt task execution/i });
+    expect(imageModelChip().querySelector('.create-engine-name')?.textContent).toBe('2.6 Sunburst');
 
     fireEvent.click(screen.getByRole('button', { name: /chatgpt task execution/i }));
     expect(screen.queryByRole('heading', { name: 'Connection' })).toBeNull();
     expect(screen.getByRole('heading', { name: 'Text model' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Image model' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'GPT Image 2.6 Flare (requested alias)' }));
+    expect(updateConfig).toHaveBeenCalledWith('codexImageModel', 'gpt-image-2.6-flare');
+    view.rerender(
+      <Toolbar
+        {...view.props}
+        generationConfig={config({ codexImageModel: 'gpt-image-2.6-flare' })}
+      />,
+    );
+    expect(imageModelChip().querySelector('.create-engine-name')?.textContent).toBe('2.6 Flare');
+    fireEvent.click(screen.getByRole('button', { name: 'Account default' }));
+    expect(updateConfig).toHaveBeenCalledWith('codexImageModel', undefined);
+    view.rerender(
+      <Toolbar {...view.props} generationConfig={config({ codexImageModel: undefined })} />,
+    );
     expect(screen.getByText('Managed by ChatGPT')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Reasoning: Managed' })).toBeNull();
     expect(screen.queryByRole('group', { name: 'ChatGPT image size' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Output size' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Close generation settings' }));
     expect(screen.queryByRole('dialog', { name: 'Image generation settings' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Generate 4 images' }));
+    expect(view.props.onGenerate).toHaveBeenCalledWith(
+      'A lantern',
+      expect.objectContaining({ codexImageModel: 'gpt-image-2.6-sunburst' }),
+      { preventModal: true },
+    );
   });
 
   it('keeps a saved ChatGPT size and sends 1K to other providers', () => {

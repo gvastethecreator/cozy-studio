@@ -32,19 +32,23 @@ describe('image generation metadata', () => {
   it.each(['png', 'jpeg', 'webp'] as const)(
     'embeds Unicode in %s without changing pixels or duplicating metadata',
     async (format) => {
+      const reportedMetadata = { ...metadata, reportedImageModel: 'gpt-image-2-codex' };
       const filePath = path.join(directory, `image.${format}`);
       await image().toFormat(format).toFile(filePath);
       const pixels = await sharp(readFileSync(filePath)).raw().toBuffer();
-      await embedMetadata(filePath, metadata);
-      expect(await extractMetadata(filePath)).toMatchObject(metadata);
+      await embedMetadata(filePath, reportedMetadata);
+      expect(await extractMetadata(filePath)).toMatchObject(reportedMetadata);
       const decoded = await sharp(readFileSync(filePath)).metadata();
       expect(decoded.xmpAsString).toContain(
         '<codex:prompt>Un café junto al mar — 日本語 🦊 &amp; &lt;luz&gt; $&amp;</codex:prompt>',
       );
       expect(decoded.xmpAsString).toContain(`<codex:model>${metadata.model}</codex:model>`);
+      expect(decoded.xmpAsString).toContain(
+        '<codex:reportedImageModel>gpt-image-2-codex</codex:reportedImageModel>',
+      );
       expect(await sharp(readFileSync(filePath)).raw().toBuffer()).toEqual(pixels);
 
-      const replacement = { ...metadata, prompt: 'Segundo café 🐈' };
+      const replacement = { ...reportedMetadata, prompt: 'Segundo café 🐈' };
       await embedMetadata(filePath, replacement);
       const written = readFileSync(filePath);
       await embedMetadata(filePath, replacement);

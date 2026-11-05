@@ -49,7 +49,10 @@ import { buildStudioGenerationPlaceholders } from '../lib/studioGenerationPlaceh
 import { materializeCatalogEntryImageWithConfig } from '../lib/studioCatalogImageAdapter';
 import { resolveStudioCarouselImage } from '../lib/studioCarouselImage';
 import type { LogEntry } from '../types';
-import type { CodexExecutionTransport } from '../packages/shared/src/codexExecutionContract';
+import {
+  CODEX_HTTP_IMAGE_MODEL,
+  type CodexExecutionTransport,
+} from '../packages/shared/src/codexExecutionContract';
 import type { EditableStudioSettings } from '../packages/shared/src/studioSettings';
 
 const EMPTY_RUNTIME_LOGS: LogEntry[] = [];
@@ -835,6 +838,18 @@ export function useStudioShell(): StudioShellController {
       provider: {
         activeProviderId:
           studioSettings.data.settingsDomain.settings?.defaultProviderId ?? 'chatgpt',
+        providerDefaultImageModel:
+          studioSettings.data.settingsDomain.settings?.defaultProviderId === 'chatgpt'
+            ? (studioSettings.data.settingsDomain.settings.providerDefaults.chatgpt?.imageModel ??
+              CODEX_HTTP_IMAGE_MODEL)
+            : (studioSettings.data.settingsDomain.settings?.providerDefaults[
+                studioSettings.data.settingsDomain.settings.defaultProviderId
+              ]?.model ??
+              studioSettings.data.providerDomain.runtimePreflight?.providers.find(
+                (provider) =>
+                  provider.providerId ===
+                  studioSettings.data.settingsDomain.settings?.defaultProviderId,
+              )?.defaultModel),
         commandCenter: buildStudioCommandCenterProjection({
           settings: studioSettings.data.settingsDomain.settings,
           providerCapabilities: studioSettings.data.providerDomain.capabilities,

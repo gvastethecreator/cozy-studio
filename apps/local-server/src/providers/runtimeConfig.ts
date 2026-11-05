@@ -15,6 +15,7 @@ import {
   GOOGLE_IMAGE_MODELS,
 } from '../../../../packages/shared/src/googleImageContract';
 import { readCodexRuntimeDoctor } from '../codexRuntimeDoctor';
+import { DEFAULT_OPENAI_IMAGE_MODEL } from '../../../../packages/shared/src/openaiImageContract';
 import {
   readAntigravityRuntimeDoctor,
   type AntigravityRuntimeDoctorReport,
@@ -158,6 +159,9 @@ function createPreflight(
 
   return {
     providerId: definition.providerId,
+    ...(definition.providerId === 'openai'
+      ? { defaultModel: env.OPENAI_IMAGE_MODEL?.trim() || DEFAULT_OPENAI_IMAGE_MODEL }
+      : {}),
     runtimeKind: definition.runtimeKind,
     secretState,
     secretSource,

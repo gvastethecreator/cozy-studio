@@ -29,114 +29,168 @@ function httpExecution(size = '1024x1024'): JobExecutionOptions {
 }
 
 describe('ChatGPT responses image executor and captured Codex HTTP jobs', () => {
-  it('sends a ChatGPT reference and saves only the final image result without an app-server thread', async () => {
-    const writes: Array<{ filePath: string; content: unknown }> = [];
-    let payload: Record<string, unknown> | undefined;
-    const executor = createChatgptResponsesImageExecutor({
-      readFile: () => Buffer.from(PNG_B64, 'base64'),
-      getAccessToken: async () => 'codex-secret',
-      fetch: async (_url, init) => {
-        payload = JSON.parse(typeof init?.body === 'string' ? init.body : '{}') as Record<
-          string,
-          unknown
-        >;
-        const raw = [
-          'event: response.output_item.done',
-          `data: {"type":"image_generation_call","partial_image_b64":"partial","result":"${PNG_B64}"}`,
-          '',
-          'data: [DONE]',
-          '',
-        ].join('\n');
-        return new Response(
-          new ReadableStream<Uint8Array>({
-            start(controller) {
-              const bytes = new TextEncoder().encode(raw);
-              controller.enqueue(bytes.slice(0, 23));
-              controller.enqueue(bytes.slice(23, 57));
-              controller.enqueue(bytes.slice(57));
-              controller.close();
-            },
-          }),
-          { headers: { 'content-type': 'text/event-stream' } },
-        );
-      },
-      resolveLibraryPath: (...segments) => `D:/studio-library/${segments.join('/')}`,
-      mkdir: (() => undefined) as typeof import('node:fs').mkdirSync,
-      writeFile: ((filePath, content) => {
-        writes.push({ filePath: String(filePath), content });
-      }) as typeof import('node:fs').writeFileSync,
-      now: () => 1,
-    });
-    const result = await Effect.runPromise(
-      Effect.scoped(
-        executor({
-          id: 'job-chatgpt',
-          providerId: 'chatgpt',
-          workspaceId: 'workspace-1',
-          prompt: 'stone keep',
-          checkpointRemoteExecution: vi.fn(),
-          execution: {
-            ...CODEX_HTTP_EXECUTION_DEFAULTS,
-            providerOptions: {
-              chatgpt: {
-                image: {
-                  model: CODEX_HTTP_IMAGE_MODEL,
-                  size: '1536x864',
-                  quality: 'medium',
-                  background: 'transparent',
+  it.each(['gpt-image-2.6-flare', 'gpt-image-2.6-sunburst'] as const)(
+    'sends %s and keeps the returned tool model separate',
+    async (requestedModel) => {
+      const writes: Array<{ filePath: string; content: unknown }> = [];
+      const checkpoint = vi.fn();
+      const reportedModel =
+        requestedModel === 'gpt-image-2.6-sunburst' ? 'provider-item-model' : 'gpt-image-2-codex';
+      let payload: Record<string, unknown> | undefined;
+      const executor = createChatgptResponsesImageExecutor({
+        readFile: () => Buffer.from(PNG_B64, 'base64'),
+        getAccessToken: async () => 'codex-secret',
+        fetch: async (_url, init) => {
+          payload = JSON.parse(typeof init?.body === 'string' ? init.body : '{}') as Record<
+            string,
+            unknown
+          >;
+          const raw = [
+            `data: ${JSON.stringify({
+              type: 'response.created',
+              response: {
+                model: 'gpt-6-sol',
+                tools: [{ type: 'image_generation', model: 'gpt-image-2-codex' }],
+              },
+            })}`,
+            '',
+            'event: response.output_item.done',
+            `data: ${JSON.stringify({
+              type: 'image_generation_call',
+              ...(requestedModel === 'gpt-image-2.6-sunburst' ? { model: reportedModel } : {}),
+              partial_image_b64: 'partial',
+              result: PNG_B64,
+            })}`,
+            '',
+            `data: ${JSON.stringify({
+              type: 'response.completed',
+              response: {
+                model: 'gpt-6-sol',
+                tools: [
+                  {
+                    type: 'image_generation',
+                    ...(requestedModel === 'gpt-image-2.6-sunburst'
+                      ? { model: 'gpt-image-2-codex' }
+                      : {}),
+                  },
+                ],
+              },
+            })}`,
+            '',
+            'data: [DONE]',
+            '',
+          ].join('\n');
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                const bytes = new TextEncoder().encode(raw);
+                controller.enqueue(bytes.slice(0, 23));
+                controller.enqueue(bytes.slice(23, 57));
+                controller.enqueue(bytes.slice(57));
+                controller.close();
+              },
+            }),
+            { headers: { 'content-type': 'text/event-stream' } },
+          );
+        },
+        resolveLibraryPath: (...segments) => `D:/studio-library/${segments.join('/')}`,
+        mkdir: (() => undefined) as typeof import('node:fs').mkdirSync,
+        writeFile: ((filePath, content) => {
+          writes.push({ filePath: String(filePath), content });
+        }) as typeof import('node:fs').writeFileSync,
+        now: () => 1,
+      });
+      const result = await Effect.runPromise(
+        Effect.scoped(
+          executor({
+            id: 'job-chatgpt',
+            providerId: 'chatgpt',
+            workspaceId: 'workspace-1',
+            prompt: 'stone keep',
+            checkpointRemoteExecution: checkpoint,
+            execution: {
+              ...CODEX_HTTP_EXECUTION_DEFAULTS,
+              providerOptions: {
+                chatgpt: {
+                  image: {
+                    model: requestedModel,
+                    size: '1536x864',
+                    quality: 'medium',
+                    background: 'transparent',
+                  },
                 },
               },
             },
-          },
-          sourceSpec: createGenerationTaskSpec({
-            id: 'spec-wide',
-            task: 'image_generate',
-            providerId: 'chatgpt',
-            prompt: 'stone keep',
-            assets: [
-              { role: 'reference', name: 'ref.png', localPath: 'D:/studio-library/ref.png' },
-            ],
-            output: { aspectRatio: '16:9', imageSize: '1536x864', background: 'transparent' },
+            sourceSpec: createGenerationTaskSpec({
+              id: 'spec-wide',
+              task: 'image_generate',
+              providerId: 'chatgpt',
+              prompt: 'stone keep',
+              assets: [
+                { role: 'reference', name: 'ref.png', localPath: 'D:/studio-library/ref.png' },
+              ],
+              output: { aspectRatio: '16:9', imageSize: '1536x864', background: 'transparent' },
+            }),
           }),
-        }),
-      ),
-    );
-    expect(result.assets).toHaveLength(1);
-    expect(result).toMatchObject({ threadId: null, turnId: null });
-    expect(payload).toMatchObject({
-      input: [
-        {
-          content: [
-            expect.objectContaining({ type: 'input_text' }),
-            { type: 'input_image', image_url: `data:image/png;base64,${PNG_B64}` },
-          ],
+        ),
+      );
+      expect(result.assets).toHaveLength(1);
+      expect(result).toMatchObject({ threadId: null, turnId: null });
+      expect(payload).toMatchObject({
+        input: [
+          {
+            content: [
+              expect.objectContaining({ type: 'input_text' }),
+              { type: 'input_image', image_url: `data:image/png;base64,${PNG_B64}` },
+            ],
+          },
+        ],
+      });
+      expect(payload).toMatchObject({
+        model: 'gpt-6-sol',
+        tools: [
+          {
+            type: 'image_generation',
+            model: requestedModel,
+            size: '1536x864',
+            quality: 'medium',
+            background: 'transparent',
+          },
+        ],
+      });
+      expect(payload).not.toHaveProperty('reasoning');
+      expect(payload).not.toHaveProperty('service_tier');
+      expect(JSON.stringify(payload?.input)).toContain(
+        'requested 16:9 aspect ratio and 1536x864 size',
+      );
+      expect(JSON.stringify(payload?.input)).toContain(
+        'takes precedence over reference dimensions',
+      );
+      const transcript = writes.find((write) => String(write.filePath).includes('transcripts'));
+      expect(String(transcript?.content)).not.toContain('codex-secret');
+      const reportedSource =
+        requestedModel === 'gpt-image-2.6-sunburst' ? 'image_generation_call' : 'response.tools';
+      expect(checkpoint).toHaveBeenLastCalledWith({
+        providerId: 'chatgpt',
+        phase: 'completed',
+        startedAt: 1,
+        reportedImageModel: reportedModel,
+        reportedImageModelSource: reportedSource,
+      });
+      expect(JSON.parse(String(transcript?.content))).toMatchObject({
+        model: requestedModel,
+        diagnostics: {
+          requestedImageModel: requestedModel,
+          reportedImageModel: reportedModel,
+          reportedImageModelSource: reportedSource,
         },
-      ],
-    });
-    expect(payload).toMatchObject({
-      model: 'gpt-6-sol',
-      tools: [
-        {
-          type: 'image_generation',
-          model: CODEX_HTTP_IMAGE_MODEL,
-          size: '1536x864',
-          quality: 'medium',
-          background: 'transparent',
-        },
-      ],
-    });
-    expect(payload).not.toHaveProperty('reasoning');
-    expect(payload).not.toHaveProperty('service_tier');
-    expect(JSON.stringify(payload?.input)).toContain(
-      'requested 16:9 aspect ratio and 1536x864 size',
-    );
-    expect(JSON.stringify(payload?.input)).toContain('takes precedence over reference dimensions');
-    const transcript = writes.find((write) => String(write.filePath).includes('transcripts'));
-    expect(String(transcript?.content)).not.toContain('codex-secret');
-  });
+      });
+    },
+  );
 
   it('sends a 4K ChatGPT image size on the HTTP tool', async () => {
     let payload: Record<string, unknown> | undefined;
+    const checkpoint = vi.fn();
     const executor = createChatgptResponsesImageExecutor({
       getAccessToken: async () => 'codex-secret',
       fetch: async (_url, init) => {
@@ -166,7 +220,7 @@ describe('ChatGPT responses image executor and captured Codex HTTP jobs', () => 
           id: 'job-4k',
           workspaceId: 'workspace-1',
           prompt: 'stone keep',
-          checkpointRemoteExecution: vi.fn(),
+          checkpointRemoteExecution: checkpoint,
           execution: httpExecution('3840x2160'),
           sourceSpec: createGenerationTaskSpec({
             id: 'spec-4k',
@@ -180,6 +234,11 @@ describe('ChatGPT responses image executor and captured Codex HTTP jobs', () => 
     );
     expect(payload).toMatchObject({
       tools: [{ type: 'image_generation', size: '3840x2160' }],
+    });
+    expect(checkpoint).toHaveBeenLastCalledWith({
+      providerId: 'codex',
+      phase: 'completed',
+      startedAt: 1,
     });
   });
 
@@ -479,6 +538,25 @@ describe('ChatGPT responses image executor and captured Codex HTTP jobs', () => 
         ),
       ),
     ).rejects.toThrow('Apply the HTTP settings');
+    await expect(
+      Effect.runPromise(
+        Effect.scoped(
+          executor({
+            id: 'unsupported-gif',
+            providerId: 'chatgpt',
+            workspaceId: 'a',
+            prompt: 'a blinking loop',
+            sourceSpec: createGenerationTaskSpec({
+              id: 'unsupported-gif-spec',
+              providerId: 'chatgpt',
+              task: 'image_generate',
+              prompt: 'a blinking loop',
+              output: { mimeType: 'image/gif' },
+            }),
+          }),
+        ),
+      ),
+    ).rejects.toThrow('requires the OpenAI Images API provider');
     expect(getAccessToken).not.toHaveBeenCalled();
     expect(fetch).not.toHaveBeenCalled();
   });

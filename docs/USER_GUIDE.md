@@ -135,7 +135,7 @@ Downloads and ZIP exports keep their file names. Duplicate names in a ZIP get a 
 
 ### Embedded metadata
 
-New PNG, JPEG and WebP results carry the compiled generation prompt and the known image model inside the file, with the workflow, output settings and generation date. Codex app-server does not report its internal image model, so that field is `unknown`. Studio writes metadata without recompressing the image, and original downloads and ZIP exports keep it. Sharing the original file also shares this prompt.
+New PNG, JPEG and WebP results carry the compiled generation prompt and the requested or captured image model inside the file, with the workflow, output settings and generation date. When the server explicitly reports an image model, Studio adds `reported_image_model`; this may be a generic identifier. Codex app-server does not report its internal image model, so its model field is `unknown`. Studio writes metadata without recompressing the image, and original downloads and ZIP exports keep it. Sharing the original file also shares this prompt.
 
 Existing images are not rewritten automatically. A manual metadata rewrite rebuilds the prompt from the saved job with the current provider compiler.
 
@@ -192,7 +192,9 @@ Use the provider control in the Create footer to choose the provider for the nex
 
 ### ChatGPT (recommended)
 
-Sign in from Settings → Accounts & models. Studio then uses ChatGPT's own subscription HTTP path with GPT Image 2.5 Flare, GPT Image 2.5 Sunburst or GPT Image 2 when available. Usage and models are read over the same path.
+Sign in from Settings → Accounts & models. In **Model and execution settings**, choose an image model for ChatGPT. The default stays GPT Image 2.5 Flare. The composer can override it for a draft; choose **Account default** to use Settings again. Regenerate keeps the result's requested image model.
+
+The static-image choices include `gpt-image-2.6-flare` and `gpt-image-2.6-sunburst` as requested aliases. ChatGPT may report a generic identifier such as `gpt-image-2-codex`, which does not confirm the exact variant. Job details show **Requested image model** and **Image model reported by ChatGPT** separately; older jobs may have no report. GIF generation remains available only through the OpenAI Images API.
 
 These jobs do not create Codex turns, so they do not spend the Codex app-server usage. They can still reach the ChatGPT HTTP usage limit. This path is not a second subscription and not API credits.
 
@@ -230,7 +232,7 @@ Studio never reads or copies Antigravity credentials. It runs one sandboxed head
 Settings marks these adapters **Untested**. They follow each API's documented request shape but have not run against the live service. Each one shows Setup until its backend setting exists.
 
 - fal.ai: `FAL_KEY` or `FAL_API_KEY`. `FAL_MODEL` overrides the model.
-- OpenAI Images API: `OPENAI_API_KEY`. `OPENAI_IMAGE_MODEL` overrides `gpt-image-1`. Text-to-image only.
+- OpenAI Images API: `OPENAI_API_KEY`. `OPENAI_IMAGE_MODEL` overrides `gpt-image-2.6-flare`. In **Settings → Accounts & models**, select OpenAI and open **Model and execution settings** to choose Flare or `gpt-image-2.6-sunburst`. For a direct animation, choose OpenAI in **Create**, describe the motion without references, and select **Animated GIF**. Studio saves the returned GIF in the Library. GIF generation requires the API provider; Studio's ChatGPT subscription route currently rejects it.
 - Replicate: `REPLICATE_API_TOKEN`. `REPLICATE_MODEL` overrides `black-forest-labs/flux-schnell`. Text-to-image only.
 - ComfyUI local: `COMFY_API_URL` or `COMFYUI_API_URL`, plus `COMFY_WORKFLOW_TEMPLATE_PATH`.
 

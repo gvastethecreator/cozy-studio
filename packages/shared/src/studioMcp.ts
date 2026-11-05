@@ -83,6 +83,12 @@ export const generationInput = z.strictObject({
   task: z
     .enum(['image_generate', 'image_edit', 'style_preset_card', 'sprite_sheet', 'texture_generate'])
     .optional(),
+  outputFormat: z
+    .enum(['gif'])
+    .optional()
+    .describe(
+      'Set gif for a text-only animation using providerId openai and GPT Image 2.6 Flare or Sunburst in Settings. Omit for ordinary images.',
+    ),
   prompt: z.string().min(1).max(32000),
   // The handler checks "exactly one workspace field": JSON Schema export drops refinements.
   workspaceId: id
@@ -245,7 +251,7 @@ export const studioMcpTools = {
   studio_job: {
     access: 'read',
     description:
-      'Read job status, error and result notices, such as a returned size that differs from the request. detail: true adds kind, provider, model, workspace, batch, attempt, the filing (libraryOrganization), the last 20 events and the Library images the job made; it never returns transcripts or provider payloads. Use studio_catalog with job_id and the workspace_id that detail: true returns.',
+      'Read job status, error and result notices. With detail: true, ChatGPT jobs include the requested image model in model and the server tool identifier in reportedImageModel when available. Detail also includes kind, provider, workspace, batch, attempt, libraryOrganization, the last 20 events and saved Library images. Use studio_catalog with job_id and the returned workspaceId as workspace_id to find them.',
     schema: z.strictObject({ jobId: id, detail: z.boolean().default(false) }),
   },
   studio_batch: {

@@ -892,10 +892,27 @@ function JobInspectorHeader({
 }
 
 function executionFacts(detail: JobDetailResponse) {
+  const remoteExecution = detail.job.remoteExecution;
+  const reportedImageModel =
+    remoteExecution?.providerId === 'chatgpt' ? remoteExecution.reportedImageModel : null;
   return [
     ['Created', formatDateTime(detail.job.createdAt)],
     ['Completed', detail.job.completedAt ? formatDateTime(detail.job.completedAt) : '—'],
-    ['Model', detail.job.execution?.model || 'default'],
+    [
+      detail.job.providerId === 'chatgpt' ? 'Text model' : 'Model',
+      detail.job.execution?.model || 'default',
+    ],
+    ...(detail.job.providerId === 'chatgpt'
+      ? [
+          [
+            'Requested image model',
+            detail.job.execution?.providerOptions?.chatgpt?.image?.model ??
+              detail.job.execution?.providerOptions?.chatgpt?.imageModel ??
+              'Not recorded',
+          ],
+          ['Image model reported by ChatGPT', reportedImageModel ?? 'Not reported'],
+        ]
+      : []),
     ...(detail.job.providerId === 'codex'
       ? [
           [

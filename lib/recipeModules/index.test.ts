@@ -95,6 +95,13 @@ describe('recipeModules', () => {
       config: { ...DEFAULT_GENERATION_CONFIG, outputBackground: 'workflow', attachments: [] },
     });
     expect(edit.quality?.constraints.join(' ')).toContain('maintain the primary input background');
+    const gif = buildGenerationTaskSpecFromRecipe({
+      id: 'native-gif',
+      providerId: 'openai',
+      config: { ...DEFAULT_GENERATION_CONFIG, outputMimeType: 'image/gif' },
+    });
+    expect(gif.output).toMatchObject({ mimeType: 'image/gif', imageSize: null, count: 1 });
+    expect(gif.quality?.constraints.join(' ')).toContain('animated GIF');
   });
 
   it('exposes declarative recipe modules with stable metadata', () => {

@@ -131,8 +131,16 @@ describe('localGenerationRun', () => {
       reasoningEffort: 'provider_default',
       serviceTier: null,
       providerOptions: {
-        chatgpt: { imageModel: 'gpt-image-2.5-flare' },
+        chatgpt: {},
       },
+    });
+    expect(
+      resolveGenerationExecutionOverride('chatgpt', {
+        ...config,
+        codexImageModel: 'gpt-image-2.6-flare',
+      }),
+    ).toMatchObject({
+      providerOptions: { chatgpt: { imageModel: 'gpt-image-2.6-flare' } },
     });
   });
 

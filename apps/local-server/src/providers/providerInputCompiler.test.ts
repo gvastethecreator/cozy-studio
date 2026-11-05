@@ -4,6 +4,31 @@ import { createGenerationTaskSpec } from '../../../../packages/shared/src';
 import { compileProviderInputForJob, hasProviderInputCompiler } from './providerInputCompiler';
 
 describe('providerInputCompiler', () => {
+  it('rejects unsupported GIF requests before compiling an execution input', () => {
+    const sourceSpec = createGenerationTaskSpec({
+      id: 'gif-spec',
+      task: 'image_generate',
+      providerId: 'openai',
+      prompt: 'a blinking lantern loop',
+      output: { mimeType: 'image/gif' },
+    });
+    const job = {
+      id: 'gif-job',
+      workspaceId: 'workspace-1',
+      providerId: 'openai' as const,
+      prompt: sourceSpec.prompt,
+      sourceSpec,
+      execution: { model: 'gpt-image-1', reasoningEffort: 'minimal' as const },
+    };
+    expect(() => compileProviderInputForJob('openai', job)).toThrow('requires GPT Image 2.6');
+    job.execution.model = 'gpt-image-2.6-flare';
+    expect(compileProviderInputForJob('openai', job).task).toBe('image_generate');
+    expect(() => compileProviderInputForJob('fal', job)).toThrow('requires GPT Image 2.6');
+    expect(() => compileProviderInputForJob('chatgpt', job)).toThrow('requires GPT Image 2.6');
+    sourceSpec.task = 'sprite_sheet';
+    expect(() => compileProviderInputForJob('openai', job)).toThrow('text-to-image generation');
+  });
+
   it('compiles every supported built-in provider', () => {
     const sourceSpec = createGenerationTaskSpec({
       id: 'spec-1',

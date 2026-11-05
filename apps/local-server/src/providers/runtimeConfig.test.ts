@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_OPENAI_IMAGE_MODEL } from '../../../../packages/shared/src/openaiImageContract';
 
 import {
   createCodexRuntimePreflight,
@@ -76,6 +77,7 @@ describe('provider runtime config', () => {
         }),
         expect.objectContaining({
           providerId: 'openai',
+          defaultModel: DEFAULT_OPENAI_IMAGE_MODEL,
           secretState: 'configured',
           secretSource: 'OPENAI_API_KEY',
           canAttemptExecution: true,
@@ -91,6 +93,11 @@ describe('provider runtime config', () => {
     expect(JSON.stringify(preflights)).not.toContain('google-secret-value');
     expect(JSON.stringify(preflights)).not.toContain('fal-secret-value');
     expect(JSON.stringify(preflights)).not.toContain('openai-secret-value');
+    expect(
+      getExternalProviderRuntimePreflight('openai', {
+        OPENAI_IMAGE_MODEL: ' gpt-image-2.6-sunburst ',
+      })?.defaultModel,
+    ).toBe('gpt-image-2.6-sunburst');
   });
 
   it('validates local runtime endpoint shape before Comfy can attempt execution', () => {

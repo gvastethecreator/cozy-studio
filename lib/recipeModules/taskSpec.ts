@@ -108,6 +108,7 @@ export function buildGenerationTaskSpecFromRecipe({
   const module = getRecipeModule(config.recipeId ?? null);
   const behavior = resolveBehavior(config.recipeId);
   const referenceCount = config.attachments.length;
+  const mimeType = config.outputMimeType ?? 'image/png';
   const params = projectGenerationBackgroundParams(config);
   const plan: RecipePlan = behavior.plan
     ? behavior.plan({ config, params, referenceCount })
@@ -182,7 +183,13 @@ export function buildGenerationTaskSpecFromRecipe({
         typeof recipeParams.colorTone === 'string' ? recipeParams.colorTone : null,
       ),
       materials: planValue(quality.materials, null),
-      constraints: [backgroundInstruction, ...(quality.constraints ?? [])],
+      constraints: [
+        backgroundInstruction,
+        ...(mimeType === 'image/gif'
+          ? ['Generate an animated GIF with coherent motion and a seamless loop.']
+          : []),
+        ...(quality.constraints ?? []),
+      ],
       negative: quality.negative ?? [],
       referenceRoles: config.attachments.map((attachment, index) => ({
         role: resolveRecipeAttachmentRole(config, index),
@@ -194,8 +201,8 @@ export function buildGenerationTaskSpecFromRecipe({
       background: resolveGenerationBackground(config),
       count: config.batchCount,
       aspectRatio: config.aspectRatio,
-      imageSize: resolvedImageSize,
-      mimeType: 'image/png',
+      imageSize: mimeType === 'image/gif' ? null : resolvedImageSize,
+      mimeType,
       requiresCatalogEntry: true,
       requiresLocalAsset: true,
       requiresExactPath: true,

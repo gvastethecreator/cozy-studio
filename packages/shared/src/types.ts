@@ -255,6 +255,9 @@ export interface SubscriptionHttpSubmission {
   providerId: 'codex' | 'chatgpt';
   phase: 'submitting' | 'completed' | 'failed';
   startedAt: number;
+  /** Identifier explicitly returned by the server's image tool; not an inferred variant. */
+  reportedImageModel?: string;
+  reportedImageModelSource?: 'image_generation_call' | 'response.tools';
 }
 export type JobRemoteExecution = ComfyRemoteExecution | SubscriptionHttpSubmission;
 

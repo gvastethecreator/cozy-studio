@@ -11,6 +11,7 @@ import {
   compileReplicateImageApiInput,
 } from './externalProviderInputs';
 import type { GenerationProviderJob } from './types';
+import { collectDirectGifJobIssues } from '../../../../packages/shared/src/openaiImageContract';
 
 export type ProviderInputCompiler = (job: GenerationProviderJob) => CompiledProviderInput;
 
@@ -44,6 +45,13 @@ export function compileProviderInputForJob(
   if (!compiler) {
     throw new Error(`No provider input compiler registered for "${providerId}".`);
   }
+
+  const gifIssues = collectDirectGifJobIssues({
+    providerId,
+    imageModel: job.execution?.model,
+    sourceSpec: job.sourceSpec,
+  });
+  if (gifIssues.length > 0) throw new Error(gifIssues[0]!.message);
 
   return compiler(job);
 }

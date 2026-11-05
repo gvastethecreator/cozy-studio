@@ -4,6 +4,7 @@ import { isPreferredWorkflow, type PreferredWorkflow } from './workflowCatalog';
 import { normalizeDisabledWorkflowModules, type WorkflowModuleId } from './workflowModules';
 import { isRecord } from './types';
 import type { RepositoryUpdateChannel } from './repositoryUpdates';
+import { isCodexHttpImageModel, type CodexHttpImageModel } from './codexExecutionContract';
 
 const EDITABLE_STUDIO_SETTINGS_VERSION = 'editable-studio-settings/v2' as const;
 
@@ -24,6 +25,7 @@ export type StudioOutputSubfolderToken =
 export interface ProviderDefaultSettings {
   providerId: GenerationProviderId;
   model: string | null;
+  imageModel?: CodexHttpImageModel | null;
   reasoningEffort: string | null;
   serviceTier: Exclude<CodexServiceTier, 'standard'> | null;
 }
@@ -171,6 +173,11 @@ function sanitizeProviderDefaultsPatch(value: unknown): EditableProviderDefaults
     if ('model' in rawDefault) {
       if (rawDefault.model === null || typeof rawDefault.model === 'string') {
         providerPatch.model = cleanString(rawDefault.model);
+      }
+    }
+    if (providerKey === 'chatgpt' && 'imageModel' in rawDefault) {
+      if (rawDefault.imageModel === null || isCodexHttpImageModel(rawDefault.imageModel)) {
+        providerPatch.imageModel = rawDefault.imageModel;
       }
     }
 
@@ -391,6 +398,14 @@ export function mergeEditableStudioSettingsPatch(
     providerDefaults[key] = {
       providerId: providerPatch.providerId ?? currentDefault.providerId,
       model: 'model' in providerPatch ? (providerPatch.model ?? null) : currentDefault.model,
+      ...(key === 'chatgpt' && ('imageModel' in providerPatch || 'imageModel' in currentDefault)
+        ? {
+            imageModel:
+              'imageModel' in providerPatch
+                ? (providerPatch.imageModel ?? null)
+                : currentDefault.imageModel,
+          }
+        : {}),
       reasoningEffort:
         'reasoningEffort' in providerPatch
           ? (providerPatch.reasoningEffort ?? null)

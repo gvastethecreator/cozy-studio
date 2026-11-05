@@ -533,7 +533,13 @@ describe('Studio MCP boundary', () => {
         providerId: 'chatgpt',
         workspaceId: 'default',
         batchId: 'batch-1',
-        execution: { providerOptions: { chatgpt: { imageModel: 'gpt-image-2' } } },
+        execution: { providerOptions: { chatgpt: { imageModel: 'gpt-image-2.6-sunburst' } } },
+        remoteExecution: {
+          providerId: 'chatgpt',
+          phase: 'completed',
+          startedAt: 1,
+          reportedImageModel: 'gpt-image-2-codex',
+        },
         sourceSpec: createGenerationTaskSpec({
           id: 'job-1',
           task: 'image_generate',
@@ -630,7 +636,8 @@ describe('Studio MCP boundary', () => {
       completedAt: 'completed',
       error: null,
       notices: ['Provider returned 1024x1536.'],
-      model: 'gpt-image-2',
+      model: 'gpt-image-2.6-sunburst',
+      reportedImageModel: 'gpt-image-2-codex',
       libraryOrganization: { tags: ['cover'], collection: 'Covers' },
       events: Array.from({ length: 20 }, (_, index) => ({
         type: 'job.progress',

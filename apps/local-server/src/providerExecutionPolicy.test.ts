@@ -54,6 +54,35 @@ describe('resolveEffectiveJobExecutionOptions', () => {
         bootstrap,
       }),
     ).toEqual(bootstrap);
+    settings.providerDefaults.chatgpt = {
+      providerId: 'chatgpt',
+      model: null,
+      reasoningEffort: null,
+      serviceTier: null,
+      imageModel: 'gpt-image-2.6-flare',
+    };
+    expect(
+      resolveEffectiveJobExecutionOptions({
+        providerId: 'chatgpt',
+        settings,
+        bootstrap,
+      }).providerOptions?.chatgpt?.imageModel,
+    ).toBe('gpt-image-2.6-flare');
+    expect(
+      resolveEffectiveJobExecutionOptions({
+        providerId: 'chatgpt',
+        settings,
+        bootstrap,
+        explicit: {
+          ...bootstrap,
+          providerOptions: {
+            chatgpt: {
+              image: { model: 'gpt-image-2.6-sunburst', size: '1024x1024', quality: 'medium' },
+            },
+          },
+        },
+      }).providerOptions?.chatgpt?.imageModel,
+    ).toBe('gpt-image-2.6-sunburst');
   });
   it('preserves captured standard speed after global defaults change', () => {
     expect(

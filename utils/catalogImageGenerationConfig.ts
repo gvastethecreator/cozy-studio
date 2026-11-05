@@ -1,6 +1,7 @@
 import type { CatalogImage } from '../packages/shared/src/types';
 import { parsePromptTransport } from '../packages/shared/src/promptTransport';
 import { getGenerationRequirement } from '../packages/shared/src/generationRequirements';
+import { isCodexHttpImageModel } from '../packages/shared/src/codexExecutionContract';
 import { DEFAULT_GENERATION_CONFIG, MODELS } from '../constants';
 import type { Attachment, ImageGenerationConfig, ImageSize, RecipeId } from '../types';
 import { normalizeImageGenRatio } from './imageGenSizing';
@@ -133,6 +134,14 @@ export function buildGenerationConfigFromCatalogImage(asset: CatalogImage): Imag
 
   return {
     ...DEFAULT_GENERATION_CONFIG,
+    ...(isCodexHttpImageModel(storedConfig?.codexImageModel)
+      ? { codexImageModel: storedConfig.codexImageModel }
+      : {}),
+    outputMimeType:
+      storedConfig?.outputMimeType === 'image/gif' ||
+      (asset.jobId && asset.mimeType === 'image/gif')
+        ? 'image/gif'
+        : 'image/png',
     outputBackground: storedConfig?.outputBackground === 'transparent' ? 'transparent' : 'workflow',
     prompt,
     recipeId,

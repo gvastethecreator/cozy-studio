@@ -49,6 +49,35 @@ describe('workerAssetFinalizer', () => {
     expect(result.prompt).toContain('A brass key');
     expect(result.prompt).toContain('Avoid:\ntext');
     expect(result.model).toBe('unknown');
+    const reported = jobImageMetadata({
+      ...createJob({
+        providerId: 'chatgpt',
+        execution: {
+          model: 'gpt-6-sol',
+          reasoningEffort: 'provider_default',
+          providerOptions: {
+            chatgpt: {
+              image: {
+                model: 'gpt-image-2.6-flare',
+                size: '1024x1024',
+                quality: 'medium',
+              },
+            },
+          },
+        },
+      }),
+      remoteExecution: {
+        providerId: 'chatgpt',
+        phase: 'completed',
+        startedAt: 1,
+        reportedImageModel: 'gpt-image-2-codex',
+        reportedImageModelSource: 'response.tools',
+      },
+    });
+    expect(reported).toMatchObject({
+      model: 'gpt-image-2.6-flare',
+      reportedImageModel: 'gpt-image-2-codex',
+    });
   });
 
   it.each([

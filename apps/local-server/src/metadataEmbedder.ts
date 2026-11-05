@@ -17,6 +17,7 @@ export interface ImageGenMetadata {
   aspectRatio?: string | null;
   imageSize?: string | null;
   model: string;
+  reportedImageModel?: string;
   recipe?: string | null;
   batchId?: string | null;
   generatedAt: string;
@@ -69,6 +70,7 @@ function metadataText(metadata: ImageGenMetadata) {
     aspect_ratio: metadata.aspectRatio ?? null,
     image_size: metadata.imageSize ?? null,
     model: metadata.model,
+    ...(metadata.reportedImageModel ? { reported_image_model: metadata.reportedImageModel } : {}),
     recipe: metadata.recipe ?? null,
     batch_id: metadata.batchId ?? null,
     generated_at: metadata.generatedAt,
@@ -96,12 +98,14 @@ function parseMetadataText(value: string): ImageGenMetadata | null {
   )
     return null;
   const optional = (value: unknown) => (typeof value === 'string' ? value : null);
+  const reportedImageModel = optional(parsed.reported_image_model ?? parsed.reportedImageModel);
   return {
     prompt: parsed.prompt,
     negativePrompt: optional(parsed.negative_prompt ?? parsed.negativePrompt),
     aspectRatio: optional(parsed.aspect_ratio ?? parsed.aspectRatio),
     imageSize: optional(parsed.image_size ?? parsed.imageSize),
     model: parsed.model,
+    ...(reportedImageModel ? { reportedImageModel } : {}),
     recipe: optional(parsed.recipe),
     batchId: optional(parsed.batch_id ?? parsed.batchId),
     generatedAt,
@@ -114,7 +118,10 @@ function parseMetadataText(value: string): ImageGenMetadata | null {
 function xmpDescription(metadata: ImageGenMetadata) {
   const escape = (value: string | null | undefined) =>
     (value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-  return `<rdf:Description xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:codex="${XMP_NAMESPACE}" rdf:about=""><codex:prompt>${escape(metadata.prompt)}</codex:prompt><codex:negativePrompt>${escape(metadata.negativePrompt)}</codex:negativePrompt><codex:aspectRatio>${escape(metadata.aspectRatio)}</codex:aspectRatio><codex:imageSize>${escape(metadata.imageSize)}</codex:imageSize><codex:model>${escape(metadata.model)}</codex:model><codex:recipe>${escape(metadata.recipe)}</codex:recipe><codex:batchId>${escape(metadata.batchId)}</codex:batchId><codex:generatedAt>${escape(metadata.generatedAt)}</codex:generatedAt><codex:studioVersion>${escape(metadata.studioVersion)}</codex:studioVersion><codex:libraryId>${escape(metadata.libraryId)}</codex:libraryId><codex:catalogId>${escape(metadata.catalogId)}</codex:catalogId></rdf:Description>`;
+  const reportedModel = metadata.reportedImageModel
+    ? `<codex:reportedImageModel>${escape(metadata.reportedImageModel)}</codex:reportedImageModel>`
+    : '';
+  return `<rdf:Description xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:codex="${XMP_NAMESPACE}" rdf:about=""><codex:prompt>${escape(metadata.prompt)}</codex:prompt><codex:negativePrompt>${escape(metadata.negativePrompt)}</codex:negativePrompt><codex:aspectRatio>${escape(metadata.aspectRatio)}</codex:aspectRatio><codex:imageSize>${escape(metadata.imageSize)}</codex:imageSize><codex:model>${escape(metadata.model)}</codex:model>${reportedModel}<codex:recipe>${escape(metadata.recipe)}</codex:recipe><codex:batchId>${escape(metadata.batchId)}</codex:batchId><codex:generatedAt>${escape(metadata.generatedAt)}</codex:generatedAt><codex:studioVersion>${escape(metadata.studioVersion)}</codex:studioVersion><codex:libraryId>${escape(metadata.libraryId)}</codex:libraryId><codex:catalogId>${escape(metadata.catalogId)}</codex:catalogId></rdf:Description>`;
 }
 
 function xmpPacket(metadata: ImageGenMetadata, existing?: string) {
@@ -474,6 +481,7 @@ function parseXmpMetadata(packet: string): ImageGenMetadata | null {
     JSON.stringify({
       prompt: read('prompt'),
       model: read('model'),
+      reportedImageModel: read('reportedImageModel') || undefined,
       generatedAt: read('generatedAt'),
       studioVersion: read('studioVersion'),
       negativePrompt: read('negativePrompt') || null,

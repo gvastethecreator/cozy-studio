@@ -29,6 +29,12 @@ export function resolveEffectiveJobExecutionOptions({
     explicit && Object.hasOwn(explicit, 'serviceTier')
       ? cleanServiceTier(explicit.serviceTier)
       : undefined;
+  const explicitImageModel =
+    explicit?.providerOptions?.chatgpt?.imageModel ??
+    explicit?.providerOptions?.chatgpt?.image?.model ??
+    explicit?.providerOptions?.codex?.imageModel ??
+    explicit?.providerOptions?.codex?.image?.model;
+  const imageModel = explicitImageModel ?? providerDefault?.imageModel;
 
   return {
     model: cleanString(explicit?.model) ?? cleanString(providerDefault?.model) ?? bootstrap.model,
@@ -40,5 +46,16 @@ export function resolveEffectiveJobExecutionOptions({
       explicitServiceTier !== undefined
         ? explicitServiceTier
         : (providerDefault?.serviceTier ?? bootstrap.serviceTier ?? null),
+    ...(providerId === 'chatgpt'
+      ? {
+          providerOptions: {
+            ...explicit?.providerOptions,
+            chatgpt: {
+              ...explicit?.providerOptions?.chatgpt,
+              ...(imageModel ? { imageModel } : {}),
+            },
+          },
+        }
+      : {}),
   };
 }

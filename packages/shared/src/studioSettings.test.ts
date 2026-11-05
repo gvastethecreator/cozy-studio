@@ -219,6 +219,7 @@ describe('studioSettings', () => {
           reasoningEffort: 'high',
           serviceTier: 'fast',
         },
+        chatgpt: { imageModel: 'gpt-image-2.6-sunburst' },
       },
     });
 
@@ -229,6 +230,7 @@ describe('studioSettings', () => {
           reasoningEffort: null,
           serviceTier: null,
         },
+        chatgpt: { imageModel: null },
       },
     });
 
@@ -238,5 +240,7 @@ describe('studioSettings', () => {
       reasoningEffort: null,
       serviceTier: null,
     });
+    expect(current.providerDefaults.chatgpt.imageModel).toBe('gpt-image-2.6-sunburst');
+    expect(cleared.providerDefaults.chatgpt.imageModel).toBeNull();
   });
 });

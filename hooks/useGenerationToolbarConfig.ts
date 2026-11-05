@@ -42,6 +42,7 @@ interface GenerationToolbarSyncContext {
 
 interface GenerationToolbarProviderContext {
   activeProviderId: GenerationProviderId;
+  providerDefaultImageModel?: ToolbarProps['providerDefaultImageModel'];
   commandCenter?: ToolbarProps['commandCenter'];
   onSelectProvider?: ToolbarProps['onSelectProvider'];
   isProviderSaving?: boolean;
@@ -115,6 +116,7 @@ export function buildGenerationToolbarProps({
       resolveProviderMaxInputImages(provider.activeProviderId),
     ),
     activeProviderId: provider.activeProviderId,
+    providerDefaultImageModel: provider.providerDefaultImageModel,
     commandCenter: provider.commandCenter,
     onSelectProvider: provider.onSelectProvider,
     isProviderSaving: provider.isProviderSaving,

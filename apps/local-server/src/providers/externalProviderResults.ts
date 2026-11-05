@@ -78,6 +78,7 @@ export interface StoreInlineImageResultInput {
   compiledInput: Pick<CompiledProviderInput, 'sourceSpecId' | 'task'>;
   responseJson: unknown;
   image: InlineImageData;
+  requireAnimation?: boolean;
   requestAttempts: number;
   startedAt: number;
   diagnostics?: Record<string, unknown>;
@@ -471,54 +472,68 @@ export function storeInlineImageResult({
   compiledInput,
   responseJson,
   image,
+  requireAnimation = false,
   requestAttempts,
   startedAt,
   diagnostics,
   files,
 }: StoreInlineImageResultInput): ProviderEffect<TurnResult> {
-  return providerSync(() => {
-    const responseMime = image.mimeType?.split(';')[0]?.trim() ?? null;
-    const validated = decodeAndValidateInlineImage(image.data, responseMime);
-    const ext = extensionFromMime(validated.mimeType) ?? '.png';
-    const mimeType = validated.mimeType;
-    const safeJobId = sanitizeFilePart(job.id);
-    const outputPath = files.resolveLibraryPath(
-      'assets',
-      `${safeJobId}-${providerSlug}-${files.now()}${ext}`,
-    );
-    files.mkdir(path.dirname(outputPath), { recursive: true });
-    files.writeFile(outputPath, validated.buffer);
+  return providerOperation(
+    Effect.gen(function* () {
+      const responseMime = image.mimeType?.split(';')[0]?.trim() ?? null;
+      const validated = decodeAndValidateInlineImage(image.data, responseMime);
+      if (requireAnimation) {
+        const { pages } = yield* providerPromise(async () => {
+          const { authoringSharp } = await import('../sharpAuthoringAdapter');
+          return authoringSharp(validated.buffer).metadata();
+        });
+        if ((pages ?? 1) < 2) {
+          throw new ExternalProviderImageError(
+            'Provider returned a single-frame GIF for an animation.',
+          );
+        }
+      }
+      const ext = extensionFromMime(validated.mimeType) ?? '.png';
+      const mimeType = validated.mimeType;
+      const safeJobId = sanitizeFilePart(job.id);
+      const outputPath = files.resolveLibraryPath(
+        'assets',
+        `${safeJobId}-${providerSlug}-${files.now()}${ext}`,
+      );
+      files.mkdir(path.dirname(outputPath), { recursive: true });
+      files.writeFile(outputPath, validated.buffer);
 
-    const transcriptDir = files.resolveLibraryPath('transcripts', safeJobId);
-    files.mkdir(transcriptDir, { recursive: true });
-    const transcriptPath = path.join(transcriptDir, `${providerSlug}.json`);
-    files.writeFile(
-      transcriptPath,
-      JSON.stringify(
-        {
-          providerId,
-          model,
-          endpointBase,
-          sourceSpecId: compiledInput.sourceSpecId,
-          task: compiledInput.task,
-          outputPath,
-          requestAttempts,
-          imageAttempts: 0,
-          ...(diagnostics ? { diagnostics } : {}),
-          responseShape: isRecord(responseJson) ? Object.keys(responseJson).sort() : [],
-        },
-        null,
-        2,
-      ),
-      'utf8',
-    );
+      const transcriptDir = files.resolveLibraryPath('transcripts', safeJobId);
+      files.mkdir(transcriptDir, { recursive: true });
+      const transcriptPath = path.join(transcriptDir, `${providerSlug}.json`);
+      files.writeFile(
+        transcriptPath,
+        JSON.stringify(
+          {
+            providerId,
+            model,
+            endpointBase,
+            sourceSpecId: compiledInput.sourceSpecId,
+            task: compiledInput.task,
+            outputPath,
+            requestAttempts,
+            imageAttempts: 0,
+            ...(diagnostics ? { diagnostics } : {}),
+            responseShape: isRecord(responseJson) ? Object.keys(responseJson).sort() : [],
+          },
+          null,
+          2,
+        ),
+        'utf8',
+      );
 
-    return {
-      assets: [{ type: 'file', sourcePath: outputPath, mimeType }],
-      transcript: transcriptPath,
-      turnId: null,
-      threadId: null,
-      durationMs: Math.max(0, files.now() - startedAt),
-    };
-  });
+      return {
+        assets: [{ type: 'file', sourcePath: outputPath, mimeType }],
+        transcript: transcriptPath,
+        turnId: null,
+        threadId: null,
+        durationMs: Math.max(0, files.now() - startedAt),
+      };
+    }),
+  );
 }

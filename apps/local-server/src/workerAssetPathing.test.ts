@@ -151,6 +151,7 @@ describe('workerAssetPathing', () => {
     expect(inferGeneratedAssetMimeType('x.jpg')).toBe('image/jpeg');
     expect(inferGeneratedAssetMimeType('x.jpeg')).toBe('image/jpeg');
     expect(inferGeneratedAssetMimeType('x.webp')).toBe('image/webp');
+    expect(inferGeneratedAssetMimeType('x.gif')).toBe('image/gif');
     expect(inferGeneratedAssetMimeType('x.svg')).toBe('image/svg+xml');
   });
 

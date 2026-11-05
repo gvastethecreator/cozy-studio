@@ -10,6 +10,10 @@ export function jobImageMetadata(job: Job) {
   const http =
     provider === 'chatgpt' ||
     (provider === 'codex' && options?.codex?.transport === 'subscription_http');
+  const reportedImageModel =
+    http && job.remoteExecution && job.remoteExecution.providerId !== 'comfy'
+      ? job.remoteExecution.reportedImageModel
+      : undefined;
   let prompt = job.finalPromptUsed;
   if (provider === 'google') {
     prompt = createGooglePromptText(compileGoogleImageApiInput({ ...job, prompt }).payload);
@@ -22,6 +26,7 @@ export function jobImageMetadata(job: Job) {
   }
   return {
     prompt,
+    ...(reportedImageModel ? { reportedImageModel } : {}),
     model: http
       ? (options?.chatgpt?.imageModel ??
         options?.chatgpt?.image?.model ??
@@ -37,9 +42,15 @@ export function jobImageMetadata(job: Job) {
 /** Recover generation provenance for copies that no longer own a job. */
 export function catalogImageMetadata(image: CatalogImage) {
   const provenance = image.generationConfig?.imageConversion as
-    | { originalPrompt?: unknown; originalModel?: unknown }
+    | { originalPrompt?: unknown; originalModel?: unknown; originalReportedImageModel?: unknown }
     | undefined;
+  const reportedImageModel =
+    typeof provenance?.originalReportedImageModel === 'string' &&
+    provenance.originalReportedImageModel
+      ? provenance.originalReportedImageModel
+      : image.generationConfig?.reportedImageModel;
   return {
+    ...(typeof reportedImageModel === 'string' && reportedImageModel ? { reportedImageModel } : {}),
     prompt:
       typeof provenance?.originalPrompt === 'string'
         ? provenance.originalPrompt

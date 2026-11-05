@@ -1,12 +1,13 @@
 import type { GenerationProviderId, JobExecutionOptions } from '../../../../packages/shared/src';
 import { DEFAULT_GOOGLE_IMAGE_MODEL } from '../../../../packages/shared/src/googleImageContract';
+import { DEFAULT_OPENAI_IMAGE_MODEL } from '../../../../packages/shared/src/openaiImageContract';
 import { CODEX_HTTP_EXECUTION_DEFAULTS } from '../../../../packages/shared/src/codexExecutionContract';
 import { getSettings } from '../config';
 import { readGrokRuntimeDoctor, type GrokRuntimeDoctorReport } from '../grokRuntimeDoctor';
 
 export { DEFAULT_GOOGLE_IMAGE_MODEL };
+export { DEFAULT_OPENAI_IMAGE_MODEL };
 export const DEFAULT_FAL_IMAGE_MODEL = 'fal-ai/flux/schnell';
-export const DEFAULT_OPENAI_IMAGE_MODEL = 'gpt-image-1';
 export const DEFAULT_REPLICATE_IMAGE_MODEL = 'black-forest-labs/flux-schnell';
 export const DEFAULT_COMFY_MODEL = 'workflow-template';
 

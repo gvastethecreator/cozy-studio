@@ -7,9 +7,13 @@ import {
   listCodexHttpImageSizeOptions,
   resolveCodexExecutionPolicy,
   resolveCodexHttpImageSize,
+  resolveGenerationExecutionOverride,
 } from './codexExecutionContract';
 
 describe('codex HTTP image size contract', () => {
+  it('keeps an omitted ChatGPT image choice available for the account default', () => {
+    expect(resolveGenerationExecutionOverride('chatgpt', {})?.providerOptions?.chatgpt).toEqual({});
+  });
   it('keeps the documented 1K ratio table', () => {
     expect(resolveCodexHttpImageSize({ aspectRatio: '16:9', imageSize: '1K' })).toBe('1536x864');
     expect(resolveCodexHttpImageSize({ aspectRatio: '2:3' })).toBe(CODEX_HTTP_RATIO_SIZES['2:3']);

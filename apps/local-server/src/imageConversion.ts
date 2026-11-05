@@ -212,6 +212,9 @@ export function createImageConversion({
               sourceJobId: source.jobId,
               originalPrompt: metadata.prompt,
               originalModel: metadata.model,
+              ...(metadata.reportedImageModel
+                ? { originalReportedImageModel: metadata.reportedImageModel }
+                : {}),
               options,
             },
           },

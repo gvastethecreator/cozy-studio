@@ -1,5 +1,5 @@
 import type { AspectRatio } from './types';
-import { CODEX_HTTP_IMAGE_MODEL } from './packages/shared/src/codexExecutionContract';
+import type { CodexHttpImageModel } from './packages/shared/src/codexExecutionContract';
 
 export const MODELS = {
   CODEX_IMAGEGEN: 'codex-imagegen',
@@ -45,7 +45,7 @@ export const DEFAULT_GENERATION_CONFIG = {
   executionModel: DEFAULT_CODEX_EXECUTION_MODEL,
   executionReasoningEffort: DEFAULT_CODEX_EXECUTION_REASONING_EFFORT,
   executionSpeed: DEFAULT_CODEX_EXECUTION_SPEED,
-  codexImageModel: CODEX_HTTP_IMAGE_MODEL,
+  codexImageModel: undefined as CodexHttpImageModel | undefined,
   batchCount: 1,
   useThinkingAndSearch: false,
 };

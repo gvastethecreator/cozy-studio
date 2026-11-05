@@ -7,7 +7,12 @@ import type {
 } from './types';
 
 export type CodexExecutionTransport = 'codex_app_server' | 'subscription_http';
-export type CodexHttpImageModel = 'gpt-image-2.5-flare' | 'gpt-image-2.5-sunburst' | 'gpt-image-2';
+export type CodexHttpImageModel =
+  | 'gpt-image-2.6-flare'
+  | 'gpt-image-2.6-sunburst'
+  | 'gpt-image-2.5-flare'
+  | 'gpt-image-2.5-sunburst'
+  | 'gpt-image-2';
 
 export interface CodexHttpImageModelOption {
   id: CodexHttpImageModel;
@@ -37,6 +42,18 @@ export const CODEX_HTTP_IMAGE_MODEL: CodexHttpImageModel = 'gpt-image-2.5-flare'
 export const CODEX_HTTP_IMAGE_DISPLAY_NAME = 'GPT Image 2.5 Flare';
 export const CODEX_HTTP_IMAGE_QUALITY = 'medium' as const;
 export const CODEX_HTTP_IMAGE_MODELS: readonly CodexHttpImageModelOption[] = [
+  {
+    id: 'gpt-image-2.6-flare',
+    displayName: 'GPT Image 2.6 Flare',
+    shortName: '2.6 Flare',
+    lifecycle: 'current',
+  },
+  {
+    id: 'gpt-image-2.6-sunburst',
+    displayName: 'GPT Image 2.6 Sunburst',
+    shortName: '2.6 Sunburst',
+    lifecycle: 'current',
+  },
   {
     id: 'gpt-image-2.5-flare',
     displayName: 'GPT Image 2.5 Flare',
@@ -135,7 +152,9 @@ export function resolveGenerationExecutionOverride(
     return {
       ...CODEX_HTTP_EXECUTION_DEFAULTS,
       providerOptions: {
-        chatgpt: { imageModel: resolveCodexHttpImageModel(choice.codexImageModel) },
+        chatgpt: choice.codexImageModel
+          ? { imageModel: resolveCodexHttpImageModel(choice.codexImageModel) }
+          : {},
       },
     };
   }

@@ -181,6 +181,7 @@ async function buildGenerationRequest(
       attachments,
       aspectRatio: input.aspectRatio,
       imageSize: input.imageSize,
+      ...(input.outputFormat === 'gif' && { outputMimeType: 'image/gif' }),
       batchCount: 1,
     };
     sourceSpec = buildGenerationTaskSpecFromRecipe({
@@ -454,6 +455,7 @@ export function createMcpRoutes({
         if (!response.ok) return response;
         // An allowlist, never a spread: transcripts and provider payloads stay in Studio.
         const { job, events, catalogImages } = (await response.json()) as JobDetailResponse;
+        const { model, reportedImageModel } = jobImageMetadata(job);
         return c.json({
           id: job.id,
           status: job.status,
@@ -470,7 +472,8 @@ export function createMcpRoutes({
           notices: events
             .filter(({ type }) => JOB_NOTICE_EVENT_TYPES.includes(type))
             .map(({ message }) => message),
-          model: jobImageMetadata(job).model,
+          model,
+          reportedImageModel,
           libraryOrganization: job.sourceSpec?.metadata.libraryOrganization ?? null,
           events: events
             .slice(-20)
@@ -590,6 +593,7 @@ export function createMcpRoutes({
           providerId: plan.providerId,
           model: plan.model,
           task: plan.kind,
+          ...(input.outputFormat && { outputFormat: input.outputFormat }),
           recipeId: plan.recipeId,
           workspace,
           filing: {

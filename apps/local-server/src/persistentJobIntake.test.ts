@@ -43,6 +43,77 @@ type CreateJobInput = {
 };
 
 describe('persistentJobIntake', () => {
+  it('captures a GIF request and rejects an unsupported model before creating a job', async () => {
+    const createJobFn = vi.fn((input: CreateJobInput) =>
+      createJob({
+        providerId: input.providerId,
+        sourceSpec: input.sourceSpec,
+        execution: input.execution,
+      }),
+    );
+    const intake = createPersistentJobIntake({
+      createJobId: () => 'gif-job',
+      createJob: createJobFn,
+      updateJobFinalPrompt: () => null,
+      processReferences: async () => ({
+        augmentedPrompt: 'a blinking lantern loop',
+        persistedRefs: [],
+      }),
+      hydrateSourceSpecAssetPaths: (sourceSpec) => sourceSpec,
+      readLibraryDir: () => 'D:/library',
+      resolveBootstrapExecution: () => ({
+        model: 'gpt-image-2.6-flare',
+        reasoningEffort: 'minimal',
+        serviceTier: null,
+      }),
+      resolveProviderExecutionBlocker: () => null,
+      isReferenceProcessingError: (_error): _error is ReferenceProcessingErrorLike => false,
+      publishEvent: vi.fn(),
+      logJobCreated: vi.fn(),
+      enqueueJob: vi.fn(),
+    });
+    const request = {
+      kind: 'image_generate' as const,
+      providerId: 'openai' as const,
+      prompt: 'a blinking lantern loop',
+      sourceSpec: createGenerationTaskSpec({
+        id: 'gif-spec',
+        task: 'image_generate',
+        providerId: 'openai',
+        prompt: 'a blinking lantern loop',
+        output: { mimeType: 'image/gif' },
+      }),
+    };
+    expect(await intake.createJob(request)).toMatchObject({
+      ok: true,
+      job: {
+        sourceSpec: { output: { mimeType: 'image/gif' } },
+        execution: { model: 'gpt-image-2.6-flare' },
+      },
+    });
+    expect(
+      await intake.createJob({
+        ...request,
+        execution: { model: 'gpt-image-1', reasoningEffort: 'minimal', serviceTier: null },
+      }),
+    ).toMatchObject({
+      ok: false,
+      error: { status: 400, body: { code: 'gif_output_unavailable' } },
+    });
+    expect(createJobFn).toHaveBeenCalledTimes(1);
+    expect(
+      await intake.createJob({
+        ...request,
+        providerId: 'chatgpt' as const,
+        sourceSpec: { ...request.sourceSpec, providerId: 'chatgpt' as const },
+      }),
+    ).toMatchObject({
+      ok: false,
+      error: { status: 400, body: { code: 'gif_output_unavailable' } },
+    });
+    expect(createJobFn).toHaveBeenCalledTimes(1);
+  });
+
   it('treats codex_imagegen as a transport alias instead of a durable new-job kind', () => {
     const sourceSpec = createGenerationTaskSpec({
       id: 'spec-1',

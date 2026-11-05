@@ -44,6 +44,7 @@ import {
   resolveProviderSupportsTransparentBackground,
 } from '../lib/composerProviderProjection';
 import { resolveGenerationBackground } from '../lib/generationBackground';
+import { supportsDirectGifGeneration } from '../packages/shared/src/openaiImageContract';
 import { getActiveRecipeIndicator } from '../lib/activeRecipeIndicator';
 import type {
   CodexModel,
@@ -56,6 +57,7 @@ import type {
   CodexHttpImageModelOption,
   CodexHttpImageSizeTier,
 } from '../packages/shared/src/codexExecutionContract';
+import { resolveCodexHttpImageModel } from '../packages/shared/src/codexExecutionContract';
 import type { AspectRatio, Attachment, ImageGenerationConfig } from '../types';
 import { OutputBackgroundControl } from './create/OutputBackgroundControl';
 import {
@@ -100,6 +102,7 @@ export interface ToolbarProps {
   isLoadingCodexModelCatalog: boolean;
   codexModelCatalogError: string | null;
   activeProviderId: GenerationProviderId;
+  providerDefaultImageModel?: string | null;
   codexTransport?: CodexExecutionTransport;
   codexAvailableTransports?: readonly CodexExecutionTransport[];
   grokCanExecute?: boolean;
@@ -228,7 +231,7 @@ function useToolbarController(props: ToolbarProps) {
     executionImageSizeOptions,
     showCodexPromptTools,
     isScrambling,
-    showSizeControl,
+    showSizeControl: providerShowSizeControl,
     currentRatios,
     selectedExecutionImageSize,
     handleSelectExecutionImageSize,
@@ -246,6 +249,39 @@ function useToolbarController(props: ToolbarProps) {
     handleSelectExecutionSpeed,
     executionSourceMessage,
   } = useToolbarProvider(props);
+  const outputImageModel = props.providerDefaultImageModel;
+  const gifModelAvailable = supportsDirectGifGeneration(activeProviderId, outputImageModel);
+  const canGenerateGif =
+    gifModelAvailable &&
+    (!activeRecipe || activeRecipe === 'styles') &&
+    (!generationConfig.recipeParams?.task ||
+      generationConfig.recipeParams.task === 'image_generate') &&
+    generationConfig.attachments.length === 0 &&
+    resolveGenerationBackground({ ...generationConfig, recipeId: activeRecipe }) !== 'transparent';
+  const outputFormatContext = JSON.stringify([
+    activeWorkspaceId,
+    interactionScope,
+    activeProviderId,
+    outputImageModel,
+    activeRecipe,
+    generationConfig.recipeParams?.task,
+    resolveGenerationBackground({ ...generationConfig, recipeId: activeRecipe }),
+    generationConfig.attachments.map((attachment) => attachment.id),
+  ]);
+  const [outputFormatSelection, setOutputFormatSelection] = useState<{
+    context: string;
+    mimeType: NonNullable<ImageGenerationConfig['outputMimeType']>;
+  }>({ context: outputFormatContext, mimeType: 'image/png' });
+  if (outputFormatSelection.context !== outputFormatContext) {
+    setOutputFormatSelection({ context: outputFormatContext, mimeType: 'image/png' });
+  }
+  const outputMimeType =
+    canGenerateGif && outputFormatSelection.context === outputFormatContext
+      ? outputFormatSelection.mimeType
+      : 'image/png';
+  const selectOutputMimeType = (mimeType: NonNullable<ImageGenerationConfig['outputMimeType']>) =>
+    setOutputFormatSelection({ context: outputFormatContext, mimeType });
+  const showSizeControl = outputMimeType !== 'image/gif' && providerShowSizeControl;
   const closeAllMenus = useCallback(() => {
     setIsAspectRatioOpen(false);
     setIsExecutionOpen(false);
@@ -327,6 +363,14 @@ function useToolbarController(props: ToolbarProps) {
         codexTransport: selectedCodexTransport,
         imageSize: resolveProviderImageSize(activeProviderId, generationConfig.imageSize),
         batchCount: Math.min(generationConfig.batchCount || 1, maxOutputCount),
+        outputMimeType,
+        ...(activeProviderId === 'chatgpt'
+          ? {
+              codexImageModel: resolveCodexHttpImageModel(
+                generationConfig.codexImageModel ?? props.providerDefaultImageModel,
+              ),
+            }
+          : {}),
       },
       { preventModal: true },
     );
@@ -342,6 +386,9 @@ function useToolbarController(props: ToolbarProps) {
     activeProviderId,
     generationConfig.imageSize,
     generationConfig.batchCount,
+    outputMimeType,
+    generationConfig.codexImageModel,
+    props.providerDefaultImageModel,
     maxOutputCount,
     generationConfig.recipeParams,
     onGenerate,
@@ -417,11 +464,10 @@ function useToolbarController(props: ToolbarProps) {
   const isRail = layout === 'rail';
   const currentBatch = Math.min(generationConfig.batchCount || 1, maxOutputCount);
   const batchCounts = BATCH_COUNTS.filter((count) => count <= maxOutputCount);
-  const outputSummary = getGenerationOutputSummary(
-    activeRecipe,
-    generationConfig.recipeParams,
-    currentBatch,
-  );
+  const outputSummary =
+    outputMimeType === 'image/gif'
+      ? `${currentBatch} animated GIF${currentBatch === 1 ? '' : 's'}`
+      : getGenerationOutputSummary(activeRecipe, generationConfig.recipeParams, currentBatch);
   const nextBatchCount = Math.min(maxOutputCount, currentBatch + 1);
   const previousBatchCount = Math.max(1, currentBatch - 1);
   const formatOrientation =
@@ -500,6 +546,10 @@ function useToolbarController(props: ToolbarProps) {
     showCodexPromptTools,
     isNegativeOpen,
     generationConfig,
+    canGenerateGif,
+    gifModelAvailable,
+    outputMimeType,
+    selectOutputMimeType,
     setIsNegativeOpen,
     negativeInputRef,
     updateConfig,
@@ -697,6 +747,48 @@ function ToolbarRailOutput({ model }: { model: ToolbarModel }) {
   );
 }
 
+function ToolbarOutputFormat({ model }: { model: ToolbarModel }) {
+  const {
+    activeProviderId,
+    canGenerateGif,
+    gifModelAvailable,
+    outputMimeType,
+    selectOutputMimeType,
+  } = model;
+  if (activeProviderId !== 'openai') return null;
+  return (
+    <label className="create-field relative">
+      <select
+        aria-label="Output format"
+        className="studio-input"
+        style={{ paddingRight: 32, appearance: 'none' }}
+        value={outputMimeType}
+        onChange={(event) =>
+          selectOutputMimeType(
+            event.target.value as NonNullable<ImageGenerationConfig['outputMimeType']>,
+          )
+        }
+        title={
+          canGenerateGif
+            ? 'Generate a static image or an animated GIF.'
+            : 'Animated GIF needs GPT Image 2.6 Flare or Sunburst through the OpenAI API, a normal generation without references, and Maintain background.'
+        }
+      >
+        <option value="image/png">Static image</option>
+        <option value="image/gif" disabled={!canGenerateGif}>
+          {gifModelAvailable ? 'Animated GIF' : 'Animated GIF · select GPT Image 2.6'}
+        </option>
+      </select>
+      <ChevronDown
+        width={14}
+        height={14}
+        aria-hidden="true"
+        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
+      />
+    </label>
+  );
+}
+
 function ToolbarRail({ model }: { model: ToolbarModel }) {
   const {
     toolScrollRef,
@@ -726,6 +818,7 @@ function ToolbarRail({ model }: { model: ToolbarModel }) {
             transport={selectedCodexTransport}
             onChange={(value) => updateConfig('outputBackground', value)}
           />
+          <ToolbarOutputFormat model={model} />
         </>
       )}
     </div>
@@ -1021,6 +1114,7 @@ function ToolbarDockOutputOptions({ model }: { model: ToolbarModel }) {
           onChange={(value) => updateConfig('outputBackground', value)}
         />
       )}
+      {!isRail && !isContextOnly ? <ToolbarOutputFormat model={model} /> : null}
       {isRail || isContextOnly ? null : (
         <div className="relative min-w-0">
           <button
@@ -1510,21 +1604,29 @@ function ToolbarTextModels({ model }: { model: ToolbarModel }) {
 }
 
 function ToolbarImageModels({ model }: { model: ToolbarModel }) {
-  const { executionImageModels, selectedExecutionImageModel, handleSelectExecutionImageModel } =
+  const { executionImageModels, handleSelectExecutionImageModel, generationConfig, updateConfig } =
     model;
   return (
     <section aria-labelledby="codex-image-model-label">
       <h4 id="codex-image-model-label">Image model</h4>
+      <button
+        type="button"
+        className="studio-ghost-control create-execution-choice"
+        aria-pressed={!generationConfig.codexImageModel}
+        onClick={() => updateConfig('codexImageModel', undefined)}
+      >
+        Account default
+      </button>
       <div className="create-execution-options">
         {executionImageModels.map((imageModel) => {
-          const isSelected = imageModel.id === selectedExecutionImageModel?.id;
+          const isSelected = imageModel.id === generationConfig.codexImageModel;
           return (
             <button
               type="button"
               key={imageModel.id}
               data-codex-image-model={imageModel.id}
               aria-pressed={isSelected}
-              aria-label={imageModel.displayName}
+              aria-label={`${imageModel.displayName}${imageModel.id.startsWith('gpt-image-2.6-') ? ' (requested alias)' : ''}`}
               onClick={() => handleSelectExecutionImageModel(imageModel)}
               className="studio-ghost-control create-execution-choice"
             >
@@ -1534,6 +1636,9 @@ function ToolbarImageModels({ model }: { model: ToolbarModel }) {
               {imageModel.lifecycle === 'previous' && (
                 <span className="create-execution-badge">Previous</span>
               )}
+              {imageModel.id.startsWith('gpt-image-2.6-') ? (
+                <span className="create-execution-badge">Requested alias</span>
+              ) : null}
               {isSelected && <Check width={14} height={14} aria-hidden="true" />}
             </button>
           );
@@ -1806,6 +1911,7 @@ function useToolbarProvider(props: ToolbarProps) {
     codexModelCatalog,
     codexAvailableTransports,
     codexModelCatalogError,
+    providerDefaultImageModel,
     updateConfig,
   } = props;
   const selectedCodexTransport: CodexExecutionTransport =
@@ -1824,7 +1930,9 @@ function useToolbarProvider(props: ToolbarProps) {
         codexModelCatalog,
         codexTransport: selectedCodexTransport,
         codexAvailableTransports,
-        codexImageModel: generationConfig.codexImageModel,
+        codexImageModel: resolveCodexHttpImageModel(
+          generationConfig.codexImageModel ?? providerDefaultImageModel,
+        ),
         executionModel: generationConfig.executionModel,
         executionReasoningEffort: generationConfig.executionReasoningEffort,
         executionSpeed: generationConfig.executionSpeed,
@@ -1838,6 +1946,7 @@ function useToolbarProvider(props: ToolbarProps) {
       codexModelCatalogError,
       codexAvailableTransports,
       generationConfig.codexImageModel,
+      providerDefaultImageModel,
       selectedCodexTransport,
       generationConfig.aspectRatio,
       generationConfig.attachments,
@@ -1869,10 +1978,12 @@ function useToolbarProvider(props: ToolbarProps) {
   const showSizeControl = execution.showImageSizeControl;
   const executionSourceMessage = execution.sourceMessage;
   const executionSummary = execution.summary;
-  const executionChipLabel = formatCodexModelLabel(
-    selectedExecutionModel?.id ?? generationConfig.executionModel,
-    selectedExecutionModel?.displayName,
-  );
+  const executionChipLabel = selectedExecutionImageModel
+    ? selectedExecutionImageModel.shortName
+    : formatCodexModelLabel(
+        selectedExecutionModel?.id ?? generationConfig.executionModel,
+        selectedExecutionModel?.displayName,
+      );
 
   const isScrambling = false;
 
@@ -2122,7 +2233,7 @@ function ToolbarExecutionPicker({ model }: { model: ToolbarModel }) {
         {isRail ? null : <BrainCircuit width={14} height={14} />}
         {isRail ? (
           <span className="create-engine-copy">
-            <span className="create-engine-kicker">Model</span>
+            {activeProviderId !== 'chatgpt' && <span className="create-engine-kicker">Model</span>}
             <span className="create-engine-name">{executionChipLabel}</span>
           </span>
         ) : (

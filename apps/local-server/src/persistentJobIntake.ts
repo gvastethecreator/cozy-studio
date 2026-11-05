@@ -13,6 +13,7 @@ import {
 } from '../../../packages/shared/src/codexExecutionContract';
 import { parseLibraryOrganization } from '../../../packages/shared/src/catalogCollections';
 import { collectGrokImagineJobIssues } from '../../../packages/shared/src/grokImagineContract';
+import { collectDirectGifJobIssues } from '../../../packages/shared/src/openaiImageContract';
 import { createDefaultEditableStudioSettings } from '../../../packages/shared/src/studioSettings';
 import { findWorkflowModuleForRecipe } from '../../../packages/shared/src/workflowModules';
 import { validateGenerationTaskSpec } from '../../../packages/shared/src/generationContracts';
@@ -406,10 +407,7 @@ export function createPersistentJobIntake({
         execution.providerOptions =
           providerId === 'chatgpt'
             ? {
-                chatgpt: resolveChatgptExecutionPolicy(
-                  { ...execution, providerOptions: request.execution?.providerOptions },
-                  sourceSpec,
-                ),
+                chatgpt: resolveChatgptExecutionPolicy(execution, sourceSpec),
               }
             : { codex: resolveCodexExecutionPolicy(execution, sourceSpec, 'codex_app_server') };
       } catch (error) {
@@ -424,6 +422,20 @@ export function createPersistentJobIntake({
           },
         };
       }
+    }
+    const gifIssues = collectDirectGifJobIssues({
+      providerId,
+      imageModel: execution.model,
+      sourceSpec,
+    });
+    if (gifIssues.length > 0) {
+      return {
+        ok: false,
+        error: {
+          status: 400,
+          body: { error: gifIssues[0]!.message, ...gifIssues[0], issues: gifIssues },
+        },
+      };
     }
     if (providerId === 'grok') {
       const grokIssues = collectGrokImagineJobIssues({

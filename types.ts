@@ -49,6 +49,7 @@ export type RecipeId =
   | null;
 
 export interface ImageGenerationConfig {
+  outputMimeType?: 'image/png' | 'image/gif';
   outputBackground?: 'workflow' | 'transparent';
   characterLabDraft?: import('./lib/characterLabDraft').CharacterLabDraft;
   prompt?: string;

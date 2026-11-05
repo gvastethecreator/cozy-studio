@@ -86,6 +86,7 @@ export interface GeneratedImage {
   tags?: string[];
   localPath?: string;
   sourceUrl?: string;
+  sourceExists?: boolean;
 }
 
 export interface GeneratedImageWithConfig extends GeneratedImage {

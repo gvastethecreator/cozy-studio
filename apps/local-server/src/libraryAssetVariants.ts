@@ -121,14 +121,22 @@ export function buildLibraryAssetHeaders(
 ) {
   const stats = statSync(filePath);
   const cacheSeconds = options.cacheSeconds ?? DEFAULT_ASSET_CACHE_SECONDS;
+  const contentType = resolveLibraryAssetContentType(filePath);
 
-  return {
-    'Content-Type': resolveLibraryAssetContentType(filePath),
+  const headers: Record<string, string> = {
+    'Content-Type': contentType,
+    'X-Content-Type-Options': 'nosniff',
     'Cache-Control': `private, max-age=${cacheSeconds}, stale-while-revalidate=86400`,
     'Content-Length': String(stats.size),
     'Last-Modified': stats.mtime.toUTCString(),
     ETag: `W/"${stats.size.toString(16)}-${Math.floor(stats.mtimeMs).toString(16)}"`,
   };
+  if (contentType.startsWith('image/svg+xml')) {
+    // An SVG opened in its own tab is a document, not a passive <img>.
+    headers['Content-Security-Policy'] =
+      "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:";
+  }
+  return headers;
 }
 
 export function resolveAssetCacheSeconds(variant?: string | null) {

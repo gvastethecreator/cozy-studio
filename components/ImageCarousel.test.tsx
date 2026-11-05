@@ -4,9 +4,12 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, expect, it, vi } from 'vitest';
 import { DEFAULT_GENERATION_CONFIG } from '../constants';
 import ImageCarousel from './ImageCarousel';
+import { openCatalogImageFolder } from '../services/studio-api/catalog';
+
+const toast = vi.hoisted(() => ({ addToast: vi.fn() }));
 
 vi.mock('../contexts/GlobalContext', () => ({
-  useToastUi: () => ({ addToast: vi.fn() }),
+  useToastUi: () => toast,
 }));
 vi.mock('../contexts/WorkspaceContext', () => ({
   useWorkspaceState: () => ({ activeWorkspaceId: 'default' }),
@@ -16,12 +19,14 @@ vi.mock('../services/studio-api/catalog', () => ({
   listCatalogTags: vi.fn().mockResolvedValue([]),
   listCatalogCollections: vi.fn().mockResolvedValue([]),
   getCatalogCollectionSelection: vi.fn().mockResolvedValue([]),
+  openCatalogImageFolder: vi.fn().mockResolvedValue(undefined),
 }));
 
 afterEach(() => {
   cleanup();
   Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
   vi.unstubAllGlobals();
+  vi.clearAllMocks();
 });
 
 it('keeps the canvas while hiding details and navigates from focused controls without stealing pan keys', () => {
@@ -48,6 +53,7 @@ it('keeps the canvas while hiding details and navigates from focused controls wi
     createdAt: 0,
     config: {
       ...DEFAULT_GENERATION_CONFIG,
+      prompt: 'Saved prompt',
       attachments: [{ id: 'reference', name: 'source.png', dataUrl: '/source.png', strength: 1 }],
     },
   }));
@@ -106,6 +112,12 @@ it('keeps the canvas while hiding details and navigates from focused controls wi
   select.mockClear();
   fireEvent.keyDown(canvas, { key: 'ArrowLeft' });
   expect(select).not.toHaveBeenCalled();
+  vi.stubGlobal('navigator', { clipboard: undefined });
+  fireEvent.click(screen.getByRole('button', { name: 'Copy prompt' }));
+  expect(toast.addToast).toHaveBeenCalledWith(
+    'Clipboard is not available in this browser.',
+    'error',
+  );
 });
 
 it('opens full actions for an inactive thumbnail without changing selection or navigating with menu arrows', async () => {
@@ -123,6 +135,9 @@ it('opens full actions for an inactive thumbnail without changing selection or n
   const images = ['first', 'second'].map((id) => ({
     id,
     src: `/library/${id}.png`,
+    sourceUrl: `/library/original-${id}.png`,
+    thumbnail: `/library/thumb-${id}.webp`,
+    localPath: `C:/Studio/original-${id}.png`,
     batchId: 'batch',
     createdAt: 0,
     config: DEFAULT_GENERATION_CONFIG,
@@ -148,7 +163,7 @@ it('opens full actions for an inactive thumbnail without changing selection or n
     clientX: 77,
     clientY: 88,
   });
-  const action = await screen.findByRole('menuitem', { name: 'Add favorite' });
+  await screen.findByRole('menuitem', { name: 'Add favorite' });
   await waitFor(() =>
     expect(screen.getByRole('menu', { name: 'Image actions' }).style.left).toBe('77px'),
   );
@@ -159,6 +174,8 @@ it('opens full actions for an inactive thumbnail without changing selection or n
     'Collections',
     'Copy prompt',
     'Copy image',
+    'Open image in new tab',
+    'Open containing folder',
     'Download',
     'Load configuration',
     'Regenerate',
@@ -168,7 +185,16 @@ it('opens full actions for an inactive thumbnail without changing selection or n
   }
   fireEvent.keyDown(screen.getByRole('menuitem', { name: 'Copy prompt' }), { key: 'ArrowRight' });
   expect(select).not.toHaveBeenCalled();
-  fireEvent.click(action);
+  const original = screen.getByRole('menuitem', { name: 'Open image in new tab' });
+  expect(original.getAttribute('href')).toBe(
+    new URL(images[1].sourceUrl, window.location.href).href,
+  );
+  expect(original.getAttribute('target')).toBe('_blank');
+  expect(original.getAttribute('rel')).toBe('noopener noreferrer');
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Open containing folder' }));
+  expect(openCatalogImageFolder).toHaveBeenCalledWith('second');
+  fireEvent.contextMenu(screen.getByRole('button', { name: 'Open image 2 of 2' }));
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'Add favorite' }));
   expect(favorite).toHaveBeenCalledWith('second');
   fireEvent.contextMenu(screen.getByRole('button', { name: 'Open image 2 of 2' }));
   fireEvent.click(await screen.findByRole('menuitem', { name: 'Move to trash' }));

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { buildCatalogQuery } from './catalog';
+import { buildCatalogQuery, openCatalogImageFolder } from './catalog';
 import { downloadConvertedCatalogImage } from './imageConversion';
 import { DEFAULT_IMAGE_CONVERSION_OPTIONS } from '../../packages/shared/src/imageConversion';
 import { readLocalStudioErrorMessage, request } from './http';
@@ -69,6 +69,18 @@ describe('readLocalStudioErrorMessage', () => {
 });
 
 describe('local studio request headers', () => {
+  it('opens a catalog folder by encoded ID with an explicit local action header', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ ok: true }));
+    vi.stubGlobal('fetch', fetchMock);
+    await openCatalogImageFolder('image/id');
+    expect(fetchMock.mock.calls[0][0]).toContain('/api/catalog/image%2Fid/open-folder');
+    expect(fetchMock.mock.calls[0][1]?.method).toBe('POST');
+    expect(new Headers(fetchMock.mock.calls[0][1]?.headers).get('X-Requested-With')).toBe(
+      'CozyStudio',
+    );
+    expect(fetchMock.mock.calls[0][1]?.body).toBeUndefined();
+  });
+
   it('keeps GET requests simple and sends JSON content type only when there is a body', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()

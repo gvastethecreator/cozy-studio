@@ -576,19 +576,21 @@ function useImageCarousel(props: ImageCarouselProps) {
     void executeDownload();
   };
 
-  const handleCopyPrompt = () => {
+  const handleCopyPrompt = async () => {
     if (!currentImage || copiedPrompt) return;
-    void navigator.clipboard.writeText(currentImage.config.prompt || '').then(
-      () => {
-        setCarouselState((prev) => ({ ...prev, copiedPrompt: true }));
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        timeoutRef.current = window.setTimeout(
-          () => setCarouselState((prev) => ({ ...prev, copiedPrompt: false })),
-          2000,
-        );
-      },
-      () => addToast('Could not copy prompt.', 'error'),
-    );
+    try {
+      if (!navigator.clipboard?.writeText)
+        throw new Error('Clipboard is not available in this browser.');
+      await navigator.clipboard.writeText(currentImage.config.prompt || '');
+      setCarouselState((prev) => ({ ...prev, copiedPrompt: true }));
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = window.setTimeout(
+        () => setCarouselState((prev) => ({ ...prev, copiedPrompt: false })),
+        2000,
+      );
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Could not copy prompt.', 'error');
+    }
   };
 
   // Saved sources may carry only a local path. Compare needs an image the browser can show.
@@ -758,7 +760,11 @@ function ImageCarouselView({ model }: { model: ImageCarouselModel }) {
                 onCopyImage={() => {
                   void copyImageToClipboard(menuImage.sourceUrl ?? menuImage.src).then(
                     () => addToast('Image copied', 'success'),
-                    () => addToast('Could not copy image', 'error'),
+                    (error: unknown) =>
+                      addToast(
+                        error instanceof Error ? error.message : 'Could not copy image',
+                        'error',
+                      ),
                   );
                 }}
                 onConvert={
@@ -895,7 +901,8 @@ function CarouselImageActions({
         onClick={() => {
           void copyImageToClipboard(currentImage.sourceUrl ?? currentImage.src).then(
             () => addToast('Image copied', 'success'),
-            () => addToast('Could not copy image', 'error'),
+            (error: unknown) =>
+              addToast(error instanceof Error ? error.message : 'Could not copy image', 'error'),
           );
         }}
       />

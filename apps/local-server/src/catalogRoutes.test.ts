@@ -19,6 +19,9 @@ import { addImageToNamedCollection } from './catalogCollections';
 import { openTestDatabase } from './db/testDatabase';
 import { createWorkspaceInDb } from './db/workspaces';
 import { embedMetadata, extractMetadata } from './metadataEmbedder';
+import { createContainingFolderOpener } from './openContainingFolder';
+import { EventEmitter } from 'node:events';
+import type { spawn as spawnFn, ChildProcess } from 'node:child_process';
 
 const testDb = vi.hoisted(() => ({ current: undefined as Database | undefined }));
 vi.mock('./db/connection', () => ({ getDb: (db?: Database) => db ?? testDb.current }));
@@ -132,6 +135,7 @@ function createRoutes(
     bytesWritten: 0,
     format: 'png' as const,
   }),
+  openFolder?: (filePath: string) => Promise<void>,
 ) {
   return createCatalogRoutes({
     catalogStore: store,
@@ -146,10 +150,88 @@ function createRoutes(
     embedMetadata: embed,
     getJob: () => null,
     updateCatalogImageFileSize,
+    openContainingFolder: openFolder,
   });
 }
 
 describe('catalog routes', () => {
+  it('opens only a live registered image folder from an explicit local browser request', async () => {
+    const filePath = path.join(libraryDir, 'image & data.png');
+    writeFileSync(filePath, 'image');
+    const store = await createStore([
+      catalogImage({ id: 'local', filePath }),
+      catalogImage({ id: 'missing', filePath: path.join(libraryDir, 'missing.png') }),
+      catalogImage({ id: 'outside', filePath: path.join(libraryDir, '..', 'outside.png') }),
+      catalogImage({ id: 'deleted', filePath, isDeleted: true }),
+    ]);
+    const openFolder = vi.fn(async (_filePath: string) => {});
+    const routes = createRoutes(store, undefined, openFolder);
+    const headers = { Origin: 'http://localhost:17222', 'X-Requested-With': 'CozyStudio' };
+    expect((await routes.request('/local/open-folder', { method: 'POST', headers })).status).toBe(
+      200,
+    );
+    expect(openFolder).toHaveBeenCalledExactlyOnceWith(filePath);
+    for (const requestHeaders of [
+      undefined,
+      { ...headers, Origin: 'https://studio.example' },
+      { Origin: headers.Origin },
+    ]) {
+      expect(
+        (await routes.request('/local/open-folder', { method: 'POST', headers: requestHeaders }))
+          .status,
+      ).toBe(403);
+    }
+    for (const id of ['missing', 'deleted', 'unknown']) {
+      expect((await routes.request(`/${id}/open-folder`, { method: 'POST', headers })).status).toBe(
+        404,
+      );
+    }
+    expect((await routes.request('/outside/open-folder', { method: 'POST', headers })).status).toBe(
+      400,
+    );
+    expect(openFolder).toHaveBeenCalledTimes(1);
+    openFolder.mockRejectedValueOnce(new Error('Not installed'));
+    expect((await routes.request('/local/open-folder', { method: 'POST', headers })).status).toBe(
+      500,
+    );
+  });
+
+  it('passes containing folders as one shell-free argument on each supported OS', async () => {
+    for (const [platform, filePath, command, folderPath] of [
+      ['win32', 'C:\\Studio & data\\image.png', 'explorer.exe', 'C:\\Studio & data'],
+      ['darwin', '/Studio & data/image.png', 'open', '/Studio & data'],
+      ['linux', '/Studio & data/image.png', 'xdg-open', '/Studio & data'],
+    ] as const) {
+      const spawn = vi.fn(() => {
+        const child = new EventEmitter() as ChildProcess;
+        child.unref = vi.fn();
+        queueMicrotask(() => child.emit('spawn'));
+        return child;
+      });
+      await createContainingFolderOpener({
+        platform,
+        spawnProcess: spawn as unknown as typeof spawnFn,
+      })(filePath);
+      expect(spawn).toHaveBeenCalledExactlyOnceWith(command, [folderPath], {
+        detached: true,
+        stdio: 'ignore',
+        shell: false,
+        windowsHide: true,
+      });
+    }
+    const failedSpawn = vi.fn(() => {
+      const child = new EventEmitter() as ChildProcess;
+      queueMicrotask(() => child.emit('error', new Error('File manager unavailable')));
+      return child;
+    });
+    await expect(
+      createContainingFolderOpener({
+        platform: 'linux',
+        spawnProcess: failedSpawn as unknown as typeof spawnFn,
+      })('/Studio/image.png'),
+    ).rejects.toThrow('File manager unavailable');
+  });
+
   it('evaluates smart rules live, narrows them with request filters and rejects manual membership', async () => {
     const other = createWorkspaceInDb(testDb.current!, { name: 'Other' });
     const config = {

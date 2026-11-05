@@ -23,6 +23,12 @@ import { extractMetadata, type embedMetadata as embedMetadataFn } from './metada
 import type { getJob as getJobFn } from './db/jobs';
 import { catalogImageMetadata, jobImageMetadata } from './providers/jobImageMetadata';
 import type { updateCatalogImageFileSize as updateCatalogImageFileSizeFn } from './catalog';
+import { realpath, stat } from 'node:fs/promises';
+import path from 'node:path';
+import { getLibrary as getLibraryDefault } from './libraries';
+import { isPathInside } from './pathContainment';
+import { isLoopbackHostname } from './localApiSecurity';
+import { openContainingFolder as openContainingFolderDefault } from './openContainingFolder';
 
 interface CatalogCommandsBoundary {
   update(
@@ -43,6 +49,8 @@ export interface CreateCatalogRoutesDependencies {
   getJob: typeof getJobFn;
   updateCatalogImageFileSize: typeof updateCatalogImageFileSizeFn;
   publishEvent?: (type: string, payload: unknown) => void;
+  getLibrary?: typeof getLibraryDefault;
+  openContainingFolder?: typeof openContainingFolderDefault;
 }
 
 async function readJsonRecord(request: { json: () => Promise<unknown> }) {
@@ -129,6 +137,8 @@ export function createCatalogRoutes({
   getJob,
   updateCatalogImageFileSize,
   publishEvent,
+  getLibrary = getLibraryDefault,
+  openContainingFolder = openContainingFolderDefault,
 }: CreateCatalogRoutesDependencies) {
   const routes = new Hono();
   // Open windows refresh their Tags and Collections menus, including after agent changes.
@@ -376,6 +386,72 @@ export function createCatalogRoutes({
     const image = catalogStore.getCatalogImage(c.req.param('id'));
     if (!image) return jsonNotFound(c);
     return c.json(image);
+  });
+
+  routes.post('/:id/open-folder', async (c) => {
+    let localOrigin = false;
+    try {
+      const origin = new URL(c.req.header('Origin') ?? '');
+      localOrigin =
+        (origin.protocol === 'http:' || origin.protocol === 'https:') &&
+        isLoopbackHostname(origin.hostname) &&
+        isLoopbackHostname(new URL(c.req.url).hostname);
+    } catch {
+      localOrigin = false;
+    }
+    if (!localOrigin || c.req.header('X-Requested-With') !== 'CozyStudio') {
+      return c.json(
+        {
+          error: 'Open this image from Studio on this computer.',
+          code: 'local_action_unavailable',
+        },
+        403,
+      );
+    }
+    const image = catalogStore.getCatalogImage(c.req.param('id'));
+    if (!image || image.isDeleted) return jsonNotFound(c);
+    const library = getLibrary(image.libraryId);
+    if (
+      !library ||
+      !path.isAbsolute(image.filePath) ||
+      !isPathInside(library.path, image.filePath)
+    ) {
+      return c.json(
+        {
+          error: 'The image must be inside its registered library.',
+          code: 'unregistered_image_path',
+        },
+        400,
+      );
+    }
+    let filePath: string;
+    try {
+      filePath = await realpath(image.filePath);
+      if (!isPathInside(await realpath(library.path), filePath)) {
+        return c.json(
+          {
+            error: 'The image must be inside its registered library.',
+            code: 'unregistered_image_path',
+          },
+          400,
+        );
+      }
+      if (!(await stat(filePath)).isFile()) throw new Error('Not a file.');
+    } catch {
+      return c.json(
+        { error: 'The source image is no longer available.', code: 'source_image_missing' },
+        404,
+      );
+    }
+    try {
+      await openContainingFolder(filePath);
+      return c.json({ ok: true });
+    } catch {
+      return c.json(
+        { error: 'Could not open the containing folder.', code: 'folder_open_failed' },
+        500,
+      );
+    }
   });
 
   routes.patch('/:id', async (c) => {

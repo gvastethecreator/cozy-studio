@@ -99,6 +99,7 @@ describe('studioCatalogImageAdapter', () => {
       'http://127.0.0.1:17223/library/outputs/thumbnails/missing-original.webp',
     );
     expect(image.preview).toBe(image.thumbnail);
+    expect(image.sourceExists).toBe(false);
     expect(resolveCatalogEntryPreviewUrl(entry)).toBe(image.thumbnail);
   });
 

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_GENERATION_CONFIG } from '../constants';
 import type { GeneratedImageWithConfig } from '../types';
 import {
+  copyImageToClipboard,
   downloadImage,
   downloadMultipleImagesAsZip,
   fetchImageBlob,
@@ -33,6 +34,42 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   vi.clearAllMocks();
+});
+
+describe('copyImageToClipboard', () => {
+  it('registers PNG before loading the original and preserves a failed source request', async () => {
+    let complete!: (response: Response) => void;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          new Promise<Response>((resolve) => {
+            complete = resolve;
+          }),
+      ),
+    );
+    let itemData!: Record<string, Promise<Blob>>;
+    vi.stubGlobal(
+      'ClipboardItem',
+      class {
+        constructor(data: Record<string, Promise<Blob>>) {
+          itemData = data;
+        }
+      },
+    );
+    const write = vi.fn(async () => {
+      await itemData['image/png'];
+    });
+    vi.stubGlobal('navigator', { clipboard: { write } });
+
+    const copying = copyImageToClipboard('/original.webp');
+    expect(write).toHaveBeenCalledOnce();
+    expect(Object.keys(itemData)).toEqual(['image/png']);
+    expect(itemData['image/png']).toBeInstanceOf(Promise);
+    expect(fetch).toHaveBeenCalledWith('/original.webp', { cache: 'no-cache' });
+    complete(new Response('missing', { status: 404 }));
+    await expect(copying).rejects.toThrow('Image request failed with HTTP 404.');
+  });
 });
 
 describe('downloadImage', () => {

@@ -71,6 +71,13 @@ export async function getCatalogImageDetail(imageId: string) {
   return request<CatalogImage>(`/api/catalog/${encodeURIComponent(imageId)}`);
 }
 
+export async function openCatalogImageFolder(imageId: string): Promise<void> {
+  await request<{ ok: true }>(`/api/catalog/${encodeURIComponent(imageId)}/open-folder`, {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'CozyStudio' },
+  });
+}
+
 export async function queryCatalogWorkspaceSummaries(
   params: Pick<CatalogQueryParams, 'deleted'> = {},
 ) {

@@ -64,6 +64,7 @@ export function materializeCatalogEntryImage(
     tags: entry.tags,
     localPath: entry.filePath || undefined,
     sourceUrl,
+    sourceExists: entry.sourceExists,
   };
 }
 

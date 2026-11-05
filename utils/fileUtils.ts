@@ -158,25 +158,61 @@ export async function fetchImageBlob(source: string) {
 }
 
 async function encodePngBlob(blob: Blob): Promise<Blob> {
-  if (blob.type === 'image/png') return blob;
-  if (typeof createImageBitmap !== 'function') return blob;
-  const bitmap = await createImageBitmap(blob);
-  const canvas = document.createElement('canvas');
-  canvas.width = bitmap.width;
-  canvas.height = bitmap.height;
-  const context = canvas.getContext('2d');
-  if (!context) return blob;
-  context.drawImage(bitmap, 0, 0);
-  const png = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-  return png ?? blob;
+  if (blob.type === 'image/png') {
+    const signature = new Uint8Array(await blob.slice(0, 8).arrayBuffer());
+    if ([137, 80, 78, 71, 13, 10, 26, 10].every((byte, index) => signature[index] === byte)) {
+      return blob;
+    }
+  }
+  const url = URL.createObjectURL(blob);
+  try {
+    const image = new Image();
+    image.src = url;
+    try {
+      await image.decode();
+    } catch {
+      throw new Error('The original image could not be decoded for copying.');
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext('2d');
+    if (!context || !canvas.width || !canvas.height) {
+      throw new Error('This browser could not prepare the image for copying.');
+    }
+    context.drawImage(image, 0, 0);
+    const png = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+    if (!png || png.type !== 'image/png') {
+      throw new Error('This browser could not encode the image as PNG for copying.');
+    }
+    return png;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 export async function copyImageToClipboard(source: string) {
   if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
     throw new Error('Clipboard is not available in this browser.');
   }
-  const blob = await encodePngBlob(await fetchImageBlob(source));
-  await navigator.clipboard.write([new ClipboardItem({ [blob.type || 'image/png']: blob })]);
+  let imageError: unknown;
+  const png = fetchImageBlob(source).then(encodePngBlob);
+  // A denied write may reject before the image has loaded. Observe its later failure too.
+  void png.catch((error: unknown) => {
+    imageError = error;
+  });
+  try {
+    // Register the write during the click, before fetching or decoding loses user activation.
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+  } catch (error) {
+    if (imageError) throw imageError;
+    if (error instanceof Error && error.name === 'NotAllowedError') {
+      throw new Error(
+        'Clipboard access was denied. Keep Studio focused and allow clipboard access.',
+      );
+    }
+    throw error;
+  }
 }
 
 /**

@@ -55,7 +55,7 @@ function applyCorsHeaders(headers: Headers, origin: string | null) {
   headers.set('Access-Control-Allow-Headers', CORS_HEADERS);
 }
 
-function isLoopbackHostname(hostname: string) {
+export function isLoopbackHostname(hostname: string) {
   return (
     hostname === 'localhost' ||
     hostname === '127.0.0.1' ||

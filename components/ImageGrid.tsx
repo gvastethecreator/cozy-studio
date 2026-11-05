@@ -800,7 +800,11 @@ function ImageItemActions({ model, compact }: { model: ImageItemModel; compact: 
           onCopyImage={() => {
             void copyImageToClipboard(image.sourceUrl ?? image.src).then(
               () => model.addToast('Image copied', 'success'),
-              () => model.addToast('Could not copy image.', 'error'),
+              (error: unknown) =>
+                model.addToast(
+                  error instanceof Error ? error.message : 'Could not copy image.',
+                  'error',
+                ),
             );
           }}
           onConvert={openConversion ? () => openConversion([image]) : undefined}

@@ -16,6 +16,28 @@ import {
 import type { GeneratedImageWithConfig } from '../types';
 import { DemandMountedGsapDropdown } from './ui/DemandMountedGsapDropdown';
 import { ImageOrganizationPicker } from './ImageOrganizationPicker';
+import { useToastUi } from '../contexts/GlobalContext';
+import { openCatalogImageFolder } from '../services/studio-api/catalog';
+import { resolveStudioApiBase } from '../services/studioRuntime';
+
+function originalImageHref(image: GeneratedImageWithConfig) {
+  if (image.sourceExists === false) return null;
+  const source = image.sourceUrl?.trim() || image.src;
+  if (!source || (!image.sourceUrl && source === image.thumbnail)) return null;
+  try {
+    const url = new URL(source, window.location.href);
+    return ['http:', 'https:'].includes(url.protocol) && url.searchParams.get('variant') !== 'thumb'
+      ? url.href
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function isLocalStudio() {
+  const loopback = (hostname: string) => ['localhost', '127.0.0.1', '[::1]'].includes(hostname);
+  return loopback(window.location.hostname) && loopback(new URL(resolveStudioApiBase()).hostname);
+}
 
 export function ImageActionsMenu({
   image,
@@ -52,6 +74,10 @@ export function ImageActionsMenu({
   onDelete: () => void;
   onSaved?: () => void;
 }) {
+  const { addToast } = useToastUi();
+  const originalHref = originalImageHref(image);
+  const hasOriginal = image.sourceExists !== false;
+  const canOpenFolder = hasOriginal && Boolean(image.localPath) && isLocalStudio();
   const [submenu, setSubmenu] = useState<'tag' | 'collection' | null>(null);
   const [side, setSide] = useState<'left' | 'right' | 'compact'>('right');
   const [top, setTop] = useState(0);
@@ -88,10 +114,13 @@ export function ImageActionsMenu({
       window.removeEventListener('resize', position);
     };
   }, [submenu]);
-  const run = (action: () => void) => {
-    action();
+  const closeMenu = () => {
     onOpenChange(false);
     triggerRef.current?.focus();
+  };
+  const run = (action: () => void) => {
+    action();
+    closeMenu();
   };
   const openSubmenu = (kind: 'tag' | 'collection', focus = false) => {
     setSubmenu(kind);
@@ -121,7 +150,12 @@ export function ImageActionsMenu({
         }
       }}
     >
-      <button type="button" role="menuitem" onClick={() => run(onReference)}>
+      <button
+        type="button"
+        role="menuitem"
+        disabled={!hasOriginal}
+        onClick={() => run(onReference)}
+      >
         <PlusCircle width={15} />
         Use as reference
       </button>
@@ -158,17 +192,68 @@ export function ImageActionsMenu({
         Copy prompt
       </button>
       {onCopyImage && (
-        <button type="button" role="menuitem" onClick={() => run(onCopyImage)}>
+        <button
+          type="button"
+          role="menuitem"
+          disabled={!hasOriginal}
+          onClick={() => run(onCopyImage)}
+        >
           <Copy width={15} />
           Copy image
         </button>
       )}
-      <button type="button" role="menuitem" onClick={() => run(onDownload)}>
+      {originalHref ? (
+        <a
+          role="menuitem"
+          href={originalHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={closeMenu}
+        >
+          <MediaImage width={15} />
+          Open image in new tab
+        </a>
+      ) : (
+        <button
+          type="button"
+          role="menuitem"
+          disabled
+          title="The original image is not available as a browser URL."
+        >
+          <MediaImage width={15} />
+          Open image in new tab
+        </button>
+      )}
+      <button
+        type="button"
+        role="menuitem"
+        disabled={!canOpenFolder}
+        title={canOpenFolder ? undefined : 'Available locally when the original file exists.'}
+        onClick={() =>
+          run(() => {
+            void openCatalogImageFolder(image.id).catch((error: unknown) =>
+              addToast(
+                error instanceof Error ? error.message : 'Could not open containing folder.',
+                'error',
+              ),
+            );
+          })
+        }
+      >
+        <Folder width={15} />
+        Open containing folder
+      </button>
+      <button type="button" role="menuitem" disabled={!hasOriginal} onClick={() => run(onDownload)}>
         <Download width={15} />
         Download
       </button>
       {onConvert && (
-        <button type="button" role="menuitem" onClick={() => run(onConvert)}>
+        <button
+          type="button"
+          role="menuitem"
+          disabled={!hasOriginal}
+          onClick={() => run(onConvert)}
+        >
           <MediaImage width={15} />
           Convert or compress
         </button>

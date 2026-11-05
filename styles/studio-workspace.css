@@ -2998,7 +2998,8 @@ html[data-theme='paper'] .cozy-mark {
   border: var(--wb-border-width) solid var(--wb-border);
   border-radius: var(--wb-radius);
 }
-.library-image-menu button {
+.library-image-menu button,
+.library-image-menu a[role='menuitem'] {
   display: flex;
   align-items: center;
   gap: 8px;

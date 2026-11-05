@@ -47,6 +47,8 @@ Select 2 to 9 images and choose **Compare N images**. All images share one zoom 
 
 ZIP downloads show progress and the exported count. A partial download lists the missing count, and **Retry missing images** puts those images in a separate ZIP. If every image fails, no empty ZIP is downloaded.
 
+Open **More image actions** on a result or Library image. **Copy image** puts a full-size PNG on the clipboard, preserving transparency. Allow clipboard access for Studio in your browser if prompted. **Open image in new tab** shows the original file at its own URL. On the computer running Studio, **Open containing folder** opens the saved image’s folder in the system file manager.
+
 ### Tags and collections
 
 Right-click an image, or open **More image actions** in Library, the viewer or the workspace canvas. Choose **Tags** or **Collections**. **New tag** or **New collection** opens a creation popover. Recently used items come first; scroll to load more. For several images, select them and use **Tags and collections** in the Library toolbar. The viewer's details panel has the same controls.

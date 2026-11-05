@@ -51,6 +51,7 @@ graph TD
 - **Catalog:** `hooks/useCatalog.ts` owns catalog reads, mutations, trash and refresh scopes. `lib/catalogRequestGate.ts` ties each read to a view generation, so a stale response cannot publish into a newer view.
 - **Catalog images:** `lib/studioCatalogView.ts` and `lib/studioCatalogImageAdapter.ts` turn Catalog Entries into UI images.
 - **Originals:** the image viewer loads the original asset. When it is missing, the viewer shows an error, never a reduced substitute. Thumbnail drags carry only a Catalog Entry ID.
+- The image actions menu opens originals through their asset URLs. A local browser can ask `POST /api/catalog/:id/open-folder` to open the containing folder. The server resolves the Catalog Entry inside its registered storage folder before launching the file manager.
 - **Generation:** `services/localGenerationRun.ts` submits an atomic Persistent Job batch and returns catalog-derived results with a complete or partial status.
 - **Export:** `lib/studioLegacyWorkspaceSnapshotExport.ts` derives the export-only legacy workspace JSON. There is no browser batch store, import or recovery path.
 - **Library Archive:** `SettingsLibraryArchivePanel` uses the workspace API to export originals and metadata as a ZIP, or import it into a new workspace. This does not import the legacy snapshot shape.

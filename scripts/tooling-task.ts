@@ -17,7 +17,6 @@ type TaskStep = {
   env?: Record<string, string>;
   appendExtraArgs?: boolean;
   consoleMode?: 'full' | 'tail';
-  tailLineCount?: number;
 };
 
 type TaskDefinition = {
@@ -59,8 +58,17 @@ const BUN_TEST_FILES = [
 ];
 
 const FMT_THREADS = resolveToolThreads('OXFMT_THREADS', DEFAULT_MAX_OXC_THREADS);
-const LINT_THREADS = resolveLintThreads();
+const LINT_THREADS = resolveToolThreads('OXLINT_THREADS', DEFAULT_MAX_LINT_THREADS);
 const TEST_WORKERS = resolveToolThreads('VITEST_MAX_WORKERS', DEFAULT_MAX_TEST_WORKERS);
+
+const UI_BUILD_STEPS: TaskStep[] = [
+  { label: 'UI Build', command: 'vp', args: ['build'], consoleMode: 'tail' },
+  {
+    label: 'UI Chunk Verify',
+    command: 'bun',
+    args: ['run', 'scripts/report-ui-chunks.ts', '--verify'],
+  },
+];
 
 const TASKS: Record<string, TaskDefinition> = {
   'tooling:logs:prune': {
@@ -149,14 +157,7 @@ const TASKS: Record<string, TaskDefinition> = {
   },
   'build:ui': {
     description: 'Build the Vite application through Vite+.',
-    steps: [
-      { label: 'UI Build', command: 'vp', args: ['build'], consoleMode: 'tail' },
-      {
-        label: 'UI Chunk Verify',
-        command: 'bun',
-        args: ['run', 'scripts/report-ui-chunks.ts', '--verify'],
-      },
-    ],
+    steps: UI_BUILD_STEPS,
   },
   'build:server': {
     description: 'Type-check the Bun/Hono local server build target.',
@@ -165,12 +166,7 @@ const TASKS: Record<string, TaskDefinition> = {
   build: {
     description: 'Build both the UI and the local server target.',
     steps: [
-      { label: 'UI Build', command: 'vp', args: ['build'], consoleMode: 'tail' },
-      {
-        label: 'UI Chunk Verify',
-        command: 'bun',
-        args: ['run', 'scripts/report-ui-chunks.ts', '--verify'],
-      },
+      ...UI_BUILD_STEPS,
       { label: 'Server Build', command: 'bunx', args: SERVER_TYPECHECK_ARGS },
     ],
   },
@@ -206,12 +202,7 @@ const TASKS: Record<string, TaskDefinition> = {
         args: ['vitest', 'run', '--maxWorkers', String(TEST_WORKERS)],
       },
       { label: 'Bun Test', command: 'bun', args: ['test', ...BUN_TEST_FILES] },
-      { label: 'UI Build', command: 'vp', args: ['build'], consoleMode: 'tail' },
-      {
-        label: 'UI Chunk Verify',
-        command: 'bun',
-        args: ['run', 'scripts/report-ui-chunks.ts', '--verify'],
-      },
+      ...UI_BUILD_STEPS,
     ],
   },
   'validate:full': {
@@ -344,10 +335,6 @@ function resolveToolThreads(envName: string, defaultCap: number) {
   return Math.max(1, Math.min(availableParallelism() - 1, defaultCap));
 }
 
-function resolveLintThreads() {
-  return resolveToolThreads('OXLINT_THREADS', DEFAULT_MAX_LINT_THREADS);
-}
-
 function formatDuration(durationMs: number) {
   if (durationMs < 1000) {
     return `${durationMs.toFixed(0)}ms`;
@@ -427,7 +414,7 @@ async function runStep(step: TaskStep, log: NodeJS.WritableStream, extraArgs: st
   const stepArgs = getStepArgs(step, extraArgs);
   const printableCommand = `${step.command} ${stepArgs.join(' ')}`;
   const mirrorOutputToConsole = step.consoleMode !== 'tail';
-  const tailCapture = createTailCapture(step.tailLineCount ?? DEFAULT_TAIL_LINE_COUNT);
+  const tailCapture = createTailCapture(DEFAULT_TAIL_LINE_COUNT);
 
   writeBanner(log, `${step.label}: ${step.command} ${stepArgs.join(' ')}`);
   writeConsoleBanner(`${step.label}: ${printableCommand}`);

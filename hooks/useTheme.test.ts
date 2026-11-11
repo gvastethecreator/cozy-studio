@@ -37,17 +37,6 @@ describe('accent palettes', () => {
     );
   });
 
-  it('cycles a later palette across the whole accent system', () => {
-    const rose = ACCENT_PALETTES.find((palette) => palette.name === 'Rose');
-    expect(rose).toBeTruthy();
-    applyAccentPaletteToDocument(rose!);
-    expect(document.documentElement.style.getPropertyValue('--wb-accent')).toBe(
-      rgbTripletToHex(rose!.colors[500]),
-    );
-    expect(document.documentElement.style.getPropertyValue('--wba-accent')).toBe(
-      rgbTripletToHex(rose!.colors[500]),
-    );
-  });
   it('cycles every accent from the logo, wraps, and restores the selected color', () => {
     vi.stubGlobal('matchMedia', () => ({
       matches: true,
@@ -72,6 +61,9 @@ describe('accent palettes', () => {
       fireEvent.click(logo);
       expect(logo.getAttribute('aria-label')).toContain(`current: ${palette.name}`);
       expect(document.documentElement.style.getPropertyValue('--wb-accent')).toBe(
+        rgbTripletToHex(palette.colors[500]),
+      );
+      expect(document.documentElement.style.getPropertyValue('--wba-accent')).toBe(
         rgbTripletToHex(palette.colors[500]),
       );
       for (const [shade, rgb] of Object.entries(palette.colors)) {

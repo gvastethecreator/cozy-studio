@@ -52,13 +52,12 @@ describe('imageGenSizing', () => {
   });
 
   it('groups generation ratios by orientation', () => {
-    expect(
-      groupImageGenRatiosByOrientation(IMAGE_GEN_RATIO_OPTIONS).map((group) => group.label),
-    ).toEqual(['Landscape', 'Square', 'Portrait']);
-    expect(
-      groupImageGenRatiosByOrientation(IMAGE_GEN_RATIO_OPTIONS).map((group) =>
-        group.options.map((option) => option.ratio),
-      ),
-    ).toEqual([['21:9', '16:9', '4:3', '3:2', '5:4'], ['1:1'], ['4:5', '2:3', '3:4', '9:16']]);
+    const groups = groupImageGenRatiosByOrientation(IMAGE_GEN_RATIO_OPTIONS);
+    expect(groups.map((group) => group.label)).toEqual(['Landscape', 'Square', 'Portrait']);
+    expect(groups.map((group) => group.options.map((option) => option.ratio))).toEqual([
+      ['21:9', '16:9', '4:3', '3:2', '5:4'],
+      ['1:1'],
+      ['4:5', '2:3', '3:4', '9:16'],
+    ]);
   });
 });

@@ -63,7 +63,7 @@ Then open the UI at <http://localhost:17222>. To update a checkout later, use **
 
 **Portable ZIP.** No portable ZIPs are published yet. To get one, prepare a portable UI with `bun run validate:release` and then run `bun run portable:build`. The release gate makes the UI use its own server's port. [Tooling](docs/TOOLING.md) lists the targets for each OS and CPU. Extract the ZIP and follow [PORTABLE.txt](PORTABLE.txt) to launch it. [Platform support](docs/PLATFORMS.md) lists the OS requirements.
 
-The portable root launcher starts `app/`; its default Studio data folder stays beside that folder. Portable updates use published releases, verify the ZIP and replace only `app/`. The first release is planned as `0.1.1` and is unsigned. Read the [first-run and recovery steps](docs/PLATFORMS.md#releases-and-updates).
+The portable root launcher starts `app/`; its default Studio data folder stays beside that folder. Portable updates use published releases, verify the ZIP and replace only `app/`. The ZIPs are unsigned. Read the [first-run and recovery steps](docs/PLATFORMS.md#releases-and-updates).
 
 **Ask an agent.** Open this folder in Claude Code, Codex or Cursor and ask for first setup, or use Copy prompt on the onboarding screen. The prompt points at `skills/cozy-studio-setup/SKILL.md`.
 

@@ -41,6 +41,16 @@
       }
     },
     {
+      "label": "🧪 Test file",
+      "detail": "Run the active Vitest test file. Use Bun tests for .bun.test.ts files.",
+      "type": "process",
+      "command": "bun",
+      "args": ["run", "test", "--", "${relativeFile}"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
       "label": "🧪 Bun tests",
       "detail": "Run native SQLite, image pipeline and MCP cases excluded from Vitest.",
       "type": "process",

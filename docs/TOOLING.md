@@ -21,7 +21,7 @@ These ZIPs are local artifacts. The command does not publish a release, and it d
 
 Each ZIP has a `Cozy Studio/` root with a launcher and `app/`. The version in `app/portable.json` comes from `package.json`; it must match the release tag without the `v` prefix. The default Studio data folder is created beside `app/`, outside the update swap. Do not put user data in `app.next`, `app.next.tmp`, `app.previous` or `app.failed`.
 
-The initial release version is `0.1.1`. Release preparation builds and verifies the target ZIPs before creating the `v0.1.1` tag. With owner approval, push that tag to run `.github/workflows/release.yml`; it builds all six targets and creates a draft release. Inspect the assets and checksums, then publish the draft only with separate owner approval. The first release is unsigned; include the [first-run steps](PLATFORMS.md#releases-and-updates) and native verification limits in its notes. GitHub must expose a `sha256:` asset digest for portable auto-update; an asset without it is rejected.
+Release preparation builds and verifies the target ZIPs before creating the version tag. With owner approval, push that tag to run `.github/workflows/release.yml`; it builds all six targets and creates a draft release. Inspect the assets and checksums, then publish the draft only with separate owner approval. The ZIPs are unsigned; include the [first-run steps](PLATFORMS.md#releases-and-updates) and native verification limits in the notes. GitHub must expose a `sha256:` asset digest for portable auto-update; an asset without it is rejected.
 
 The Studio application is one Bun package. The separate `landing/` site has its own package and lockfile. Nested `apps/*` and `packages/*` folders are source boundaries, not separate package manifests, until real `package.json` files exist.
 
@@ -44,6 +44,8 @@ Each task keeps one `.latest.log`, and timestamped runs are pruned automatically
 For documentation-only changes, run `bun run docs:check` and validate changed skill packages. For bounded code changes, select the affected existing checks. For broad product changes, run `bun run validate` once. `validate:fast` is a fixed subset, not diff-based selection.
 
 Use one validation level per integration. Each broader gate includes the narrower checks it needs; do not rerun its components separately. For one test file, use `bun run test -- path/to/test.ts`.
+
+In VS Code, **Test file** runs the active `.test.ts` or `.test.tsx` file. **Test** runs the full Vitest suite; **Bun tests** runs the native cases.
 
 | Script                           | Purpose                                    |
 | -------------------------------- | ------------------------------------------ |
@@ -97,6 +99,8 @@ Then run `bun run scripts/verify-installed-deps.ts` to check the new install. It
 ## CI
 
 CI must call these named scripts. Do not fork gate step lists inside workflow YAML.
+
+The **Validate** job runs `validate:release` and the secret scan. The scan uses the full Git history and runs even when validation fails. Separate jobs check native initialization, migrations and API health on Windows and macOS; the macOS job runs on pushes to `main`.
 
 ## Releases
 

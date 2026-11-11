@@ -20,7 +20,9 @@ Read these files for current versions. A local run on another Bun release does n
 
 ## Pinned packages
 
-Effect is pinned to `4.1.2`. Keep domain cancellation separate from fiber interruption in tests: the Comfy executor must report unconfirmed cancellation, and the worker must retain `needs_review` when an interrupted job has no confirmed remote cancellation. A raw interrupted fiber does not promise to return the domain error from its cleanup.
+Effect is pinned to `4.1.4`. Keep domain cancellation separate from fiber interruption in tests: the Comfy executor must report unconfirmed cancellation, and the worker must retain `needs_review` when an interrupted job has no confirmed remote cancellation. A raw interrupted fiber does not promise to return the domain error from its cleanup.
+
+JSDOM 31 uses `@napi-rs/canvas` for optional native canvas support; the old `canvas` package no longer enables it. Studio does not install either backend. Keep pixel and layout proof in a real browser; the DOM suite must also account for JSDOM's updated CSS handling, focus behavior and asynchronous document parsing. See the [JSDOM 31 release notes](https://github.com/jsdom/jsdom/releases/tag/v31.0.0).
 
 Studio and the landing use Pretext `1.0.0`. The landing bundles its public entry instead of copying private implementation files. Its VGPU `0.6.0` shaders are prepared during the build with the matching `@vgpu/wgsl` version. Rebuild the tracked vendor output when updating these packages; do not retain stale output after a failed build. See the [Pretext release notes](https://github.com/chenglou/pretext/releases/tag/v1.0.0) and [VGPU migration guide](https://github.com/vercel-labs/vgpu/blob/v0.6.0/docs/migrations/0.6.0.docs.md).
 

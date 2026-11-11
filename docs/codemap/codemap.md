@@ -1,15 +1,15 @@
 # Code map: cozy-studio
 
-Generated: 2026-11-05T16:17:08Z | Commit: `42eec95f971b` | Schema: 2
-Generation: `9c335a84e050ea8f098849b46c706cb1e52410037496f42b425833c676d66e5e`
+Generated: 2026-11-11T18:46:42Z | Commit: `f7a0166e5245` | Schema: 2
+Generation: `b0ec04ad127633a05efb09e306f81c7ac3170c1b598047732610afb941135a6e`
 Scope: . | Inventory: working-tree
-Nodes: 1047 | Edges: 7298 | Flows: 0
+Nodes: 1047 | Edges: 7309 | Flows: 0
 
 ## Coverage
 
 - Analysis: **partial**; 988 analyzed of 1006 included files.
 - Configuration files: 7; omitted untracked files: 0.
-- Unresolved references and analysis limits: 5390.
+- Unresolved references and analysis limits: 5428.
 - Static references and call paths do not prove runtime execution or test coverage.
 
 ## Modules
@@ -88,7 +88,7 @@ Nodes: 1047 | Edges: 7298 | Flows: 0
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/animationGifEncoder.ts` | calls
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/animationGifEncoder.ts` | imports
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/db/jobs.ts` | imports
-- Showing 50 of 7298 edges; JSON contains every edge and its evidence.
+- Showing 50 of 7309 edges; JSON contains every edge and its evidence.
 
 ## Unknown
 
@@ -111,7 +111,7 @@ Nodes: 1047 | Edges: 7298 | Flows: 0
 
 ## Architecture changes
 
-- Nodes: +1 / -0; edges: +22 / -0.
+- Nodes: +0 / -0; edges: +4 / -0.
 - Boundary changes: 0; new cycles: 0.
 
 ## Read next

@@ -1,4 +1,4 @@
-import { useT } from '../lib/i18n';
+import { t, useT } from '../lib/i18n';
 import type { MessageKey } from '../lib/i18n/en';
 import type { LibraryFilters } from '../hooks/useLibraryUrlState';
 import { CozyLoader as Loader2 } from './CozyMascot';
@@ -597,6 +597,7 @@ function ImageItemView({ model }: { model: ImageItemModel }) {
     return (
       <div
         ref={itemRef}
+        data-catalog-image-id={image.id}
         onContextMenu={handleContextMenu}
         onKeyDown={handleCardKeyDown}
         onMouseEnter={() => setIsActionSurfaceActive(true)}
@@ -606,10 +607,6 @@ function ImageItemView({ model }: { model: ImageItemModel }) {
         className={`group flex min-w-0 flex-col gap-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-2 text-left shadow-lg shadow-black/25 transition-[border-color,background-color,opacity,transform,box-shadow] sm:flex-row sm:items-center
           ${isSelected ? 'ring-2 ring-accent-500 ring-offset-2 ring-offset-black' : 'hover:border-[color:var(--wb-border)] hover:bg-[color:var(--wb-panel)]/85'}
         `}
-        style={{
-          contentVisibility: 'auto',
-          containIntrinsicSize: '720px 120px',
-        }}
       >
         <button
           type="button"
@@ -645,6 +642,7 @@ function ImageItemView({ model }: { model: ImageItemModel }) {
   return (
     <div
       ref={itemRef}
+      data-catalog-image-id={image.id}
       onContextMenu={handleContextMenu}
       onKeyDown={handleCardKeyDown}
       onMouseEnter={() => setIsActionSurfaceActive(true)}
@@ -658,9 +656,7 @@ function ImageItemView({ model }: { model: ImageItemModel }) {
         ${isSelected ? 'ring-2 ring-accent-500 ring-offset-2 ring-offset-black z-10' : 'hover:border-[color:var(--wb-border)]'}
       `}
       style={{
-        contentVisibility: isActionMenuOpen ? 'visible' : 'auto',
         ['--library-caption-height' as string]: `${IMAGE_GRID_CAPTION_HEIGHT}px`,
-        containIntrinsicSize: '320px 420px',
       }}
     >
       <div className="relative overflow-hidden rounded-t-[var(--wb-radius)]">
@@ -799,7 +795,7 @@ function ImageItemActions({ model, compact }: { model: ImageItemModel; compact: 
           onCopyPrompt={handleCopyPrompt}
           onCopyImage={() => {
             void copyImageToClipboard(image.sourceUrl ?? image.src).then(
-              () => model.addToast('Image copied', 'success'),
+              () => model.addToast(t('image.copiedToClipboard'), 'success'),
               (error: unknown) =>
                 model.addToast(
                   error instanceof Error ? error.message : 'Could not copy image.',
@@ -890,6 +886,21 @@ function useImageGrid(props: ImageGridProps) {
   );
   const gridMeasureRef = useRef<HTMLDivElement>(null);
   const [gridMeasuredWidth, setGridMeasuredWidth] = useState(0);
+  const catalogScope = JSON.stringify([
+    workspaceId,
+    searchQuery,
+    sortOrder,
+    showFavoritesOnly,
+    showUnorganizedOnly,
+    collectionId,
+    viewMode,
+    thumbnailSize,
+  ]);
+  const columnAssignmentsRef = useRef({ scope: '', count: 0, columns: new Map<string, number>() });
+  const browsingAnchorRef = useRef<{ scope: string; id: string; offset: number } | null>(null);
+  const pendingAnchorRef = useRef<{ scope: string; id: string; offset: number } | null>(null);
+  const committedItemsRef = useRef<GridItem[] | null>(null);
+  const anchorScopeRef = useRef(catalogScope);
 
   const sourceImageCount = images.length;
   const imageCount = images.length;
@@ -989,16 +1000,40 @@ function useImageGrid(props: ImageGridProps) {
     });
   }, [gridMeasuredWidth, viewportWidth, thumbnailSize, gridItems.length, viewMode]);
 
-  const columnBuckets = useMemo(() => {
+  const columnLayout = useMemo(() => {
     const safeColumnCount = Math.max(1, columnCount);
     const buckets: GridItem[][] = Array.from({ length: safeColumnCount }, () => []);
-
-    gridItems.forEach((item, index) => {
-      buckets[index % safeColumnCount].push(item);
-    });
-
-    return buckets;
-  }, [gridItems, columnCount]);
+    const previous = columnAssignmentsRef.current;
+    const existing =
+      previous.scope === catalogScope && previous.count === safeColumnCount
+        ? previous.columns
+        : new Map<string, number>();
+    const firstKnownIndex = gridItems.findIndex((item) => existing.has(getGridItemKey(item)));
+    let nextColumn =
+      firstKnownIndex < 0
+        ? 0
+        : (((existing.get(getGridItemKey(gridItems[firstKnownIndex]))! - firstKnownIndex) %
+            safeColumnCount) +
+            safeColumnCount) %
+          safeColumnCount;
+    const columns = new Map<string, number>();
+    for (const item of gridItems) {
+      const key = getGridItemKey(item);
+      const column = existing.get(key) ?? nextColumn;
+      columns.set(key, column);
+      buckets[column].push(item);
+      nextColumn = (column + 1) % safeColumnCount;
+    }
+    return { buckets, columns };
+  }, [gridItems, columnCount, catalogScope]);
+  const columnBuckets = columnLayout.buckets;
+  React.useLayoutEffect(() => {
+    columnAssignmentsRef.current = {
+      scope: catalogScope,
+      count: columnCount,
+      columns: columnLayout.columns,
+    };
+  }, [catalogScope, columnCount, columnLayout]);
 
   const gridItemWidth = useMemo(
     () =>
@@ -1030,6 +1065,16 @@ function useImageGrid(props: ImageGridProps) {
       });
     },
     [gridItemWidth, thumbnailSize, viewportWidth, viewMode],
+  );
+
+  const estimateMosaicItemHeight = React.useCallback(
+    (item: GridItem) =>
+      item.type === 'placeholder'
+        ? gridItemWidth + IMAGE_GRID_COLUMN_GAP
+        : estimateImageGridItemHeight({ image: item.image, thumbnailSize: gridItemWidth }) +
+          IMAGE_GRID_CAPTION_HEIGHT +
+          IMAGE_GRID_COLUMN_GAP,
+    [gridItemWidth],
   );
 
   const gridRows = useMemo<GridRow[]>(() => {
@@ -1065,17 +1110,7 @@ function useImageGrid(props: ImageGridProps) {
     if (viewMode !== 'mosaic') return [];
 
     return columnBuckets.map((bucket) => {
-      const itemSizes = bucket.map((item) => {
-        if (item.type === 'placeholder') return gridItemWidth + IMAGE_GRID_COLUMN_GAP;
-        return (
-          estimateImageGridItemHeight({
-            image: item.image,
-            thumbnailSize: gridItemWidth,
-          }) +
-          IMAGE_GRID_CAPTION_HEIGHT +
-          IMAGE_GRID_COLUMN_GAP
-        );
-      });
+      const itemSizes = bucket.map(estimateMosaicItemHeight);
       const window = resolveImageGridVirtualWindow({
         itemSizes,
         scrollTop,
@@ -1088,7 +1123,103 @@ function useImageGrid(props: ImageGridProps) {
         visibleItems: bucket.slice(window.startIndex, window.endIndex),
       };
     });
-  }, [columnBuckets, scrollTop, scrollViewportHeight, gridItemWidth, viewMode]);
+  }, [columnBuckets, scrollTop, scrollViewportHeight, estimateMosaicItemHeight, viewMode]);
+
+  const estimatedImageTops = useMemo(() => {
+    const tops = new Map<string, number>();
+    if (viewMode === 'mosaic') {
+      for (const bucket of columnBuckets) {
+        let top = 0;
+        for (const item of bucket) {
+          if (item.type === 'image') tops.set(item.image.id, top);
+          top += estimateMosaicItemHeight(item);
+        }
+      }
+    } else {
+      let top = 0;
+      for (const row of gridRows) {
+        for (const item of row.items) if (item.type === 'image') tops.set(item.image.id, top);
+        top += row.estimatedHeight;
+      }
+    }
+    return tops;
+  }, [columnBuckets, estimateMosaicItemHeight, gridRows, viewMode]);
+
+  const rememberBrowsingAnchor = React.useCallback(
+    (element: HTMLDivElement) => {
+      if (element.scrollTop <= 0) {
+        browsingAnchorRef.current = null;
+        return;
+      }
+      const viewport = element.getBoundingClientRect();
+      const visible = Array.from(element.querySelectorAll<HTMLElement>('[data-catalog-image-id]'))
+        .map((node) => ({ node, rect: node.getBoundingClientRect() }))
+        .filter(({ rect }) => rect.bottom > viewport.top && rect.top < viewport.bottom)
+        .sort((a, b) => a.rect.top - b.rect.top || a.rect.left - b.rect.left)[0];
+      browsingAnchorRef.current = visible
+        ? {
+            scope: catalogScope,
+            id: visible.node.dataset.catalogImageId!,
+            offset: visible.rect.top - viewport.top,
+          }
+        : null;
+    },
+    [catalogScope],
+  );
+
+  React.useLayoutEffect(() => {
+    const element = scrollContainerRef.current;
+    if (!element) return;
+    if (anchorScopeRef.current !== catalogScope) {
+      anchorScopeRef.current = catalogScope;
+      browsingAnchorRef.current = null;
+      pendingAnchorRef.current = null;
+      committedItemsRef.current = gridItems;
+      return;
+    }
+    const previous = browsingAnchorRef.current;
+    if (committedItemsRef.current !== gridItems) {
+      pendingAnchorRef.current =
+        previous?.scope === catalogScope && estimatedImageTops.has(previous.id) ? previous : null;
+      committedItemsRef.current = gridItems;
+    }
+    const anchor = pendingAnchorRef.current;
+    if (anchor?.scope === catalogScope) {
+      const node = Array.from(
+        element.querySelectorAll<HTMLElement>('[data-catalog-image-id]'),
+      ).find((candidate) => candidate.dataset.catalogImageId === anchor.id);
+      if (node) {
+        const delta =
+          node.getBoundingClientRect().top - element.getBoundingClientRect().top - anchor.offset;
+        element.scrollTop += delta;
+        const currentTop = element.scrollTop;
+        if (Math.abs(scrollTop - currentTop) > 0.5) {
+          // A new virtual start can replace a spacer after this correction. Keep the same anchor
+          // until that render has settled instead of treating an intermediate position as final.
+          setScrollTop(currentTop);
+          return;
+        }
+        pendingAnchorRef.current = null;
+      } else {
+        // Restore the virtual window first, then correct the exact rendered offset before paint.
+        const top = estimatedImageTops.get(anchor.id);
+        const grid = gridMeasureRef.current;
+        if (top !== undefined && grid) {
+          const origin =
+            grid.getBoundingClientRect().top -
+            element.getBoundingClientRect().top +
+            element.scrollTop;
+          element.scrollTop = origin + top - anchor.offset;
+          setScrollTop(element.scrollTop);
+          return;
+        }
+        pendingAnchorRef.current = null;
+      }
+    } else {
+      pendingAnchorRef.current = null;
+    }
+    rememberBrowsingAnchor(element);
+  }, [catalogScope, estimatedImageTops, gridItems, rememberBrowsingAnchor, scrollTop]);
 
   const priorityImageIds = useMemo(() => {
     const ids = new Set<string>();
@@ -1172,6 +1303,7 @@ function useImageGrid(props: ImageGridProps) {
   const handleScroll = React.useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
       const element = event.currentTarget;
+      rememberBrowsingAnchor(element);
       if (scrollRafRef.current !== null) return;
 
       scrollRafRef.current = requestAnimationFrame(() => {
@@ -1184,7 +1316,7 @@ function useImageGrid(props: ImageGridProps) {
         }
       });
     },
-    [requestAutoLoadMore],
+    [requestAutoLoadMore, rememberBrowsingAnchor],
   );
 
   React.useEffect(() => {
@@ -1266,7 +1398,6 @@ function useImageGrid(props: ImageGridProps) {
     gridMeasureRef,
     columnCount,
     virtualColumnBuckets,
-    columnBuckets,
     virtualGridWindow,
     gridRows,
     autoLoadSentinelRef,
@@ -1325,6 +1456,7 @@ function ImageGridView({ model }: { model: ImageGridModel }) {
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
+          style={{ overflowAnchor: 'none' }}
           className="custom-scrollbar relative min-h-0 flex-1 overflow-y-auto px-3 pt-3 pb-8 sm:px-8"
         >
           {showFavoritesOnly && imageCount === 0 && generationPlaceholders.length === 0 && (
@@ -1736,7 +1868,6 @@ function ImageGridVirtualCells({ model }: { model: ImageGridModel }) {
     gridMeasureRef,
     columnCount,
     virtualColumnBuckets,
-    columnBuckets,
     virtualGridWindow,
     gridRows,
   } = model;
@@ -1783,15 +1914,8 @@ function ImageGridVirtualCells({ model }: { model: ImageGridModel }) {
     >
       {viewMode === 'mosaic' ? (
         virtualColumnBuckets.map(({ window, visibleItems }, columnIndex) => {
-          const bucket = columnBuckets[columnIndex] ?? [];
-          const firstItem = bucket[0];
-          const firstItemId = firstItem ? getGridItemKey(firstItem) : null;
-          const columnKey = firstItemId
-            ? `column-${firstItemId}-${bucket.length}`
-            : `column-empty-${columnIndex}`;
-
           return (
-            <div key={columnKey} className="flex min-w-0 flex-col gap-0">
+            <div key={columnIndex} className="flex min-w-0 flex-col gap-0">
               {window.beforeHeight > 0 && (
                 <div style={{ height: window.beforeHeight }} aria-hidden="true" />
               )}

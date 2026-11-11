@@ -104,7 +104,7 @@ Open Settings → **Data folder & imports** → **Library archive**. **Export th
 
 ### Review duplicate images
 
-In Settings → **Advanced & maintenance**, use **Duplicate images** to scan the current workspace. Studio compares visual similarity, so review each group before moving images. The first scan reads the originals; later scans reuse cached results.
+In Settings → **Advanced & maintenance**, use **Duplicate images** to scan the current workspace. Studio compares visual similarity, so review each group before moving images. Later scans reuse successful results and retry files that were previously missing or unreadable.
 
 Studio prefers keeping a favorite, then an organized image, then the oldest. Other favorites are not selected for archiving automatically. Keep at least one image in every group. **Move to Archived Images** asks for confirmation, and those images can be restored from Archived Images.
 
@@ -157,6 +157,8 @@ Save copies in the current output folder and Library, or prepare a download (a Z
 
 Onboarding shows the actual images destination. Studio uses the Pictures folder that your OS reports. To use another images folder for new jobs, change it in Settings → Files & naming. Existing files do not move.
 
+To group new images by workspace, turn on **Use workspace as the top folder** in Settings → Files & naming and save. Studio adds a workspace subfolder inside the selected output directory, before any other folder levels. Jobs already in the queue keep the destination captured when they were submitted.
+
 To use another Studio data folder, set an absolute `STUDIO_LIBRARY_DIR` in `.env.local`. `STUDIO_IMAGES_DIR` sets the default images folder for a new data folder. Paths must be absolute for the OS that runs the server. Studio keeps an existing images destination or `STUDIO_LIBRARY_DIR`, and it does not migrate an older data folder automatically.
 
 ```env
@@ -172,7 +174,7 @@ STUDIO_LIBRARY_DIR=/home/<your-user>/Cozy Studio Library
 
 ### Import external images
 
-**External folder to scan**, in Settings → Data folder & imports, finds images to import. It does not change the output folder for new images. Scan a registered source before you choose files. **Select all** applies to the files that the scan returned. Files that import leave the list. Files that fail stay selected, so you can retry them.
+**External folder to scan**, in Settings → Data folder & imports, finds images to import. It does not change the output folder for new images. Scan a registered source before you choose files. Selected images are copied into the active workspace shown in the panel. **Select all** applies to the files that the scan returned. Files that import leave the list. Files that fail stay selected, so you can retry them.
 
 ## Style packs
 

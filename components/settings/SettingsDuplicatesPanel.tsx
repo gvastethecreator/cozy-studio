@@ -56,8 +56,13 @@ function WorkspaceDuplicatesPanel({
     setError('');
     if (clearArchiveResult) setArchiveResult(null);
     try {
+      let retrySkipped = clearArchiveResult;
       while (id === requestId.current) {
-        const next = await findCatalogDuplicates({ workspaceId });
+        const next = await findCatalogDuplicates({
+          workspaceId,
+          ...(retrySkipped ? { retrySkipped: true } : {}),
+        });
+        retrySkipped = false;
         if (id !== requestId.current) return;
         setResult(next);
         if (next.pending > 0) continue;

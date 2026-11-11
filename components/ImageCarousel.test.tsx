@@ -191,8 +191,11 @@ it('opens full actions for an inactive thumbnail without changing selection or n
   );
   expect(original.getAttribute('target')).toBe('_blank');
   expect(original.getAttribute('rel')).toBe('noopener noreferrer');
+  const focus = vi.spyOn(HTMLElement.prototype, 'focus');
   fireEvent.click(screen.getByRole('menuitem', { name: 'Open containing folder' }));
   expect(openCatalogImageFolder).toHaveBeenCalledWith('second');
+  expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+  focus.mockRestore();
   fireEvent.contextMenu(screen.getByRole('button', { name: 'Open image 2 of 2' }));
   fireEvent.click(await screen.findByRole('menuitem', { name: 'Add favorite' }));
   expect(favorite).toHaveBeenCalledWith('second');

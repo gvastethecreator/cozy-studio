@@ -11,6 +11,7 @@ import {
   type StudioSettingsFormState,
 } from '../../lib/studioSettingsForm';
 import type { StudioOutputOrganizationSettings } from '../../packages/shared/src/studioSettings';
+import { useT } from '../../lib/i18n';
 
 const NAME_PRESETS = [
   {
@@ -34,6 +35,7 @@ export function SettingsOutputPanel({
   onChange: Dispatch<SetStateAction<StudioSettingsFormState>>;
   libraryDir: string | null;
 }) {
+  const { t } = useT();
   const exampleDate = useMemo(() => new Date(), []);
   const [customFolders, setCustomFolders] = useState(false);
   const [customName, setCustomName] = useState(false);
@@ -81,6 +83,31 @@ export function SettingsOutputPanel({
           onChange={(event) =>
             onChange((current) => ({ ...current, outputDirectory: event.target.value }))
           }
+        />
+      </label>
+      <label className="settings-row">
+        <span>
+          <strong>{t('settings.output.workspaceFolders')}</strong>
+          <small>{t('settings.output.workspaceFoldersHint')}</small>
+        </span>
+        <input
+          type="checkbox"
+          aria-label={t('settings.output.workspaceFolders')}
+          checked={levels[0] === 'workspace'}
+          onChange={(event) => {
+            const enabled = event.target.checked;
+            onChange((current) => {
+              const otherLevels = current.outputSubfolderPreset
+                .split('/')
+                .filter((level) => level && level !== 'workspace');
+              return {
+                ...current,
+                outputSubfolderPreset: (enabled ? ['workspace', ...otherLevels] : otherLevels).join(
+                  '/',
+                ),
+              };
+            });
+          }}
         />
       </label>
       <label className="settings-row">

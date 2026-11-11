@@ -69,6 +69,7 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
       className={`relative w-full max-w-md bg-[color:var(--wb-panel)]/95 backdrop-blur-xl rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.5)] p-5 border-l-4 ${borderColors[toast.type]} studio-toast overflow-hidden`}
       role={toast.type === 'error' ? 'alert' : 'status'}
       aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
+      aria-atomic="true"
     >
       <div className="flex items-start gap-4">
         <div className="flex-shrink-0 mt-0.5">{icons[toast.type]}</div>
@@ -80,7 +81,7 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
         {toast.action && (
           <button
             type="button"
-            className="studio-control studio-ghost-control"
+            className="pointer-events-auto studio-control studio-ghost-control"
             onClick={() => {
               onDismiss(toast.id);
               void toast.action?.run();
@@ -92,7 +93,7 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
         <button
           type="button"
           onClick={() => onDismiss(toast.id)}
-          className="p-1.5 -mr-1.5 -mt-1.5 rounded-full text-[color:var(--wb-muted)] hover:text-[color:var(--wb-ink)] hover:bg-[color:color-mix(in_srgb,var(--wb-ink)_10%,transparent)] transition-colors flex-shrink-0"
+          className="pointer-events-auto p-1.5 -mr-1.5 -mt-1.5 rounded-full text-[color:var(--wb-muted)] hover:text-[color:var(--wb-ink)] hover:bg-[color:color-mix(in_srgb,var(--wb-ink)_10%,transparent)] transition-colors flex-shrink-0"
           aria-label="Dismiss"
         >
           <X className="size-4" />

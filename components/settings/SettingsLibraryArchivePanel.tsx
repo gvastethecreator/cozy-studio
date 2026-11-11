@@ -5,7 +5,7 @@ import { exportLibraryArchive, importLibraryArchive } from '../../services/studi
 import { downloadBlob } from '../../utils/fileUtils';
 
 export function SettingsLibraryArchivePanel() {
-  const { activeWorkspaceId, createWorkspace } = useWorkspaceState();
+  const { activeWorkspaceId, adoptWorkspace } = useWorkspaceState();
   const { addToast } = useToastUi();
   const picker = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -36,7 +36,7 @@ export function SettingsLibraryArchivePanel() {
     try {
       if (file.size > LIBRARY_ARCHIVE_MAX_BYTES) throw new Error('Choose an archive up to 1 GiB.');
       const result = await importLibraryArchive(file);
-      createWorkspace(
+      adoptWorkspace(
         {
           id: result.workspace.id,
           name: result.workspace.name,

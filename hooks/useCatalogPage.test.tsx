@@ -82,7 +82,7 @@ it('counts the entire active workspace before confirming archive and refuses an 
   expect(addToast).toHaveBeenCalledWith('Catalog unavailable', 'error');
 });
 
-it('loads workspace history beyond 160 entries and keeps loaded pages during refresh', async () => {
+it('keeps loaded pages and their tail when a refresh prepends a new image', async () => {
   const images = Array.from(
     { length: 171 },
     (_, index) =>
@@ -104,13 +104,25 @@ it('loads workspace history beyond 160 entries and keeps loaded pages during ref
   await waitFor(() => expect(result.current.entries).toHaveLength(160));
   await act(() => result.current.loadMore());
   expect(result.current.entries).toHaveLength(171);
+  images.unshift({ id: 'just-created', createdAt: '2026-09-22', workspaceId: 'a' } as CatalogImage);
+  await act(() => result.current.refresh());
+  expect(result.current.entries[0]?.id).toBe('just-created');
+  expect(result.current.entries.at(-1)?.id).toBe('image-170');
+  expect(result.current.entries).toHaveLength(172);
   expect(result.current.hasMore).toBe(false);
   await act(() => result.current.refresh());
   expect(result.current.entries.at(-1)?.id).toBe('image-170');
-  expect(result.current.entries).toHaveLength(171);
+  expect(result.current.entries).toHaveLength(172);
   expect(
     api.query.mock.calls.every(([params]) => params.workspaceId === 'a' && params.q === undefined),
   ).toBe(true);
+  const unavailable = new Error('Catalog unavailable');
+  api.query.mockRejectedValueOnce(unavailable);
+  await act(async () => {
+    await expect(result.current.refresh()).rejects.toBe(unavailable);
+  });
+  expect(result.current.entries).toHaveLength(172);
+  expect(result.current.error).toBe(unavailable);
 });
 
 it('retains a selected image beyond the first page only while it belongs to the new scope', async () => {
@@ -267,6 +279,11 @@ it('queries trash only when it opens, including after an all-catalog refresh', a
     await result.current.refreshCatalogs();
   });
   expect(api.query.mock.calls.filter(([query]) => query.deleted)).toHaveLength(0);
+  const queryCount = api.query.mock.calls.length;
+  await act(() => result.current.refreshCatalogs({ kind: 'workspace', workspaceId: 'other' }));
+  expect(api.query.mock.calls).toHaveLength(queryCount);
+  await act(() => result.current.refreshCatalogs({ kind: 'workspace', workspaceId: null }));
+  expect(api.query.mock.calls).toHaveLength(queryCount + 1);
   rerender({ isTrashOpen: true });
   await waitFor(() =>
     expect(api.query.mock.calls.filter(([query]) => query.deleted)).toHaveLength(1),

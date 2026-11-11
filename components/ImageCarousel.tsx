@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { t } from '../lib/i18n';
 import { useToastUi } from '../contexts/GlobalContext';
 import { useWorkspaceState } from '../contexts/WorkspaceContext';
 import { useImageConversion } from '../contexts/ImageConversionContext';
@@ -759,7 +760,7 @@ function ImageCarouselView({ model }: { model: ImageCarouselModel }) {
                 }
                 onCopyImage={() => {
                   void copyImageToClipboard(menuImage.sourceUrl ?? menuImage.src).then(
-                    () => addToast('Image copied', 'success'),
+                    () => addToast(t('image.copiedToClipboard'), 'success'),
                     (error: unknown) =>
                       addToast(
                         error instanceof Error ? error.message : 'Could not copy image',
@@ -900,7 +901,7 @@ function CarouselImageActions({
         label="Copy image"
         onClick={() => {
           void copyImageToClipboard(currentImage.sourceUrl ?? currentImage.src).then(
-            () => addToast('Image copied', 'success'),
+            () => addToast(t('image.copiedToClipboard'), 'success'),
             (error: unknown) =>
               addToast(error instanceof Error ? error.message : 'Could not copy image', 'error'),
           );

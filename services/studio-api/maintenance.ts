@@ -1,5 +1,6 @@
 import type {
   CatalogDuplicateScanResult,
+  CatalogDuplicateScanRequest,
   StorageMaintenanceAuditReport,
   StorageMaintenanceCompactResult,
   StorageMaintenanceThumbnailBackfillResult,
@@ -7,7 +8,7 @@ import type {
 } from '../../packages/shared/src';
 import { request } from './http';
 
-export async function findCatalogDuplicates(input: { workspaceId: string; hashLimit?: number }) {
+export async function findCatalogDuplicates(input: CatalogDuplicateScanRequest) {
   return request<CatalogDuplicateScanResult>('/api/maintenance/catalog/duplicates', {
     method: 'POST',
     body: JSON.stringify(input),

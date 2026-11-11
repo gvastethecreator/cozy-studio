@@ -47,6 +47,16 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(value, max));
 }
 
+const PORTAL_LAYOUT_STYLE: React.CSSProperties = {
+  position: 'fixed',
+  margin: 0,
+  maxWidth: 'calc(100vw - 16px)',
+  left: 0,
+  top: 0,
+  right: 'auto',
+  bottom: 'auto',
+};
+
 // A portaled dropdown opened from inside another dropdown still belongs to that dropdown.
 function ownsTarget(panel: HTMLElement, target: Node) {
   let node: Element | null = target instanceof Element ? target : target.parentElement;
@@ -89,13 +99,9 @@ function resolvePortalStyle({
     const top =
       below >= panelHeight || below >= above ? anchorPoint.y : anchorPoint.y - panelHeight;
     return {
-      position: 'fixed',
-      margin: 0,
-      maxWidth: 'calc(100vw - 16px)',
+      ...PORTAL_LAYOUT_STYLE,
       left: `${clamp(left, viewportPadding, window.innerWidth - panelWidth - viewportPadding)}px`,
       top: `${clamp(top, viewportPadding, window.innerHeight - panelHeight - viewportPadding)}px`,
-      right: 'auto',
-      bottom: 'auto',
       zIndex: portalZIndex,
     };
   }
@@ -113,13 +119,9 @@ function resolvePortalStyle({
     : triggerRect.bottom + portalOffset;
 
   return {
-    position: 'fixed',
-    margin: 0,
-    maxWidth: 'calc(100vw - 16px)',
+    ...PORTAL_LAYOUT_STYLE,
     left: `${clamp(desiredLeft, viewportPadding, window.innerWidth - panelWidth - viewportPadding)}px`,
     top: `${clamp(desiredTop, viewportPadding, window.innerHeight - panelHeight - viewportPadding)}px`,
-    right: 'auto',
-    bottom: 'auto',
     zIndex: portalZIndex,
   };
 }
@@ -178,7 +180,13 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
     }, []);
 
     const updatePortalPosition = useCallback(() => {
-      if (!portal || !triggerRef?.current || !panelRef.current || typeof window === 'undefined') {
+      if (
+        !open ||
+        !portal ||
+        !triggerRef?.current ||
+        !panelRef.current ||
+        typeof window === 'undefined'
+      ) {
         return;
       }
 
@@ -198,13 +206,14 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
           ? current
           : nextStyle,
       );
-    }, [placement, portal, portalOffset, portalZIndex, triggerRef, anchorPoint]);
+    }, [open, placement, portal, portalOffset, portalZIndex, triggerRef, anchorPoint]);
 
     useLayoutEffect(() => {
       if (!portal || !isMounted) {
         setPortalStyle(null);
         return;
       }
+      if (!open) return;
 
       updatePortalPosition();
       const observer = new ResizeObserver(updatePortalPosition);
@@ -217,11 +226,11 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
         window.removeEventListener('resize', updatePortalPosition);
         window.removeEventListener('scroll', updatePortalPosition, true);
       };
-    }, [isMounted, portal, triggerRef, updatePortalPosition]);
+    }, [isMounted, open, portal, triggerRef, updatePortalPosition]);
 
     const closeFromDocument = useEffectEvent((restoreFocus: boolean) => {
       onOpenChange?.(false);
-      if (restoreFocus) triggerRef?.current?.focus();
+      if (restoreFocus) triggerRef?.current?.focus({ preventScroll: true });
     });
 
     useEffect(() => {
@@ -361,7 +370,8 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
       const panel = panelRef.current;
       if (!panel || !isMounted) return;
       if (!open) {
-        if (panel.contains(document.activeElement)) triggerRef?.current?.focus();
+        if (panel.contains(document.activeElement))
+          triggerRef?.current?.focus({ preventScroll: true });
         return;
       }
       if (role === 'dialog') {
@@ -397,7 +407,7 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
         data-state={open ? 'open' : 'closed'}
         inert={!open}
         aria-hidden={!open || undefined}
-        style={portal ? { ...style, ...portalStyle } : style}
+        style={portal ? { ...style, ...PORTAL_LAYOUT_STYLE, ...portalStyle } : style}
         className={cn(
           ambient.className,
           'origin-top-right rounded-md border border-[color:var(--wb-border)] outline-none',

@@ -5,6 +5,7 @@ import path from 'node:path';
 import type {
   CatalogDuplicateImage,
   CatalogDuplicateScanResult,
+  CatalogDuplicateScanRequest,
   StorageMaintenanceAuditReport,
   StorageMaintenanceBackup,
   StorageMaintenanceCompactResult,
@@ -68,9 +69,7 @@ export interface ThumbnailBackfillStorageMaintenanceOptions extends StorageMaint
 
 export const CATALOG_DUPLICATE_MAX_DISTANCE = 16;
 
-export interface CatalogDuplicateScanOptions {
-  workspaceId: string;
-  hashLimit?: number;
+export interface CatalogDuplicateScanOptions extends CatalogDuplicateScanRequest {
   maxDistance?: number;
 }
 
@@ -118,6 +117,7 @@ export async function findCatalogDuplicates(
     workspaceId,
     hashLimit = 50,
     maxDistance = CATALOG_DUPLICATE_MAX_DISTANCE,
+    retrySkipped = false,
   }: CatalogDuplicateScanOptions,
   {
     computeDHash = computeImageDHash,
@@ -128,6 +128,11 @@ export async function findCatalogDuplicates(
   } = {},
 ): Promise<CatalogDuplicateScanResult> {
   const liveScope = "is_deleted = 0 AND COALESCE(workspace_id, 'default') = ?";
+  if (retrySkipped) {
+    db.query(`UPDATE catalog_images SET dhash = NULL WHERE ${liveScope} AND dhash = ''`).run(
+      workspaceId,
+    );
+  }
   const rows = db
     .query(`SELECT id, file_path FROM catalog_images
     WHERE ${liveScope} AND dhash IS NULL ORDER BY created_at DESC, id ASC LIMIT ?`)

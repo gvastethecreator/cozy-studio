@@ -99,6 +99,7 @@ export function useStudioCatalogController({
     collectionId,
     deleted: false,
     pageSize: CATALOG_RENDER_BUDGET.activePageSize,
+    preserveLoadedPages: true,
   });
   const hasLibraryFilters =
     Boolean(query) || favorites || unorganized || sort !== 'desc' || Boolean(collectionId);
@@ -147,7 +148,10 @@ export function useStudioCatalogController({
   const mutationReconciliationRef = useRef<CatalogMutationReconciliationPolicy | null>(null);
   const refreshCatalogs = useCallback(
     async (scope: CatalogRefreshScope = { kind: 'all' }) => {
-      if (historyCatalogEnabled) await refreshHistory().catch(() => undefined);
+      const affectsActiveWorkspace =
+        scope.kind !== 'workspace' || belongsToWorkspace(activeWorkspaceId, scope.workspaceId);
+      if (historyCatalogEnabled && affectsActiveWorkspace)
+        await refreshHistory().catch(() => undefined);
       const reconciliationPolicy = mutationReconciliationRef.current;
       const reconciliationGeneration = reconciliationPolicy?.getGeneration();
       if (scope.kind === 'active') {
@@ -157,7 +161,10 @@ export function useStudioCatalogController({
       }
 
       if (scope.kind === 'workspace') {
-        await Promise.all([refreshActiveCatalog(), refreshWorkspaceSummaries()]);
+        await Promise.all([
+          ...(affectsActiveWorkspace ? [refreshActiveCatalog()] : []),
+          refreshWorkspaceSummaries(),
+        ]);
         reconciliationPolicy?.acknowledge(scope, reconciliationGeneration);
         return;
       }
@@ -182,6 +189,7 @@ export function useStudioCatalogController({
       isTrashOpen,
       historyCatalogEnabled,
       refreshHistory,
+      activeWorkspaceId,
     ],
   );
 

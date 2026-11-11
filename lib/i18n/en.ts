@@ -1,5 +1,6 @@
 // Source dictionary. Plain strings take {name} params; plural entries pick a form from {count}.
 export const en = {
+  'image.copiedToClipboard': 'Image copied to clipboard',
   'library.sort.newest': 'Created newest',
   'library.sort.newestDescription': 'Recent generations first',
   'library.sort.oldest': 'Created oldest',
@@ -343,6 +344,9 @@ export const en = {
   'settings.search.outputDirectory.description': 'Where new images are saved',
   'settings.search.folderStructure.label': 'Folder structure',
   'settings.search.folderStructure.description': 'Organize files by workspace, date or workflow',
+  'settings.output.workspaceFolders': 'Use workspace as the top folder',
+  'settings.output.workspaceFoldersHint':
+    'Save new generations and exports in a workspace subfolder. Keep the other folder levels and filenames.',
   'settings.search.filenamePreset.label': 'Filename preset',
   'settings.search.filenamePreset.description': 'Choose how images are named',
   'settings.search.filenameTemplate.label': 'File name template',
@@ -724,6 +728,7 @@ export const en = {
   'stylePacks.notice.empty': 'Styles come from style packs. Install a pack to fill this catalog.',
   'status.providerReady': '{provider} is ready to generate.',
   'characterLab.notReady': 'Not ready',
+  'settings.importSources.destination': 'Selected images will be imported into "{workspace}".',
 } as const;
 
 export type MessageKey = keyof typeof en;

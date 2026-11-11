@@ -49,8 +49,15 @@ export function createMaintenanceRoutes({
     ) {
       return c.json({ error: 'hashLimit must be an integer from 1 to 50' }, 400);
     }
+    if (body.retrySkipped !== undefined && typeof body.retrySkipped !== 'boolean') {
+      return c.json({ error: 'retrySkipped must be a boolean' }, 400);
+    }
     return c.json(
-      await findDuplicates({ workspaceId: body.workspaceId.trim(), hashLimit: body.hashLimit }),
+      await findDuplicates({
+        workspaceId: body.workspaceId.trim(),
+        hashLimit: body.hashLimit,
+        ...(body.retrySkipped !== undefined ? { retrySkipped: body.retrySkipped } : {}),
+      }),
     );
   });
 

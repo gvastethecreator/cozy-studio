@@ -29,7 +29,7 @@ import {
   listCatalogCollections,
   CATALOG_ORGANIZATION_CHANGED,
 } from '../services/studio-api/catalog';
-import { getToastsSnapshot, removeToastFromStore } from '../contexts/toastStore';
+import { addToastToStore, getToastsSnapshot, removeToastFromStore } from '../contexts/toastStore';
 import { useCatalogOrganization } from '../hooks/useCatalogOrganization';
 import { applyCatalogTagChanges } from '../packages/shared/src/catalogTags';
 import type { CatalogOrganizeResult } from '../packages/shared/src';
@@ -53,6 +53,45 @@ vi.mock('../services/studio-api/catalog', () => ({
 afterEach(() => {
   cleanup();
   for (const toast of getToastsSnapshot()) removeToastFromStore(toast.id);
+});
+
+it('keeps repeated copy notices inside the fullscreen layer and dismisses them individually', async () => {
+  const fullscreen = document.createElement('div');
+  document.body.append(fullscreen);
+  const original = Object.getOwnPropertyDescriptor(document, 'fullscreenElement');
+  try {
+    render(
+      <ToastUiProvider>
+        <ToastContainer />
+      </ToastUiProvider>,
+    );
+    act(() => {
+      Object.defineProperty(document, 'fullscreenElement', {
+        configurable: true,
+        value: fullscreen,
+      });
+      document.dispatchEvent(new Event('fullscreenchange'));
+      addToastToStore('Image copied', 'success', 0);
+      addToastToStore('Image copied', 'success', 0);
+    });
+    const notifications = screen.getByRole('region', { name: 'Notifications' });
+    expect(notifications.parentElement).toBe(fullscreen);
+    expect(screen.getAllByRole('status')).toHaveLength(2);
+    for (const status of screen.getAllByRole('status')) {
+      expect(status.getAttribute('aria-atomic')).toBe('true');
+    }
+    fireEvent.click(screen.getAllByRole('button', { name: 'Dismiss' })[0]);
+    await waitFor(() => expect(screen.getAllByRole('status')).toHaveLength(1));
+    act(() => {
+      Object.defineProperty(document, 'fullscreenElement', { configurable: true, value: null });
+      document.dispatchEvent(new Event('fullscreenchange'));
+    });
+    expect(screen.getByRole('region', { name: 'Notifications' }).parentElement).toBe(document.body);
+  } finally {
+    if (original) Object.defineProperty(document, 'fullscreenElement', original);
+    else Reflect.deleteProperty(document, 'fullscreenElement');
+    fullscreen.remove();
+  }
 });
 
 function organized(added: Record<string, string[]> = {}, removed: Record<string, string[]> = {}) {

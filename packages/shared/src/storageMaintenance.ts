@@ -1,5 +1,11 @@
 export type StorageMaintenanceMode = 'dry-run' | 'write';
 
+export interface CatalogDuplicateScanRequest {
+  workspaceId: string;
+  hashLimit?: number;
+  retrySkipped?: boolean;
+}
+
 export interface CatalogDuplicateImage {
   id: string;
   thumbnailUrl: string | null;

@@ -18,6 +18,24 @@ it('opens custom editors without changing saved values and exposes invalid filen
     hidden: true,
   }) as HTMLInputElement;
   const initialName = filename.value;
+  const workspaceFolders = screen.getByRole('checkbox', {
+    name: 'Use workspace as the top folder',
+  }) as HTMLInputElement;
+  expect(workspaceFolders.checked).toBe(false);
+  fireEvent.change(screen.getByLabelText('Output folder preset'), {
+    target: { value: 'date/provider/recipe' },
+  });
+  fireEvent.click(workspaceFolders);
+  expect(workspaceFolders.checked).toBe(true);
+  expect((screen.getByLabelText('Folder level 1') as HTMLSelectElement).value).toBe('workspace');
+  expect(screen.getByRole('status').textContent).toContain('/outputs/my-workspace/');
+  expect(filename.value).toBe(initialName);
+  fireEvent.click(workspaceFolders);
+  expect(workspaceFolders.checked).toBe(false);
+  expect((screen.getByLabelText('Output folder preset') as HTMLSelectElement).value).toBe(
+    'date/provider/recipe',
+  );
+  expect(filename.value).toBe(initialName);
   expect(filename.closest('details')?.open).toBe(false);
   fireEvent.change(screen.getByLabelText('Filename preset'), { target: { value: 'custom' } });
   expect(filename.closest('details')?.open).toBe(true);

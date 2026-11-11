@@ -23,6 +23,7 @@ import { useToastUi } from '../../contexts/GlobalContext';
 import { useImageConversion } from '../../contexts/ImageConversionContext';
 import type { Attachment, GeneratedImageWithConfig } from '../../types';
 import { copyImageToClipboard, downloadImage, generateSmartFilename } from '../../utils/fileUtils';
+import { t } from '../../lib/i18n';
 import Tooltip from '../Tooltip';
 import { RecipeWorkbenchContext } from './recipeWorkbenchContextState';
 import { getCatalogImageDetail } from '../../services/studio-api/catalog';
@@ -179,7 +180,7 @@ function useRecipeResultPreviewController({
     if (!source) return;
     try {
       await copyImageToClipboard(source);
-      addToast('Image copied to clipboard', 'success');
+      addToast(t('image.copiedToClipboard'), 'success');
     } catch (error) {
       addToast(error instanceof Error ? error.message : 'Could not copy image', 'error');
     }

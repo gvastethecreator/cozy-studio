@@ -1,6 +1,7 @@
 import type { Dictionary } from './en';
 
 export const es: Dictionary = {
+  'image.copiedToClipboard': 'Imagen copiada al portapapeles',
   'library.sort.newest': 'Más recientes',
   'library.sort.newestDescription': 'Generaciones recientes primero',
   'library.sort.oldest': 'Más antiguas',
@@ -350,6 +351,9 @@ export const es: Dictionary = {
   'settings.search.folderStructure.label': 'Estructura de carpetas',
   'settings.search.folderStructure.description':
     'Organiza archivos por espacio, fecha o flujo de trabajo',
+  'settings.output.workspaceFolders': 'Usar el espacio como primera carpeta',
+  'settings.output.workspaceFoldersHint':
+    'Guarda las nuevas generaciones y exportaciones en una subcarpeta de su espacio. Conserva los otros niveles y nombres de archivo.',
   'settings.search.filenamePreset.label': 'Formato de nombre predefinido',
   'settings.search.filenamePreset.description': 'Elige cómo se nombran las imágenes',
   'settings.search.filenameTemplate.label': 'Plantilla de nombre de archivo',
@@ -744,4 +748,5 @@ export const es: Dictionary = {
     'Los estilos vienen de paquetes de estilos. Instala uno para llenar este catálogo.',
   'status.providerReady': '{provider} está listo para generar.',
   'characterLab.notReady': 'No está listo',
+  'settings.importSources.destination': 'Las imágenes seleccionadas se importarán a "{workspace}".',
 };

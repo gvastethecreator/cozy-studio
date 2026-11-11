@@ -116,7 +116,7 @@ export function ImageActionsMenu({
   }, [submenu]);
   const closeMenu = () => {
     onOpenChange(false);
-    triggerRef.current?.focus();
+    triggerRef.current?.focus({ preventScroll: true });
   };
   const run = (action: () => void) => {
     action();

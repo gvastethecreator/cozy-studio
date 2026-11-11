@@ -33,18 +33,28 @@ beforeAll(() => {
 });
 
 describe('GsapDropdown Workbench Ambient', () => {
-  it('anchors a context menu at the cursor and flips at viewport edges', async () => {
+  it('anchors a context menu before reveal, retargets, and keeps its closing position', async () => {
     const trigger = document.createElement('button');
-    document.body.append(trigger);
-    const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(200);
+    const nextTrigger = document.createElement('button');
+    document.body.append(trigger, nextTrigger);
+    const width = vi
+      .spyOn(HTMLElement.prototype, 'offsetWidth', 'get')
+      .mockImplementation(function (this: HTMLElement) {
+        // A body portal in normal flow measures at page width until it is taken out of flow.
+        return this.hasAttribute('data-gsap-dropdown') && this.style.position !== 'fixed'
+          ? window.innerWidth
+          : 200;
+      });
     const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(120);
+    const onOpenChange = vi.fn();
+    const focus = vi.spyOn(nextTrigger, 'focus');
     try {
       const { rerender } = render(
         <GsapDropdown open portal triggerRef={{ current: trigger }} anchorPoint={{ x: 30, y: 40 }}>
           <button role="menuitem">Action</button>
         </GsapDropdown>,
       );
-      await waitFor(() => expect(screen.getByRole('menu').style.left).toBe('30px'));
+      expect(screen.getByRole('menu').style.left).toBe('30px');
       expect(screen.getByRole('menu').style.top).toBe('40px');
       rerender(
         <GsapDropdown
@@ -60,10 +70,38 @@ describe('GsapDropdown Workbench Ambient', () => {
         expect(screen.getByRole('menu').style.left).toBe(`${window.innerWidth - 210}px`),
       );
       expect(screen.getByRole('menu').style.top).toBe(`${window.innerHeight - 130}px`);
+      const menu = screen.getByRole('menu');
+      rerender(
+        <GsapDropdown
+          open
+          portal
+          onOpenChange={onOpenChange}
+          triggerRef={{ current: nextTrigger }}
+          anchorPoint={{ x: 160, y: 90 }}
+        >
+          <button role="menuitem">Action</button>
+        </GsapDropdown>,
+      );
+      expect(screen.getByRole('menu')).toBe(menu);
+      expect(menu.style.left).toBe('160px');
+      expect(menu.style.top).toBe('90px');
+      fireEvent.keyDown(menu, { key: 'Escape' });
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+      expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+      rerender(
+        <GsapDropdown open={false} portal triggerRef={{ current: trigger }} anchorPoint={null}>
+          <button role="menuitem">Action</button>
+        </GsapDropdown>,
+      );
+      expect(menu.style.left).toBe('160px');
+      expect(menu.style.top).toBe('90px');
+      expect(menu.getAttribute('data-state')).toBe('closed');
     } finally {
       width.mockRestore();
       height.mockRestore();
+      focus.mockRestore();
       trigger.remove();
+      nextTrigger.remove();
     }
   });
 

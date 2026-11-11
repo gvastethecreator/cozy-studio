@@ -52,6 +52,7 @@ export function useCatalogPage({
   const selectedIdRef = useLatestRef(selectedId);
   const entriesRef = useLatestRef(entries);
   const [total, setTotal] = useState(0);
+  const totalRef = useLatestRef(total);
   const [hasMore, setHasMore] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -138,32 +139,64 @@ export function useCatalogPage({
 
   const refresh = useCallback(async () => {
     const token = requestGate.beginReplace();
-    if (!preserveLoadedPages || entriesRef.current.length <= pageSize) {
+    if (!preserveLoadedPages || entriesRef.current.length === 0) {
       await loadPage(0, 'replace', token, { ...filtersRef.current }, true);
       return;
     }
     setIsLoading(true);
     setError(null);
     try {
-      const target = entriesRef.current.length;
+      const loadedCount = entriesRef.current.length;
+      const previousTotal = totalRef.current;
+      const tailId = entriesRef.current.at(-1)?.id;
+      let target = loadedCount;
+      let tailStillMatches: boolean | undefined;
       const refreshed: CatalogImage[] = [];
       let page: CatalogPage;
       do {
         page = await queryCatalogPage({
           ...filtersRef.current,
           offset: refreshed.length,
-          limit: pageSize,
+          limit:
+            refreshed.length < target ? Math.min(pageSize, target - refreshed.length) : pageSize,
         });
         if (!requestGate.isCurrent(token)) return;
         refreshed.push(...page.images);
-      } while (page.hasMore && page.images.length && refreshed.length < target);
+        target = Math.max(target, loadedCount + Math.max(0, page.total - previousTotal));
+        if (
+          page.hasMore &&
+          refreshed.length >= target &&
+          tailId &&
+          !refreshed.some((image) => image.id === tailId) &&
+          tailStillMatches === undefined
+        ) {
+          // A concurrent prepend can move the old tail beyond the counted window. Check membership
+          // before following it; a removed tail must not cause a scan of the remaining Library.
+          const tail = await queryCatalogPage({
+            ...filtersRef.current,
+            id: tailId,
+            offset: 0,
+            limit: 1,
+          });
+          if (!requestGate.isCurrent(token)) return;
+          tailStillMatches = tail.images.some((image) => image.id === tailId);
+        }
+      } while (
+        page.hasMore &&
+        page.images.length &&
+        (refreshed.length < target ||
+          (tailStillMatches && !refreshed.some((image) => image.id === tailId)))
+      );
       await retainSelection(refreshed, { ...filtersRef.current }, token);
       if (!requestGate.isCurrent(token)) return;
       setEntries([...new Map(refreshed.map((entry) => [entry.id, entry])).values()]);
       setTotal(page.total);
       setHasMore(page.hasMore);
     } catch (error) {
-      if (requestGate.isCurrent(token)) setError(normalizeCatalogError(error));
+      if (!requestGate.isCurrent(token)) return;
+      const normalizedError = normalizeCatalogError(error);
+      setError(normalizedError);
+      throw normalizedError;
     } finally {
       // react-doctor-disable-next-line react-doctor/no-loading-flag-reset-outside-finally -- finally clears only the current request; stale completions must not reset a newer load
       if (requestGate.finish(token)) setIsLoading(false);
@@ -177,6 +210,7 @@ export function useCatalogPage({
     retainSelection,
     queryCatalogPage,
     requestGate,
+    totalRef,
   ]);
 
   const loadMore = useCallback(async () => {

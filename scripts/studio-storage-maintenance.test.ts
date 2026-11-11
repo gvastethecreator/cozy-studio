@@ -55,8 +55,9 @@ describe('catalog duplicate review', () => {
       );
     }
     let computeCalls = 0;
+    let missingRecovered = false;
     const dependencies = {
-      fileExists: (filePath: string) => filePath !== 'missing',
+      fileExists: (filePath: string) => filePath !== 'missing' || missingRecovered,
       computeDHash: async (filePath: string) => {
         computeCalls += 1;
         if (filePath === 'unreadable') throw new Error('Unreadable');
@@ -97,6 +98,29 @@ describe('catalog duplicate review', () => {
     const cached = await findCatalogDuplicates(db, { workspaceId: 'default' }, dependencies);
     expect(cached).toEqual({ ...complete, hashedNow: 0 });
     expect(computeCalls).toBe(8);
+
+    missingRecovered = true;
+    hashes.missing = hashes.favorite!;
+    db.query(
+      "UPDATE catalog_images SET dhash = '' WHERE id IN ('otherWorkspace', 'archived')",
+    ).run();
+    const retry = await findCatalogDuplicates(
+      db,
+      { workspaceId: 'default', hashLimit: 1, retrySkipped: true },
+      dependencies,
+    );
+    expect(retry).toMatchObject({ hashedNow: 1, pending: 1, skipped: 0 });
+    const recovered = await findCatalogDuplicates(db, { workspaceId: 'default' }, dependencies);
+    expect(recovered).toMatchObject({ hashedNow: 1, checked: 9, pending: 0, skipped: 1 });
+    expect(recovered.groups[0]!.images.map((image) => image.id)).toContain('missing');
+    expect(
+      db.query("SELECT dhash FROM catalog_images WHERE id IN ('otherWorkspace', 'archived')").all(),
+    ).toEqual([{ dhash: '' }, { dhash: '' }]);
+    expect(await findCatalogDuplicates(db, { workspaceId: 'default' }, dependencies)).toEqual({
+      ...recovered,
+      hashedNow: 0,
+    });
+    expect(computeCalls).toBe(10);
   });
 
   it('matches a JPEG resave of a gradient and separates its mirror with 256-bit dHash', async () => {

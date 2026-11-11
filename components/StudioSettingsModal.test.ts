@@ -15,11 +15,17 @@ import { STUDIO_SETTINGS_DOMAIN_TABS } from '../lib/studioSettingsDomains';
 import { setLanguage, t } from '../lib/i18n';
 import { findCatalogDuplicates } from '../services/studio-api/maintenance';
 import { archiveCatalogByFilter } from '../services/studio-api/catalog';
+import { importLibraryArchive } from '../services/studio-api/workspaces';
 
 const workspaceState = vi.hoisted(() => ({
   activeWorkspaceId: 'default',
   workspaces: [{ id: 'default', name: 'Test workspace' }],
   createWorkspace: vi.fn(),
+  adoptWorkspace: vi.fn(),
+}));
+vi.mock('../services/studio-api/workspaces', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  importLibraryArchive: vi.fn(),
 }));
 vi.mock('../contexts/WorkspaceContext', () => ({ useWorkspaceState: () => workspaceState }));
 vi.mock('../services/studio-api/maintenance', () => ({ findCatalogDuplicates: vi.fn() }));
@@ -47,9 +53,16 @@ afterEach(() => {
   cleanup();
   setLanguage('en');
   Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
+  workspaceState.activeWorkspaceId = 'default';
+  workspaceState.workspaces = [{ id: 'default', name: 'Test workspace' }];
+  workspaceState.createWorkspace.mockClear();
+  workspaceState.adoptWorkspace.mockClear();
+  vi.mocked(importLibraryArchive).mockReset();
 });
 
-function renderSettingsModal() {
+function renderSettingsModal(
+  overrides: Partial<React.ComponentProps<typeof StudioSettingsModal>> = {},
+) {
   render(
     React.createElement(StudioSettingsModal, {
       isOpen: true,
@@ -87,6 +100,7 @@ function renderSettingsModal() {
       },
       onResetStudio: vi.fn(),
       isResettingStudio: false,
+      ...overrides,
     }),
   );
 }
@@ -252,13 +266,46 @@ describe('StudioSettingsModal provider defaults', () => {
     expect(patch.providerDefaults?.codex).toEqual(settings.providerDefaults.codex);
   });
 
-  it('labels preferredOutputPath as an external scan folder, not generate destination', () => {
+  it('keeps imports in the shown workspace and adopts an archive workspace without creating it again', async () => {
     expect(EXTERNAL_SCAN_PATH_LABEL).toBe('External folder to scan');
     expect(EXTERNAL_SCAN_PATH_HELP).toContain('import');
     expect(EXTERNAL_SCAN_PATH_HELP).toContain('does not change where new images are saved');
     expect(EXTERNAL_SCAN_PATH_LABEL.toLowerCase()).not.toContain('preferred output');
 
-    renderSettingsModal();
+    workspaceState.activeWorkspaceId = 'current';
+    workspaceState.workspaces.push({ id: 'current', name: 'Current workspace' });
+    const importFiles = vi.fn();
+    renderSettingsModal({
+      outputSources: {
+        registry: {
+          schemaVersion: 'external-output-sources/v1',
+          sources: [
+            {
+              id: 'source',
+              label: 'External',
+              path: 'D:/External',
+              providerId: null,
+              status: 'registered',
+              createdAt: '',
+              updatedAt: '',
+            },
+          ],
+        },
+        candidates: [],
+      },
+      outputSourceFiles: {
+        source: [
+          {
+            relativePath: 'image.png',
+            fileName: 'image.png',
+            sizeBytes: 1,
+            modifiedAt: null,
+            mimeType: 'image/png',
+          },
+        ],
+      },
+      onImportOutputSourceFiles: importFiles,
+    });
     expect(document.querySelector('.studio-dialog')).not.toBeNull();
     const nav = screen.getByRole('navigation', { name: 'Settings sections' });
     expect(
@@ -279,6 +326,35 @@ describe('StudioSettingsModal provider defaults', () => {
     expect(screen.getByText(EXTERNAL_SCAN_PATH_HELP)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Export this workspace' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Import a Library archive' })).toBeTruthy();
+    expect(
+      screen.getByText('Selected images will be imported into "Current workspace".'),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select image.png' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import 1' }));
+    expect(importFiles).toHaveBeenCalledWith('source', ['image.png'], 'current');
+    vi.mocked(importLibraryArchive).mockResolvedValueOnce({
+      workspace: {
+        id: 'restored',
+        name: 'Restored',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        filter: {},
+        sortOrder: 'newest',
+      },
+      imported: 1,
+      skipped: [],
+      missing: [],
+    });
+    fireEvent.change(screen.getByLabelText('Library archive ZIP'), {
+      target: { files: [new File(['fixture'], 'library.zip', { type: 'application/zip' })] },
+    });
+    await waitFor(() =>
+      expect(workspaceState.adoptWorkspace).toHaveBeenCalledWith(
+        { id: 'restored', name: 'Restored', createdAt: Date.parse('2026-01-01T00:00:00.000Z') },
+        { activate: true },
+      ),
+    );
+    expect(workspaceState.createWorkspace).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Accounts & models' }));
     const radios = within(screen.getByRole('group', { name: 'Default provider' })).getAllByRole(
       'radio',

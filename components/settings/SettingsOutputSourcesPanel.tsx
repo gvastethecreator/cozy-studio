@@ -7,7 +7,8 @@ import type {
   ExternalOutputSourcesResponse,
   RegisterExternalOutputSourceInput,
 } from '../../packages/shared/src/outputSources';
-import { formatBytes } from '../../lib/i18n';
+import { formatBytes, useT } from '../../lib/i18n';
+import { useWorkspaceState } from '../../contexts/GlobalContext';
 
 interface SettingsOutputSourcesPanelProps {
   outputSources: ExternalOutputSourcesResponse | null;
@@ -36,6 +37,10 @@ export function SettingsOutputSourcesPanel({
   onImportOutputSourceFiles,
   onRegisterOutputSource,
 }: SettingsOutputSourcesPanelProps) {
+  const { activeWorkspaceId, workspaces } = useWorkspaceState();
+  const { t } = useT();
+  const destination =
+    workspaces.find((workspace) => workspace.id === activeWorkspaceId)?.name || activeWorkspaceId;
   const [selectedOutputFiles, setSelectedOutputFiles] = useState<Record<string, string[]>>({});
   const [previousFiles, setPreviousFiles] = useState(outputSourceFiles);
   if (previousFiles !== outputSourceFiles) {
@@ -88,7 +93,7 @@ export function SettingsOutputSourcesPanel({
     const available = new Set((outputSourceFiles[sourceId] ?? []).map((file) => file.relativePath));
     const selected = (selectedOutputFiles[sourceId] ?? []).filter((file) => available.has(file));
     if (selected.length === 0) return;
-    await onImportOutputSourceFiles(sourceId, selected);
+    await onImportOutputSourceFiles(sourceId, selected, activeWorkspaceId);
   };
 
   return (
@@ -100,6 +105,9 @@ export function SettingsOutputSourcesPanel({
           </h3>
           <p className="mt-1 text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-dim)]">
             Register a folder, then copy selected images into the library.
+          </p>
+          <p className="mt-1 text-xs text-[color:var(--wb-muted)]">
+            {t('settings.importSources.destination', { workspace: destination })}
           </p>
         </div>
         {isLoadingOutputSources ? (

@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ToastUiProvider } from './ToastUiContext';
 import { WorkspaceProvider, useWorkspaceState } from './WorkspaceContext';
 import { CATALOG_WORKSPACE_SEEN } from '../services/studio-api/catalog';
+import { createWorkspace as createWorkspaceApi } from '../services/studio-api/workspaces';
 import {
   migrateIndexedDbWorkspacesToServer,
   loadDurableWorkspacesFromApi,
@@ -28,6 +29,7 @@ function ActiveWorkspace() {
     libraryFilters,
     workspaces,
     createWorkspace,
+    adoptWorkspace,
     deleteWorkspace,
   } = useWorkspaceState();
   return (
@@ -41,6 +43,9 @@ function ActiveWorkspace() {
         Create workspace
       </button>
       <button onClick={() => deleteWorkspace(activeWorkspaceId)}>Delete workspace</button>
+      <button onClick={() => adoptWorkspace({ id: 'imported', name: 'Imported', createdAt: 4 })}>
+        Adopt imported workspace
+      </button>
     </>
   );
 }
@@ -48,11 +53,12 @@ function ActiveWorkspace() {
 afterEach(() => {
   vi.mocked(migrateIndexedDbWorkspacesToServer).mockReset();
   vi.mocked(loadDurableWorkspacesFromApi).mockReset();
+  vi.mocked(createWorkspaceApi).mockClear();
   window.history.replaceState(null, '', '/');
 });
 
 describe('workspace startup', () => {
-  it.each(['Create workspace', 'Delete workspace'])(
+  it.each(['Create workspace', 'Delete workspace', 'Adopt imported workspace'])(
     'clears the previous collection on %s while preserving valid deep links',
     async (action) => {
       const onUrlUpdate = vi.fn<(event: UrlUpdateEvent) => void>();
@@ -89,10 +95,15 @@ describe('workspace startup', () => {
       fireEvent.click(screen.getByRole('button', { name: action }));
       await waitFor(() =>
         expect(screen.getByTestId('active-workspace').textContent).toBe(
-          action === 'Create workspace' ? 'created' : 'default',
+          action === 'Create workspace'
+            ? 'created'
+            : action === 'Adopt imported workspace'
+              ? 'imported'
+              : 'default',
         ),
       );
       await waitFor(() => expect(screen.getByTestId('collection').textContent).toBe(''));
+      if (action === 'Adopt imported workspace') expect(createWorkspaceApi).not.toHaveBeenCalled();
       // An agent's new workspace arrives before the server sees this window's create or delete.
       vi.mocked(loadDurableWorkspacesFromApi).mockResolvedValueOnce({
         workspaces: [
@@ -105,7 +116,11 @@ describe('workspace startup', () => {
       window.dispatchEvent(new CustomEvent(CATALOG_WORKSPACE_SEEN, { detail: 'agent' }));
       await waitFor(() =>
         expect(screen.getByTestId('workspaces').textContent).toBe(
-          action === 'Create workspace' ? 'default,current,created,agent' : 'default,agent',
+          action === 'Create workspace'
+            ? 'default,current,created,agent'
+            : action === 'Adopt imported workspace'
+              ? 'default,current,imported,agent'
+              : 'default,agent',
         ),
       );
     },

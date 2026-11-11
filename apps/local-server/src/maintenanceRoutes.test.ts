@@ -17,6 +17,7 @@ describe('maintenanceRoutes', () => {
       null,
       { workspaceId: ' ' },
       { workspaceId: 'default', hashLimit: 51 },
+      { workspaceId: 'default', retrySkipped: 'true' },
     ]) {
       const response = await routes.request('/catalog/duplicates', {
         method: 'POST',
@@ -27,11 +28,20 @@ describe('maintenanceRoutes', () => {
     expect(findDuplicates).not.toHaveBeenCalled();
     const response = await routes.request('/catalog/duplicates', {
       method: 'POST',
-      body: JSON.stringify({ workspaceId: 'default', hashLimit: 2, maxDistance: 256 }),
+      body: JSON.stringify({
+        workspaceId: 'default',
+        hashLimit: 2,
+        maxDistance: 256,
+        retrySkipped: true,
+      }),
     });
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ pending: 3, checked: 2, total: 5 });
-    expect(findDuplicates).toHaveBeenCalledWith({ workspaceId: 'default', hashLimit: 2 });
+    expect(findDuplicates).toHaveBeenCalledWith({
+      workspaceId: 'default',
+      hashLimit: 2,
+      retrySkipped: true,
+    });
   });
 
   it('returns the storage audit report', async () => {

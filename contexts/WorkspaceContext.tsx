@@ -104,6 +104,7 @@ export interface WorkspaceContextValue {
   hasInitialLibraryLink: boolean;
   workspaces: Workspace[];
   createWorkspace: (workspace: Workspace, options?: { activate?: boolean }) => void;
+  adoptWorkspace: (workspace: Workspace, options?: { activate?: boolean }) => void;
   deleteWorkspace: (id: string) => void;
   renameWorkspace: (id: string, name: string) => void;
   activeWorkspaceId: string;
@@ -141,6 +142,15 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
   const setLibraryFilters = useCallback(
     (filters: Partial<LibraryFilters>) => {
       void setQuery(filters, { history: 'replace' });
+    },
+    [setQuery],
+  );
+
+  const adoptWorkspace = useCallback(
+    (workspace: Workspace, options?: { activate?: boolean }) => {
+      dispatch({ type: 'CREATE', workspace, activate: options?.activate ?? true });
+      if (options?.activate ?? true)
+        void setQuery({ workspace: workspace.id, collection: null }, { history: 'push' });
     },
     [setQuery],
   );
@@ -206,14 +216,14 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
       loadDurableWorkspacesFromApi().then(
         ({ workspaces }) => {
           const seen = workspaces.find((workspace) => workspace.id === workspaceId);
-          if (seen) dispatch({ type: 'CREATE', workspace: seen, activate: false });
+          if (seen) adoptWorkspace(seen, { activate: false });
         },
         (error: unknown) => runtimeLogger.error('Unable to load a new workspace', error),
       );
     };
     window.addEventListener(CATALOG_WORKSPACE_SEEN, onWorkspaceSeen);
     return () => window.removeEventListener(CATALOG_WORKSPACE_SEEN, onWorkspaceSeen);
-  }, [state.workspaces]);
+  }, [adoptWorkspace, state.workspaces]);
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -230,9 +240,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const createWorkspace = useCallback(
     (workspace: Workspace, options?: { activate?: boolean }) => {
-      dispatch({ type: 'CREATE', workspace, activate: options?.activate ?? true });
-      if (options?.activate ?? true)
-        void setQuery({ workspace: workspace.id, collection: null }, { history: 'push' });
+      adoptWorkspace(workspace, options);
       void createWorkspaceApi({
         id: workspace.id,
         name: workspace.name?.trim() || 'Untitled Workspace',
@@ -263,7 +271,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
           );
         });
     },
-    [addToast, setQuery],
+    [addToast, adoptWorkspace, setQuery],
   );
 
   const deleteWorkspace = useCallback(
@@ -329,6 +337,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     () => ({
       workspaces: state.workspaces,
       createWorkspace,
+      adoptWorkspace,
       deleteWorkspace,
       renameWorkspace,
       activeWorkspaceId,
@@ -345,6 +354,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
       setLibraryFilters,
       hasInitialLibraryLink,
       createWorkspace,
+      adoptWorkspace,
       deleteWorkspace,
       renameWorkspace,
       setActiveWorkspace,

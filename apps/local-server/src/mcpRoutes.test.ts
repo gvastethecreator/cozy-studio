@@ -172,6 +172,11 @@ describe('Studio MCP boundary', () => {
             });
             return Response.json(organized);
           }
+          if (path === '/api/catalog/unorganized-counts')
+            return Response.json([
+              ...workspaces.map(({ id }) => ({ workspaceId: id, count: 3 })),
+              { workspaceId: 'unlisted', count: 9 },
+            ]);
           if (path.startsWith('/api/catalog?')) return Response.json({ images: [], total: 3 });
           if (path === '/api/workspaces')
             return init?.method === 'POST'
@@ -429,7 +434,7 @@ describe('Studio MCP boundary', () => {
     runtimeBody = JSON.stringify(runtimePack);
 
     settings.mcpAccess = 'organize';
-    // The fake counts 3 unorganized images in every listed workspace.
+    // The fake counts 3 unorganized images in every listed workspace, plus an unlisted one.
     const total = 3 * workspaces.length;
     expect(await (await call('studio_status')).json()).toMatchObject({
       mcpAccessLabel: 'Organize',
@@ -448,9 +453,8 @@ describe('Studio MCP boundary', () => {
         `${total} images in ${workspaces.length} workspaces have no tags or collection`,
       ),
     });
-    expect(requests.slice(-workspaces.length).map(({ path }) => path)).toEqual(
-      workspaces.map(({ id }) => `/api/catalog?workspace_id=${id}&unorganized=true&limit=1`),
-    );
+    // One grouped count, not one request per workspace.
+    expect(requests.at(-1)?.path).toBe('/api/catalog/unorganized-counts');
     // A catalog read names its workspace, so a #tag search never spans workspaces.
     expect((await call('studio_catalog', { q: '#pick' })).status).toBe(400);
     // The tool checks its arguments; the server command checks images and writes in one transaction.

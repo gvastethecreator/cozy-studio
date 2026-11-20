@@ -374,7 +374,9 @@ export const JOB_SUMMARY_COLUMNS = `id, attempt, attempt_queued_at, workspace_id
   substr(COALESCE(NULLIF(trim(final_prompt_used), ''), original_prompt, ''), 1, 160) AS prompt_preview,
   error, created_at, updated_at, completed_at`;
 const OPEN_JOB_SQL = "status IN ('queued', 'running', 'needs_review')";
-const TERMINAL_JOB_SQL = "status IN ('completed', 'failed', 'cancelled')";
+// Unary `+` keeps the planner off the status index: history is most of the table, so walking
+// created_at order with LIMIT beats sorting every terminal job. Check with EXPLAIN QUERY PLAN.
+const TERMINAL_JOB_SQL = "+status IN ('completed', 'failed', 'cancelled')";
 
 function decodeJobHistoryCursor(cursor: string) {
   let value: unknown;
@@ -429,10 +431,10 @@ export function listJobSummariesFromDb(database: Database, query: JobListQuery =
       .all(...params);
     const historyWhere = `${scope} AND ${query.status ? 'status = ?' : TERMINAL_JOB_SQL}`;
     const historyParams = query.status ? [...params, query.status] : [...params];
-    if (cursor) historyParams.push(cursor[0], cursor[0], cursor[1]);
+    if (cursor) historyParams.push(cursor[0], cursor[1]);
     const history = database
       .query(`SELECT ${JOB_SUMMARY_COLUMNS} FROM jobs WHERE ${historyWhere}
-      ${cursor ? 'AND (created_at < ? OR (created_at = ? AND id < ?))' : ''}
+      ${cursor ? 'AND (created_at, id) < (?, ?)' : ''}
       ORDER BY created_at DESC, id DESC LIMIT ?`)
       .all(...historyParams, limit + 1)
       .map((row) => mapJobSummaryRow(row as Record<string, unknown>));

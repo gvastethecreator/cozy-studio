@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { isCodexHttpCredentialReady } from '../auth/tokens';
+import { getSubscriptionAuthStore, isSubscriptionLoggedIn } from '../auth/store';
 import { readChatgptHttpModels } from './chatgptAccountHttp';
 import { isAppServerRunning } from './processSupervisor';
 import { CodexRpcClient } from './rpcClient';
@@ -227,30 +227,66 @@ function buildFallbackCatalog(error: unknown): CodexModelCatalogResponse {
   };
 }
 
+const MODEL_CATALOG_TTL_MS = 10 * 60_000;
+let cachedCatalog: { key: string; expiresAt: number; catalog: CodexModelCatalogResponse } | null =
+  null;
+let inFlightCatalog: { key: string; promise: Promise<CodexModelCatalogResponse> } | null = null;
+
 /**
- * A running app-server answers first. Otherwise the Studio ChatGPT sign-in lists models over HTTP,
- * and app-server starts only when that is not possible.
+ * Who answers the model list. A sign-in, sign-out, account switch or app-server start or stop
+ * changes the key, which drops the cached catalog.
+ */
+function modelCatalogSourceKey() {
+  if (isAppServerRunning()) return 'app-server';
+  const record = getSubscriptionAuthStore().readProvider('codex');
+  return isSubscriptionLoggedIn(record) ? `chatgpt:${record.chatgptAccountId ?? ''}` : 'codex-cli';
+}
+
+async function readChatgptHttpCatalog(key: string): Promise<CodexModelCatalogResponse> {
+  try {
+    const models = filterSelectableCodexModels(await readChatgptHttpModels());
+    if (models.length === 0) throw new Error('ChatGPT returned no selectable models.');
+    return {
+      models,
+      authMode: 'chatgpt',
+      planType: null,
+      recommendedDefaultModel: pickRecommendedModel(models),
+      source: 'chatgpt-http',
+      fetchedAt: now(),
+      error: null,
+    };
+  } catch (error) {
+    // A ChatGPT sign-in never starts app-server for a model list: that spawns a Codex process on
+    // every UI load. Keep the last good list for this account, or the built-in one.
+    return cachedCatalog?.key === key ? cachedCatalog.catalog : buildFallbackCatalog(error);
+  }
+}
+
+/**
+ * A running app-server answers first. Otherwise the Studio ChatGPT sign-in lists models over HTTP.
+ * App-server starts only without a ChatGPT sign-in, where the Codex CLI login is the only source.
+ * Successful answers are cached for 10 minutes and concurrent callers share one read.
  */
 export async function getCodexModelCatalog(): Promise<CodexModelCatalogResponse> {
-  if (!isAppServerRunning() && isCodexHttpCredentialReady()) {
-    try {
-      const models = filterSelectableCodexModels(await readChatgptHttpModels());
-      if (models.length > 0) {
-        return {
-          models,
-          authMode: 'chatgpt',
-          planType: null,
-          recommendedDefaultModel: pickRecommendedModel(models),
-          source: 'chatgpt-http',
-          fetchedAt: now(),
-          error: null,
-        };
-      }
-    } catch {
-      // Fall through to app-server.
-    }
+  const key = modelCatalogSourceKey();
+  if (cachedCatalog?.key === key && Date.now() < cachedCatalog.expiresAt) {
+    return cachedCatalog.catalog;
   }
-  return createCodexModelCatalogReader()();
+  if (inFlightCatalog?.key === key) return inFlightCatalog.promise;
+  const promise = (
+    key.startsWith('chatgpt:') ? readChatgptHttpCatalog(key) : createCodexModelCatalogReader()()
+  )
+    .then((catalog) => {
+      if (catalog.source !== 'fallback' && catalog !== cachedCatalog?.catalog) {
+        cachedCatalog = { key, expiresAt: Date.now() + MODEL_CATALOG_TTL_MS, catalog };
+      }
+      return catalog;
+    })
+    .finally(() => {
+      if (inFlightCatalog?.promise === promise) inFlightCatalog = null;
+    });
+  inFlightCatalog = { key, promise };
+  return promise;
 }
 
 function createCodexModelCatalogReader({

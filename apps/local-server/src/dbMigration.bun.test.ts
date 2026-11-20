@@ -260,6 +260,12 @@ function inspectOutputGenerations() {
   }
 }
 
+/** Undoes the newest migration (21: two catalog indexes) so the next start applies it again. */
+function rewindLatestMigration(db: Database) {
+  db.run('DROP INDEX idx_catalog_workspace_deleted_favorite');
+  db.run('DROP INDEX idx_catalog_deleted_tag_count_workspace');
+}
+
 function inspectPreMigrationBackup() {
   const root = mkdtempSync(path.join(os.tmpdir(), 'studio-pre-migration-'));
   const backupDir = path.join(root, 'state', 'pre-migration');
@@ -285,8 +291,8 @@ function inspectPreMigrationBackup() {
       );
     }
     writeFileSync(path.join(backupDir, 'notes.txt'), 'kept');
-    // Restore the v19 schema as well as its migration ledger before exercising v20.
-    db.run('ALTER TABLE catalog_images DROP COLUMN dhash');
+    // Restore the v20 schema as well as its migration ledger before exercising v21.
+    rewindLatestMigration(db);
     db.query('DELETE FROM schema_migrations WHERE version = ?').run(latest);
     migrateDatabase(db);
     const backups = listBackups();
@@ -304,7 +310,7 @@ function inspectPreMigrationBackup() {
     failingDb = new Database(path.join(failingRoot, 'studio.sqlite'));
     migrateDatabase(failingDb);
     writeFileSync(path.join(failingRoot, 'state'), 'not a folder');
-    failingDb.run('ALTER TABLE catalog_images DROP COLUMN dhash');
+    rewindLatestMigration(failingDb);
     failingDb.query('DELETE FROM schema_migrations WHERE version = ?').run(latest);
     let failure = '';
     try {
@@ -835,7 +841,7 @@ describe('database migrations', () => {
         transactionRolledBack: true,
         recoverableCheckpoint: true,
         summaryProjection: true,
-        schemaVersion: 20,
+        schemaVersion: 21,
         legacyComfyIsolated: true,
         remoteIdentityPreserved: true,
         completeJobHistory: true,

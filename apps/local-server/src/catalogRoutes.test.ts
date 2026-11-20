@@ -380,6 +380,12 @@ describe('catalog routes', () => {
     expect((await page('&unorganized=true')).images.map((image: CatalogImage) => image.id)).toEqual(
       ['beta'],
     );
+    expect(await (await routes.request('/unorganized-counts')).json()).toEqual(
+      [
+        { workspaceId: 'default', count: 2 },
+        { workspaceId: other.id, count: 1 },
+      ].sort((a, b) => (a.workspaceId < b.workspaceId ? -1 : 1)),
+    );
     await send('PATCH', '/beta', { isFavorite: false });
     expect((await page()).total).toBe(1);
     expect(

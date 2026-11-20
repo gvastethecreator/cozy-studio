@@ -38,6 +38,7 @@ import type {
 import {
   JOB_NOTICE_EVENT_TYPES,
   type CatalogImage,
+  type CatalogUnorganizedCount,
   type JobDetailResponse,
   type JobExecutionOptions,
 } from '../../../packages/shared/src/types';
@@ -346,16 +347,15 @@ export function createMcpRoutes({
         // A failed workspace read counts nothing, so studio_status never fails on it.
         const listed: unknown = await readJson('/api/workspaces');
         const workspaces = Array.isArray(listed) ? (listed as StudioWorkspace[]) : [];
-        // ponytail: one count request per workspace; add a grouped unorganized route if workspaces reach the hundreds.
-        const unorganizedWorkspaces = (
-          await Promise.all(
-            workspaces.map(async ({ id, name }) => ({
-              id,
-              name,
-              count: await unorganizedCount(id),
-            })),
-          )
-        ).filter(({ count }) => count > 0);
+        const counted: unknown = await readJson('/api/catalog/unorganized-counts');
+        const counts = new Map(
+          (Array.isArray(counted) ? (counted as CatalogUnorganizedCount[]) : []).map(
+            ({ workspaceId, count }) => [workspaceId, count],
+          ),
+        );
+        const unorganizedWorkspaces = workspaces
+          .map(({ id, name }) => ({ id, name, count: counts.get(id) ?? 0 }))
+          .filter(({ count }) => count > 0);
         const total = unorganizedWorkspaces.reduce((sum, { count }) => sum + count, 0);
         const workspaceCount = unorganizedWorkspaces.length;
         return c.json({

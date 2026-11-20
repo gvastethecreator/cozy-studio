@@ -456,6 +456,12 @@ export interface CatalogPage {
   hasMore: boolean;
 }
 
+/** Live images with no tag and no manual collection in one workspace. */
+export interface CatalogUnorganizedCount {
+  workspaceId: string;
+  count: number;
+}
+
 export interface CatalogWorkspaceSummary {
   workspaceId: string;
   imageCount: number;

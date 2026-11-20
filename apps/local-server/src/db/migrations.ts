@@ -6,6 +6,13 @@ import { resolveJobWorkspaceId } from '../../../../packages/shared/src/workspace
 import { getDb } from './connection';
 import { ensureDefaultWorkspaceRow } from './workspaces';
 
+/**
+ * Tag count of a catalog image. Migration 21 indexes this exact expression, so filters must use
+ * this text to reach the index. Changing it needs a new migration that rebuilds the index.
+ */
+export const CATALOG_TAG_COUNT_SQL =
+  "json_array_length(CASE WHEN json_valid(tags) THEN tags ELSE '[]' END)";
+
 function now() {
   return new Date().toISOString();
 }
@@ -519,6 +526,18 @@ const DATABASE_MIGRATIONS = [
     name: 'catalog-image-dhash',
     migrate(database: Database) {
       database.run('ALTER TABLE catalog_images ADD COLUMN dhash TEXT');
+    },
+  },
+  {
+    version: 21,
+    name: 'catalog-filter-count-indexes',
+    migrate(database: Database) {
+      // Favorite and unorganized counts otherwise read every full image row of the workspace.
+      database.run(`CREATE INDEX idx_catalog_workspace_deleted_favorite
+        ON catalog_images(COALESCE(workspace_id, 'default'), is_deleted, is_favorite)`);
+      // Workspace last: the grouped count for every workspace seeks this index too.
+      database.run(`CREATE INDEX idx_catalog_deleted_tag_count_workspace
+        ON catalog_images(is_deleted, ${CATALOG_TAG_COUNT_SQL}, COALESCE(workspace_id, 'default'))`);
     },
   },
 ] as const;

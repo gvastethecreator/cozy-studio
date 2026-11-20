@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './styles/manrope.css';
 @import './styles/workbench-tokens.css';
 @import './styles/workbench-precision.css';
 @import './styles/workbench-ambient.css';

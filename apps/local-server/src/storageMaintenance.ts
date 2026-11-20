@@ -14,6 +14,7 @@ import type {
 } from '../../../packages/shared/src';
 import { getSettings } from './config';
 import { ensureThumbnailVariant } from './libraryAssetVariants';
+import { CATALOG_TAG_COUNT_SQL } from './db/migrations';
 import { resolveLibraryPathFromRoot } from './library';
 import { authoringSharp } from './sharpAuthoringAdapter';
 
@@ -169,7 +170,7 @@ export async function findCatalogDuplicates(
     .query(`SELECT id, thumbnail_url AS thumbnailUrl, public_url AS publicUrl,
     created_at AS createdAt, is_favorite AS isFavorite, recipe_id AS recipeId,
     width, height, file_size_bytes AS fileSizeBytes, dhash,
-    (json_array_length(CASE WHEN json_valid(tags) THEN tags ELSE '[]' END) > 0 OR EXISTS (
+    (${CATALOG_TAG_COUNT_SQL} > 0 OR EXISTS (
       SELECT 1 FROM catalog_collection_images
       JOIN catalog_collections ON catalog_collections.id = catalog_collection_images.collection_id
       WHERE catalog_collection_images.image_id = catalog_images.id

@@ -217,6 +217,7 @@ function createFakeCatalogStore(overrides?: Partial<StudioCatalogStore>): Studio
     purgeCatalogImage: vi.fn((id: string) => (id === image.id ? image : null)),
     listCollections: vi.fn(() => []),
     listFacets: vi.fn(() => ({ providers: [], recipes: [], styles: [] })),
+    countUnorganized: vi.fn(() => []),
     listCollectionSelection: vi.fn(() => []),
     listTags: vi.fn(() => []),
     createTag: vi.fn((workspaceId, name, color) => ({

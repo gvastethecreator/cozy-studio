@@ -12,6 +12,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { Database } from 'bun:sqlite';
 import { getDb } from './db/connection';
+import { CATALOG_TAG_COUNT_SQL } from './db/migrations';
 import { ensureDefaultLibrary, getLibrary } from './libraries';
 import { resolveLibraryPathFromRoot, toPublicAssetUrl } from './library';
 import { buildCatalogWorkspaceClause } from './catalogWorkspaceClause';
@@ -26,6 +27,7 @@ import {
 import type {
   CatalogCommandFilter,
   CatalogSortOption,
+  CatalogUnorganizedCount,
   CatalogWorkspaceSummary,
 } from '../../../packages/shared/src';
 
@@ -298,7 +300,7 @@ function pushFilterClauses(
     }
   }
   if (filters.unorganized) {
-    clauses.push(`json_array_length(CASE WHEN json_valid(tags) THEN tags ELSE '[]' END) = 0
+    clauses.push(`${CATALOG_TAG_COUNT_SQL} = 0
       AND NOT EXISTS (
         SELECT 1 FROM catalog_collection_images
         JOIN catalog_collections ON catalog_collections.id = catalog_collection_images.collection_id
@@ -350,6 +352,19 @@ function pushFilterClauses(
     clauses.push('julianday(created_at) < julianday(?)');
     params.push(filters.createdTo);
   }
+}
+
+/** Live images with no tag and no manual collection, per workspace that has any, in one query. */
+export function countUnorganizedCatalogImages(db?: Database): CatalogUnorganizedCount[] {
+  const clauses: string[] = [];
+  const params: (string | number)[] = [];
+  pushFilterClauses({ unorganized: true }, clauses, params);
+  return getDb(db)
+    .query(
+      `SELECT COALESCE(workspace_id, 'default') AS workspaceId, COUNT(*) AS count FROM catalog_images
+      WHERE is_deleted = 0 AND ${clauses.join(' AND ')} GROUP BY 1 ORDER BY 1`,
+    )
+    .all(...params) as CatalogUnorganizedCount[];
 }
 
 export function listCatalogFacets(workspaceId: string, db?: Database): CatalogFacets {

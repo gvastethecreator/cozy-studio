@@ -228,6 +228,8 @@ export function createCatalogRoutes({
     }
   });
 
+  routes.get('/unorganized-counts', (c) => c.json(catalogStore.countUnorganized()));
+
   routes.get('/facets', (c) => {
     try {
       return c.json(

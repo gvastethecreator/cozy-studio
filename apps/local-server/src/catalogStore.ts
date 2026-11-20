@@ -11,6 +11,7 @@ import type {
   CatalogOrganizeHistoryEntry,
   CatalogPage,
   CatalogSortOption,
+  CatalogUnorganizedCount,
   CatalogWorkspaceSummary,
   CatalogTag,
   CatalogTagPatch,
@@ -75,6 +76,7 @@ export interface StudioCatalogStore {
   purgeCatalogImage(id: string): CatalogImage | null;
   listCollections(workspaceId: string): CatalogCollection[];
   listFacets(workspaceId: string): CatalogFacets;
+  countUnorganized(): CatalogUnorganizedCount[];
   listCollectionSelection(workspaceId: string, imageIds: string[]): CatalogCollectionSelection[];
   createCollection(input: {
     workspaceId: string;
@@ -149,6 +151,7 @@ export async function createDefaultCatalogStore(): Promise<StudioCatalogStore> {
     // ponytail: one COUNT per smart collection per list.
     listCollections: (workspaceId) => listCatalogCollections(workspaceId).map(withLiveCount),
     listFacets: catalog.listCatalogFacets,
+    countUnorganized: catalog.countUnorganizedCatalogImages,
     listCollectionSelection: listCatalogCollectionSelection,
     createCollection: (input) => withLiveCount(createCatalogCollection(input)),
     updateCollection: (id, patch) => {

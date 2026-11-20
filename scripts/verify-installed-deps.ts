@@ -1,10 +1,21 @@
 // `bun install` keeps packages that bun.lock no longer lists, so a stale node_modules can hide a
-// CI failure. Report top-level packages that bun.lock does not pin. Report only (owner decision).
+// CI failure. Report top-level packages that bun.lock does not pin, and a Bun that differs from
+// packageManager. Report only (owner decision).
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const root = path.resolve(import.meta.dir, '..');
 const nodeModules = path.join(root, 'node_modules');
+
+const manifest = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8')) as {
+  packageManager?: string;
+};
+const pinnedBun = /^bun@(.+)$/.exec(manifest.packageManager ?? '')?.[1];
+if (pinnedBun && pinnedBun !== Bun.version) {
+  console.warn(
+    `Bun ${Bun.version} is running, but package.json pins bun@${pinnedBun}. Local results can differ from CI.`,
+  );
+}
 try {
   const lock = Bun.JSONC.parse(readFileSync(path.join(root, 'bun.lock'), 'utf8')) as {
     packages: Record<string, [string, ...unknown[]]>;

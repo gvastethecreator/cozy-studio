@@ -6,7 +6,7 @@ Cozy Studio uses Bun as its package manager and backend runtime. `bun:sqlite` an
 
 - `package.json` declares dependency ranges, overrides, and the Bun baseline.
 - `bun.lock` records resolved packages.
-- `.github/workflows/ci.yml`, `pages.yml` and `release.yml` each pin the Bun version; change all three together.
+- `.github/workflows/ci.yml`, `pages.yml` and `release.yml` read the Bun version from `packageManager` (`bun-version-file: package.json`).
 - `vitest.config.ts` owns tests. Tests import `vitest` directly; Vite+ supplies the build and check commands.
 
 Read these files for current versions. A local run on another Bun release does not prove compatibility with the CI baseline.
@@ -14,13 +14,13 @@ Read these files for current versions. A local run on another Bun release does n
 ## Compatibility constraints
 
 - Keep the Bun baseline, CI runtime, and `@types/bun` aligned when changing the runtime.
-- Review Vite, Vite+, the React plugin, Oxfmt, Oxlint, and matching overrides together. Keep `oxlint-tsgolint` within Oxlint's peer range: Vite+ invokes both packages for type-aware linting. Do not bump one pin solely to clear an outdated-package report.
+- Review Vite, Vite+, the React plugin, Oxfmt, Oxlint, and matching overrides together. Vite+ pins its `vite` package (`@voidzero-dev/vite-plus-core`), Oxlint, Oxfmt and Vitest exactly; keep the root alias, overrides, `vitest` and `@vitest/coverage-v8` on the versions the installed Vite+ release declares. Vite+ 1.7 runs type-aware lint and the type check without `oxlint-tsgolint`; do not add it back as an override. Do not bump one pin solely to clear an outdated-package report.
 - Before updating Sharp, verify `writePngFromSvg` through the Sprite Atlas fixture path. That path protects SVG rasterization used by atlas fixtures; a package install alone does not prove it works.
 - Use a top-level override only for a demonstrated compatibility or security problem. Bun does not support nested overrides.
 
 ## Pinned packages
 
-Effect is pinned to `4.1.4`. Keep domain cancellation separate from fiber interruption in tests: the Comfy executor must report unconfirmed cancellation, and the worker must retain `needs_review` when an interrupted job has no confirmed remote cancellation. A raw interrupted fiber does not promise to return the domain error from its cleanup.
+Effect is pinned to `4.1.5`. Keep domain cancellation separate from fiber interruption in tests: the Comfy executor must report unconfirmed cancellation, and the worker must retain `needs_review` when an interrupted job has no confirmed remote cancellation. A raw interrupted fiber does not promise to return the domain error from its cleanup.
 
 JSDOM 31 uses `@napi-rs/canvas` for optional native canvas support; the old `canvas` package no longer enables it. Studio does not install either backend. Keep pixel and layout proof in a real browser; the DOM suite must also account for JSDOM's updated CSS handling, focus behavior and asynchronous document parsing. See the [JSDOM 31 release notes](https://github.com/jsdom/jsdom/releases/tag/v31.0.0).
 

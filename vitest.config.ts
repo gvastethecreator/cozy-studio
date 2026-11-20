@@ -17,6 +17,8 @@ export default defineConfig({
       '**/dist/**',
       '**/.scratch/**',
       '**/.claude/**',
+      // The landing site has its own package and runs its tests with `bun run test` in landing/.
+      'landing/**',
       '**/*.bun.test.ts',
     ],
     coverage: {

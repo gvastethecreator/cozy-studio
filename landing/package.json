@@ -9,7 +9,8 @@
     "build": "node scripts/build-astro.mjs site.yaml dist /cozy-studio/",
     "build:local": "node scripts/build-astro.mjs site.yaml dist-local /",
     "build:cloudflare": "node scripts/build-astro.mjs site.yaml dist-astro /",
-    "deploy:cloudflare": "bun run build:cloudflare && wrangler deploy"
+    "deploy:cloudflare": "bun run build:cloudflare && wrangler deploy",
+    "test": "bun test src"
   },
   "dependencies": {
     "@chenglou/pretext": "1.0.0",

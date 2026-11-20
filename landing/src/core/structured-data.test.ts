@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { load } from 'js-yaml';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
+import { parse } from 'yaml';
 import { landingStructuredData } from './structured-data';
 
-const view = load(readFileSync(path.resolve(import.meta.dirname, '../..', 'site.yaml'), 'utf8')) as
+const view = parse(readFileSync(path.resolve(import.meta.dirname, '../..', 'site.yaml'), 'utf8')) as
   Required<Omit<Parameters<typeof landingStructuredData>[0], 'pageTitle'>>;
 const input = {
   project: view.project,

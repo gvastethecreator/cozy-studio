@@ -4,7 +4,7 @@
 
 Cozy Studio uses **Bun** as package manager and backend runtime. Use `bun` or `bunx` for operational scripts. Do not use `npm`, `npx`, `pnpm`, or `yarn` for those scripts.
 
-The repository and CI pin Bun `1.4.4` through `packageManager` and the workflow setup step. Use `bun install` for a local dependency refresh. Use `bun install --frozen-lockfile` for reproducible validation and CI. `bun install` does not remove packages that `bun.lock` no longer lists, so `bun run validate` starts by listing them (`scripts/verify-installed-deps.ts`) without failing the gate. Follow [Clean dependency install](#clean-dependency-install) to repair that drift.
+The repository pins Bun `1.4.5` through `packageManager`; the workflow setup steps read it from `package.json`, and `bun run validate` warns when the running Bun differs. Use `bun install` for a local dependency refresh. Use `bun install --frozen-lockfile` for reproducible validation and CI. `bun install` does not remove packages that `bun.lock` no longer lists, so `bun run validate` starts by listing them (`scripts/verify-installed-deps.ts`) without failing the gate. Follow [Clean dependency install](#clean-dependency-install) to repair that drift.
 
 VS Code tasks run `bun` from the editor's `PATH`; `packageManager` does not switch that executable. Check `bun --version` in the editor's terminal before validation. Put the intended Bun installation directory, including `bunx`, first on `PATH` before starting the editor, then reopen it after changing `PATH`. Keep machine-specific executable paths in local editor settings.
 

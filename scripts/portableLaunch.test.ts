@@ -5,6 +5,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -561,9 +562,11 @@ describe('Windows portable dry-run', { timeout: LAUNCHER_TEST_TIMEOUT }, () => {
           });
           expect(result.status, result.stderr).toBe(0);
           const output = JSON.parse(result.stdout.trim().split('\n').at(-1)!);
-          expect(output.runtime.toLowerCase()).toBe(bundledBun.toLowerCase());
-          expect(output.cwd).toBe(root);
-          expect(output.childRuntime.toLowerCase()).toBe(bundledBun.toLowerCase());
+          // CI's temp dir can come back as an 8.3 short path (RUNNER~1), so compare canonical paths.
+          const canonical = (value: string) => realpathSync.native(value).toLowerCase();
+          expect(canonical(output.runtime)).toBe(canonical(bundledBun));
+          expect(canonical(output.cwd)).toBe(canonical(root));
+          expect(canonical(output.childRuntime)).toBe(canonical(bundledBun));
           expect(output.portable).toBe('1');
         }
       } finally {

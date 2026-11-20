@@ -30,7 +30,6 @@ $null
 __pycache__/
 *.py[cod]
 .scratch/
-.css-sanitization/
 .snapshots/
 docs/codemap/.staging/
 docs/codemap/.review/
@@ -66,7 +65,6 @@ artifacts/
 port-this/
 
 # Local development tools, not part of the public app
-.interface-handoff/
 skills/imagegen/
 skills/sprite-atlas-builder/
 doctor.config.json
@@ -99,7 +97,6 @@ test-files/
 # Third-party agent / IDE workspace dirs (local-only)
 .agents/
 .claude/
-.code-review-graph/
 .codebuddy/
 .commandcode/
 .continue/

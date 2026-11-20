@@ -232,7 +232,7 @@ const GenerationPlaceholderItem: React.FC<{
   viewMode: ImageGridViewMode;
 }> = React.memo(({ placeholder, viewMode }) => (
   <div
-    className={`masonry-item overflow-hidden rounded-[var(--wb-radius)] border border-accent-400/2 bg-[color:var(--wb-panel)] shadow-lg animate-in fade-in-0 zoom-in-95 ${viewMode === 'mosaic' ? 'mb-4' : ''}`}
+    className={`masonry-item overflow-hidden rounded-[var(--wb-radius)] border border-accent-400/2 bg-[color:var(--wb-panel)] shadow-lg ${viewMode === 'mosaic' ? 'mb-4' : ''}`}
   >
     <output
       aria-label={`Generation job ${placeholder.status}`}

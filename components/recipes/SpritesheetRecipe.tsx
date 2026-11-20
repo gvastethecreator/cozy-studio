@@ -465,7 +465,7 @@ function SpritesheetRecipeView({ model }: { model: SpritesheetRecipeViewModel })
                             `}
               >
                 {editingCell === i ? (
-                  <div className="absolute inset-0 z-20 bg-[color:var(--wb-panel)]/95 flex flex-col p-1 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="absolute inset-0 z-20 bg-[color:var(--wb-panel)]/95 flex flex-col p-1">
                     <textarea
                       ref={cellInputRef}
                       value={cellPrompts[i] || ''}

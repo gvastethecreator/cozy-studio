@@ -850,7 +850,7 @@ function ToolbarDockPrompt({ model }: { model: ToolbarModel }) {
         className={`studio-field flex min-h-9 items-end gap-1.5 p-1 px-2 transition-colors duration-300 ${shouldShowQuickStartError ? 'quick-start-error-frame' : ''}`}
       >
         {showQuickStartErrorText && (
-          <div className="quick-start-error-float pointer-events-none absolute -top-5 left-4 z-[120] text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-danger)] animate-in fade-in-0 slide-in-from-bottom-1 duration-150">
+          <div className="quick-start-error-float pointer-events-none absolute -top-5 left-4 z-[120] text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-danger)]">
             {requirement?.message ?? 'Add a prompt or image.'}
           </div>
         )}

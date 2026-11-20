@@ -330,15 +330,3 @@ export const useGenerationChrome = () =>
 
 export const useGenerationModal = () =>
   useRequiredGenerationContext(GenerationModalContext, 'useGenerationModal');
-
-export const useGeneration = () => {
-  const config = useGenerationDraft();
-  const pipeline = useGenerationRun();
-  const { recipe, ui } = useGenerationChrome();
-  const modal = useGenerationModal();
-  const context: GenerationContextType = { config, pipeline, recipe, ui, modal };
-  if (context === undefined) {
-    throw new Error('useGeneration must be used within a GenerationProvider');
-  }
-  return context;
-};

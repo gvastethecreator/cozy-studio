@@ -49,9 +49,7 @@ interface GenerationToolbarProviderContext {
   onOpenSettings?: ToolbarProps['onOpenSettings'];
   codexTransport?: ToolbarProps['codexTransport'];
   codexAvailableTransports?: ToolbarProps['codexAvailableTransports'];
-  grokCanExecute?: boolean;
-  grokStatus?: string;
-  grokDiagnostics?: string[];
+  activeProviderReadiness?: ToolbarProps['activeProviderReadiness'];
 }
 
 export interface BuildGenerationToolbarPropsArgs {
@@ -123,9 +121,7 @@ export function buildGenerationToolbarProps({
     onOpenSettings: provider.onOpenSettings,
     codexTransport: provider.codexTransport,
     codexAvailableTransports: provider.codexAvailableTransports,
-    grokCanExecute: provider.grokCanExecute ?? false,
-    grokStatus: provider.grokStatus,
-    grokDiagnostics: provider.grokDiagnostics,
+    activeProviderReadiness: provider.activeProviderReadiness,
   };
 }
 

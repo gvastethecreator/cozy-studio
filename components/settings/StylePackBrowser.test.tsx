@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { StylePackPreviewResponse } from '../../services/studio-api/extensions';
+import type { StylePackPreviewResponse } from '../../packages/shared/src/extensions';
 import { PackDetail, type BrowsablePack } from './StylePackBrowser';
 
 afterEach(() => {

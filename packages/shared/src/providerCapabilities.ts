@@ -1,5 +1,11 @@
-import type { GenerationProviderId, ProviderRuntimeKind } from './generationContracts';
+import type {
+  BuiltInGenerationProvider,
+  GenerationProviderId,
+  ProviderRuntimeKind,
+} from './generationContracts';
 import type { EditableStudioSettings } from './studioSettings';
+import { CODEX_HTTP_MAX_INPUT_IMAGES } from './codexExecutionContract';
+import { MAX_GROK_IMAGINE_SOURCE_IMAGES } from './grokImagineContract';
 
 export type ProviderCapabilityStatus = 'active' | 'planned' | 'not_configured';
 export type ProviderSecretState = 'not_required' | 'configured' | 'missing';
@@ -49,6 +55,78 @@ export interface GenerationProviderRuntimePreflightResponse {
   providers: GenerationProviderRuntimePreflight[];
 }
 
+export type StudioImageSize = '512px' | '1K' | '2K' | '4K';
+
+/** Fixed, non-secret facts about one built-in provider. The UI derives its labels and limits from these. */
+export interface ProviderFacts {
+  /** Full name, such as `Codex app-server`. */
+  label: string;
+  /** Brand name next to the provider mark, such as `Antigravity`. */
+  shortLabel: string;
+  /** Narrow chrome such as the status bar and the provider switch, such as `AGY`. */
+  compactLabel: string;
+  maxInputImages: number;
+  /** Images one generation can request. */
+  maxOutputCount: number;
+  /** Native transparent output. */
+  supportsTransparentBackground: boolean;
+  /** Output sizes the provider honors; other saved sizes run at 1K. */
+  imageSizes: readonly StudioImageSize[];
+}
+
+const STUDIO_MAX_INPUT_IMAGES = 10;
+const PROVIDER_BATCH_MAX = 10;
+
+const STANDARD_SIZES = ['512px', '1K'] as const satisfies readonly StudioImageSize[];
+
+function providerFacts(
+  label: string,
+  shortLabel: string,
+  overrides: Partial<Omit<ProviderFacts, 'label' | 'shortLabel'>> = {},
+): ProviderFacts {
+  return {
+    label,
+    shortLabel,
+    compactLabel: shortLabel,
+    maxInputImages: STUDIO_MAX_INPUT_IMAGES,
+    maxOutputCount: PROVIDER_BATCH_MAX,
+    supportsTransparentBackground: false,
+    imageSizes: STANDARD_SIZES,
+    ...overrides,
+  };
+}
+
+export const PROVIDER_FACTS: Readonly<Record<BuiltInGenerationProvider, ProviderFacts>> = {
+  codex: providerFacts('Codex app-server', 'Codex', {
+    maxInputImages: Math.min(STUDIO_MAX_INPUT_IMAGES, CODEX_HTTP_MAX_INPUT_IMAGES),
+  }),
+  chatgpt: providerFacts('ChatGPT', 'ChatGPT', {
+    supportsTransparentBackground: true,
+    imageSizes: ['512px', '1K', '2K', '4K'],
+  }),
+  grok: providerFacts('Grok Imagine', 'Grok', {
+    maxInputImages: MAX_GROK_IMAGINE_SOURCE_IMAGES,
+    maxOutputCount: 1,
+  }),
+  google: providerFacts('Nano Banana 2.1', 'Google', { maxOutputCount: 1 }),
+  antigravity: providerFacts('Antigravity', 'Antigravity', {
+    compactLabel: 'AGY',
+    maxOutputCount: 1,
+  }),
+  fal: providerFacts('fal.ai', 'fal.ai', { maxOutputCount: 4 }),
+  openai: providerFacts('OpenAI Images API', 'OpenAI', { maxOutputCount: 1 }),
+  replicate: providerFacts('Replicate', 'Replicate', { maxOutputCount: 1 }),
+  comfy: providerFacts('ComfyUI local', 'Comfy'),
+  dry_run: providerFacts('Dry run', 'Dry run'),
+};
+
+/** Facts for a built-in provider, or null for an unknown id such as one from an old record. */
+export function getProviderFacts(providerId: string | null | undefined): ProviderFacts | null {
+  return providerId && Object.hasOwn(PROVIDER_FACTS, providerId)
+    ? PROVIDER_FACTS[providerId as BuiltInGenerationProvider]
+    : null;
+}
+
 export interface CreateProviderCapabilitiesInput {
   settings: Pick<EditableStudioSettings, 'defaultProviderId'>;
   secretConfigured?: Partial<Record<GenerationProviderId, boolean>>;
@@ -74,7 +152,7 @@ export interface ProviderCapabilityDefinition {
 export const BUILT_IN_PROVIDER_CAPABILITIES = [
   {
     providerId: 'codex',
-    label: 'Codex app-server',
+    label: PROVIDER_FACTS.codex.label,
     runtimeKind: 'codex_app_server',
     hasAdapter: true,
     requiresSecret: false,
@@ -85,7 +163,7 @@ export const BUILT_IN_PROVIDER_CAPABILITIES = [
   },
   {
     providerId: 'chatgpt',
-    label: 'ChatGPT',
+    label: PROVIDER_FACTS.chatgpt.label,
     runtimeKind: 'subscription_http',
     hasAdapter: true,
     requiresSecret: true,
@@ -95,7 +173,7 @@ export const BUILT_IN_PROVIDER_CAPABILITIES = [
   },
   {
     providerId: 'grok',
-    label: 'Grok Imagine',
+    label: PROVIDER_FACTS.grok.label,
     runtimeKind: 'agent_cli',
     hasAdapter: true,
     requiresSecret: false,
@@ -107,7 +185,7 @@ export const BUILT_IN_PROVIDER_CAPABILITIES = [
   },
   {
     providerId: 'google',
-    label: 'Nano Banana 2.1',
+    label: PROVIDER_FACTS.google.label,
     runtimeKind: 'hosted_api',
     hasAdapter: true,
     requiresSecret: true,
@@ -118,7 +196,7 @@ export const BUILT_IN_PROVIDER_CAPABILITIES = [
   },
   {
     providerId: 'antigravity',
-    label: 'Antigravity',
+    label: PROVIDER_FACTS.antigravity.label,
     runtimeKind: 'agent_cli',
     hasAdapter: true,
     requiresSecret: false,
@@ -129,7 +207,7 @@ export const BUILT_IN_PROVIDER_CAPABILITIES = [
   },
   {
     providerId: 'fal',
-    label: 'fal.ai',
+    label: PROVIDER_FACTS.fal.label,
     runtimeKind: 'hosted_api',
     hasAdapter: true,
     requiresSecret: true,
@@ -139,7 +217,7 @@ export const BUILT_IN_PROVIDER_CAPABILITIES = [
   },
   {
     providerId: 'openai',
-    label: 'OpenAI Images API',
+    label: PROVIDER_FACTS.openai.label,
     runtimeKind: 'hosted_api',
     hasAdapter: true,
     requiresSecret: true,
@@ -149,7 +227,7 @@ export const BUILT_IN_PROVIDER_CAPABILITIES = [
   },
   {
     providerId: 'replicate',
-    label: 'Replicate',
+    label: PROVIDER_FACTS.replicate.label,
     runtimeKind: 'hosted_api',
     hasAdapter: true,
     requiresSecret: true,
@@ -159,7 +237,7 @@ export const BUILT_IN_PROVIDER_CAPABILITIES = [
   },
   {
     providerId: 'comfy',
-    label: 'ComfyUI local',
+    label: PROVIDER_FACTS.comfy.label,
     runtimeKind: 'local_workflow',
     hasAdapter: true,
     requiresSecret: false,
@@ -172,7 +250,7 @@ export const BUILT_IN_PROVIDER_CAPABILITIES = [
   },
   {
     providerId: 'dry_run',
-    label: 'Dry run',
+    label: PROVIDER_FACTS.dry_run.label,
     runtimeKind: 'dry_run',
     hasAdapter: true,
     requiresSecret: false,

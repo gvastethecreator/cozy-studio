@@ -7,6 +7,7 @@ import {
   resolveRecipeProviderBlock,
 } from './composerProviderProjection';
 import { resolveGrokImagineGenerateBlock } from './grokImagineUiPolicy';
+import type { ProviderReadiness } from './providerReadiness';
 import { RECIPE_REFERENCE_RULES } from './recipeModules/composerRules';
 
 function withoutCharacterLabDraft<T extends Partial<ImageGenerationConfig>>(config: T) {
@@ -41,18 +42,15 @@ export function prepareStudioGenerationRequest({
   configOverrides,
   providerId = 'codex',
   defaultCodexTransport,
-  grokCanExecute = true,
-  grokStatus,
-  grokDiagnostics,
+  providerReadiness = { canExecute: true },
 }: {
   generationConfig: ImageGenerationConfig;
   promptOverride?: string;
   configOverrides?: Partial<ImageGenerationConfig>;
   providerId?: GenerationProviderId;
   defaultCodexTransport?: CodexExecutionTransport;
-  grokCanExecute?: boolean;
-  grokStatus?: string;
-  grokDiagnostics?: string[];
+  /** Readiness of `providerId`; omitted means ready. */
+  providerReadiness?: ProviderReadiness;
 }): StudioGenerationRequest {
   const promptSource =
     promptOverride !== undefined
@@ -88,9 +86,7 @@ export function prepareStudioGenerationRequest({
     recipeId: effectiveRecipeId,
     aspectRatio: configOverrides?.aspectRatio ?? generationConfig.aspectRatio,
     attachments: finalAttachments,
-    canExecute: grokCanExecute,
-    status: grokStatus,
-    diagnostics: grokDiagnostics,
+    ...providerReadiness,
   });
   if (grokBlock) {
     return { ok: false, message: grokBlock.message };

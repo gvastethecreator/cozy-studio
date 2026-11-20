@@ -5,12 +5,12 @@ import {
   formatCarouselSourceLabel,
   isImageEditorApplyDisabled,
   listGrokImagineRatioOptions,
-  resolveGrokCanExecute,
   resolveGrokImagineGenerateBlock,
   resolveGrokImagineToolbarAspectRatio,
   resolveImageEditorRequiresMask,
   summarizeGrokProviderStatusLine,
 } from './grokImagineUiPolicy';
+import { selectProviderReadiness } from './providerReadiness';
 
 describe('grokImagineUiPolicy', () => {
   it('keeps Home and Styles unblocked for a ready Grok runtime', () => {
@@ -78,8 +78,16 @@ describe('grokImagineUiPolicy', () => {
     expect(resolveGrokImagineToolbarAspectRatio('16:9')).toBe('16:9');
     expect(describeGrokImagineEditNotice('grok')).toMatch(/painted mask/);
     expect(describeGrokImagineEditNotice('codex')).toBeNull();
-    expect(resolveGrokCanExecute({ canExecute: true, canAttemptExecution: true })).toBe(true);
-    expect(resolveGrokCanExecute({ canExecute: true })).toBe(false);
+    const providerDomain = (canAttemptExecution?: boolean) =>
+      ({
+        capabilities: { providers: [{ providerId: 'grok', canExecute: true }] },
+        runtimePreflight: {
+          providers:
+            canAttemptExecution === undefined ? [] : [{ providerId: 'grok', canAttemptExecution }],
+        },
+      }) as unknown as Parameters<typeof selectProviderReadiness>[0];
+    expect(selectProviderReadiness(providerDomain(true), 'grok').canExecute).toBe(true);
+    expect(selectProviderReadiness(providerDomain(), 'grok').canExecute).toBe(false);
     expect(
       summarizeGrokProviderStatusLine({
         canExecute: false,

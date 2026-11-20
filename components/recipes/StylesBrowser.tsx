@@ -22,6 +22,7 @@ import {
   resolveStyleDefaultImageVariantThumbnails,
 } from '../../lib/styleThumbnailCatalog';
 import { styleCategoryImageKey } from '../../lib/recipeAssetKeys';
+import { PROVIDER_NOT_READY, type ProviderReadiness } from '../../lib/providerReadiness';
 import { hasStylePresetIdentity } from '../../lib/recipeIdentity';
 import {
   getStyleLandingFolder,
@@ -117,7 +118,7 @@ export interface StylesBrowserProps {
   images?: GeneratedImageWithConfig[];
   onSelectImage?: (image: GeneratedImageWithConfig) => void;
   activeProviderId?: GenerationProviderId;
-  grokCanExecute?: boolean;
+  activeProviderReadiness?: ProviderReadiness;
   intentionalStylesV1?: boolean;
   defaultStyleIntensity?: number;
   defaultStyleReferenceMode?: EditableStudioSettings['defaultStyleReferenceMode'];
@@ -558,7 +559,7 @@ function useStylesBrowserController({
   isGenerating,
   images = EMPTY_IMAGES,
   activeProviderId = 'codex',
-  grokCanExecute = false,
+  activeProviderReadiness = PROVIDER_NOT_READY,
   intentionalStylesV1 = false,
   defaultStyleIntensity,
   defaultStyleReferenceMode,
@@ -589,7 +590,7 @@ function useStylesBrowserController({
     recipeId: 'styles',
     aspectRatio: config.aspectRatio,
     attachments: referenceImages,
-    canExecute: grokCanExecute,
+    ...activeProviderReadiness,
   });
 
   const composition = useStyleComposition({

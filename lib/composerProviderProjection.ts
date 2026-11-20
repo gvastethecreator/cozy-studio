@@ -21,7 +21,6 @@ import { providerBrandChipLabel } from './providerBrand';
 import { getRecipeModule, isRecipeProviderSupported } from './recipeModules';
 import {
   CODEX_HTTP_IMAGE_MODELS,
-  CODEX_HTTP_MAX_INPUT_IMAGES,
   CODEX_HTTP_MODEL,
   CODEX_HTTP_REASONING,
   getCodexHttpImageModelOption,
@@ -32,47 +31,38 @@ import {
   type CodexHttpImageModelOption,
   type CodexHttpImageSizeOption,
 } from '../packages/shared/src/codexExecutionContract';
-import { MAX_GROK_IMAGINE_SOURCE_IMAGES } from '../packages/shared/src/grokImagineContract';
+import { getProviderFacts, PROVIDER_FACTS } from '../packages/shared/src/providerCapabilities';
+import type { ProviderReadiness } from './providerReadiness';
 
 const EMPTY_CODEX_MODELS: CodexModel[] = [];
 
 export type ComposerProviderKind = 'codex' | 'chatgpt' | 'grok' | 'other';
 
-export const PROVIDER_BATCH_MAX = 10;
-export const STUDIO_MAX_INPUT_IMAGES = 10;
+const FALLBACK_FACTS = PROVIDER_FACTS.dry_run;
+
+function factsFor(providerId: GenerationProviderId | null | undefined) {
+  return getProviderFacts(providerId) ?? FALLBACK_FACTS;
+}
 
 export function resolveProviderMaxOutputCount(providerId: GenerationProviderId): number {
-  if (
-    providerId === 'grok' ||
-    providerId === 'google' ||
-    providerId === 'antigravity' ||
-    providerId === 'openai' ||
-    providerId === 'replicate'
-  )
-    return 1;
-  if (providerId === 'fal') return 4;
-  return PROVIDER_BATCH_MAX;
+  return factsFor(providerId).maxOutputCount;
 }
 
 export function resolveProviderMaxInputImages(providerId: GenerationProviderId): number {
-  if (providerId === 'grok') return MAX_GROK_IMAGINE_SOURCE_IMAGES;
-  if (providerId === 'google' || providerId === 'antigravity') return STUDIO_MAX_INPUT_IMAGES;
-  if (providerId === 'codex') return Math.min(STUDIO_MAX_INPUT_IMAGES, CODEX_HTTP_MAX_INPUT_IMAGES);
-  return STUDIO_MAX_INPUT_IMAGES;
+  return factsFor(providerId).maxInputImages;
 }
 
-/** Native transparent output exists only on the ChatGPT HTTP route. */
 export function resolveProviderSupportsTransparentBackground(providerId?: string | null) {
-  return providerId === 'chatgpt';
+  return getProviderFacts(providerId)?.supportsTransparentBackground ?? false;
 }
 
-/** Only ChatGPT HTTP offers 2K and 4K. Other providers run the saved choice at 1K. */
+/** A size the provider does not honor runs at 1K. */
 export function resolveProviderImageSize(
   providerId: GenerationProviderId,
   imageSize: ImageSize | undefined,
 ): ImageSize | undefined {
-  if (providerId === 'chatgpt') return imageSize;
-  return imageSize === '2K' || imageSize === '4K' ? '1K' : imageSize;
+  if (!imageSize || factsFor(providerId).imageSizes.includes(imageSize)) return imageSize;
+  return '1K';
 }
 
 export function resolveRecipeProviderBlock(
@@ -139,9 +129,7 @@ export function buildComposerProviderProjection({
   recipeId,
   aspectRatio,
   attachments,
-  grokCanExecute,
-  grokStatus,
-  grokDiagnostics,
+  providerReadiness,
   codexModelCatalog,
   codexTransport,
   codexAvailableTransports,
@@ -156,9 +144,7 @@ export function buildComposerProviderProjection({
   recipeId: RecipeId;
   aspectRatio: AspectRatio;
   attachments: Attachment[];
-  grokCanExecute: boolean;
-  grokStatus?: string;
-  grokDiagnostics?: string[];
+  providerReadiness: ProviderReadiness;
   codexModelCatalog: CodexModelCatalogResponse | null;
   codexTransport?: CodexExecutionTransport | null;
   codexAvailableTransports?: readonly CodexExecutionTransport[];
@@ -280,9 +266,7 @@ export function buildComposerProviderProjection({
         recipeId,
         aspectRatio,
         attachments,
-        canExecute: grokCanExecute,
-        status: grokStatus,
-        diagnostics: grokDiagnostics,
+        ...providerReadiness,
       }) ??
       resolveRecipeProviderBlock(providerId, recipeId),
     execution: {

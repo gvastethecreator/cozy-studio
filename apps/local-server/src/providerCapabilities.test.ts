@@ -22,24 +22,24 @@ describe('providerCapabilities', () => {
   it('projects execution from the supplied preflight rather than rereading credentials', () => {
     const report = readProviderCapabilities(
       { defaultProviderId: 'google' },
-      {},
-      { canRunJobs: false },
-      READY_GROK_RUNTIME,
-      undefined,
-      undefined,
-      [
-        {
-          providerId: 'google',
-          runtimeKind: 'hosted_api',
-          secretState: 'configured',
-          secretSource: 'fixture',
-          subscriptionAuthReady: true,
-          localRuntimeState: 'not_required',
-          localRuntimeSource: null,
-          canAttemptExecution: true,
-          diagnostics: [],
-        },
-      ],
+      {
+        env: {},
+        codexRuntime: { canRunJobs: false },
+        grokRuntime: READY_GROK_RUNTIME,
+        preflights: [
+          {
+            providerId: 'google',
+            runtimeKind: 'hosted_api',
+            secretState: 'configured',
+            secretSource: 'fixture',
+            subscriptionAuthReady: true,
+            localRuntimeState: 'not_required',
+            localRuntimeSource: null,
+            canAttemptExecution: true,
+            diagnostics: [],
+          },
+        ],
+      },
     );
     expect(report.providers.find((provider) => provider.providerId === 'google')?.canExecute).toBe(
       true,
@@ -56,12 +56,13 @@ describe('providerCapabilities', () => {
     const report = readProviderCapabilities(
       { defaultProviderId: 'google' },
       {
-        GOOGLE_API_KEY: 'secret-google-key',
-        FAL_KEY: undefined,
-        COMFY_API_URL: 'http://127.0.0.1:8188',
+        env: {
+          GOOGLE_API_KEY: 'secret-google-key',
+          FAL_KEY: undefined,
+          COMFY_API_URL: 'http://127.0.0.1:8188',
+        },
+        grokRuntime: READY_GROK_RUNTIME,
       },
-      undefined,
-      READY_GROK_RUNTIME,
     );
 
     expect(report.providers).toEqual(
@@ -100,11 +101,12 @@ describe('providerCapabilities', () => {
     const report = readProviderCapabilities(
       { defaultProviderId: 'comfy' },
       {
-        COMFY_API_URL: 'http://127.0.0.1:8188',
-        COMFY_WORKFLOW_TEMPLATE_PATH: 'D:/comfy/workflows/studio.json',
+        env: {
+          COMFY_API_URL: 'http://127.0.0.1:8188',
+          COMFY_WORKFLOW_TEMPLATE_PATH: 'D:/comfy/workflows/studio.json',
+        },
+        grokRuntime: READY_GROK_RUNTIME,
       },
-      undefined,
-      READY_GROK_RUNTIME,
     );
 
     expect(report.providers).toEqual(
@@ -124,11 +126,12 @@ describe('providerCapabilities', () => {
     const report = readProviderCapabilities(
       { defaultProviderId: 'google' },
       {
-        GOOGLE_API_KEY: 'secret-google-key',
-        FAL_KEY: 'secret-fal-key',
+        env: {
+          GOOGLE_API_KEY: 'secret-google-key',
+          FAL_KEY: 'secret-fal-key',
+        },
+        grokRuntime: READY_GROK_RUNTIME,
       },
-      undefined,
-      READY_GROK_RUNTIME,
     );
 
     expect(getProviderExecutionBlocker(report, 'codex')).toBeNull();
@@ -147,10 +150,12 @@ describe('providerCapabilities', () => {
   it('blocks Codex provider execution when runtime preflight fails', () => {
     const report = readProviderCapabilities(
       { defaultProviderId: 'codex' },
-      {},
-      { canRunJobs: false },
-      READY_GROK_RUNTIME,
-      { codexHttpReady: false, grokHttpReady: false },
+      {
+        env: {},
+        codexRuntime: { canRunJobs: false },
+        grokRuntime: READY_GROK_RUNTIME,
+        subscriptionReady: { codexHttpReady: false, grokHttpReady: false },
+      },
     );
 
     expect(report.providers).toEqual(
@@ -173,10 +178,11 @@ describe('providerCapabilities', () => {
   it('enables Grok from local CLI readiness without a Provider Secret', () => {
     const ready = readProviderCapabilities(
       { defaultProviderId: 'grok' },
-      {},
-      undefined,
-      READY_GROK_RUNTIME,
-      { grokHttpReady: false, codexHttpReady: false },
+      {
+        env: {},
+        grokRuntime: READY_GROK_RUNTIME,
+        subscriptionReady: { grokHttpReady: false, codexHttpReady: false },
+      },
     );
     expect(ready.providers).toEqual(
       expect.arrayContaining([
@@ -193,19 +199,21 @@ describe('providerCapabilities', () => {
   it('enables Grok from XAI_API_KEY when the local CLI is missing', () => {
     const report = readProviderCapabilities(
       { defaultProviderId: 'grok' },
-      { XAI_API_KEY: 'xai-secret' },
-      { canRunJobs: false },
       {
-        ...READY_GROK_RUNTIME,
-        canRunJobs: false,
-        status: 'blocked',
-        issues: [
-          {
-            code: 'grok_cli_unavailable',
-            message: 'Grok Build is missing.',
-            action: 'Install Grok Build.',
-          },
-        ],
+        env: { XAI_API_KEY: 'xai-secret' },
+        codexRuntime: { canRunJobs: false },
+        grokRuntime: {
+          ...READY_GROK_RUNTIME,
+          canRunJobs: false,
+          status: 'blocked',
+          issues: [
+            {
+              code: 'grok_cli_unavailable',
+              message: 'Grok Build is missing.',
+              action: 'Install Grok Build.',
+            },
+          ],
+        },
       },
     );
     expect(report.providers).toEqual(

@@ -63,7 +63,7 @@ graph TD
 
 All paths are under `apps/local-server/src/`. `appFactory.ts` composes the route modules, and each module owns its domain.
 
-- `jobRoutes.ts` and `persistentJobIntake.ts` own job intake. `providerExecutionPolicy.ts` resolves the execution fields: the explicit request, then the selected provider's default, then the bootstrap fallback.
+- `jobRoutes.ts` and `persistentJobIntake.ts` own job intake. Intake runs `validateWorkflowSpec`, the check every client runs, so a spec whose workflow does not support its task, provider or params answers 400 (`workflow_task_unsupported`, `workflow_provider_unsupported`, `workflow_params_invalid`). `providerExecutionPolicy.ts` resolves the execution fields: the explicit request, then the selected provider's default, then the bootstrap fallback.
 - `catalog.ts`, `catalogCollections.ts` and `catalogTags.ts` own Catalog Entries and the workspace-scoped collections and tags. A rename updates membership in one transaction. `db/` holds the SQLite connection, the migrations and the domain stores.
 - Smart Collections store a validated filter, not image memberships. Catalog reads combine that rule with the request filters; counts evaluate the same rule. `GET /api/catalog/facets` supplies the provider, workflow and style values present in the workspace.
 - `catalogOrganize.ts` groups the newest unorganized images from saved prompts, workflow and style metadata. `GET /api/catalog/suggestions` returns editable proposals without provider calls or writes. The UI applies each selected group through the atomic organize command and undoes its operation IDs newest first.
@@ -72,7 +72,7 @@ All paths are under `apps/local-server/src/`. `appFactory.ts` composes the route
 - `worker.ts` runs one Effect `ManagedRuntime`. SQLite stays the job authority. The global and per-provider limits choose which jobs run. Capacity is released only after cleanup and finalization finish.
 - `providers/providerEffect.ts` defines the typed failure boundary. Every HTTP body, SSE reader, CLI process, temporary folder and Codex RPC listener has explicit cleanup. Retries stay inside the operations that allow them. Studio never retries a whole job.
 - `codex/sessionPool.ts` shares Codex sessions and serializes turns. Each job keeps its captured transport.
-- `providerCapabilities.ts` is the fixed non-secret capability catalog. `providers/runtimeConfig.ts` and `grokRuntimeDoctor.ts` own preflight. `providers/providerInputCompiler.ts`, `providers/externalProvider.ts` and `workerRouting.ts` use explicit built-in dispatch.
+- `packages/shared/src/providerCapabilities.ts` holds the fixed provider facts (`PROVIDER_FACTS`: labels, input and output limits, transparency, sizes); the UI derives its provider chrome from them. `providers/runtimeConfig.ts` and `grokRuntimeDoctor.ts` own preflight. `providerRuntimeSnapshot.ts` builds preflights, capabilities and the execution blocker from one set of runtime reports for `/api/providers` and job intake. `providers/providerInputCompiler.ts`, `providers/externalProvider.ts` and `workerRouting.ts` use explicit built-in dispatch.
 
 ### Agent gateway
 

@@ -18,11 +18,13 @@ import {
   listInstalledExtensions,
   removeExtension,
   unlockExtensionHub,
-  type AvailableExtension,
-  type AvailableExtensionSource,
-  type ExtensionOrigin,
-  type InvalidExtensionFolder,
 } from '../../services/studio-api/extensions';
+import type {
+  AvailableExtension,
+  AvailableExtensionSource,
+  ExtensionOrigin,
+  InvalidExtensionFolder,
+} from '../../packages/shared/src/extensions';
 
 function formatBytes(value: number) {
   if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} KB`;

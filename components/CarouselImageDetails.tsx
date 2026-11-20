@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Copy, Check } from 'iconoir-react';
 import type { GeneratedImageWithConfig } from '../types';
-import { resolveProviderShortLabel } from '../lib/commandCenterProjection';
+import { providerBrandChipLabel } from '../lib/providerBrand';
 import { useCatalogOrganization } from '../hooks/useCatalogOrganization';
 import { getCatalogCollectionSelection } from '../services/studio-api/catalog';
 import type { CatalogCollectionSelection } from '../packages/shared/src';
@@ -55,7 +55,7 @@ export function CarouselImageDetails({
     ['Dimensions', image.width && image.height ? `${image.width} × ${image.height}` : null],
     ['File size', image.fileSizeBytes == null ? null : formatBytes(image.fileSizeBytes)],
     ['Format', image.mimeType?.split('/')[1]?.toUpperCase() || null],
-    ['Provider', image.providerId ? resolveProviderShortLabel(image.providerId) : null],
+    ['Provider', image.providerId ? providerBrandChipLabel(image.providerId) : null],
     ['Created', image.createdAt ? formatDateTime(image.createdAt) : null],
   ];
 

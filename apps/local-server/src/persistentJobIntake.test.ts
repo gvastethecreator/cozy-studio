@@ -581,6 +581,28 @@ describe('persistentJobIntake', () => {
     expect(validateDispatch).toHaveBeenCalledWith(
       expect.objectContaining({ recipeParams: { runId: 'run-1' } }),
     );
+
+    // A caller that skips the UI gets the workflow's own provider check.
+    const unsupported = await intake.createJob({
+      kind: 'image_generate',
+      providerId: 'fal',
+      prompt: 'draw',
+      sourceSpec: createGenerationTaskSpec({
+        id: 'timeline-frame-fal',
+        task: 'image_generate',
+        providerId: 'fal',
+        prompt: 'draw the next frame',
+        recipeId: 'timeline',
+      }),
+    });
+    expect(unsupported).toEqual({
+      ok: false,
+      error: {
+        status: 400,
+        body: expect.objectContaining({ code: 'workflow_provider_unsupported' }),
+      },
+    });
+    expect(validateDispatch).toHaveBeenCalledTimes(1);
     expect(processReferences).not.toHaveBeenCalled();
     expect(createJobFn).not.toHaveBeenCalled();
   });

@@ -90,9 +90,8 @@ import {
   resolveAssetCacheSeconds,
   resolveThumbnailMaxEdge,
 } from './libraryAssetVariants';
-import { getProviderExecutionBlocker, readProviderCapabilities } from './providerCapabilities';
+import { createProviderRuntimeSnapshotReader } from './providerRuntimeSnapshot';
 import { resolveBootstrapProviderExecutionOptions } from './providers/providerExecutionDefaults';
-import { readGenerationProviderRuntimePreflights } from './providers/runtimeConfig';
 import { createOutputSourceRoutes } from './outputSourceRoutes';
 import { createProviderRoutes } from './providerRoutes';
 import { findWorkflowModuleForApiPath } from '../../../packages/shared/src/workflowModules';
@@ -417,16 +416,19 @@ export async function createStudioApp(
     }),
   );
 
-  app.route(
-    '/api/providers',
-    createProviderRoutes({
-      readSettings: () => readEditableStudioSettings(settingsStorage),
-      readCodexRuntimeDoctor: () =>
-        readiness.readSnapshot().codexRuntime ?? createCheckingCodexRuntimeReport(),
-      loadGrokRuntimeDoctor: loadGrokRuntimeDoctorFn,
-      loadAntigravityRuntimeDoctor: loadAntigravityRuntimeDoctorFn,
-    }),
-  );
+  const readProviderRuntimeSnapshot = createProviderRuntimeSnapshotReader({
+    readSettings: () => readEditableStudioSettings(settingsStorage),
+    readCodexRuntime: async (settled) =>
+      settled
+        ? ((await readiness.refresh({ reason: 'passive' })).codexRuntime ??
+          readCodexRuntimeDoctorFn())
+        : (readiness.readSnapshot().codexRuntime ?? createCheckingCodexRuntimeReport()),
+    readGrokRuntime: (settled) => (settled ? loadGrokRuntimeDoctorFn() : readGrokRuntimeDoctorFn()),
+    readAntigravityRuntime: (settled) =>
+      settled ? loadAntigravityRuntimeDoctorFn() : readAntigravityRuntimeDoctorFn(),
+  });
+
+  app.route('/api/providers', createProviderRoutes({ readProviderRuntimeSnapshot }));
 
   app.route(
     '/api/output-sources',
@@ -602,36 +604,9 @@ export async function createStudioApp(
         codex_app_server: readCodexRuntimeDoctorFn().canRunJobs,
         subscription_http: isCodexHttpCredentialReady(),
       }),
-      resolveProviderExecutionBlocker: async (providerId) => {
-        const codexRuntime =
-          providerId === 'codex'
-            ? (await readiness.refresh({ reason: 'passive' })).codexRuntime
-            : readiness.readSnapshot().codexRuntime;
-        const evaluatedCodexRuntime = codexRuntime ?? readCodexRuntimeDoctorFn();
-        // A Grok or Antigravity Job waits for that CLI's first probe instead of a checking report.
-        const grokRuntime =
-          providerId === 'grok' ? await loadGrokRuntimeDoctorFn() : readGrokRuntimeDoctorFn();
-        const antigravityRuntime =
-          providerId === 'antigravity'
-            ? await loadAntigravityRuntimeDoctorFn()
-            : readAntigravityRuntimeDoctorFn();
-        const runtimePreflights = readGenerationProviderRuntimePreflights(
-          process.env,
-          evaluatedCodexRuntime,
-          grokRuntime,
-          antigravityRuntime,
-        );
-        const capabilityReport = readProviderCapabilities(
-          readEditableStudioSettings(settingsStorage),
-          process.env,
-          evaluatedCodexRuntime,
-          grokRuntime,
-          undefined,
-          antigravityRuntime,
-          runtimePreflights,
-        );
-        return getProviderExecutionBlocker(capabilityReport, providerId, runtimePreflights);
-      },
+      // A Job waits for its own provider's runtime report instead of a checking report.
+      resolveProviderExecutionBlocker: async (providerId) =>
+        (await readProviderRuntimeSnapshot({ settledFor: [providerId] })).blockerFor(providerId),
       isReferenceProcessingError: (error): error is ReferenceProcessingError =>
         error instanceof ReferenceProcessingError,
       publishEvent,

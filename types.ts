@@ -4,6 +4,7 @@ import type {
   CodexReasoningEffort,
   CodexServiceTier,
   JobStatus,
+  StudioImageSize,
 } from './packages/shared/src';
 import { MODELS } from './constants';
 
@@ -33,7 +34,7 @@ export type AspectRatio =
   | '3:4'
   | '9:16';
 
-export type ImageSize = '512px' | '1K' | '2K' | '4K';
+export type ImageSize = StudioImageSize;
 
 export type RecipeId =
   | 'animation-sequence'

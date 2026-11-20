@@ -99,6 +99,49 @@ function planValue<T>(value: T | undefined, fallback: T) {
   return value === undefined ? fallback : value;
 }
 
+export interface WorkflowSpecIssue {
+  code: 'workflow_task_unsupported' | 'workflow_provider_unsupported' | 'workflow_params_invalid';
+  field: 'sourceSpec.task' | 'sourceSpec.providerId' | 'sourceSpec.recipeParams';
+  message: string;
+}
+
+/**
+ * Checks a Generation Task Spec against its workflow module: the task, the provider and the
+ * params. Job intake and every client run the same check. A spec without a registered workflow
+ * has nothing to check.
+ */
+export function validateWorkflowSpec(spec: {
+  recipeId?: string | null;
+  task: GenerationTaskKind;
+  providerId?: GenerationProviderId | null;
+  recipeParams?: Record<string, unknown> | null;
+}): WorkflowSpecIssue | null {
+  const module = getRecipeBehavior(spec.recipeId)?.module;
+  if (!module) return null;
+  if (!isRecipeTaskSupported(module, spec.task)) {
+    return {
+      code: 'workflow_task_unsupported',
+      field: 'sourceSpec.task',
+      message: `Workflow ${module.id} does not support task ${spec.task}.`,
+    };
+  }
+  if (!isRecipeProviderSupported(module, spec.providerId)) {
+    return {
+      code: 'workflow_provider_unsupported',
+      field: 'sourceSpec.providerId',
+      message: `Workflow ${module.id} does not support provider ${spec.providerId}.`,
+    };
+  }
+  const validation = validateRecipeParams(module, spec.recipeParams ?? null);
+  return validation.valid
+    ? null
+    : {
+        code: 'workflow_params_invalid',
+        field: 'sourceSpec.recipeParams',
+        message: validation.errors[0]!,
+      };
+}
+
 export function buildGenerationTaskSpecFromRecipe({
   id,
   providerId = null,
@@ -141,18 +184,13 @@ export function buildGenerationTaskSpecFromRecipe({
     : (config.imageSize ?? null);
   const negativePrompt = plan.negativePrompt || config.negativePrompt || null;
 
-  if (module && !isRecipeTaskSupported(module, taskKind)) {
-    throw new Error(`Workflow ${module.id} does not support task ${taskKind}.`);
-  }
-  if (module && !isRecipeProviderSupported(module, providerId)) {
-    throw new Error(`Workflow ${module.id} does not support provider ${providerId}.`);
-  }
-  if (module) {
-    const validation = validateRecipeParams(module, config.recipeParams ?? null);
-    if (!validation.valid) {
-      throw new Error(validation.errors[0]);
-    }
-  }
+  const workflowIssue = validateWorkflowSpec({
+    recipeId: config.recipeId ?? null,
+    task: taskKind,
+    providerId,
+    recipeParams: config.recipeParams ?? null,
+  });
+  if (workflowIssue) throw new Error(workflowIssue.message);
 
   const quality = plan.quality ?? {};
   const recipeParams = config.recipeParams ?? {};

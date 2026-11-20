@@ -41,9 +41,9 @@ import { useWorkspaceStrip } from './useWorkspaceStrip';
 import { usePreferredWorkflow } from './usePreferredWorkflow';
 import {
   describeGrokImagineEditNotice,
-  resolveGrokCanExecute,
   resolveImageEditorRequiresMask,
 } from '../lib/grokImagineUiPolicy';
+import { selectProviderReadiness } from '../lib/providerReadiness';
 import { runWorkspaceSwitchLifecycle } from '../lib/workspaceLifecycle';
 import { buildStudioGenerationPlaceholders } from '../lib/studioGenerationPlaceholders';
 import { materializeCatalogEntryImageWithConfig } from '../lib/studioCatalogImageAdapter';
@@ -312,6 +312,19 @@ export function useStudioShell(): StudioShellController {
     },
   });
 
+  const activeProviderId =
+    studioSettings.data.settingsDomain.settings?.defaultProviderId ?? 'chatgpt';
+  const { capabilities: providerCapabilities, runtimePreflight: providerRuntimePreflight } =
+    studioSettings.data.providerDomain;
+  const activeProviderReadiness = useMemo(
+    () =>
+      selectProviderReadiness(
+        { capabilities: providerCapabilities, runtimePreflight: providerRuntimePreflight },
+        activeProviderId,
+      ),
+    [providerCapabilities, providerRuntimePreflight, activeProviderId],
+  );
+
   const onEditSettled = useCallback(() => {
     viewState.editor.setIsOpen(false);
     viewState.editor.setImage(null);
@@ -332,23 +345,10 @@ export function useStudioShell(): StudioShellController {
       onRecipeSelection: handleRecipeSelection,
       onViewChange: handleViewChange,
       onEditSettled,
-      activeProviderId: studioSettings.data.settingsDomain.settings?.defaultProviderId ?? 'chatgpt',
+      activeProviderId,
       defaultCodexTransport: codexDefaultTransport,
       activeRecipe: recipe.activeRecipe,
-      grokCanExecute: resolveGrokCanExecute({
-        canExecute: studioSettings.data.providerDomain.capabilities?.providers.find(
-          (provider) => provider.providerId === 'grok',
-        )?.canExecute,
-        canAttemptExecution: studioSettings.data.providerDomain.runtimePreflight?.providers.find(
-          (provider) => provider.providerId === 'grok',
-        )?.canAttemptExecution,
-      }),
-      grokStatus: studioSettings.data.providerDomain.capabilities?.providers.find(
-        (provider) => provider.providerId === 'grok',
-      )?.status,
-      grokDiagnostics: studioSettings.data.providerDomain.runtimePreflight?.providers.find(
-        (provider) => provider.providerId === 'grok',
-      )?.diagnostics,
+      activeProviderReadiness,
     });
 
   const { isResettingStudio, resetStudio } = useStudioReset({
@@ -674,15 +674,8 @@ export function useStudioShell(): StudioShellController {
       isGenerating: pipeline.isGenerating,
       imagesWithConfig,
       openModal: handleOpenModal,
-      activeProviderId: studioSettings.data.settingsDomain.settings?.defaultProviderId ?? 'chatgpt',
-      grokCanExecute: resolveGrokCanExecute({
-        canExecute: studioSettings.data.providerDomain.capabilities?.providers.find(
-          (provider) => provider.providerId === 'grok',
-        )?.canExecute,
-        canAttemptExecution: studioSettings.data.providerDomain.runtimePreflight?.providers.find(
-          (provider) => provider.providerId === 'grok',
-        )?.canAttemptExecution,
-      }),
+      activeProviderId,
+      activeProviderReadiness,
       intentionalStylesV1: Boolean(
         studioSettings.data.settingsDomain.settings?.intentionalStylesV1,
       ),
@@ -696,9 +689,8 @@ export function useStudioShell(): StudioShellController {
       pipeline.isGenerating,
       imagesWithConfig,
       handleOpenModal,
-      studioSettings.data.settingsDomain.settings?.defaultProviderId,
-      studioSettings.data.providerDomain.capabilities,
-      studioSettings.data.providerDomain.runtimePreflight,
+      activeProviderId,
+      activeProviderReadiness,
       studioSettings.data.settingsDomain.settings?.intentionalStylesV1,
       studioSettings.data.settingsDomain.settings?.defaultStyleIntensity,
       studioSettings.data.settingsDomain.settings?.defaultStyleReferenceMode,
@@ -836,8 +828,7 @@ export function useStudioShell(): StudioShellController {
         verifyCodexSession: studioRuntime.maintenance.verifyCodexSession,
       },
       provider: {
-        activeProviderId:
-          studioSettings.data.settingsDomain.settings?.defaultProviderId ?? 'chatgpt',
+        activeProviderId,
         providerDefaultImageModel:
           studioSettings.data.settingsDomain.settings?.defaultProviderId === 'chatgpt'
             ? (studioSettings.data.settingsDomain.settings.providerDefaults.chatgpt?.imageModel ??
@@ -866,20 +857,7 @@ export function useStudioShell(): StudioShellController {
         onOpenSettings: viewState.overlays.settings.open,
         codexTransport: codexDefaultTransport,
         codexAvailableTransports,
-        grokCanExecute: resolveGrokCanExecute({
-          canExecute: studioSettings.data.providerDomain.capabilities?.providers.find(
-            (provider) => provider.providerId === 'grok',
-          )?.canExecute,
-          canAttemptExecution: studioSettings.data.providerDomain.runtimePreflight?.providers.find(
-            (provider) => provider.providerId === 'grok',
-          )?.canAttemptExecution,
-        }),
-        grokStatus: studioSettings.data.providerDomain.capabilities?.providers.find(
-          (provider) => provider.providerId === 'grok',
-        )?.status,
-        grokDiagnostics: studioSettings.data.providerDomain.runtimePreflight?.providers.find(
-          (provider) => provider.providerId === 'grok',
-        )?.diagnostics,
+        activeProviderReadiness,
       },
     }),
     [
@@ -898,6 +876,8 @@ export function useStudioShell(): StudioShellController {
       studioSettings.data.settingsDomain.isSaving,
       studioSettings.data.providerDomain.capabilities,
       studioSettings.data.providerDomain.runtimePreflight,
+      activeProviderId,
+      activeProviderReadiness,
       studioRuntime.status.diagnostics.statusItems,
       studioRuntime.activity.studioJobs,
       queueCounts,

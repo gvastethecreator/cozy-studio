@@ -7,7 +7,15 @@ import {
   compareExtensionVersions,
   EXTENSION_LAYERS,
   parseStylePackPreview,
+  type AvailableExtensionSource,
+  type AvailableExtensionsResponse,
+  type DefaultStylePackState,
+  type ExtensionHubState,
+  type ExtensionHubUnlockResponse,
+  type ExtensionInstallResponse,
   type ExtensionLayerName,
+  type InstalledExtensionsResponse,
+  type StylePackPreviewResponse,
 } from '../../../packages/shared/src/extensions';
 import {
   ExtensionInstallError,
@@ -49,10 +57,6 @@ interface ExtensionRoutesDependencies {
    */
   defaultPackId?: string;
 }
-
-export type DefaultPackState =
-  | { state: 'idle' | 'installing' | 'installed' | 'skipped' }
-  | { state: 'unavailable' | 'failed'; error: string };
 
 /** Marks that the default pack was installed or declined, so removing it is not undone. */
 const DEFAULT_PACK_MARKER = '.default-pack-offered';
@@ -104,7 +108,7 @@ export function createExtensionRoutes({
 
   app.get('/', async (c) => {
     const { extensions, invalid } = await store.list({ refresh: c.req.query('refresh') === '1' });
-    return c.json({
+    return c.json<InstalledExtensionsResponse>({
       extensions: extensions.map(({ manifest }) => manifest),
       installedLayers: Object.fromEntries(
         extensions.map(({ manifest, layers }) => [manifest.id, layers] as const),
@@ -126,7 +130,7 @@ export function createExtensionRoutes({
       (await store.list()).extensions.map((item) => [item.manifest.id, item] as const),
     );
     const sources = await Promise.all(
-      remoteSources().map(async ({ source, client, label }) => {
+      remoteSources().map(async ({ source, client, label }): Promise<AvailableExtensionSource> => {
         try {
           const index = await client.fetchIndex(source);
           return {
@@ -158,7 +162,10 @@ export function createExtensionRoutes({
         }
       }),
     );
-    return c.json({ tokenConfigured: remote.client.tokenConfigured, sources });
+    return c.json<AvailableExtensionsResponse>({
+      tokenConfigured: remote.client.tokenConfigured,
+      sources,
+    });
   });
 
   /** Downloads, verifies and installs one published extension with the requested layers. */
@@ -212,14 +219,17 @@ export function createExtensionRoutes({
         requestedLayers,
       );
       if (!result) return c.json({ error: `${found.label} does not publish ${body.id}` }, 404);
-      return c.json({ extension: result.manifest, installedLayers: result.installedLayers });
+      return c.json<ExtensionInstallResponse>({
+        extension: result.manifest,
+        installedLayers: result.installedLayers,
+      });
     } catch (error) {
       const status = error instanceof ExtensionInstallError ? 422 : 502;
       return c.json({ error: errorMessage(error) }, status);
     }
   });
 
-  let defaultPack: DefaultPackState = { state: 'idle' };
+  let defaultPack: DefaultStylePackState = { state: 'idle' };
   const markerPath = remote ? path.join(remote.installDir, DEFAULT_PACK_MARKER) : null;
   const markDefaultPackOffered = async () => {
     if (!markerPath) return;
@@ -294,7 +304,10 @@ export function createExtensionRoutes({
         JSON.parse(await readFile(path.join(dir, 'preview.json'), 'utf8')),
       );
       if (!preview) return c.json({ error: `${id} has an invalid preview` }, 422);
-      return c.json({ preview, imageBase: `/api/extensions/remote-preview-files/${key}/` });
+      return c.json<StylePackPreviewResponse>({
+        preview,
+        imageBase: `/api/extensions/remote-preview-files/${key}/`,
+      });
     } catch (error) {
       const status = error instanceof ExtensionInstallError ? 422 : 502;
       return c.json({ error: errorMessage(error) }, status);
@@ -326,13 +339,16 @@ export function createExtensionRoutes({
     const raw = previewFile ? await store.readFile(id, previewFile) : null;
     const preview = raw ? parseStylePackPreview(JSON.parse(raw.toString('utf8'))) : null;
     if (!preview) return c.json({ error: `${id} has no preview` }, 404);
-    return c.json({ preview, imageBase: `/api/extensions/${encodeURIComponent(id)}/files/` });
+    return c.json<StylePackPreviewResponse>({
+      preview,
+      imageBase: `/api/extensions/${encodeURIComponent(id)}/files/`,
+    });
   });
 
   // The private hub: unlocking checks the password against the hub before saving it.
   app.get('/hub', (c) => {
     const hub = remote?.hub?.read();
-    return c.json({ configured: Boolean(hub), url: hub?.url ?? null });
+    return c.json<ExtensionHubState>({ configured: Boolean(hub), url: hub?.url ?? null });
   });
 
   app.put('/hub', async (c) => {
@@ -348,7 +364,11 @@ export function createExtensionRoutes({
         HUB_SOURCE,
       );
       remote.hub.save(hub);
-      return c.json({ configured: true, url, packs: index.extensions.length });
+      return c.json<ExtensionHubUnlockResponse>({
+        configured: true,
+        url,
+        packs: index.extensions.length,
+      });
     } catch (error) {
       if (error instanceof ExtensionSourceError && (error.status === 401 || error.status === 403))
         return c.json({ error: 'Wrong password for this hub' }, 401);

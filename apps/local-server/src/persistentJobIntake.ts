@@ -16,6 +16,7 @@ import { collectGrokImagineJobIssues } from '../../../packages/shared/src/grokIm
 import { collectDirectGifJobIssues } from '../../../packages/shared/src/openaiImageContract';
 import { createDefaultEditableStudioSettings } from '../../../packages/shared/src/studioSettings';
 import { findWorkflowModuleForRecipe } from '../../../packages/shared/src/workflowModules';
+import { validateWorkflowSpec } from '../../../lib/recipeModules/taskSpec';
 import { validateGenerationTaskSpec } from '../../../packages/shared/src/generationContracts';
 import { readGrokRuntimeDoctor } from './grokRuntimeDoctor';
 import {
@@ -268,6 +269,22 @@ export function createPersistentJobIntake({
             error: `${workflowModule.title} is turned off. Turn it on in Settings → Styles & workflows.`,
             code: 'workflow_module_disabled',
             moduleId: workflowModule.id,
+          },
+        },
+      };
+    }
+
+    // The same workflow check every client runs, for callers that skip the Studio UI.
+    const workflowIssue = sourceSpec ? validateWorkflowSpec(sourceSpec) : null;
+    if (workflowIssue) {
+      return {
+        ok: false,
+        error: {
+          status: 400,
+          body: {
+            error: workflowIssue.message,
+            code: workflowIssue.code,
+            field: workflowIssue.field,
           },
         },
       };

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { BUILT_IN_GENERATION_PROVIDERS } from '../packages/shared/src/generationContracts';
+
 import {
   providerBrandChipLabel,
   providerBrandWellClass,
@@ -9,10 +11,9 @@ import {
 
 describe('provider brand chrome', () => {
   it('gives each built-in provider a distinct well and chip label', () => {
-    const wells = ['codex', 'grok', 'google', 'antigravity', 'fal', 'comfy', 'dry_run'].map(
-      providerBrandWellClass,
-    );
-    expect(new Set(wells).size).toBe(7);
+    const wells = BUILT_IN_GENERATION_PROVIDERS.map(providerBrandWellClass);
+    expect(new Set(wells).size).toBe(BUILT_IN_GENERATION_PROVIDERS.length);
+    expect(wells.some((well) => well.endsWith('-unknown'))).toBe(false);
     expect(providerBrandChipLabel('codex')).toBe('Codex');
     expect(providerBrandChipLabel('antigravity')).toBe('Antigravity');
     expect(providerBrandChipLabel('fal')).toBe('fal.ai');

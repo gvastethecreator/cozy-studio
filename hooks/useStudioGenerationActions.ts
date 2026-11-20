@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { DEFAULT_GENERATION_CONFIG } from '../constants';
 import { resolveGrokImagineGenerateBlock } from '../lib/grokImagineUiPolicy';
+import type { ProviderReadiness } from '../lib/providerReadiness';
 import {
   prepareStudioGenerationRequest,
   resolveStudioGenerateRecipeId,
@@ -80,9 +81,7 @@ interface UseStudioGenerationActionsProps {
   onEditSettled?: () => void;
   activeProviderId: GenerationProviderId;
   defaultCodexTransport?: CodexExecutionTransport;
-  grokCanExecute: boolean;
-  grokStatus?: string;
-  grokDiagnostics?: string[];
+  activeProviderReadiness: ProviderReadiness;
   activeRecipe: RecipeId;
 }
 
@@ -106,9 +105,7 @@ export function useStudioGenerationActions({
   onEditSettled,
   activeProviderId,
   defaultCodexTransport,
-  grokCanExecute,
-  grokStatus,
-  grokDiagnostics,
+  activeProviderReadiness,
   activeRecipe,
 }: UseStudioGenerationActionsProps) {
   const [isEditingImage, setIsEditingImage] = useState(false);
@@ -141,9 +138,7 @@ export function useStudioGenerationActions({
         configOverrides: requestConfigOverrides,
         providerId: activeProviderId,
         defaultCodexTransport,
-        grokCanExecute,
-        grokStatus,
-        grokDiagnostics,
+        providerReadiness: activeProviderReadiness,
       });
 
       if (!request.ok) {
@@ -174,9 +169,7 @@ export function useStudioGenerationActions({
       setGenerationConfig,
       activeProviderId,
       defaultCodexTransport,
-      grokCanExecute,
-      grokStatus,
-      grokDiagnostics,
+      activeProviderReadiness,
       activeRecipe,
     ],
   );
@@ -188,9 +181,7 @@ export function useStudioGenerationActions({
         recipeId: activeRecipe,
         aspectRatio: generationConfigRef.current.aspectRatio,
         attachments: [original],
-        canExecute: grokCanExecute,
-        status: grokStatus,
-        diagnostics: grokDiagnostics,
+        ...activeProviderReadiness,
       });
       if (grokBlock) {
         addToast(grokBlock.message, 'info');
@@ -215,9 +206,7 @@ export function useStudioGenerationActions({
       closeOverlay,
       executeEdit,
       generationConfigRef,
-      grokCanExecute,
-      grokStatus,
-      grokDiagnostics,
+      activeProviderReadiness,
       onEditSettled,
     ],
   );

@@ -1,19 +1,11 @@
+import { getProviderFacts } from '../packages/shared/src/providerCapabilities';
+
 export function providerBrandWellClass(providerId: string) {
-  return `provider-brand-well provider-brand-${['codex', 'chatgpt', 'grok', 'google', 'antigravity', 'fal', 'comfy', 'dry_run'].includes(providerId) ? providerId : 'unknown'}`;
+  return `provider-brand-well provider-brand-${getProviderFacts(providerId) ? providerId : 'unknown'}`;
 }
 
 export function providerBrandChipLabel(providerId: string) {
-  if (providerId === 'codex') return 'Codex';
-  if (providerId === 'chatgpt') return 'ChatGPT';
-  if (providerId === 'grok') return 'Grok';
-  if (providerId === 'google') return 'Google';
-  if (providerId === 'antigravity') return 'Antigravity';
-  if (providerId === 'fal') return 'fal.ai';
-  if (providerId === 'openai') return 'OpenAI';
-  if (providerId === 'replicate') return 'Replicate';
-  if (providerId === 'comfy') return 'Comfy';
-  if (providerId === 'dry_run') return 'Dry run';
-  return providerId;
+  return getProviderFacts(providerId)?.shortLabel ?? providerId;
 }
 
 export function providerReadyPillClass({

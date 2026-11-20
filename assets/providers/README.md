@@ -6,7 +6,7 @@ Official provider assets, bundled locally. Marks remain owned by their respectiv
 - grok: https://grok.com/images/favicon.svg
 - comfy: https://www.comfy.org/icons/logomark.svg
 - antigravity: https://antigravity.google (unmodified symbol paths and definitions from the header SVG; wordmark omitted)
-- fal: https://fal.ai (header SVG)
+- fal: https://fal.ai (symbol path from the header SVG; wordmark omitted)
 - google: https://developers.google.com/static/identity/images/signin-assets.zip (Light, no text, square SVG)
 
 Google button background and border, and Grok favicon tile were removed; symbol paths and colors are unchanged. Monochrome OpenAI, Grok, and fal marks use the current foreground color through an alpha mask.

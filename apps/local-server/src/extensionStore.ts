@@ -7,6 +7,7 @@ import {
   EXTENSION_MANIFEST_FILE,
   parseExtensionManifest,
   type ExtensionManifest,
+  type InvalidExtensionFolder,
 } from '../../../packages/shared/src/extensions';
 
 /** One extension found in an Extension Source folder (ADR 0011). */
@@ -21,7 +22,7 @@ export interface InstalledExtension {
 export interface ExtensionListing {
   extensions: InstalledExtension[];
   /** Folders that looked like extensions but failed validation, with their issues. */
-  invalid: { folder: string; issues: string[] }[];
+  invalid: InvalidExtensionFolder[];
 }
 
 export interface ExtensionStore {

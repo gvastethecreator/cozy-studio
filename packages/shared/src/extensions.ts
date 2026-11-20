@@ -394,3 +394,74 @@ export function parseExtensionManifest(value: unknown): ExtensionManifestParseRe
   if (issues.length > 0) return { ok: false, issues };
   return { ok: true, manifest: value as unknown as ExtensionManifest };
 }
+
+/* Response contracts of the `/api/extensions` routes. */
+
+/** A folder that looked like an extension but failed validation. */
+export interface InvalidExtensionFolder {
+  folder: string;
+  issues: string[];
+}
+
+/** Where an installed extension comes from: downloaded from a source, or read from a local folder. */
+export interface ExtensionOrigin {
+  from: 'download' | 'local';
+  folder: string;
+}
+
+export interface InstalledExtensionsResponse {
+  extensions: ExtensionManifest[];
+  /** Optional layers on disk per extension id, such as `cards`. */
+  installedLayers: Record<string, string[]>;
+  origins: Record<string, ExtensionOrigin>;
+  invalid: InvalidExtensionFolder[];
+}
+
+export interface AvailableExtension extends ExtensionReleaseEntry {
+  installedVersion: string | null;
+  installedLayers: string[];
+  installedFrom: ExtensionOrigin['from'] | null;
+  updateAvailable: boolean;
+}
+
+export interface AvailableExtensionSource {
+  id: string;
+  repo: string;
+  /** What the panel shows: the GitHub repository, or the private hub's host. */
+  label: string;
+  extensions: AvailableExtension[];
+  error: string | null;
+}
+
+/** Extensions published by each remote source, with their installed state. */
+export interface AvailableExtensionsResponse {
+  tokenConfigured: boolean;
+  sources: AvailableExtensionSource[];
+}
+
+export interface ExtensionInstallResponse {
+  extension: ExtensionManifest;
+  installedLayers: string[];
+}
+
+export type DefaultStylePackState =
+  | { state: 'idle' | 'installing' | 'installed' | 'skipped' }
+  | { state: 'unavailable' | 'failed'; error: string };
+
+export interface StylePackPreviewResponse {
+  preview: StylePackPreview;
+  /** API path prefix for the preview's relative image paths. */
+  imageBase: string;
+}
+
+/** The private hub unlocked in this Studio; the password never comes back. */
+export interface ExtensionHubState {
+  configured: boolean;
+  url: string | null;
+}
+
+export interface ExtensionHubUnlockResponse {
+  configured: true;
+  url: string;
+  packs: number;
+}

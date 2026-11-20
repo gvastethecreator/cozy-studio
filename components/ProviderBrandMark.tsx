@@ -31,7 +31,7 @@ function ProviderGlyph({ providerId, size }: { providerId: string; size: number 
       <span
         className={`provider-mark provider-mark-${providerId} provider-mark-monochrome`}
         style={{
-          width: providerId === 'fal' ? size * 2 : size,
+          width: size,
           height: size,
           maskImage: `url("${src}")`,
         }}

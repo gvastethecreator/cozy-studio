@@ -627,7 +627,7 @@ describe('Toolbar composer chrome', () => {
     const updateConfig = vi.fn();
     const view = renderToolbar({
       activeProviderId: 'grok',
-      grokCanExecute: true,
+      activeProviderReadiness: { canExecute: true },
       generationConfig: config({ batchCount: 4 }),
       updateConfig,
     });
@@ -685,7 +685,7 @@ describe('Toolbar composer chrome', () => {
         },
         editor: { openEditor: vi.fn(), openEditorRoute: vi.fn() },
         sync: { verifyCodexSession: vi.fn() },
-        provider: { activeProviderId: 'grok', grokCanExecute: true },
+        provider: { activeProviderId: 'grok', activeProviderReadiness: { canExecute: true } },
       },
     };
     const connected = render(<StudioGenerationDock {...dockProps} />);
@@ -766,7 +766,7 @@ describe('Toolbar composer chrome', () => {
     const onGenerate = vi.fn();
     renderToolbar({
       activeProviderId: 'grok',
-      grokCanExecute: true,
+      activeProviderReadiness: { canExecute: true },
       generationConfig: config({ imageSize: '4K', batchCount: 1 }),
       updateConfig,
       onGenerate,

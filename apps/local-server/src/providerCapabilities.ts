@@ -24,14 +24,26 @@ export interface ProviderExecutionBlocker {
   diagnostics: string[];
 }
 
+export interface ReadProviderCapabilitiesOptions {
+  env?: Record<string, string | undefined>;
+  /** With preflights, the capability report reads readiness from them and ignores the runtimes. */
+  preflights?: readonly GenerationProviderRuntimePreflight[];
+  codexRuntime?: Pick<CodexRuntimeDoctorReport, 'canRunJobs'>;
+  grokRuntime?: GrokRuntimeDoctorReport;
+  antigravityRuntime?: AntigravityRuntimeDoctorReport;
+  subscriptionReady?: { codexHttpReady?: boolean; grokHttpReady?: boolean };
+}
+
 export function readProviderCapabilities(
   settings: Pick<EditableStudioSettings, 'defaultProviderId'>,
-  env: Record<string, string | undefined> = process.env,
-  codexRuntime?: Pick<CodexRuntimeDoctorReport, 'canRunJobs'>,
-  grokRuntime?: GrokRuntimeDoctorReport,
-  subscriptionReady?: { codexHttpReady?: boolean; grokHttpReady?: boolean },
-  antigravityRuntime?: AntigravityRuntimeDoctorReport,
-  preflights?: readonly GenerationProviderRuntimePreflight[],
+  {
+    env = process.env,
+    preflights,
+    codexRuntime,
+    grokRuntime,
+    antigravityRuntime,
+    subscriptionReady,
+  }: ReadProviderCapabilitiesOptions = {},
 ): GenerationProviderCapabilitiesResponse {
   const readiness = preflights
     ? createProviderReadinessMapsFromPreflights(preflights)

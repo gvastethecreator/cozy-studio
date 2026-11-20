@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
-import {
-  getDefaultStylePackState,
-  type DefaultStylePackState,
-} from '../services/studio-api/extensions';
+import { getDefaultStylePackState } from '../services/studio-api/extensions';
+import type { DefaultStylePackState } from '../packages/shared/src/extensions';
 
 /**
  * Follows the background install of the default style pack (Essentials) while Studio has no

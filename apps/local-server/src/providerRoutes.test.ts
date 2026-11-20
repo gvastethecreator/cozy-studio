@@ -5,6 +5,10 @@ import {
   type GenerationProviderId,
 } from '../../../packages/shared/src';
 import { createProviderRoutes } from './providerRoutes';
+import {
+  createProviderRuntimeSnapshotReader,
+  type ProviderRuntimeSources,
+} from './providerRuntimeSnapshot';
 import type { GrokRuntimeDoctorReport } from './grokRuntimeDoctor';
 import type { AntigravityRuntimeDoctorReport } from './antigravityRuntimeDoctor';
 
@@ -63,22 +67,28 @@ function createAntigravityRuntimeReport(): AntigravityRuntimeDoctorReport {
   };
 }
 
+function createRoutes(sources: ProviderRuntimeSources) {
+  return createProviderRoutes({
+    readProviderRuntimeSnapshot: createProviderRuntimeSnapshotReader(sources),
+  });
+}
+
 describe('providerRoutes', () => {
   it('uses one doctor snapshot per capability response', async () => {
     let codexReads = 0;
     let grokReads = 0;
     let antigravityReads = 0;
-    const routes = createProviderRoutes({
+    const routes = createRoutes({
       readSettings: () => createDefaultEditableStudioSettings(),
-      readCodexRuntimeDoctor: () => {
+      readCodexRuntime: () => {
         codexReads += 1;
         return createCodexRuntimeReport();
       },
-      loadGrokRuntimeDoctor: () => {
+      readGrokRuntime: () => {
         grokReads += 1;
         return createGrokRuntimeReport();
       },
-      loadAntigravityRuntimeDoctor: () => {
+      readAntigravityRuntime: () => {
         antigravityReads += 1;
         return createAntigravityRuntimeReport();
       },
@@ -89,11 +99,11 @@ describe('providerRoutes', () => {
   });
 
   it('returns provider capabilities from Studio Settings', async () => {
-    const routes = createProviderRoutes({
+    const routes = createRoutes({
       readSettings: () => createDefaultEditableStudioSettings(),
-      readCodexRuntimeDoctor: () => createCodexRuntimeReport(),
-      loadGrokRuntimeDoctor: () => createGrokRuntimeReport(),
-      loadAntigravityRuntimeDoctor: () => createAntigravityRuntimeReport(),
+      readCodexRuntime: () => createCodexRuntimeReport(),
+      readGrokRuntime: () => createGrokRuntimeReport(),
+      readAntigravityRuntime: () => createAntigravityRuntimeReport(),
     });
 
     const response = await routes.request('/');
@@ -104,11 +114,11 @@ describe('providerRoutes', () => {
   });
 
   it('returns runtime preflight providers snapshot', async () => {
-    const routes = createProviderRoutes({
+    const routes = createRoutes({
       readSettings: () => createDefaultEditableStudioSettings(),
-      readCodexRuntimeDoctor: () => createCodexRuntimeReport(),
-      loadGrokRuntimeDoctor: () => createGrokRuntimeReport(),
-      loadAntigravityRuntimeDoctor: () => createAntigravityRuntimeReport(),
+      readCodexRuntime: () => createCodexRuntimeReport(),
+      readGrokRuntime: () => createGrokRuntimeReport(),
+      readAntigravityRuntime: () => createAntigravityRuntimeReport(),
     });
 
     const response = await routes.request('/preflight');
@@ -126,9 +136,9 @@ describe('providerRoutes', () => {
   });
 
   it('marks Codex preflight blocked when the Runtime Doctor blocks execution', async () => {
-    const routes = createProviderRoutes({
+    const routes = createRoutes({
       readSettings: () => createDefaultEditableStudioSettings(),
-      readCodexRuntimeDoctor: () =>
+      readCodexRuntime: () =>
         createCodexRuntimeReport({
           status: 'blocked',
           canRunJobs: false,
@@ -143,8 +153,8 @@ describe('providerRoutes', () => {
             },
           ],
         }),
-      loadGrokRuntimeDoctor: () => createGrokRuntimeReport(),
-      loadAntigravityRuntimeDoctor: () => createAntigravityRuntimeReport(),
+      readGrokRuntime: () => createGrokRuntimeReport(),
+      readAntigravityRuntime: () => createAntigravityRuntimeReport(),
     });
 
     const response = await routes.request('/preflight');
@@ -163,11 +173,11 @@ describe('providerRoutes', () => {
 
   it('reads Studio Settings fresh for every provider capability request', async () => {
     let defaultProviderId: GenerationProviderId = 'codex';
-    const routes = createProviderRoutes({
+    const routes = createRoutes({
       readSettings: () => ({ ...createDefaultEditableStudioSettings(), defaultProviderId }),
-      readCodexRuntimeDoctor: () => createCodexRuntimeReport(),
-      loadGrokRuntimeDoctor: () => createGrokRuntimeReport(),
-      loadAntigravityRuntimeDoctor: () => createAntigravityRuntimeReport(),
+      readCodexRuntime: () => createCodexRuntimeReport(),
+      readGrokRuntime: () => createGrokRuntimeReport(),
+      readAntigravityRuntime: () => createAntigravityRuntimeReport(),
     });
 
     const first = (await (await routes.request('/')).json()) as {

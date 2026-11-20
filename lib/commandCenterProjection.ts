@@ -4,6 +4,7 @@ import type {
   GenerationProviderRuntimePreflightResponse,
 } from '../packages/shared/src';
 import type { GenerationProviderId } from '../packages/shared/src/generationContracts';
+import { getProviderFacts } from '../packages/shared/src/providerCapabilities';
 import { summarizeGrokProviderStatusLine } from './grokImagineUiPolicy';
 import { t } from './i18n';
 import type { StudioRuntimeStatusItem, StudioStatusTone } from './studioDiagnostics';
@@ -95,30 +96,9 @@ const QUICK_SWITCH_PROVIDER_IDS = [
   'google',
 ] as const satisfies readonly GenerationProviderId[];
 
-function resolveProviderFallbackLabel(providerId: GenerationProviderId) {
-  if (providerId === 'codex') return 'Codex app-server';
-  if (providerId === 'chatgpt') return 'ChatGPT';
-  if (providerId === 'grok') return 'Grok Imagine';
-  if (providerId === 'google') return 'Nano Banana 2.1';
-  if (providerId === 'antigravity') return 'Antigravity';
-  return providerId;
-}
-
-export function resolveProviderShortLabel(providerId: GenerationProviderId) {
-  if (providerId === 'codex') return 'Codex';
-  if (providerId === 'chatgpt') return 'ChatGPT';
-  if (providerId === 'grok') return 'Grok';
-  if (providerId === 'google') return 'Google';
-  if (providerId === 'antigravity') return 'AGY';
-  return providerId;
-}
-
-export function resolveProviderToolbarLabel(
-  providerId: GenerationProviderId,
-  compactMode: boolean,
-) {
-  const shortLabel = resolveProviderShortLabel(providerId);
-  return compactMode ? shortLabel.slice(0, 3) : shortLabel;
+function resolveProviderToolbarLabel(providerId: GenerationProviderId, compactMode: boolean) {
+  const label = getProviderFacts(providerId)?.compactLabel ?? providerId;
+  return compactMode ? label.slice(0, 3) : label;
 }
 
 function buildProviderProjection({
@@ -173,8 +153,8 @@ function buildProviderProjection({
 
   return {
     id: providerId,
-    label: capability?.label ?? resolveProviderFallbackLabel(providerId),
-    shortLabel: resolveProviderShortLabel(providerId),
+    label: capability?.label ?? getProviderFacts(providerId)?.label ?? providerId,
+    shortLabel: getProviderFacts(providerId)?.compactLabel ?? providerId,
     toolbarLabel: resolveProviderToolbarLabel(providerId, compactMode),
     status,
     tone,

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Heart, HeartSolid } from 'iconoir-react';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { useImagePanZoom } from '../lib/imagePanZoom';
-import { resolveProviderShortLabel } from '../lib/commandCenterProjection';
+import { providerBrandChipLabel } from '../lib/providerBrand';
 import { useT } from '../lib/i18n';
 import { getCatalogImageDetail } from '../services/studio-api/catalog';
 import {
@@ -41,7 +41,7 @@ function describeImage(image: GeneratedImageWithConfig, detail?: CatalogImage): 
         .join(', ') || MISSING,
     ],
     ['Model', typeof model === 'string' && model ? model : MISSING],
-    ['Provider', image.providerId ? resolveProviderShortLabel(image.providerId) : MISSING],
+    ['Provider', image.providerId ? providerBrandChipLabel(image.providerId) : MISSING],
     [
       'Size',
       image.width && image.height

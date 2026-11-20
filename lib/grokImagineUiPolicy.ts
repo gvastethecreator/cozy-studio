@@ -32,16 +32,6 @@ export function describeGrokImagineEditNotice(providerId: GenerationProviderId) 
   return 'Grok Imagine edits the library image from your prompt. It does not use the painted mask.';
 }
 
-export function resolveGrokCanExecute({
-  canExecute,
-  canAttemptExecution,
-}: {
-  canExecute?: boolean;
-  canAttemptExecution?: boolean;
-}) {
-  return canExecute === true && canAttemptExecution === true;
-}
-
 export function summarizeGrokProviderStatusLine({
   canExecute,
   status,

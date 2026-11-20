@@ -288,7 +288,7 @@ describe('useStudioGenerationActions attachment reuse helpers', () => {
         onRecipeSelection: vi.fn(),
         onViewChange: vi.fn(),
         activeProviderId: 'codex',
-        grokCanExecute: false,
+        activeProviderReadiness: { canExecute: false },
         activeRecipe: null,
       }),
     );

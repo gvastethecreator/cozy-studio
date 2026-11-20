@@ -2,6 +2,8 @@ import { useLatestRef } from '../hooks/useLatestRef';
 import { RECIPE_PROMPT_PLACEHOLDERS } from '../lib/recipeShellMetadata';
 import { RecipeWorkbenchContext } from './recipes/recipeWorkbenchContextState';
 import { CATALOG_IMAGE_DRAG_TYPE } from '../lib/catalogImageDrag';
+import { providerBrandChipLabel } from '../lib/providerBrand';
+import { PROVIDER_NOT_READY, type ProviderReadiness } from '../lib/providerReadiness';
 import { getCatalogImageDetail } from '../services/studio-api/catalog';
 import { materializeCatalogEntryImage } from '../lib/studioCatalogImageAdapter';
 import { buildGeneratedImageContextAttachment } from '../hooks/useGenerationConfig';
@@ -105,9 +107,8 @@ export interface ToolbarProps {
   providerDefaultImageModel?: string | null;
   codexTransport?: CodexExecutionTransport;
   codexAvailableTransports?: readonly CodexExecutionTransport[];
-  grokCanExecute?: boolean;
-  grokStatus?: string;
-  grokDiagnostics?: string[];
+  /** Readiness of `activeProviderId`; omitted means not ready. */
+  activeProviderReadiness?: ProviderReadiness;
   commandCenter?: StudioCommandCenterProjection;
   onSelectProvider?: (providerId: GenerationProviderId) => Promise<void> | void;
   isProviderSaving?: boolean;
@@ -130,19 +131,6 @@ const AspectRatioIcon: React.FC<{ ratio: AspectRatio }> = ({ ratio }) => {
 };
 
 const BATCH_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-
-const GENERATION_PROVIDER_LABELS: Partial<Record<GenerationProviderId, string>> = {
-  codex: 'Codex',
-  grok: 'Grok Imagine',
-  google: 'Google',
-  fal: 'fal.ai',
-  comfy: 'ComfyUI',
-  dry_run: 'Dry run',
-};
-
-function formatGenerationProviderLabel(providerId: GenerationProviderId) {
-  return GENERATION_PROVIDER_LABELS[providerId] ?? providerId;
-}
 
 import { useToastUi, useWorkspaceState } from '../contexts/GlobalContext';
 
@@ -177,9 +165,6 @@ function useToolbarController(props: ToolbarProps) {
     activeProviderId,
     codexTransport,
     codexAvailableTransports,
-    grokCanExecute = false,
-    grokStatus,
-    grokDiagnostics,
     commandCenter,
     onSelectProvider,
     isProviderSaving = false,
@@ -1018,13 +1003,13 @@ function ToolbarProviderControls({ model }: { model: ToolbarModel }) {
       ) : commandCenter && onSelectProvider ? null : (
         <div
           role="status"
-          aria-label={`Generation provider: ${formatGenerationProviderLabel(activeProviderId)}`}
+          aria-label={`Generation provider: ${providerBrandChipLabel(activeProviderId)}`}
           data-tooltip="Generation provider"
           className={`${btnClass} cursor-default`}
         >
           <Zap width={14} height={14} />
           <span className="text-[length:var(--wbp-label)] font-semibold tracking-normal">
-            {formatGenerationProviderLabel(activeProviderId)}
+            {providerBrandChipLabel(activeProviderId)}
           </span>
         </div>
       )}
@@ -1905,9 +1890,7 @@ function useToolbarProvider(props: ToolbarProps) {
     activeProviderId,
     activeRecipe = null,
     generationConfig,
-    grokCanExecute = false,
-    grokStatus,
-    grokDiagnostics,
+    activeProviderReadiness = PROVIDER_NOT_READY,
     codexModelCatalog,
     codexAvailableTransports,
     codexModelCatalogError,
@@ -1924,9 +1907,7 @@ function useToolbarProvider(props: ToolbarProps) {
         recipeId: activeRecipe,
         aspectRatio: generationConfig.aspectRatio,
         attachments: generationConfig.attachments,
-        grokCanExecute,
-        grokStatus,
-        grokDiagnostics,
+        providerReadiness: activeProviderReadiness,
         codexModelCatalog,
         codexTransport: selectedCodexTransport,
         codexAvailableTransports,
@@ -1954,9 +1935,7 @@ function useToolbarProvider(props: ToolbarProps) {
       generationConfig.executionReasoningEffort,
       generationConfig.executionSpeed,
       generationConfig.imageSize,
-      grokCanExecute,
-      grokDiagnostics,
-      grokStatus,
+      activeProviderReadiness,
     ],
   );
   const {

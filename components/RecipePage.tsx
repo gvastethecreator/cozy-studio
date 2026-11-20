@@ -6,6 +6,7 @@ import type {
   RecipeId,
 } from '../types';
 import type { RecipeAliasId } from '../lib/recipeAliases';
+import type { ProviderReadiness } from '../lib/providerReadiness';
 import type { EditableStudioSettings, GenerationProviderId } from '../packages/shared/src';
 import { RecipeRouter } from './RecipeRouter';
 
@@ -34,7 +35,7 @@ export interface RecipePageProps {
   openModal: (image: GeneratedImageWithConfig) => void;
   handleAddToContext: (image: GeneratedImageWithConfig) => void;
   activeProviderId?: GenerationProviderId;
-  grokCanExecute?: boolean;
+  activeProviderReadiness?: ProviderReadiness;
   intentionalStylesV1?: boolean;
   defaultStyleIntensity?: number;
   defaultStyleReferenceMode?: EditableStudioSettings['defaultStyleReferenceMode'];

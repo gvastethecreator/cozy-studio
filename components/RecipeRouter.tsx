@@ -11,6 +11,7 @@ import type { RecipeAliasId } from '../lib/recipeAliases';
 import { LazySurfaceFallback } from './ui/LazySurfaceFallback';
 import { findWorkflowModuleForRecipe } from '../packages/shared/src/workflowModules';
 import { isRecipeEnabled } from '../lib/workflowModuleState';
+import { PROVIDER_NOT_READY, type ProviderReadiness } from '../lib/providerReadiness';
 import {
   AnimationSequenceRecipe,
   CameraAnglesRecipe,
@@ -53,7 +54,7 @@ interface RecipeRouterProps {
   openModal: (image: GeneratedImageWithConfig) => void;
   handleAddToContext: (image: GeneratedImageWithConfig) => void;
   activeProviderId?: GenerationProviderId;
-  grokCanExecute?: boolean;
+  activeProviderReadiness?: ProviderReadiness;
   intentionalStylesV1?: boolean;
   defaultStyleIntensity?: number;
   defaultStyleReferenceMode?: EditableStudioSettings['defaultStyleReferenceMode'];
@@ -73,7 +74,7 @@ export const RecipeRouter: React.FC<RecipeRouterProps> = ({
   openModal,
   handleAddToContext,
   activeProviderId = 'codex',
-  grokCanExecute = false,
+  activeProviderReadiness = PROVIDER_NOT_READY,
   intentionalStylesV1 = false,
   defaultStyleIntensity,
   defaultStyleReferenceMode,
@@ -143,7 +144,7 @@ export const RecipeRouter: React.FC<RecipeRouterProps> = ({
             isGenerating={isGenerating}
             images={imagesWithConfig}
             activeProviderId={activeProviderId}
-            grokCanExecute={grokCanExecute}
+            activeProviderReadiness={activeProviderReadiness}
             intentionalStylesV1={intentionalStylesV1}
             defaultStyleIntensity={defaultStyleIntensity}
             defaultStyleReferenceMode={defaultStyleReferenceMode}

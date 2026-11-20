@@ -1,9 +1,7 @@
 import { ArrowLeft, MediaImage } from 'iconoir-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import {
-  previewImageUrl,
-  type StylePackPreviewResponse,
-} from '../../services/studio-api/extensions';
+import { previewImageUrl } from '../../services/studio-api/extensions';
+import type { StylePackPreviewResponse } from '../../packages/shared/src/extensions';
 
 /** A pack the browser can show, installed or published by a remote source. */
 export interface BrowsablePack {

@@ -59,7 +59,7 @@ Windows honors redirected Pictures folders, including network paths. If Windows 
 ## Overrides and recovery
 
 - `STUDIO_LIBRARY_DIR` and `STUDIO_IMAGES_DIR` must be absolute for the server's OS. Do not paste a Windows drive path into Linux or macOS.
-- Settings → Files & naming changes the output destination for new jobs. Existing jobs keep their captured destination and existing files stay in place.
+- Settings → Files & naming changes the output destination for new jobs. Existing jobs keep their captured destination and existing files stay in place, except when workspace folders are on: then Move images moves existing output images into their workspace folders, and an image moved to another workspace moves its file too.
 - `STUDIO_EXTENSION_INSTALL_DIR` selects the extension store. `STUDIO_EXTENSION_SOURCES` accepts local source folders separated by `;` on Windows and `:` on macOS/Linux. Relative extension paths resolve from the app's working directory.
 - For the optional Codex provider, `STUDIO_CODEX_CLI_PATH` or `CODEX_CLI_PATH` selects a launcher. `CODEX_HOME` selects its absolute config, skill and generated-image root; otherwise it uses `~/.codex`. Studio discovers Unix Bun installs under `~/.bun/bin` as well as local/npm installs and PATH.
 - Existing Studio data folders and credential files are never migrated automatically. Changing an environment variable selects another location; it does not copy the old contents.

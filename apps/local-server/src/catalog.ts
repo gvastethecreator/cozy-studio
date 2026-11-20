@@ -1,5 +1,13 @@
 import { getLibraryForFilePath } from './libraries';
-import { existsSync, mkdirSync, copyFileSync, unlinkSync, constants, rmSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  copyFileSync,
+  unlinkSync,
+  constants,
+  rmSync,
+  renameSync,
+} from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { Database } from 'bun:sqlite';
@@ -641,6 +649,43 @@ export function updateCatalogImage(
   // A move writes three tables, so it commits as one unit.
   if (moving) database.transaction(write)();
   else write();
+  return getCatalogImage(id, database);
+}
+
+/**
+ * Moves a live image's file inside its own registered root and repoints the catalog entry, the
+ * job asset and the job finalization path. The rename runs first; the rows commit as one unit.
+ */
+export function moveCatalogImageFile(id: string, targetPath: string, db?: Database) {
+  const database = getDb(db);
+  const image = getCatalogImage(id, database);
+  if (!image || image.isDeleted) return null;
+  const library = getLibrary(image.libraryId, database);
+  if (!library) throw new Error('The image root is no longer registered.');
+  const relative = path.relative(library.path, targetPath);
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative))
+    throw new Error('The target must stay inside the image root.');
+  if (path.resolve(targetPath) === path.resolve(image.filePath)) return image;
+  if (existsSync(targetPath)) throw new Error('A file already exists at the target path.');
+  mkdirSync(path.dirname(targetPath), { recursive: true });
+  renameSync(image.filePath, targetPath);
+  const publicUrl = toPublicAssetUrl(targetPath, { libraryId: library.id, rootPath: library.path });
+  database.transaction(() => {
+    database
+      .query('UPDATE catalog_images SET file_path = ?, public_url = ? WHERE id = ?')
+      .run(targetPath, publicUrl, id);
+    if (!image.jobId) return;
+    // Keyed lookups: assets and jobs have no file path index.
+    database
+      .query(`UPDATE assets SET file_path = ?, public_url = ?
+        WHERE id = (SELECT finalization_asset_id FROM jobs WHERE id = ?) AND file_path = ?`)
+      .run(targetPath, publicUrl, image.jobId, image.filePath);
+    database
+      .query(
+        'UPDATE jobs SET finalization_file_path = ? WHERE id = ? AND finalization_file_path = ?',
+      )
+      .run(targetPath, image.jobId, image.filePath);
+  })();
   return getCatalogImage(id, database);
 }
 

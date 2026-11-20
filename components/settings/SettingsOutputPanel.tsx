@@ -12,6 +12,7 @@ import {
 } from '../../lib/studioSettingsForm';
 import type { StudioOutputOrganizationSettings } from '../../packages/shared/src/studioSettings';
 import { useT } from '../../lib/i18n';
+import { applyWorkspaceFolders } from '../../services/studio-api/catalog';
 
 const NAME_PRESETS = [
   {
@@ -39,6 +40,28 @@ export function SettingsOutputPanel({
   const exampleDate = useMemo(() => new Date(), []);
   const [customFolders, setCustomFolders] = useState(false);
   const [customName, setCustomName] = useState(false);
+  const [applyState, setApplyState] = useState<{ busy: boolean; message: string | null }>({
+    busy: false,
+    message: null,
+  });
+  const runApplyWorkspaceFolders = async () => {
+    setApplyState({ busy: true, message: null });
+    try {
+      const result = await applyWorkspaceFolders();
+      setApplyState({
+        busy: false,
+        message: t('settings.output.applyWorkspaceFoldersDone', {
+          moved: result.movedCount,
+          failed: result.failed.length,
+        }),
+      });
+    } catch (error) {
+      setApplyState({
+        busy: false,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
   const levels = value.outputSubfolderPreset.split('/').filter(Boolean);
   const selectedLevels = new Set(levels);
   const setLevels = (next: string[]) =>
@@ -73,7 +96,9 @@ export function SettingsOutputPanel({
       <label className="settings-row">
         <span>
           <strong>Output directory</strong>
-          <small>For new images and exports. Existing files stay in place.</small>
+          <small>
+            For new images and exports. Existing files move only when you apply workspace folders.
+          </small>
         </span>
         <input
           className="studio-field"
@@ -110,6 +135,25 @@ export function SettingsOutputPanel({
           }}
         />
       </label>
+      {levels[0] === 'workspace' && (
+        <div className="settings-row">
+          <span>
+            <strong>{t('settings.output.applyWorkspaceFolders')}</strong>
+            <small>{t('settings.output.applyWorkspaceFoldersHint')}</small>
+            {applyState.message && <small role="status">{applyState.message}</small>}
+          </span>
+          <button
+            type="button"
+            className="studio-ghost-control"
+            disabled={applyState.busy}
+            onClick={() => void runApplyWorkspaceFolders()}
+          >
+            {applyState.busy
+              ? t('settings.output.applyWorkspaceFoldersBusy')
+              : t('settings.output.applyWorkspaceFoldersAction')}
+          </button>
+        </div>
+      )}
       <label className="settings-row">
         <span>
           <strong>Folder structure</strong>

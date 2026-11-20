@@ -131,7 +131,7 @@ The file name tokens are `{date}`, `{time}`, `{timestamp}`, `{timestampUtc}`, `{
 - The default `{timestampUtc}` uses the job creation time in UTC, marked with `Z`, so clock and time zone changes do not reorder files. The custom `{date}`, `{time}` and `{timestamp}` tokens use local time.
 - `{prompt}` keeps the first meaningful words of your prompt. `{style}` keeps the style name, or the names of a style mix joined with `+`. An empty token drops its separator.
 
-Folder levels can use workspace, date, workflow, provider and model. The older `recipe` token also names the workflow; when none is selected, it uses `no-recipe`, while `workflow` uses `default`. Custom templates and running jobs keep their captured choices. Existing files stay in place and stay in the catalog.
+Folder levels can use workspace, date, workflow, provider and model. The older `recipe` token also names the workflow; when none is selected, it uses `no-recipe`, while `workflow` uses `default`. Custom templates and running jobs keep their captured choices. Existing files stay in place and stay in the catalog. With **Use workspace as the top folder** on and saved, **Move images** moves the images already in the output directory into their workspace folders, and an image you move to another workspace moves its file too.
 
 Downloads and ZIP exports keep their file names. Duplicate names in a ZIP get a numeric suffix. Studio never writes outside the registered folders and never overwrites existing outputs. The Library opens with the newest images first unless its URL selects another order.
 

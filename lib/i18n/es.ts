@@ -354,6 +354,13 @@ export const es: Dictionary = {
   'settings.output.workspaceFolders': 'Usar el espacio como primera carpeta',
   'settings.output.workspaceFoldersHint':
     'Guarda las nuevas generaciones y exportaciones en una subcarpeta de su espacio. Conserva los otros niveles y nombres de archivo.',
+  'settings.output.applyWorkspaceFolders': 'Mover las imágenes existentes a carpetas por espacio',
+  'settings.output.applyWorkspaceFoldersHint':
+    'Mueve las imágenes que ya están en la carpeta de salida a la carpeta de su espacio. Guarda el ajuste primero. Una imagen que muevas después a otro espacio se mueve con él.',
+  'settings.output.applyWorkspaceFoldersAction': 'Mover imágenes',
+  'settings.output.applyWorkspaceFoldersBusy': 'Moviendo…',
+  'settings.output.applyWorkspaceFoldersDone':
+    'Se movieron {moved} imágenes. {failed} no se pudieron mover.',
   'settings.search.filenamePreset.label': 'Formato de nombre predefinido',
   'settings.search.filenamePreset.description': 'Elige cómo se nombran las imágenes',
   'settings.search.filenameTemplate.label': 'Plantilla de nombre de archivo',

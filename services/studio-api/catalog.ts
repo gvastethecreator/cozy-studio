@@ -99,6 +99,15 @@ export async function updateCatalogImage(
   });
 }
 
+/** Moves existing Output Folder images into their workspace folders. */
+export async function applyWorkspaceFolders() {
+  return request<{
+    matchedCount: number;
+    movedCount: number;
+    failed: { id: string; message: string }[];
+  }>('/api/catalog/commands/apply-workspace-folders', { method: 'POST' });
+}
+
 /** One transaction: a rejected call changes nothing and names the images at fault. */
 export async function organizeCatalogImages(input: CatalogOrganizeInput) {
   return request<CatalogOrganizeResult>('/api/catalog/commands/organize', {

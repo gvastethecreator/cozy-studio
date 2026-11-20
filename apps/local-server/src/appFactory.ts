@@ -23,7 +23,12 @@ import {
 import { createCatalogCommands } from './catalogCommands';
 import { createCatalogRoutes } from './catalogRoutes';
 import { createImageConversionRoutes } from './imageConversionRoutes';
-import { updateCatalogImageFileSize } from './catalog';
+import { moveCatalogImageFile, updateCatalogImageFileSize } from './catalog';
+import {
+  applyWorkspaceFolders,
+  moveImageToWorkspaceFolder,
+  type WorkspaceFolderLayout,
+} from './workspaceFolders';
 import { createDefaultCatalogStore, type StudioCatalogStore } from './catalogStore';
 import { listAssets } from './db/assets';
 import { listLogs } from './db/events';
@@ -272,9 +277,25 @@ export async function createStudioApp(
       resolveJobCatalogContext,
       resolveWorkerRuntimeTarget,
     });
+  // Workspace folders apply while workspace is the first output folder level.
+  const readWorkspaceFolderLayout = (): WorkspaceFolderLayout | null => {
+    const settings = readEditableStudioSettings(settingsStorage);
+    if (settings.outputOrganization.subfolderTokens[0] !== 'workspace') return null;
+    const output = settings.outputDirectoryId ? getLibrary(settings.outputDirectoryId) : null;
+    if (!output) return null;
+    return {
+      libraryId: output.id,
+      rootPath: output.path,
+      slugs: workspaceOutputSlugMap(listWorkspaces()),
+    };
+  };
   const catalogCommands = createCatalogCommands({
     listCatalogImageIds: (...args) => catalogStore.listCatalogImageIds(...args),
-    updateCatalogImage: (...args) => catalogStore.updateCatalogImage(...args),
+    updateCatalogImage: (id, patch) => {
+      const image = catalogStore.updateCatalogImage(id, patch);
+      if (!image || patch.workspaceId === undefined) return image;
+      return moveImageToWorkspaceFolder(image, readWorkspaceFolderLayout(), moveCatalogImageFile);
+    },
     softDeleteCatalogImage: (...args) => catalogStore.softDeleteCatalogImage(...args),
     restoreCatalogImage: (...args) => catalogStore.restoreCatalogImage(...args),
     purgeCatalogImage: (...args) => catalogStore.purgeCatalogImage(...args),
@@ -660,6 +681,15 @@ export async function createStudioApp(
       getJob,
       updateCatalogImageFileSize,
       publishEvent,
+      applyWorkspaceFolders: async () => {
+        const layout = readWorkspaceFolderLayout();
+        if (!layout) return null;
+        const images = catalogStore
+          .listCatalogImageIds({ isDeleted: false })
+          .map((id) => catalogStore.getCatalogImage(id))
+          .filter((image) => image !== null);
+        return applyWorkspaceFolders(layout, images, moveCatalogImageFile);
+      },
     }),
   );
 

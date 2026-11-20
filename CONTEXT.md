@@ -304,7 +304,7 @@ _Avoid_: direct repair command, secret-printing audit, destructive storage scan
 
 - Each **Workspace** has exactly one **Library**, which owns its **Tags** and **Image Collections**. Deleting a Workspace moves its images to the trash and deletes its Tags and Image Collections. A moved image keeps its tags and leaves the collections of its old Workspace.
 - The **Storage Folder Registry** holds the **Studio Data Folder** and the **Output Folders**; it is not a set of Libraries.
-- An **Output Folder** stores new final images and exports without becoming a separate SQLite catalog. Each job captures its output root and layout; existing files stay under their original registered roots.
+- An **Output Folder** stores new final images and exports without becoming a separate SQLite catalog. Each job captures its output root and layout; existing files stay under their original registered roots. While workspace is the first folder level, an image moved to another Workspace moves its file to that Workspace's folder, and Settings can move existing Output Folder images into their Workspace folders.
 - Shared workflow categories drive discovery and preferences. Character views retain per-mode drafts within one workspace character. Native output background belongs to the Generation Task Spec, not a provider-specific task name.
 - **Bootstrap Configuration** locates the initial **Studio Data Folder**, then **Studio Settings** become the editable source of truth.
 - **Provider Secrets** live outside **Studio Settings**. Settings can show only availability or validation state.

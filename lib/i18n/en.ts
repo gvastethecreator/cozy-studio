@@ -347,6 +347,12 @@ export const en = {
   'settings.output.workspaceFolders': 'Use workspace as the top folder',
   'settings.output.workspaceFoldersHint':
     'Save new generations and exports in a workspace subfolder. Keep the other folder levels and filenames.',
+  'settings.output.applyWorkspaceFolders': 'Move existing images into workspace folders',
+  'settings.output.applyWorkspaceFoldersHint':
+    'Moves images already in the output directory into the folder of their workspace. Save the setting first. An image you move to another workspace later moves with it.',
+  'settings.output.applyWorkspaceFoldersAction': 'Move images',
+  'settings.output.applyWorkspaceFoldersBusy': 'Moving…',
+  'settings.output.applyWorkspaceFoldersDone': 'Moved {moved} images. {failed} could not move.',
   'settings.search.filenamePreset.label': 'Filename preset',
   'settings.search.filenamePreset.description': 'Choose how images are named',
   'settings.search.filenameTemplate.label': 'File name template',

@@ -19,6 +19,7 @@ import {
 import type { CatalogBatchCommandResult, CatalogCommandFilter } from '../../../packages/shared/src';
 import type { CatalogCommandResult } from './catalogCommands';
 import type { StudioCatalogStore } from './catalogStore';
+import type { WorkspaceFoldersResult } from './workspaceFolders';
 import { extractMetadata, type embedMetadata as embedMetadataFn } from './metadataEmbedder';
 import type { getJob as getJobFn } from './db/jobs';
 import { catalogImageMetadata, jobImageMetadata } from './providers/jobImageMetadata';
@@ -51,6 +52,8 @@ export interface CreateCatalogRoutesDependencies {
   publishEvent?: (type: string, payload: unknown) => void;
   getLibrary?: typeof getLibraryDefault;
   openContainingFolder?: typeof openContainingFolderDefault;
+  /** Null when workspace is not the first output folder level. */
+  applyWorkspaceFolders?: () => Promise<WorkspaceFoldersResult | null>;
 }
 
 async function readJsonRecord(request: { json: () => Promise<unknown> }) {
@@ -139,6 +142,7 @@ export function createCatalogRoutes({
   publishEvent,
   getLibrary = getLibraryDefault,
   openContainingFolder = openContainingFolderDefault,
+  applyWorkspaceFolders,
 }: CreateCatalogRoutesDependencies) {
   const routes = new Hono();
   // Open windows refresh their Tags and Collections menus, including after agent changes.
@@ -331,6 +335,22 @@ export function createCatalogRoutes({
       }
     });
   }
+
+  routes.post('/commands/apply-workspace-folders', async (c) => {
+    const result = await applyWorkspaceFolders?.();
+    if (!result)
+      return c.json(
+        { error: 'Turn on workspace folders in Settings and save before applying them.' },
+        409,
+      );
+    if (result.movedCount)
+      publishEvent?.('catalog.batch_changed', {
+        action: 'move',
+        changedCount: result.movedCount,
+        scope: { kind: 'all' },
+      });
+    return c.json(result);
+  });
 
   routes.post('/commands/organize', async (c) => {
     try {

@@ -27,6 +27,7 @@ import {
   BatchSubmissionUncertainError,
 } from './studio-api/jobs';
 import { getEditableStudioSettings } from './studio-api/settings';
+import { withCreditSpendConfirmation } from './creditSpendConfirmation';
 import { queryCatalog } from './studio-api/catalog';
 import { resolveStudioApiBase } from './studioRuntime';
 import {
@@ -463,7 +464,13 @@ export async function runLocalGeneration({
       ),
     );
     throwIfGenerationAborted(signal);
-    const accepted = await createStudioJobBatch({ requestId: batchId, items });
+    // In the `ask` credits policy, Studio refuses the batch until the user agrees to spend.
+    const accepted = await withCreditSpendConfirmation((confirmCreditSpend) =>
+      createStudioJobBatch({
+        requestId: batchId,
+        items: confirmCreditSpend ? items.map((item) => ({ ...item, confirmCreditSpend })) : items,
+      }),
+    );
     for (const job of accepted.jobs) onJobCreated?.(job);
     const settledRuns = await Promise.allSettled(
       accepted.jobs.map((job) =>

@@ -136,6 +136,28 @@ export const getAccountSession = createCachedLocalCodexSessionReader({
   },
 });
 
+/**
+ * The usage state read fresh for the credits policy. Items of one batch share a read made within
+ * two seconds; the readiness snapshot is not used because it can be 30 seconds old.
+ */
+const readFreshChatgptSession = createCachedLocalCodexSessionReader({
+  maxAgeMs: 2_000,
+  read: async () =>
+    (await readStudioChatgptSession()) ??
+    buildLocalCodexSessionResponse({
+      authMode: null,
+      planType: null,
+      usage: null,
+      source: 'chatgpt-http',
+      fetchedAt: new Date().toISOString(),
+      error: null,
+    }),
+});
+
+export async function readFreshChatgptUsageStatus() {
+  return (await readFreshChatgptSession()).usageStatus;
+}
+
 /** Maps one Codex backend model entry to the catalog shape app-server `model/list` produces. */
 export function codexModelFromHttpEntry(entry: any): CodexModel | null {
   const slug = typeof entry?.slug === 'string' ? entry.slug : null;

@@ -1,3 +1,4 @@
+import { UNKNOWN_CHATGPT_USAGE } from '../packages/shared/src/chatgptUsage';
 import { describe, expect, it } from 'vitest';
 
 import type { HealthResponse, LocalCodexSessionResponse } from '../packages/shared/src';
@@ -134,6 +135,7 @@ describe('live recipe prompt quality evaluation', () => {
       isChatgptLogin: true,
       isSupportedAuthMode: true,
       canRunLocalJobs: false,
+      usageStatus: UNKNOWN_CHATGPT_USAGE,
     } satisfies LocalCodexSessionResponse;
 
     const readiness = evaluateLiveRuntimeReadiness(health, session, null);

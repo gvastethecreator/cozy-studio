@@ -1718,6 +1718,12 @@ button.studio-status-provider:hover {
   border-radius: 50%;
   background: var(--create-muted);
 }
+.create-local-status.is-warning {
+  color: var(--wb-warning);
+}
+.create-local-status.is-warning .create-status-dot {
+  background: var(--wb-warning);
+}
 .create-shortcut-hint {
   font-family: inherit;
   font-size: var(--wbp-label, 12px);

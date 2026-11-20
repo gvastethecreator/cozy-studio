@@ -1,4 +1,10 @@
-import type { CodexUsageLimitWindow, CodexUsageSnapshot } from '../../../../packages/shared/src';
+import type {
+  ChatgptUsageStatus,
+  CodexUsageCredits,
+  CodexUsageLimitWindow,
+  CodexUsageSnapshot,
+} from '../../../../packages/shared/src';
+import { UNKNOWN_CHATGPT_USAGE } from '../../../../packages/shared/src/chatgptUsage';
 
 function readNumber(value: any, keys: string[]) {
   for (const key of keys) {
@@ -142,11 +148,65 @@ function extractQuotaWindow(
   };
 }
 
+function extractCredits(snapshot: any): CodexUsageCredits | null {
+  const credits = snapshot?.credits;
+  if (!credits || typeof credits !== 'object') return null;
+  const balance =
+    typeof credits.balance === 'number'
+      ? credits.balance
+      : typeof credits.balance === 'string' && credits.balance.trim()
+        ? Number(credits.balance)
+        : null;
+  return {
+    hasCredits: typeof credits.hasCredits === 'boolean' ? credits.hasCredits : null,
+    unlimited: credits.unlimited === true,
+    balance: balance !== null && Number.isFinite(balance) ? balance : null,
+  };
+}
+
+function creditsAvailable(credits: CodexUsageCredits | null | undefined) {
+  if (!credits) return false;
+  if (credits.unlimited) return true;
+  if (credits.balance !== null) return credits.balance > 0;
+  return credits.hasCredits === true;
+}
+
+/**
+ * Derives the usage state once from a snapshot. Every window must have room for jobs to use the
+ * window; once one is used up, jobs spend credits while the account has them.
+ */
+export function deriveChatgptUsageStatus(usage: CodexUsageSnapshot | null): ChatgptUsageStatus {
+  if (!usage) return UNKNOWN_CHATGPT_USAGE;
+  const limits = usage.limits ?? [];
+  const credits = usage.credits ?? null;
+  const tightest = limits.reduce<CodexUsageLimitWindow | null>(
+    (current, limit) =>
+      !current ||
+      limit.availablePercent < current.availablePercent ||
+      (limit.availablePercent === current.availablePercent &&
+        (limit.resetsAt ?? 0) > (current.resetsAt ?? 0))
+        ? limit
+        : current,
+    null,
+  );
+  if (!tightest && !credits) return UNKNOWN_CHATGPT_USAGE;
+  const windowHasRoom = tightest !== null && tightest.availablePercent > 0;
+  return {
+    state: windowHasRoom ? 'window' : creditsAvailable(credits) ? 'credits' : 'exhausted',
+    windowPercentLeft: tightest?.availablePercent ?? null,
+    windowLabel: tightest?.label ?? null,
+    resetsAt: tightest?.resetsAt ?? null,
+    creditBalance: credits?.balance ?? null,
+    creditsUnlimited: credits?.unlimited ?? false,
+  };
+}
+
 export function extractUsageSnapshot(
   snapshot: any,
   pathPrefix: string | null,
 ): CodexUsageSnapshot | null {
   if (!snapshot || typeof snapshot !== 'object') return null;
+  const normalizedCredits = extractCredits(snapshot);
 
   const limitId = pathPrefix?.split('.').at(-1) ?? null;
   const limitName =
@@ -168,6 +228,7 @@ export function extractUsageSnapshot(
       limitId,
       limitName,
       limits,
+      credits: normalizedCredits,
       raw: snapshot,
     };
   }
@@ -182,6 +243,7 @@ export function extractUsageSnapshot(
         path: pathPrefix ? `${pathPrefix}.credits` : 'credits',
         limitId,
         limitName,
+        credits: normalizedCredits,
         raw: credits,
       };
     }
@@ -195,6 +257,7 @@ export function extractUsageSnapshot(
         path: pathPrefix ? `${pathPrefix}.credits.balance` : 'credits.balance',
         limitId,
         limitName,
+        credits: normalizedCredits,
         raw: credits,
       };
     }
@@ -207,6 +270,7 @@ export function extractUsageSnapshot(
         path: pathPrefix ? `${pathPrefix}.credits` : 'credits',
         limitId,
         limitName,
+        credits: normalizedCredits,
         raw: credits,
       };
     }

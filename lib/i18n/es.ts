@@ -710,6 +710,8 @@ export const es: Dictionary = {
     'Abre ChatGPT y aprueba el acceso. Studio completa el inicio de sesión solo.',
   'onboarding.chatgpt.signedInAs': 'Sesión iniciada como {account}. Ya puedes generar.',
   'onboarding.chatgpt.signedIn': 'Sesión iniciada. Ya puedes generar.',
+  'onboarding.chatgpt.signedInAsShort': 'Sesión iniciada como {account}.',
+  'onboarding.chatgpt.signedInShort': 'Sesión iniciada.',
   'onboarding.chatgpt.signIn': 'Iniciar sesión con ChatGPT',
   'onboarding.chatgpt.signInAgain': 'Volver a iniciar sesión',
   'onboarding.chatgpt.open': 'Abrir ChatGPT',

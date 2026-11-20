@@ -13,6 +13,7 @@ import {
   type CreateJobRequestBoundary,
 } from '../../../packages/shared/src/studioApiSchemas';
 import { collectGrokImagineJobIssues } from '../../../packages/shared/src/grokImagineContract';
+import { isRecord } from '../../../packages/shared/src/types';
 import { canResumeStudioJob } from '../../../packages/shared/src/jobRecovery';
 import { createJobBatchRoutes } from './jobBatchRoutes';
 import type { JobBatchStore } from './db/jobBatches';
@@ -64,7 +65,7 @@ export function createJobRoutes({
   validateManagedAssets,
   resolveProviderExecutionBlocker,
   readGrokAvailableModels,
-
+  readChatgptUsageStatus,
   readCodexTransportAvailability,
   resolveBootstrapExecution,
   readEditableSettings,
@@ -88,7 +89,7 @@ export function createJobRoutes({
     validateManagedAssets,
     resolveProviderExecutionBlocker,
     readGrokAvailableModels,
-
+    readChatgptUsageStatus,
     readCodexTransportAvailability,
     resolveBootstrapExecution,
     readEditableSettings,
@@ -227,16 +228,22 @@ export function createJobRoutes({
         409,
       );
     }
+    const blockerProviderId =
+      providerId === 'codex' &&
+      job.execution?.providerOptions?.codex?.transport === 'subscription_http'
+        ? 'chatgpt'
+        : providerId;
     const providerBlocker = resumeRemoteExecution
       ? null
-      : await resolveProviderExecutionBlocker(
-          providerId === 'codex' &&
-            job.execution?.providerOptions?.codex?.transport === 'subscription_http'
-            ? 'chatgpt'
-            : providerId,
-        );
+      : await resolveProviderExecutionBlocker(blockerProviderId);
     if (providerBlocker) {
       return c.json(providerBlocker as Record<string, unknown>, 400);
+    }
+    if (blockerProviderId === 'chatgpt' && !resumeRemoteExecution) {
+      const creditBlock = await persistentJobIntake.checkCreditSpend(
+        isRecord(body) && body.confirmCreditSpend === true,
+      );
+      if (creditBlock) return c.json(creditBlock.body, creditBlock.status);
     }
 
     if (providerId === 'grok') {

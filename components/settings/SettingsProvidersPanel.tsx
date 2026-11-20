@@ -20,6 +20,11 @@ import { useT } from '../../lib/i18n';
 import { ProviderBrandMark, ProviderUntestedBadge } from '../ProviderBrandMark';
 import { SubscriptionAuthControls } from './SubscriptionAuthControls';
 import { ProviderExecutionDefaultsFields } from './ProviderExecutionDefaultsFields';
+import {
+  CHATGPT_CREDIT_SPEND_POLICIES,
+  CHATGPT_CREDIT_SPEND_POLICY_LABELS,
+  type ChatgptCreditSpendPolicy,
+} from '../../packages/shared/src/chatgptUsage';
 
 interface SettingsProvidersPanelProps {
   formState: StudioSettingsFormState;
@@ -243,6 +248,34 @@ export function SettingsProvidersPanel({
                         compact
                         optional={provider.canExecute}
                       />
+                    ) : null}
+                    {provider.providerId === 'chatgpt' ? (
+                      <label className="settings-row settings-provider-credit-policy">
+                        <span>
+                          <strong>When the ChatGPT window is used up</strong>
+                          <small>
+                            ChatGPT then spends the account's credits, which cost money. Studio, MCP
+                            and agents follow this setting.
+                          </small>
+                        </span>
+                        <select
+                          className="studio-field"
+                          aria-label="When the ChatGPT window is used up"
+                          value={formState.chatgptCreditSpend}
+                          onChange={(event) =>
+                            setFormState((current) => ({
+                              ...current,
+                              chatgptCreditSpend: event.target.value as ChatgptCreditSpendPolicy,
+                            }))
+                          }
+                        >
+                          {CHATGPT_CREDIT_SPEND_POLICIES.map((policy) => (
+                            <option key={policy} value={policy}>
+                              {CHATGPT_CREDIT_SPEND_POLICY_LABELS[policy]}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
                     ) : null}
                     <details className="settings-provider-details">
                       <summary>Connection details</summary>

@@ -61,6 +61,7 @@ function createController(): StudioOverlayController {
       onboardingHealth: null,
       onboardingProbe: null,
       localCodexSession: null,
+      chatgptUsage: null,
       readiness: null as never,
       closeOnboarding: () => {},
       completeOnboarding: () => {},

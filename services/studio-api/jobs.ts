@@ -38,11 +38,14 @@ export async function getStudioJobStatus(jobId: string, signal?: AbortSignal) {
   return request<JobStatusSnapshot>(`/api/jobs/${encodeURIComponent(jobId)}/status`, { signal });
 }
 
-export async function retryStudioJobById(jobId: string) {
+export async function retryStudioJobById(jobId: string, confirmCreditSpend = false) {
   const { job } = await getStudioJobDetail(jobId);
   return request<Job>(`/api/jobs/${encodeURIComponent(jobId)}/retry`, {
     method: 'POST',
-    body: JSON.stringify({ attempt: job.attempt }),
+    body: JSON.stringify({
+      attempt: job.attempt,
+      ...(confirmCreditSpend && { confirmCreditSpend }),
+    }),
   });
 }
 

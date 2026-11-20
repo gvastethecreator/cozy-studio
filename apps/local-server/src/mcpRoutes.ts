@@ -238,6 +238,7 @@ async function buildGenerationRequest(
       kind: sourceSpec.task,
       sourceSpec,
       ...(execution && { execution }),
+      ...(input.confirmCreditSpend && { confirmCreditSpend: true }),
     })),
     workspace: { id: workspaceId, name: workspace?.name ?? workspaceId, willCreate },
     libraryOrganization,
@@ -331,6 +332,12 @@ export function createMcpRoutes({
     switch (name) {
       case 'studio_status': {
         const health = await get('/api/health');
+        // A fresh read of the ChatGPT window and credits; null when Studio cannot read it.
+        const chatgptUsage = (await readJson('/api/providers/chatgpt/usage')) as {
+          state?: string;
+          summary?: string | null;
+          creditPolicy?: string;
+        } | null;
         // Startup fetches origin/main once, so agents learn about updates on their first call.
         const update = (await readJson('/api/updates')) as {
           source?: 'git' | 'release';
@@ -362,6 +369,11 @@ export function createMcpRoutes({
           health: await health.json(),
           mcpAccess: settings.mcpAccess,
           mcpAccessLabel: STUDIO_MCP_ACCESS_LABELS[settings.mcpAccess],
+          chatgptUsage,
+          ...((chatgptUsage?.state === 'credits' || chatgptUsage?.state === 'exhausted') && {
+            usageNotice:
+              `${chatgptUsage.summary ?? ''} Tell the user before planning ChatGPT generation.${chatgptUsage.state === 'credits' && chatgptUsage.creditPolicy === 'ask' ? ' Studio asks before spending: ask the user, and only after they agree pass confirmCreditSpend: true.' : ''}`.trim(),
+          }),
           unorganized: { total, workspaces: unorganizedWorkspaces },
           update: update && {
             source: update.source,
@@ -563,6 +575,7 @@ export function createMcpRoutes({
         const body = (await response.json().catch(() => null)) as {
           error?: string;
           code?: string;
+          usage?: unknown;
           items?: {
             providerId: string;
             kind: string;
@@ -578,6 +591,7 @@ export function createMcpRoutes({
             blocker: {
               error: body?.error ?? `Studio answered HTTP ${response.status}.`,
               code: body?.code ?? null,
+              ...(body?.usage !== undefined && { chatgptUsage: body.usage }),
             },
           });
         const { workspace, libraryOrganization } = built;
@@ -605,6 +619,9 @@ export function createMcpRoutes({
               ),
             },
           },
+          ...(plan.providerId === 'chatgpt' && {
+            chatgptUsage: await readJson('/api/providers/chatgpt/usage'),
+          }),
           providerPrompt: plan.prompt.slice(0, 4000),
           promptChars: plan.prompt.length,
           ...(built.styles && { styles: built.styles }),
@@ -630,6 +647,7 @@ export function createMcpRoutes({
         const retried = await post(`/api/jobs/batches/${batch.id}/retry`, {
           requestId: args.requestId,
           items: batch.retryable,
+          ...(args.confirmCreditSpend === true && { confirmCreditSpend: true }),
         });
         if (!retried.ok) return retried;
         // Studio skips a job whose attempt changed since the read, so count what it queued.

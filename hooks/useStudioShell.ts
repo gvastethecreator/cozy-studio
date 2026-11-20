@@ -44,6 +44,7 @@ import {
   resolveImageEditorRequiresMask,
 } from '../lib/grokImagineUiPolicy';
 import { selectProviderReadiness } from '../lib/providerReadiness';
+import { describeChatgptUsage } from '../packages/shared/src/chatgptUsage';
 import { runWorkspaceSwitchLifecycle } from '../lib/workspaceLifecycle';
 import { buildStudioGenerationPlaceholders } from '../lib/studioGenerationPlaceholders';
 import { materializeCatalogEntryImageWithConfig } from '../lib/studioCatalogImageAdapter';
@@ -316,13 +317,35 @@ export function useStudioShell(): StudioShellController {
     studioSettings.data.settingsDomain.settings?.defaultProviderId ?? 'chatgpt';
   const { capabilities: providerCapabilities, runtimePreflight: providerRuntimePreflight } =
     studioSettings.data.providerDomain;
-  const activeProviderReadiness = useMemo(
+  const chatgptCreditSpend =
+    studioSettings.data.settingsDomain.settings?.chatgptCreditSpend ?? 'ask';
+  const diagnosticsProviderUsage = studioRuntime.status.diagnostics.providerUsage;
+  const chatgptUsageCopy = useMemo(
     () =>
-      selectProviderReadiness(
+      diagnosticsProviderUsage.chatgpt?.usageStatus
+        ? describeChatgptUsage(diagnosticsProviderUsage.chatgpt.usageStatus, chatgptCreditSpend)
+        : null,
+    [diagnosticsProviderUsage.chatgpt?.usageStatus, chatgptCreditSpend],
+  );
+  const providerUsage = useMemo(
+    () =>
+      diagnosticsProviderUsage.chatgpt
+        ? {
+            ...diagnosticsProviderUsage,
+            chatgpt: { ...diagnosticsProviderUsage.chatgpt, usageCopy: chatgptUsageCopy },
+          }
+        : diagnosticsProviderUsage,
+    [diagnosticsProviderUsage, chatgptUsageCopy],
+  );
+  const activeProviderReadiness = useMemo(
+    () => ({
+      ...selectProviderReadiness(
         { capabilities: providerCapabilities, runtimePreflight: providerRuntimePreflight },
         activeProviderId,
       ),
-    [providerCapabilities, providerRuntimePreflight, activeProviderId],
+      usage: activeProviderId === 'chatgpt' ? chatgptUsageCopy : null,
+    }),
+    [providerCapabilities, providerRuntimePreflight, activeProviderId, chatgptUsageCopy],
   );
 
   const onEditSettled = useCallback(() => {
@@ -557,6 +580,7 @@ export function useStudioShell(): StudioShellController {
             health: studioRuntime.onboarding.health,
             probe: studioRuntime.onboarding.probe,
             localCodexSession: studioRuntime.status.localCodexSession,
+            chatgptUsage: chatgptUsageCopy,
             readiness: studioRuntime.status.readiness,
             isChecking: studioRuntime.onboarding.isChecking,
             isDesktopRuntime: studioRuntime.onboarding.isDesktopRuntime,
@@ -635,6 +659,7 @@ export function useStudioShell(): StudioShellController {
       studioRuntime.onboarding.health,
       studioRuntime.onboarding.probe,
       studioRuntime.status.localCodexSession,
+      chatgptUsageCopy,
       studioRuntime.status.readiness,
       studioRuntime.onboarding.isChecking,
       studioRuntime.onboarding.isDesktopRuntime,
@@ -999,7 +1024,7 @@ export function useStudioShell(): StudioShellController {
       headerToolbar: {
         isVisible: !isUiChromeSuppressed,
         props: headerToolbarProps,
-        providerUsage: studioRuntime.status.diagnostics.providerUsage,
+        providerUsage,
       },
       support: {
         isOpen: isSupportOpen,
@@ -1037,7 +1062,7 @@ export function useStudioShell(): StudioShellController {
       onMainClick,
       isUiChromeSuppressed,
       headerToolbarProps,
-      studioRuntime.status.diagnostics.providerUsage,
+      providerUsage,
       studioSettings.data.settingsDomain.settings,
       isSupportOpen,
       route.view,

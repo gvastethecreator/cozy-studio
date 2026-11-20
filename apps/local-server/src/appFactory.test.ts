@@ -1,3 +1,4 @@
+import { UNKNOWN_CHATGPT_USAGE } from '../../../packages/shared/src/chatgptUsage';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
@@ -337,6 +338,7 @@ describe('createStudioApp', () => {
       isChatgptLogin: true,
       isSupportedAuthMode: true,
       canRunLocalJobs: true,
+      usageStatus: UNKNOWN_CHATGPT_USAGE,
     };
 
     const readCodexModelCatalog = vi.fn(async () => codexCatalogFixture);

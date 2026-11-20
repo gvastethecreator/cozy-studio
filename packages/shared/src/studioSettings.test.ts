@@ -27,6 +27,7 @@ describe('studioSettings', () => {
       defaultStyleReferenceMode: 'preserve',
       mcpAccess: 'read',
       mcpAllowedImportRoots: [],
+      chatgptCreditSpend: 'ask',
       commandCenterCompactMode: false,
       intentionalStylesV1: false,
       disabledWorkflowModules: [],

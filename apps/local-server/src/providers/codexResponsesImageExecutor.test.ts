@@ -375,7 +375,7 @@ describe('ChatGPT responses image executor and captured Codex HTTP jobs', () => 
         response: { error: { code: 'insufficient_quota', message: 'retry later' } },
       },
       code: 'source_limit',
-      message: expect.stringContaining('exhausted usage'),
+      message: expect.stringContaining('reported a usage limit'),
     },
     {
       event: {
@@ -402,7 +402,16 @@ describe('ChatGPT responses image executor and captured Codex HTTP jobs', () => 
         response: { status: 'failed', error: { message: 'The usage limit has been reached' } },
       },
       code: 'source_limit',
-      message: expect.stringContaining('this HTTP route'),
+      // The executor reads the usage state after a limit error and names its next step.
+      usage: {
+        state: 'exhausted' as const,
+        windowPercentLeft: 0,
+        windowLabel: 'Weekly',
+        resetsAt: null,
+        creditBalance: 0,
+        creditsUnlimited: false,
+      },
+      message: expect.stringContaining('usage and credits are used up'),
     },
     {
       event: {
@@ -414,9 +423,10 @@ describe('ChatGPT responses image executor and captured Codex HTTP jobs', () => 
     },
   ])(
     'reports terminal SSE failure details: $event.type $code',
-    async ({ event, code, message }) => {
+    async ({ event, code, message, usage }) => {
       const checkpoint = vi.fn();
       const executor = createChatgptResponsesImageExecutor({
+        ...(usage && { readUsageStatus: async () => usage }),
         getAccessToken: async () => 'codex-secret',
         fetch: async () =>
           new Response([`event: ${event.type}`, `data: ${JSON.stringify(event)}`, ''].join('\n'), {

@@ -549,6 +549,11 @@
   align-items: center;
   padding: 8px 0;
 }
+/* The provider account card is narrow: the credits select goes under its label. */
+.settings-provider-credit-policy {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
 .settings-row strong,
 .settings-row small {
   display: block;

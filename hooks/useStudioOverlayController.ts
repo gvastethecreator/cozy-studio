@@ -66,6 +66,7 @@ interface StudioOverlayOnboardingContext {
   health: StudioSystemOverlaysProps['onboardingHealth'];
   probe: StudioSystemOverlaysProps['onboardingProbe'];
   localCodexSession: StudioSystemOverlaysProps['localCodexSession'];
+  chatgptUsage: StudioSystemOverlaysProps['chatgptUsage'];
   readiness: StudioSystemOverlaysProps['readiness'];
   isChecking: StudioSystemOverlayFlags['isCheckingOnboarding'];
   isDesktopRuntime: StudioSystemOverlayFlags['isDesktopRuntime'];
@@ -228,6 +229,7 @@ export function buildStudioOverlayController({
       onboardingHealth: onboarding.health,
       onboardingProbe: onboarding.probe,
       localCodexSession: onboarding.localCodexSession,
+      chatgptUsage: onboarding.chatgptUsage,
       readiness: onboarding.readiness,
       closeOnboarding: () => startTransition(() => onboarding.close()),
       completeOnboarding: () => startTransition(() => onboarding.complete()),

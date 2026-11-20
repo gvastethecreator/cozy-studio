@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useStudioJobInspector } from './useStudioJobInspector';
 import type { ToastMessage } from './useToasts';
 import { cancelStudioJob, retryStudioJobById } from '../services/studio-api/jobs';
+import { withCreditSpendConfirmation } from '../services/creditSpendConfirmation';
 import { useLazyRef } from './useLazyRef';
 import type { ShellActivityJob } from '../lib/shellActivityJob';
 
@@ -74,7 +75,9 @@ export function useStudioActivitySession({
       retryingJobIdsRef.current.add(jobId);
       addToast('Recovering backend job...', 'info');
 
-      void retryStudioJobById(jobId)
+      void withCreditSpendConfirmation((confirmCreditSpend) =>
+        retryStudioJobById(jobId, confirmCreditSpend),
+      )
         .then((createdJob) => {
           addToast(
             createdJob.remoteExecution ? 'Remote job resume queued' : 'Retry queued',

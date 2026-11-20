@@ -48,6 +48,7 @@ export interface StudioSettingsFormState {
   defaultStyleReferenceMode: EditableStudioSettings['defaultStyleReferenceMode'];
   mcpAccess: EditableStudioSettings['mcpAccess'];
   mcpAllowedImportRoots: string;
+  chatgptCreditSpend: EditableStudioSettings['chatgptCreditSpend'];
   commandCenterCompactMode: boolean;
   intentionalStylesV1: boolean;
   showWorkspaceHistoryInCarousel: boolean;
@@ -78,6 +79,7 @@ export function createInitialStudioSettingsFormState(): StudioSettingsFormState 
     defaultStyleIntensity: 0.75,
     defaultStyleReferenceMode: 'preserve',
     mcpAccess: 'read',
+    chatgptCreditSpend: 'ask',
     mcpAllowedImportRoots: '',
     commandCenterCompactMode: false,
     intentionalStylesV1: false,
@@ -107,6 +109,7 @@ export function getStudioSettingsFormState(
     defaultStyleIntensity: settings.defaultStyleIntensity,
     defaultStyleReferenceMode: settings.defaultStyleReferenceMode,
     mcpAccess: settings.mcpAccess,
+    chatgptCreditSpend: settings.chatgptCreditSpend,
     mcpAllowedImportRoots: settings.mcpAllowedImportRoots.join('\n'),
     commandCenterCompactMode: settings.commandCenterCompactMode,
     intentionalStylesV1: settings.intentionalStylesV1,
@@ -143,6 +146,7 @@ export function buildStudioSettingsPatch(
     defaultStyleIntensity: formState.defaultStyleIntensity,
     defaultStyleReferenceMode: formState.defaultStyleReferenceMode,
     mcpAccess: formState.mcpAccess,
+    chatgptCreditSpend: formState.chatgptCreditSpend,
     mcpAllowedImportRoots: formState.mcpAllowedImportRoots
       .split(/\r?\n/)
       .map((root) => root.trim())

@@ -461,6 +461,13 @@ function useToolbarController(props: ToolbarProps) {
     typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.userAgent)
       ? '⌘ ↵'
       : 'Ctrl ↵';
+  // A used-up ChatGPT window that spends credits warns here; a stopped state is a generate block.
+  const providerUsage =
+    activeProviderId === 'chatgpt' ? props.activeProviderReadiness?.usage : null;
+  const usageNotice =
+    providerUsage?.state === 'credits' && !providerUsage.blocksGeneration
+      ? providerUsage.line
+      : null;
   const dropInFlight = useRef(false);
   const attachmentsRef = useLatestRef(generationConfig.attachments);
   const dropScope = useMemo(
@@ -629,6 +636,7 @@ function useToolbarController(props: ToolbarProps) {
     generationStartTime,
     outputSummary,
     shortcutHint,
+    usageNotice,
     isKeyPopoverOpen,
     onOpenKeySelector,
     onSelectKey,
@@ -1032,11 +1040,20 @@ function ToolbarGenerateAction({ model }: { model: ToolbarModel }) {
 }
 
 function ToolbarFooterStatus({ model }: { model: ToolbarModel }) {
-  const { generateBlock, requirement, shouldShowQuickStartError, isGenerating, shortcutHint } =
-    model;
+  const {
+    generateBlock,
+    requirement,
+    shouldShowQuickStartError,
+    isGenerating,
+    shortcutHint,
+    usageNotice,
+  } = model;
+  const showsUsageNotice = Boolean(
+    usageNotice && !generateBlock && !isGenerating && !requirement && !shouldShowQuickStartError,
+  );
   return (
     <div className="create-footer-meta">
-      <span className="create-local-status">
+      <span className={`create-local-status${showsUsageNotice ? ' is-warning' : ''}`}>
         <span className="create-status-dot" aria-hidden="true" />
         <span
           id={
@@ -1046,14 +1063,18 @@ function ToolbarFooterStatus({ model }: { model: ToolbarModel }) {
                 ? 'generation-requirement'
                 : undefined
           }
-          role={generateBlock || (requirement && !shouldShowQuickStartError) ? 'status' : undefined}
+          role={
+            generateBlock || (requirement && !shouldShowQuickStartError) || showsUsageNotice
+              ? 'status'
+              : undefined
+          }
         >
           {generateBlock?.message ??
             (isGenerating
               ? 'Generating'
               : shouldShowQuickStartError
                 ? ''
-                : (requirement?.message ?? 'Ready to generate'))}
+                : (requirement?.message ?? usageNotice ?? 'Ready to generate'))}
         </span>
       </span>
       {isGenerating ? null : <kbd className="create-shortcut-hint">{shortcutHint}</kbd>}

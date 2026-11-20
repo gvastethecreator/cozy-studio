@@ -27,3 +27,4 @@ export * from './subscriptionHttpDiagnostic';
 export * from './imageConversion';
 export * from './styleAuthoring';
 export * from './libraryArchive';
+export * from './chatgptUsage';

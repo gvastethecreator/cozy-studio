@@ -5,6 +5,7 @@ import { normalizeDisabledWorkflowModules, type WorkflowModuleId } from './workf
 import { isRecord } from './types';
 import type { RepositoryUpdateChannel } from './repositoryUpdates';
 import { isCodexHttpImageModel, type CodexHttpImageModel } from './codexExecutionContract';
+import { isChatgptCreditSpendPolicy, type ChatgptCreditSpendPolicy } from './chatgptUsage';
 
 const EDITABLE_STUDIO_SETTINGS_VERSION = 'editable-studio-settings/v2' as const;
 
@@ -53,6 +54,8 @@ export interface EditableStudioSettings {
   defaultStyleReferenceMode: 'preserve' | 'reinterpret';
   mcpAccess: StudioMcpAccess;
   mcpAllowedImportRoots: string[];
+  /** What Studio does when the ChatGPT usage window is used up and jobs would spend credits. */
+  chatgptCreditSpend: ChatgptCreditSpendPolicy;
   commandCenterCompactMode: boolean;
   intentionalStylesV1: boolean;
   /** Optional workflow modules the user turned off (ADR 0011). */
@@ -86,6 +89,7 @@ export interface EditableStudioSettingsPatch {
   defaultStyleReferenceMode?: 'preserve' | 'reinterpret';
   mcpAccess?: StudioMcpAccess;
   mcpAllowedImportRoots?: string[];
+  chatgptCreditSpend?: ChatgptCreditSpendPolicy;
   commandCenterCompactMode?: boolean;
   intentionalStylesV1?: boolean;
   disabledWorkflowModules?: WorkflowModuleId[];
@@ -216,6 +220,7 @@ export function createDefaultEditableStudioSettings(): EditableStudioSettings {
     defaultStyleReferenceMode: 'preserve',
     mcpAccess: 'read',
     mcpAllowedImportRoots: [],
+    chatgptCreditSpend: 'ask',
     commandCenterCompactMode: false,
     intentionalStylesV1: false,
     disabledWorkflowModules: [],
@@ -287,6 +292,8 @@ export function sanitizeEditableStudioSettingsPatch(value: unknown): EditableStu
   ) {
     patch.mcpAccess = value.mcpAccess;
   }
+  if (isChatgptCreditSpendPolicy(value.chatgptCreditSpend))
+    patch.chatgptCreditSpend = value.chatgptCreditSpend;
   if (Array.isArray(value.mcpAllowedImportRoots)) {
     patch.mcpAllowedImportRoots = [
       ...new Set(
@@ -431,6 +438,7 @@ export function mergeEditableStudioSettingsPatch(
     autoDetectOutputSources: patch.autoDetectOutputSources ?? current.autoDetectOutputSources,
     mcpAccess: patch.mcpAccess ?? current.mcpAccess ?? 'read',
     mcpAllowedImportRoots: patch.mcpAllowedImportRoots ?? current.mcpAllowedImportRoots ?? [],
+    chatgptCreditSpend: patch.chatgptCreditSpend ?? current.chatgptCreditSpend ?? 'ask',
     notifyOnUpdates: patch.notifyOnUpdates ?? current.notifyOnUpdates ?? false,
     updateChannel: patch.updateChannel ?? current.updateChannel ?? 'commits',
     clearReviewJobsOnStartup:

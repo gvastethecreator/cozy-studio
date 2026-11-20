@@ -1,3 +1,4 @@
+import { UNKNOWN_CHATGPT_USAGE } from '../../../packages/shared/src/chatgptUsage';
 import { describe, expect, it, vi } from 'vitest';
 import type {
   CodexRuntimeDoctorReport,
@@ -53,6 +54,7 @@ function createReadiness(
     isChatgptLogin: canRunLocalJobs,
     isSupportedAuthMode: canRunLocalJobs,
     canRunLocalJobs,
+    usageStatus: UNKNOWN_CHATGPT_USAGE,
   };
   const snapshot: StudioReadinessEnvelope = {
     revision: 1,

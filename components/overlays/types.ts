@@ -1,4 +1,5 @@
 import type {
+  ChatgptUsageCopy,
   HealthResponse,
   EditableStudioSettings,
   EditableStudioSettingsPatch,
@@ -101,6 +102,7 @@ export interface StudioSystemOverlaysProps {
   onboardingHealth: HealthResponse | null;
   onboardingProbe: OnboardingProbe | null;
   localCodexSession: LocalCodexSessionResponse | null;
+  chatgptUsage: ChatgptUsageCopy | null;
   readiness: StudioReadinessSnapshot;
   closeOnboarding: () => void;
   completeOnboarding: () => void;

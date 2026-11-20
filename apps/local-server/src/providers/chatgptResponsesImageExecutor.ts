@@ -30,6 +30,11 @@ import { ProviderExecutionUncertainError } from '../workerErrors';
 import { resolveCodexExecutionPolicy } from '../../../../packages/shared/src/codexExecutionContract';
 import { consumeSseJson } from './subscriptionSse';
 import type { SubscriptionHttpSubmission } from '../../../../packages/shared/src';
+import {
+  formatChatgptCreditBalance,
+  formatChatgptUsageReset,
+  type ChatgptUsageStatus,
+} from '../../../../packages/shared/src/chatgptUsage';
 
 type ReadLocalFile = (path: string) => Uint8Array;
 
@@ -44,6 +49,8 @@ export interface ChatgptResponsesImageExecutorDependencies {
   getAccessToken?: () => Promise<string>;
   invalidateAccessToken?: (message: string) => void;
   requestTimeoutMs?: number;
+  /** Reads the usage state after a limit error, so the error names the right next step. */
+  readUsageStatus?: () => Promise<ChatgptUsageStatus>;
 }
 
 const CODEX_INSTRUCTIONS =
@@ -182,6 +189,34 @@ function observedDiagnostic(
   }
 }
 
+/** The next step for a ChatGPT usage limit error, by the usage state read after it. */
+export function sourceLimitDetail(usage: ChatgptUsageStatus | null, now = Date.now()) {
+  const reset = usage ? formatChatgptUsageReset(usage.resetsAt, now) : null;
+  switch (usage?.state) {
+    case 'exhausted':
+      return `ChatGPT usage and credits are used up.${reset ? ` The window resets in ${reset}.` : ''} Wait for the reset or add ChatGPT credits, then retry this job.`;
+    case 'credits': {
+      const balance = formatChatgptCreditBalance(usage);
+      return `ChatGPT reported a usage limit although the account shows credits${balance ? ` (balance ${balance})` : ''}. Check the account's credits in ChatGPT, then retry this job.`;
+    }
+    case 'window':
+      return `ChatGPT reported a usage limit although ${Math.round(usage.windowPercentLeft ?? 0)}% of the usage window is left. Wait a few minutes, then retry this job.`;
+    default:
+      return 'ChatGPT reported a usage limit. Check ChatGPT usage in Studio, then wait for the reset or add ChatGPT credits and retry this job.';
+  }
+}
+
+/** Replaces the generic limit step with the one for the current usage state. */
+export function withUsageNextStep(failure: SubscriptionHttpError, usage: ChatgptUsageStatus) {
+  if (failure.code !== 'source_limit') return failure;
+  const generic = sourceLimitDetail(null);
+  if (!failure.message.startsWith(generic)) return failure;
+  return new SubscriptionHttpError(
+    sourceLimitDetail(usage) + failure.message.slice(generic.length),
+    failure,
+  );
+}
+
 function classifyProviderFailure(
   payload: unknown,
   message: string,
@@ -241,9 +276,7 @@ function classifyProviderFailure(
   else if (!providerCode && /moderat|safety|content_filter/.test(lower)) category = 'moderation';
   if (category === 'invalid_grant')
     detail = 'ChatGPT session expired or was rejected. Sign in again in Studio Settings.';
-  else if (category === 'source_limit')
-    detail =
-      'ChatGPT reported an exhausted usage limit for this HTTP route. Wait for the limit to reset.';
+  else if (category === 'source_limit') detail = sourceLimitDetail(null);
   else if (category === 'rate_limit')
     detail =
       'ChatGPT temporarily limited requests.' +
@@ -348,7 +381,17 @@ export function createChatgptResponsesImageExecutor({
   // Four concurrent image streams can legitimately take longer than two minutes.
   // Keep the response observable before classifying an accepted submission as uncertain.
   requestTimeoutMs = 300_000,
+  readUsageStatus,
 }: ChatgptResponsesImageExecutorDependencies = {}) {
+  const explainLimit = (failure: SubscriptionHttpError) =>
+    failure.code === 'source_limit' && readUsageStatus
+      ? Effect.promise(() =>
+          readUsageStatus().then(
+            (usage) => withUsageNextStep(failure, usage),
+            () => failure,
+          ),
+        )
+      : Effect.succeed(failure);
   return (job: GenerationProviderJob) =>
     providerOperation(
       Effect.gen(function* () {
@@ -517,7 +560,7 @@ export function createChatgptResponsesImageExecutor({
                 }
                 if (response.status === 401) invalidateAccessToken(failure.message);
                 checkpoint('failed');
-                throw failure;
+                throw yield* explainLimit(failure);
               }
 
               let finalB64: string | null = null;
@@ -571,7 +614,7 @@ export function createChatgptResponsesImageExecutor({
                   observation,
                 );
                 if (failure.code === 'invalid_grant') invalidateAccessToken(failure.message);
-                throw failure;
+                throw yield* explainLimit(failure);
               }
               if (!finalB64) {
                 throw new ProviderExecutionUncertainError(

@@ -4,16 +4,24 @@ export class StudioApiError extends Error {
   readonly status: number;
   readonly code: string | null;
   readonly reason: string | null;
+  /** The JSON error body, for callers that need more than the message. */
+  readonly payload: Record<string, unknown> | null;
 
   constructor(
     message: string,
-    options: { status: number; code?: string | null; reason?: string | null },
+    options: {
+      status: number;
+      code?: string | null;
+      reason?: string | null;
+      payload?: Record<string, unknown> | null;
+    },
   ) {
     super(message);
     this.name = 'StudioApiError';
     this.status = options.status;
     this.code = options.code ?? null;
     this.reason = options.reason ?? null;
+    this.payload = options.payload ?? null;
   }
 }
 
@@ -22,10 +30,12 @@ function decodeLocalStudioError(text: string, status: number) {
   let message = trimmed || `Local studio request failed: ${status}`;
   let code: string | null = null;
   let reason: string | null = null;
+  let body: Record<string, unknown> | null = null;
   try {
     const value: unknown = JSON.parse(trimmed);
     if (value && typeof value === 'object') {
       const payload = value as Record<string, unknown>;
+      body = payload;
       if (typeof payload.error === 'string' && payload.error.trim()) message = payload.error.trim();
       else if (typeof payload.message === 'string' && payload.message.trim())
         message = payload.message.trim();
@@ -37,7 +47,7 @@ function decodeLocalStudioError(text: string, status: number) {
   } catch {
     /* Plain-text errors retain the backend message. */
   }
-  return { message, code, reason };
+  return { message, code, reason, payload: body };
 }
 
 export function readLocalStudioErrorMessage(text: string, status: number) {
@@ -60,11 +70,11 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    const { message, code, reason } = decodeLocalStudioError(
+    const { message, code, reason, payload } = decodeLocalStudioError(
       await response.text(),
       response.status,
     );
-    throw new StudioApiError(message, { status: response.status, code, reason });
+    throw new StudioApiError(message, { status: response.status, code, reason, payload });
   }
 
   if (response.status === 204) {

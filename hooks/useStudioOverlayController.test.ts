@@ -112,6 +112,7 @@ describe('buildStudioOverlayController', () => {
         health: null,
         probe: null,
         localCodexSession: null,
+        chatgptUsage: null,
         readiness: {
           stage: 'checking',
           isReady: false,
@@ -414,6 +415,7 @@ describe('buildStudioOverlayController', () => {
           },
           probe: null,
           localCodexSession: null,
+          chatgptUsage: null,
           readiness: {
             stage: 'checking',
             isReady: false,

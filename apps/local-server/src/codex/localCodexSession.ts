@@ -7,7 +7,11 @@ import type {
   LocalCodexSessionResponse,
 } from '../../../../packages/shared/src';
 import { CodexRpcClient } from './rpcClient';
-import { extractUsageSnapshot, pickRateLimitSnapshot } from './rateLimitUsage';
+import {
+  deriveChatgptUsageStatus,
+  extractUsageSnapshot,
+  pickRateLimitSnapshot,
+} from './rateLimitUsage';
 import { isRecord } from '../../../../packages/shared/src/types';
 
 export interface CodexRpcTransport {
@@ -171,6 +175,7 @@ export function buildLocalCodexSessionResponse(
     isChatgptLogin,
     isSupportedAuthMode,
     canRunLocalJobs: isChatgptLogin && !base.error,
+    usageStatus: deriveChatgptUsageStatus(base.error ? null : base.usage),
   };
 }
 

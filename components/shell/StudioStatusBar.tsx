@@ -67,6 +67,17 @@ export function StudioStatusBar({
                   ? providerUsage.chatgpt
                   : undefined;
             const weeklyLimit = usage?.limits.find((limit) => /weekly/i.test(limit.label));
+            // ChatGPT shows its usage state: window left, using credits, or limit reached.
+            const usageCopy = provider.id === 'chatgpt' ? usage?.usageCopy : null;
+            const usageText =
+              usageCopy?.short ??
+              (weeklyLimit ? `${Math.round(weeklyLimit.availablePercent)}% left` : null);
+            const usageDot =
+              provider.canExecute && usageCopy?.tone === 'warning'
+                ? 'bg-amber-400'
+                : provider.canExecute && usageCopy?.tone === 'danger'
+                  ? 'bg-rose-400'
+                  : providerRuntimeStatusDotClass(provider);
             const pillClassName = cn(
               'studio-status-provider',
               provider.id === selected.id && 'is-active',
@@ -78,26 +89,16 @@ export function StudioStatusBar({
                 {provider.id === selected.id && !provider.canExecute ? (
                   <span className="studio-status-provider-usage">{provider.statusDetail}</span>
                 ) : (
-                  weeklyLimit && (
-                    <span className="studio-status-provider-usage">
-                      {Math.round(weeklyLimit.availablePercent)}% left
-                    </span>
-                  )
+                  usageText && <span className="studio-status-provider-usage">{usageText}</span>
                 )}
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    'studio-status-provider-dot',
-                    providerRuntimeStatusDotClass(provider),
-                  )}
-                />
+                <span aria-hidden="true" className={cn('studio-status-provider-dot', usageDot)} />
               </>
             );
             return (
               <li
                 key={provider.id}
                 data-tooltip={provider.tooltip}
-                aria-label={`${provider.shortLabel}: ${provider.statusDetail}`}
+                aria-label={`${provider.shortLabel}: ${provider.statusDetail}${usageCopy?.line ? `. ${usageCopy.line}` : ''}`}
               >
                 {usage ? (
                   <UsageStatusCard

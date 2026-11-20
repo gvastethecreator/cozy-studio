@@ -149,6 +149,12 @@ export const generationInput = z.strictObject({
     .describe(
       'Model for this call only, without changing Settings. chatgpt: a GPT Image model id such as gpt-image-2.5-flare. codex: a Codex model. Omit model for other providers; they use their Settings default.',
     ),
+  confirmCreditSpend: z
+    .boolean()
+    .optional()
+    .describe(
+      'Set true only after the user agreed that this ChatGPT call may spend ChatGPT credits, which cost money. Needed when the usage window is used up and Settings say to ask (code chatgpt_credits_confirmation_required).',
+    ),
 });
 export type StudioGenerationInput = z.infer<typeof generationInput>;
 
@@ -185,7 +191,7 @@ export const studioMcpTools = {
   studio_status: {
     access: 'read',
     description:
-      'Read Studio health, Agent access (mcpAccess: read, organize, or write = Full control; at off it returns 403), update status and how many images are unorganized. Call it first. unorganized.total counts all workspaces; unorganized.workspaces lists each workspace with unorganized images (id, name, count). When the result has a notice, tell the user an update is available and ask before applying it. When it has an organizeNotice (unorganized.total above zero), recommend organizing those images one workspace at a time.',
+      'Read Studio health, Agent access (mcpAccess: read, organize, or write = Full control; at off it returns 403), the ChatGPT usage state, update status and how many images are unorganized. Call it first. chatgptUsage.state is window (jobs use the usage window), credits (the window is used up and ChatGPT jobs spend credits, which cost money), exhausted (ChatGPT jobs fail until the reset) or unknown; creditPolicy is the user setting (ask, use or stop) that Studio enforces. unorganized.total counts all workspaces; unorganized.workspaces lists each workspace with unorganized images (id, name, count). When the result has a notice, tell the user an update is available and ask before applying it. When it has an organizeNotice (unorganized.total above zero), recommend organizing those images one workspace at a time.',
     schema: empty,
   },
   studio_providers: {
@@ -344,7 +350,7 @@ export const studioMcpTools = {
   studio_plan_generation: {
     access: 'read',
     description:
-      'Preview a studio_generate call without spending anything: provider, model, job count, workspace, filing, styles and the prompt the provider would receive. Takes the studio_generate input without requestId. Creates no job, batch or workspace. ready: false names the blocker, such as a provider that is not signed in.',
+      'Preview a studio_generate call without spending anything: provider, model, job count, workspace, filing, styles, the ChatGPT usage state (chatgptUsage) and the prompt the provider would receive. Takes the studio_generate input without requestId. Creates no job, batch or workspace. ready: false names the blocker, such as a provider that is not signed in, or chatgpt_credits_confirmation_required when the jobs would spend ChatGPT credits: ask the user, then pass confirmCreditSpend: true.',
     schema: generationInput,
   },
   studio_generate: {
@@ -366,6 +372,12 @@ export const studioMcpTools = {
     schema: z.strictObject({
       batchId: id,
       requestId: z.string().regex(/^retry-[a-zA-Z0-9-]{2,122}$/),
+      confirmCreditSpend: z
+        .boolean()
+        .optional()
+        .describe(
+          'Set true only after the user agreed that the retry may spend ChatGPT credits (code chatgpt_credits_confirmation_required).',
+        ),
     }),
   },
   studio_cancel: {

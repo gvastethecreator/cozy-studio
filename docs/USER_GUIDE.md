@@ -200,7 +200,7 @@ Sign in from Settings → Accounts & models. In **Model and execution settings**
 
 The static-image choices include `gpt-image-2.6-flare` and `gpt-image-2.6-sunburst` as requested aliases. ChatGPT may report a generic identifier such as `gpt-image-2-codex`, which does not confirm the exact variant. Job details show **Requested image model** and **Image model reported by ChatGPT** separately; older jobs may have no report. GIF generation remains available only through the OpenAI Images API.
 
-These jobs do not create Codex turns, so they do not spend the Codex app-server usage. They can still reach the ChatGPT HTTP usage limit. This path is not a second subscription. When its usage window is used up, jobs can spend the account's ChatGPT credits, which cost money; check the usage state before generating.
+These jobs do not create Codex turns, so they do not spend the Codex app-server usage. They can still reach the ChatGPT HTTP usage limit. This path is not a second subscription. When its usage window is used up, jobs can spend the account's ChatGPT credits, which cost money; check the usage state before generating. The status bar, the composer and Setup show that state. In Settings > Accounts & models, "When the ChatGPT window is used up" picks what Studio does then: ask before using credits (the default), use credits, or stop at 0%. Agents follow the same setting.
 
 ### Codex
 

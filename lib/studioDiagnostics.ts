@@ -1,4 +1,9 @@
-import type { HealthResponse, LocalCodexSessionResponse } from '../packages/shared/src';
+import type {
+  ChatgptUsageStatus,
+  HealthResponse,
+  LocalCodexSessionResponse,
+} from '../packages/shared/src';
+import type { ChatgptUsageCopy } from '../packages/shared/src/chatgptUsage';
 
 export type StudioStatusTone = 'success' | 'warning' | 'danger';
 export type StudioUsageTone = 'available' | 'neutral' | 'offline';
@@ -26,6 +31,10 @@ export interface StudioUsageSummary {
   }[];
   tone: StudioUsageTone;
   isLoading: boolean;
+  /** The derived account usage state; null while offline or loading. */
+  usageStatus?: ChatgptUsageStatus | null;
+  /** The shared wording for that state with the user's credits policy, added by the shell. */
+  usageCopy?: ChatgptUsageCopy | null;
 }
 
 export interface StudioDiagnosticsSnapshot {
@@ -110,6 +119,7 @@ function summarizeProviderUsage(
         ? 'available'
         : 'neutral',
     isLoading,
+    usageStatus: connected && !isLoading ? (session?.usageStatus ?? null) : null,
   };
 }
 

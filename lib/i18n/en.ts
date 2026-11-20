@@ -693,6 +693,8 @@ export const en = {
     'Open ChatGPT and approve access. Studio finishes signing in by itself.',
   'onboarding.chatgpt.signedInAs': 'Signed in as {account}. You can start generating.',
   'onboarding.chatgpt.signedIn': 'Signed in. You can start generating.',
+  'onboarding.chatgpt.signedInAsShort': 'Signed in as {account}.',
+  'onboarding.chatgpt.signedInShort': 'Signed in.',
   'onboarding.chatgpt.signIn': 'Sign in with ChatGPT',
   'onboarding.chatgpt.signInAgain': 'Sign in again',
   'onboarding.chatgpt.open': 'Open ChatGPT',

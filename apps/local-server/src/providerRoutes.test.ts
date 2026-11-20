@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { UNKNOWN_CHATGPT_USAGE } from '../../../packages/shared/src/chatgptUsage';
 import {
   type CodexRuntimeDoctorReport,
   createDefaultEditableStudioSettings,
@@ -70,6 +71,8 @@ function createAntigravityRuntimeReport(): AntigravityRuntimeDoctorReport {
 function createRoutes(sources: ProviderRuntimeSources) {
   return createProviderRoutes({
     readProviderRuntimeSnapshot: createProviderRuntimeSnapshotReader(sources),
+    readChatgptUsageStatus: async () => UNKNOWN_CHATGPT_USAGE,
+    readChatgptCreditSpend: () => 'ask',
   });
 }
 

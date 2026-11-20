@@ -72,7 +72,7 @@ import {
   stopAppServer,
 } from './codex/processSupervisor';
 import { getCodexModelCatalog } from './codex/modelCatalog';
-import { getAccountSession } from './codex/chatgptAccountHttp';
+import { getAccountSession, readFreshChatgptUsageStatus } from './codex/chatgptAccountHttp';
 import { embedMetadata } from './metadataEmbedder';
 import { getJobDetail } from './jobDetails';
 import {
@@ -142,6 +142,7 @@ import { createLocalApiSecurityMiddleware } from './localApiSecurity';
 import { createUiStaticHandler, resolveUiDistDir, uiDistIsReady } from './uiStaticRoutes';
 import type {
   AppServerEnsureReason,
+  ChatgptUsageStatus,
   CodexModelCatalogResponse,
   Job,
   LocalCodexSessionResponse,
@@ -193,6 +194,7 @@ export interface CreateStudioAppOptions {
   checkUpdatesOnStart?: boolean;
   dependencies?: {
     readLocalCodexSession?: () => Promise<LocalCodexSessionResponse>;
+    readChatgptUsageStatus?: () => Promise<ChatgptUsageStatus>;
     readCodexModelCatalog?: () => Promise<CodexModelCatalogResponse>;
     readCodexRuntimeDoctor?: typeof readCodexRuntimeDoctor;
     readGrokRuntimeDoctor?: () => GrokRuntimeDoctorReport;
@@ -232,6 +234,8 @@ export async function createStudioApp(
   const app = new Hono();
   const readLocalCodexSession = options.dependencies?.readLocalCodexSession ?? getAccountSession;
   const readCodexModelCatalog = options.dependencies?.readCodexModelCatalog ?? getCodexModelCatalog;
+  const readChatgptUsageStatus =
+    options.dependencies?.readChatgptUsageStatus ?? readFreshChatgptUsageStatus;
   const readCodexRuntimeDoctorFn =
     options.dependencies?.readCodexRuntimeDoctor ?? readCodexRuntimeDoctor;
   const readGrokRuntimeDoctorFn =
@@ -428,7 +432,14 @@ export async function createStudioApp(
       settled ? loadAntigravityRuntimeDoctorFn() : readAntigravityRuntimeDoctorFn(),
   });
 
-  app.route('/api/providers', createProviderRoutes({ readProviderRuntimeSnapshot }));
+  app.route(
+    '/api/providers',
+    createProviderRoutes({
+      readProviderRuntimeSnapshot,
+      readChatgptUsageStatus,
+      readChatgptCreditSpend: () => readEditableStudioSettings(settingsStorage).chatgptCreditSpend,
+    }),
+  );
 
   app.route(
     '/api/output-sources',
@@ -600,6 +611,7 @@ export async function createStudioApp(
           grokRuntime: readGrokRuntimeDoctorFn(),
         }),
       readGrokAvailableModels: () => readGrokRuntimeDoctorFn().availableModels,
+      readChatgptUsageStatus,
       readCodexTransportAvailability: () => ({
         codex_app_server: readCodexRuntimeDoctorFn().canRunJobs,
         subscription_http: isCodexHttpCredentialReady(),

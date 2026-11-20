@@ -27,6 +27,7 @@ import {
 import {
   detectCloudSyncLibraryPath,
   type HealthResponse,
+  type ChatgptUsageCopy,
   type LocalCodexSessionResponse,
   type OnboardingCheck,
   type OnboardingProbe,
@@ -89,6 +90,8 @@ interface OnboardingModalProps {
   health: HealthResponse | null;
   probe: OnboardingProbe | null;
   localCodexSession: LocalCodexSessionResponse | null;
+  /** The ChatGPT usage state in the wording the pill and composer use. */
+  chatgptUsage?: ChatgptUsageCopy | null;
   readiness: StudioReadinessSnapshot;
   status: OnboardingStatus;
   isDesktopRuntime: boolean;
@@ -302,10 +305,12 @@ const ROW_GHOST = 'studio-ghost-control onboarding-connections-button';
 /** ChatGPT web sign-in, the default provider. Studio polls until the browser step finishes. */
 function ChatGptRow({
   isReady,
+  usage,
   onRefresh,
   onOpenProviders,
 }: {
   isReady: boolean;
+  usage: ChatgptUsageCopy | null;
   onRefresh: () => void;
   onOpenProviders: () => void;
 }) {
@@ -332,13 +337,29 @@ function ChatGptRow({
           : t('onboarding.chatgpt.pendingApprove'),
       }
     : state === 'logged_in'
-      ? {
-          tone: 'success' as const,
-          label: t('onboarding.status.signedIn'),
-          detail: status?.accountLabel
-            ? t('onboarding.chatgpt.signedInAs', { account: status.accountLabel })
-            : t('onboarding.chatgpt.signedIn'),
-        }
+      ? usage?.line
+        ? {
+            // Signed in, with the same usage sentence the status pill and composer show.
+            tone:
+              usage.tone === 'danger'
+                ? ('danger' as const)
+                : usage.tone === 'warning'
+                  ? ('warning' as const)
+                  : ('success' as const),
+            label: t('onboarding.status.signedIn'),
+            detail: `${
+              status?.accountLabel
+                ? t('onboarding.chatgpt.signedInAsShort', { account: status.accountLabel })
+                : t('onboarding.chatgpt.signedInShort')
+            } ${usage.line}`,
+          }
+        : {
+            tone: 'success' as const,
+            label: t('onboarding.status.signedIn'),
+            detail: status?.accountLabel
+              ? t('onboarding.chatgpt.signedInAs', { account: status.accountLabel })
+              : t('onboarding.chatgpt.signedIn'),
+          }
       : state === 'refresh_failed'
         ? {
             tone: 'danger' as const,
@@ -1575,6 +1596,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = (props) => {
                   {connectedProvider === 'chatgpt' ? (
                     <ChatGptRow
                       isReady={isReady}
+                      usage={props.chatgptUsage ?? null}
                       onRefresh={onRefresh}
                       onOpenProviders={onOpenSettings}
                     />

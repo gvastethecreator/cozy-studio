@@ -44,6 +44,35 @@ describe('ChatGPT account over HTTP', () => {
     });
   });
 
+  it.each([
+    ['window', 5, { has_credits: false, unlimited: false, balance: '0' }, 95, null],
+    ['credits', 100, { has_credits: true, unlimited: false, balance: '42.5' }, 0, 42.5],
+    ['exhausted', 100, { has_credits: false, unlimited: false, balance: '0' }, 0, 0],
+  ] as const)(
+    'derives the %s usage state, keeping credits next to the window',
+    async (state, usedPercent, credits, windowPercentLeft, creditBalance) => {
+      const payload = {
+        ...usagePayload,
+        rate_limit: {
+          ...usagePayload.rate_limit,
+          primary_window: { ...usagePayload.rate_limit.primary_window, used_percent: usedPercent },
+        },
+        credits,
+      };
+      const session = await readChatgptHttpSession({
+        getAccessToken: async () => 'token',
+        fetch: (async () => new Response(JSON.stringify(payload))) as unknown as typeof fetch,
+      });
+      expect(session.usageStatus).toMatchObject({
+        state,
+        windowPercentLeft,
+        windowLabel: 'Weekly',
+        resetsAt: 1791057499,
+        ...(creditBalance !== null && { creditBalance }),
+      });
+    },
+  );
+
   it('maps a Codex backend model entry to the catalog shape', () => {
     expect(
       codexModelFromHttpEntry({

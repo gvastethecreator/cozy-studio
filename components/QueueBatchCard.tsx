@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { JobBatchSummary, RetryJobBatchRequest } from '../packages/shared/src';
 import { getStudioJobBatchSummary, retryStudioJobBatch } from '../services/studio-api/jobs';
+import { withCreditSpendConfirmation } from '../services/creditSpendConfirmation';
 import { StudioApiError } from '../services/studio-api/http';
 
 function useJobBatch(batchId: string, revision: string) {
@@ -35,7 +36,10 @@ function useJobBatch(batchId: string, revision: string) {
     setBusy(true);
     setRetryError(null);
     try {
-      await retryStudioJobBatch(batchId, retryRequest.current);
+      const retry = retryRequest.current;
+      await withCreditSpendConfirmation((confirmCreditSpend) =>
+        retryStudioJobBatch(batchId, confirmCreditSpend ? { ...retry, confirmCreditSpend } : retry),
+      );
       setRefresh((value) => value + 1);
       retryRequest.current = null;
     } catch (failure) {

@@ -1,4 +1,5 @@
 import type {
+  ChatgptUsageStatus,
   CreateJobRequest,
   EditableStudioSettings,
   GenerationTaskSpec,
@@ -30,6 +31,7 @@ import { validateManagedGenerationAssets } from './managedAssetPolicy';
 import { resolveEffectiveJobExecutionOptions } from './providerExecutionPolicy';
 import { resolveBootstrapProviderExecutionOptions } from './providers/providerExecutionDefaults';
 import { isRecord } from '../../../packages/shared/src/types';
+import { checkChatgptCreditSpend } from './chatgptCreditPolicy';
 
 interface ProcessReferencesResult {
   augmentedPrompt: string;
@@ -79,6 +81,8 @@ export interface PersistentJobIntakeDependencies {
     providerId: string,
   ) => Record<string, unknown> | null | Promise<Record<string, unknown> | null>;
   readGrokAvailableModels?: () => string[];
+  /** A fresh read of the ChatGPT usage state, for the credits policy. */
+  readChatgptUsageStatus?: () => Promise<ChatgptUsageStatus>;
   isReferenceProcessingError: (error: unknown) => error is ReferenceProcessingErrorLike;
   publishEvent: typeof publishEvent;
   logJobCreated: (kind: string, jobId: string) => void;
@@ -90,7 +94,7 @@ export interface PersistentJobIntakeDependencies {
 }
 
 export type PersistentJobIntakeError = {
-  status: 400;
+  status: 400 | 409;
   body: Record<string, unknown>;
 };
 
@@ -191,6 +195,7 @@ export function createPersistentJobIntake({
   validateManagedAssets = validateManagedGenerationAssets,
   resolveProviderExecutionBlocker,
   readGrokAvailableModels = () => readGrokRuntimeDoctor().availableModels,
+  readChatgptUsageStatus,
   isReferenceProcessingError,
   publishEvent,
   logJobCreated,
@@ -198,6 +203,17 @@ export function createPersistentJobIntake({
   validateDispatch = async () => null,
   onJobsAccepted = async () => {},
 }: PersistentJobIntakeDependencies) {
+  /** Applies the credits policy before a ChatGPT job is queued. */
+  async function checkCreditSpend(confirmed: boolean): Promise<PersistentJobIntakeError | null> {
+    if (!readChatgptUsageStatus) return null;
+    const block = checkChatgptCreditSpend({
+      usage: await readChatgptUsageStatus(),
+      policy: readEditableSettings().chatgptCreditSpend,
+      confirmed,
+    });
+    return block ? { status: 409, body: { ...block } } : null;
+  }
+
   async function prepareJob(request: CreateJobRequest): Promise<PreparedResult> {
     const workspaceId = normalizeWorkspaceId(
       request.workspaceId ||
@@ -304,6 +320,11 @@ export function createPersistentJobIntake({
         ok: false,
         error: { status: 400, body: providerBlocker as Record<string, unknown> },
       };
+    }
+    // Before references are saved, so a stopped job leaves nothing behind.
+    if (providerId === 'chatgpt') {
+      const creditBlock = await checkCreditSpend(request.confirmCreditSpend === true);
+      if (creditBlock) return { ok: false, error: creditBlock };
     }
 
     let finalPrompt = prompt;
@@ -516,6 +537,7 @@ export function createPersistentJobIntake({
   }
   return {
     prepareJob,
+    checkCreditSpend,
     dispatchJobs,
     async createJob(request: CreateJobRequest): Promise<PersistentJobIntakeResult> {
       const prepared = await prepareJob(request);

@@ -13,6 +13,7 @@ import { useRuntimeLogActions, useToastUi, useWorkspaceState } from './GlobalCon
 import { useModalManager } from '../hooks/useModalManager';
 import { useLatestRef } from '../hooks/useLatestRef';
 import { useHashRouter } from '../hooks/useHashRouter';
+import { CreditSpendConfirmation } from '../components/CreditSpendConfirmation';
 
 interface GenerationContextType {
   config: {
@@ -300,6 +301,7 @@ export const GenerationProvider: React.FC<GenerationProviderProps> = ({ children
           <GenerationChromeContext.Provider value={chromeValue}>
             <GenerationModalContext.Provider value={modalValue}>
               {children}
+              <CreditSpendConfirmation />
             </GenerationModalContext.Provider>
           </GenerationChromeContext.Provider>
         </GenerationRunContext.Provider>

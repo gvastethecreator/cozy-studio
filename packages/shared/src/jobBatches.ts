@@ -27,6 +27,8 @@ export interface JobBatchDetail extends JobBatchSummary {
 export interface RetryJobBatchRequest {
   requestId: string;
   items: Array<{ jobId: string; attempt: number }>;
+  /** The user agreed that retried ChatGPT jobs may spend credits (credits policy `ask`). */
+  confirmCreditSpend?: boolean;
 }
 /** The batch after a retry, and the jobs this request queued (none on a replay). */
 export interface RetryJobBatchResponse extends JobBatchDetail {

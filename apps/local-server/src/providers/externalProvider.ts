@@ -18,6 +18,7 @@ import {
 } from './runtimeConfig';
 import { compileProviderInputForJob } from './providerInputCompiler';
 import type { GenerationProvider, GenerationProviderJob } from './types';
+import { readFreshChatgptUsageStatus } from '../codex/chatgptAccountHttp';
 
 export interface ExternalProviderExecutionContext {
   providerId: ExternalExecutableProviderId;
@@ -39,7 +40,9 @@ export interface CreateExternalGenerationProviderDependencies {
 function createDefaultExecutor(providerId: ExternalExecutableProviderId) {
   switch (providerId) {
     case 'chatgpt': {
-      const execute = createChatgptResponsesImageExecutor();
+      const execute = createChatgptResponsesImageExecutor({
+        readUsageStatus: readFreshChatgptUsageStatus,
+      });
       return ({ job }: ExternalProviderExecutionContext) => execute(job);
     }
     case 'google':

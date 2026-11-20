@@ -52,6 +52,7 @@ export const CreateJobRequestBoundarySchema = Schema.Struct({
       }),
     ),
   ),
+  confirmCreditSpend: Schema.optional(Schema.Boolean),
 });
 
 export type CreateJobRequestBoundary = typeof CreateJobRequestBoundarySchema.Type;

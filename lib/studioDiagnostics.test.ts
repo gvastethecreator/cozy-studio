@@ -1,3 +1,4 @@
+import { UNKNOWN_CHATGPT_USAGE } from '../packages/shared/src/chatgptUsage';
 import { describe, expect, it } from 'vitest';
 
 import type { HealthResponse, LocalCodexSessionResponse } from '../packages/shared/src';
@@ -118,6 +119,7 @@ function createLocalCodexSession(
     isChatgptLogin: true,
     isSupportedAuthMode: true,
     canRunLocalJobs: true,
+    usageStatus: UNKNOWN_CHATGPT_USAGE,
     ...overrides,
   };
 }

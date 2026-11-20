@@ -197,6 +197,8 @@ describe('Studio MCP boundary', () => {
           if (path === '/api/extensions') return Response.json({ extensions: [styleExtension] });
           if (path === '/api/extensions/cozy.fixture/files/runtime%20pack.json')
             return new Response(runtimeBody);
+          if (path === '/api/providers/chatgpt/usage')
+            return Response.json({ state: 'window', windowPercentLeft: 62, creditPolicy: 'ask' });
           if (path === '/api/jobs/batches/plan') {
             const [item] = body.items;
             return body.items.length === 1 && item.providerId === 'chatgpt'
@@ -388,6 +390,7 @@ describe('Studio MCP boundary', () => {
         willCreate: true,
       },
       filing: { tags: ['poster'], collection: { name: 'Covers', exists: false } },
+      chatgptUsage: { state: 'window', windowPercentLeft: 62, creditPolicy: 'ask' },
       providerPrompt: 'Planned prompt',
       promptChars: 14,
       styles: { compiler: 'legacy', mode: 'preserve', issues: [] },

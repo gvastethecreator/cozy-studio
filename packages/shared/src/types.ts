@@ -6,6 +6,7 @@ import type {
 import type { OnboardingProbe, OnboardingStagePayload } from './onboardingContracts';
 import type { SubscriptionAuthUpdatedEventPayload } from './subscriptionAuth';
 import type { CodexExecutionPolicy } from './codexExecutionContract';
+import type { ChatgptUsageStatus } from './chatgptUsage';
 
 export type JobStatus =
   | 'queued'
@@ -128,6 +129,12 @@ export interface CodexUsageLimitWindow {
   path: string | null;
 }
 
+export interface CodexUsageCredits {
+  hasCredits: boolean | null;
+  unlimited: boolean;
+  balance: number | null;
+}
+
 export interface CodexUsageSnapshot {
   available: number | string | null;
   unit: string | null;
@@ -136,6 +143,8 @@ export interface CodexUsageSnapshot {
   limitId?: string | null;
   limitName?: string | null;
   limits?: CodexUsageLimitWindow[];
+  /** Kept next to the windows: credits pay for jobs once a window is used up. */
+  credits?: CodexUsageCredits | null;
   raw: unknown;
 }
 
@@ -153,6 +162,8 @@ export interface LocalCodexSessionResponse {
   isChatgptLogin: boolean;
   isSupportedAuthMode: boolean;
   canRunLocalJobs: boolean;
+  /** Derived from `usage`, keeping credits when a usage window exists. */
+  usageStatus: ChatgptUsageStatus;
 }
 
 export interface CodexRuntimeDoctorIssue {
@@ -670,6 +681,8 @@ export interface CreateJobRequest {
     dataUrl: string;
     strength: number;
   }[];
+  /** The user agreed that this ChatGPT job may spend credits (credits policy `ask`). */
+  confirmCreditSpend?: boolean;
 }
 
 export interface ReferenceHandoffRequest {

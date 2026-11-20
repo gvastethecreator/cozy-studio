@@ -261,6 +261,14 @@ export function buildComposerProviderProjection({
     maxOutputCount: resolveProviderMaxOutputCount(providerId),
     generateBlock:
       codexBlock ??
+      (kind === 'chatgpt' &&
+      providerReadiness.usage?.blocksGeneration &&
+      providerReadiness.usage.line
+        ? {
+            code: `chatgpt_usage_${providerReadiness.usage.state}`,
+            message: providerReadiness.usage.line,
+          }
+        : null) ??
       resolveGrokImagineGenerateBlock({
         providerId,
         recipeId,

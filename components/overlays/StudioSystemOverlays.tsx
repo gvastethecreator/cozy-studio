@@ -58,6 +58,7 @@ export const StudioSystemOverlays: React.FC<StudioSystemOverlaysProps> = ({
   onboardingHealth,
   onboardingProbe,
   localCodexSession,
+  chatgptUsage,
   readiness,
   closeOnboarding,
   completeOnboarding,
@@ -177,6 +178,7 @@ export const StudioSystemOverlays: React.FC<StudioSystemOverlaysProps> = ({
               health={onboardingHealth}
               probe={onboardingProbe}
               localCodexSession={localCodexSession}
+              chatgptUsage={chatgptUsage}
               readiness={readiness}
               status={
                 isOnboardingReady

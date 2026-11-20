@@ -455,6 +455,66 @@ describe('persistentJobIntake', () => {
     expect(processReferences).not.toHaveBeenCalled();
   });
 
+  it('applies the ChatGPT credits policy before references are saved', async () => {
+    const processReferences = vi.fn(async () => ({ augmentedPrompt: 'x', persistedRefs: [] }));
+    let policy: 'ask' | 'use' | 'stop' = 'ask';
+    const intake = createPersistentJobIntake({
+      createJobId: () => 'job-new',
+      createJob: () => createJob({ providerId: 'chatgpt' }),
+      updateJobFinalPrompt: () => null,
+      processReferences,
+      hydrateSourceSpecAssetPaths: (sourceSpec) => sourceSpec,
+      readLibraryDir: () => 'D:/library',
+      readEditableSettings: () => ({
+        ...createDefaultEditableStudioSettings(),
+        chatgptCreditSpend: policy,
+      }),
+      readChatgptUsageStatus: async () => ({
+        state: 'credits',
+        windowPercentLeft: 0,
+        windowLabel: 'Weekly',
+        resetsAt: null,
+        creditBalance: 12,
+        creditsUnlimited: false,
+      }),
+      resolveProviderExecutionBlocker: () => null,
+      isReferenceProcessingError: (_error): _error is ReferenceProcessingErrorLike => false,
+      publishEvent: () => ({ type: 'job.created', payload: {}, createdAt: '' }),
+      logJobCreated: () => {},
+      enqueueJob: () => {},
+    });
+    const request = {
+      kind: 'image_generate' as const,
+      providerId: 'chatgpt' as const,
+      prompt: 'draw',
+      references: [{ name: 'ref.png', dataUrl: 'data:image/png;base64,AA==', strength: 1 }],
+    };
+
+    const asked = await intake.prepareJob(request);
+    expect(asked).toMatchObject({
+      ok: false,
+      error: {
+        status: 409,
+        body: {
+          code: 'chatgpt_credits_confirmation_required',
+          creditPolicy: 'ask',
+          usage: { state: 'credits', creditBalance: 12 },
+        },
+      },
+    });
+    expect(processReferences).not.toHaveBeenCalled();
+    expect((await intake.prepareJob({ ...request, confirmCreditSpend: true })).ok).toBe(true);
+
+    policy = 'stop';
+    expect(await intake.prepareJob({ ...request, confirmCreditSpend: true })).toMatchObject({
+      ok: false,
+      error: { status: 409, body: { code: 'chatgpt_credits_stopped' } },
+    });
+    policy = 'use';
+    expect((await intake.prepareJob(request)).ok).toBe(true);
+    expect(processReferences).toHaveBeenCalledTimes(2);
+  });
+
   it('rejects invalid library organization before reference persistence', async () => {
     const processReferences = vi.fn(async () => ({ augmentedPrompt: 'x', persistedRefs: [] }));
     const intake = createPersistentJobIntake({

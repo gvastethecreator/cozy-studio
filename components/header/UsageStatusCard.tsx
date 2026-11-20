@@ -64,7 +64,7 @@ export function UsageStatusCard({
           onClick={() => setIsOpen(!isOpen)}
           aria-expanded={isOpen}
           className={className}
-          aria-label={`${providerLabel} usage status`}
+          aria-label={`${providerLabel} usage status${usage.usageCopy?.short ? `: ${usage.usageCopy.short}` : ''}`}
         >
           {children}
         </button>
@@ -89,6 +89,14 @@ export function UsageStatusCard({
             </button>
           </div>
           <p className="my-3 text-sm text-[color:var(--wb-ink)]">{usage.tooltip}</p>
+          {usage.usageCopy?.line ? (
+            <p
+              role="status"
+              className={`my-3 text-sm ${usage.usageCopy.tone === 'danger' ? 'text-[color:var(--wb-danger)]' : usage.usageCopy.tone === 'warning' ? 'text-[color:var(--wb-warning)]' : 'text-[color:var(--wb-ink)]'}`}
+            >
+              {usage.usageCopy.line}
+            </p>
+          ) : null}
           {usage.limits.map((limit) => (
             <p key={limit.id} className="my-2 text-sm">
               {limit.label}: {Math.round(limit.availablePercent)}% available · {limit.resetLabel}

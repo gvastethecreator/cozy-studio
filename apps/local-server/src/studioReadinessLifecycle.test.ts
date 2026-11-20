@@ -1,3 +1,4 @@
+import { UNKNOWN_CHATGPT_USAGE } from '../../../packages/shared/src/chatgptUsage';
 import { describe, expect, it, vi } from 'vitest';
 import type { CodexRuntimeDoctorReport } from '../../../packages/shared/src';
 import { createStudioReadinessLifecycle } from './studioReadinessLifecycle';
@@ -29,6 +30,7 @@ const studioSession = {
   isChatgptLogin: true,
   isSupportedAuthMode: true,
   canRunLocalJobs: false,
+  usageStatus: UNKNOWN_CHATGPT_USAGE,
 };
 
 describe('Studio Readiness lifecycle', () => {
@@ -47,6 +49,7 @@ describe('Studio Readiness lifecycle', () => {
       isChatgptLogin: true,
       isSupportedAuthMode: true,
       canRunLocalJobs: true,
+      usageStatus: UNKNOWN_CHATGPT_USAGE,
     }));
     const lifecycle = createStudioReadinessLifecycle({
       isAppServerRunning: () => true,
@@ -97,6 +100,7 @@ describe('Studio Readiness lifecycle', () => {
       isChatgptLogin: true,
       isSupportedAuthMode: true,
       canRunLocalJobs: false,
+      usageStatus: UNKNOWN_CHATGPT_USAGE,
     };
     const lifecycle = createStudioReadinessLifecycle({
       isAppServerRunning: () => false,
@@ -128,6 +132,7 @@ describe('Studio Readiness lifecycle', () => {
       isChatgptLogin: true,
       isSupportedAuthMode: true,
       canRunLocalJobs: true,
+      usageStatus: UNKNOWN_CHATGPT_USAGE,
     }));
     const lifecycle = createStudioReadinessLifecycle({
       isAppServerRunning: () => true,
@@ -165,6 +170,7 @@ describe('Studio Readiness lifecycle', () => {
         isChatgptLogin: false,
         isSupportedAuthMode: false,
         canRunLocalJobs: false,
+        usageStatus: UNKNOWN_CHATGPT_USAGE,
       }),
     });
 
@@ -173,6 +179,7 @@ describe('Studio Readiness lifecycle', () => {
     expect(snapshot.localCodexSession).toMatchObject({
       state: 'unsupported_auth',
       canRunLocalJobs: false,
+      usageStatus: UNKNOWN_CHATGPT_USAGE,
     });
   });
 });

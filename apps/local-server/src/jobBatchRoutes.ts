@@ -167,6 +167,10 @@ export function createJobBatchRoutes({
     )) {
       const blocker = await resolveProviderExecutionBlocker(providerId ?? 'codex');
       if (blocker) return c.json(blocker, 400);
+      if (providerId === 'chatgpt') {
+        const creditBlock = await intake.checkCreditSpend(request.confirmCreditSpend === true);
+        if (creditBlock) return c.json(creditBlock.body, creditBlock.status);
+      }
     }
     const result = store.retryFailedJobBatch(id, request, requestHash(request.items));
     if (!result) return c.json({ error: 'Batch not found' }, 404);

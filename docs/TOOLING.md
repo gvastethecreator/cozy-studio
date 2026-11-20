@@ -99,7 +99,7 @@ Then run `bun run scripts/verify-installed-deps.ts` to check the new install. It
 
 CI must call these named scripts. Do not fork gate step lists inside workflow YAML.
 
-The **Validate** job runs `validate:release` and the secret scan. The scan uses the full Git history and runs even when validation fails. Separate jobs check native initialization, migrations and API health on Windows and macOS; the macOS job runs on pushes to `main`.
+The **Validate** job runs `validate:release` and the secret scan. The scan uses the full Git history and runs even when validation fails. Separate jobs check native initialization, migrations (`apps/local-server/src/dbMigration.bun.test.ts`) and API health on Windows and macOS; the macOS job runs on pushes to `main`. The Windows job also runs the Windows-only launcher and path tests, which the Linux Validate job reports as skipped.
 
 ## Releases
 

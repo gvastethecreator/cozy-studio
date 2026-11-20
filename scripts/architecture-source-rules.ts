@@ -42,7 +42,7 @@ const rules: SourceRule[] = [
   {
     files:
       /^(packages\/shared\/src|services|hooks|contexts|components|lib|apps\/local-server\/src)\/.+\.(tsx?|mjs|js)$/,
-    skip: /\.test\.tsx?$|^apps\/local-server\/src\/(db\/migrations|dbMigrationFixture)\.ts$/,
+    skip: /\.test\.tsx?$|^apps\/local-server\/src\/db\/migrations\.ts$/,
     forbid:
       /project\.created|\bprojectId\b|\bproject_id\b|\/api\/projects|listProjects|ensureDefaultProject|(?:interface|type)\s+Project\b/i,
     message: 'Product code uses Workspace; the Project contract is retired.',

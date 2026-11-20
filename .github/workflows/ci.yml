@@ -53,8 +53,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Migration fixture
-        run: bun run apps/local-server/src/dbMigrationFixture.ts
+      - name: Migration test
+        run: bun test apps/local-server/src/dbMigration.bun.test.ts
+
+      # These cases run only on Windows; the Linux Validate job reports them as skipped.
+      - name: Windows launcher and path tests
+        run: bun run test -- scripts/portableLaunch.test.ts apps/local-server/src/codexRuntimeDoctor.test.ts apps/local-server/src/platformPaths.test.ts
 
       - name: Studio init (isolated storage)
         env:
@@ -82,8 +86,8 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Migration fixture
-        run: bun run apps/local-server/src/dbMigrationFixture.ts
+      - name: Migration test
+        run: bun test apps/local-server/src/dbMigration.bun.test.ts
 
       - name: Studio init (isolated home)
         run: |

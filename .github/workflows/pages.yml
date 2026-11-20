@@ -38,10 +38,11 @@ jobs:
         with:
           node-version: 24
 
-      - name: Build landing
+      - name: Test and build landing
         working-directory: landing
         run: |
           bun install --frozen-lockfile
+          bun run test
           bun run build
 
       - name: Configure Pages

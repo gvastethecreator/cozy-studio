@@ -203,68 +203,70 @@ describe('codexRuntimeDoctor', () => {
     );
   });
 
-  it('detects the unrelated legacy npm codex package without executing its shim', async () => {
-    if (process.platform !== 'win32') return;
+  it.runIf(process.platform === 'win32')(
+    'detects the unrelated legacy npm codex package without executing its shim',
+    async () => {
+      const root = path.join(os.tmpdir(), `codex-runtime-${Date.now()}`);
+      const npmRoot = path.join(root, 'npm');
+      const executable = path.join(npmRoot, 'codex.cmd');
+      mkdirSync(path.join(npmRoot, 'node_modules', 'codex'), { recursive: true });
+      writeFileSync(executable, '@echo off\n');
+      writeFileSync(
+        path.join(npmRoot, 'node_modules', 'codex', 'package.json'),
+        JSON.stringify({ name: 'codex', version: '0.2.3' }),
+      );
+      const run = vi.fn();
 
-    const root = path.join(os.tmpdir(), `codex-runtime-${Date.now()}`);
-    const npmRoot = path.join(root, 'npm');
-    const executable = path.join(npmRoot, 'codex.cmd');
-    mkdirSync(path.join(npmRoot, 'node_modules', 'codex'), { recursive: true });
-    writeFileSync(executable, '@echo off\n');
-    writeFileSync(
-      path.join(npmRoot, 'node_modules', 'codex', 'package.json'),
-      JSON.stringify({ name: 'codex', version: '0.2.3' }),
-    );
-    const run = vi.fn();
+      const report = await inspectCodexRuntime({
+        now: () => new Date('2026-05-31T00:00:00.000Z'),
+        exists: existsSync,
+        run,
+        resolveExecutable: () => executable,
+        resolveInvocation: (args) => [executable, ...args],
+        listCandidates: () => [{ path: executable, source: 'npm command shim' }],
+      });
 
-    const report = await inspectCodexRuntime({
-      now: () => new Date('2026-05-31T00:00:00.000Z'),
-      exists: existsSync,
-      run,
-      resolveExecutable: () => executable,
-      resolveInvocation: (args) => [executable, ...args],
-      listCandidates: () => [{ path: executable, source: 'npm command shim' }],
-    });
+      expect(report.status).toBe('blocked');
+      expect(report.issues[0]).toEqual(
+        expect.objectContaining({
+          code: 'codex_cli_legacy',
+          message: expect.stringContaining('codex 0.2.3'),
+        }),
+      );
+      expect(run).not.toHaveBeenCalled();
+    },
+  );
 
-    expect(report.status).toBe('blocked');
-    expect(report.issues[0]).toEqual(
-      expect.objectContaining({
-        code: 'codex_cli_legacy',
-        message: expect.stringContaining('codex 0.2.3'),
-      }),
-    );
-    expect(run).not.toHaveBeenCalled();
-  });
+  it.runIf(process.platform === 'win32')(
+    'uses a Windows shell fallback when direct executable probing fails',
+    async () => {
+      const executable = 'C:/Users/dev/AppData/Local/Programs/OpenAI/Codex/bin/codex.exe';
+      const run = vi.fn(async (command: string, args: string[]) => {
+        if (command.endsWith('codex.exe')) {
+          return { status: null, stdout: '', stderr: 'ETIMEDOUT' };
+        }
+        if (command === 'cmd.exe' && args.join(' ').includes('--version')) {
+          return { status: 0, stdout: 'codex-cli 0.142.4', stderr: '' };
+        }
+        if (command === 'cmd.exe' && args.join(' ').includes('app-server')) {
+          return { status: 0, stdout: 'codex app-server --listen <ws-url>', stderr: '' };
+        }
+        return { status: 1, stdout: '', stderr: 'unexpected command' };
+      });
 
-  it('uses a Windows shell fallback when direct executable probing fails', async () => {
-    if (process.platform !== 'win32') return;
+      const report = await inspectCodexRuntime({
+        ...createDeps({ executable }),
+        run,
+      });
 
-    const executable = 'C:/Users/dev/AppData/Local/Programs/OpenAI/Codex/bin/codex.exe';
-    const run = vi.fn(async (command: string, args: string[]) => {
-      if (command.endsWith('codex.exe')) {
-        return { status: null, stdout: '', stderr: 'ETIMEDOUT' };
-      }
-      if (command === 'cmd.exe' && args.join(' ').includes('--version')) {
-        return { status: 0, stdout: 'codex-cli 0.142.4', stderr: '' };
-      }
-      if (command === 'cmd.exe' && args.join(' ').includes('app-server')) {
-        return { status: 0, stdout: 'codex app-server --listen <ws-url>', stderr: '' };
-      }
-      return { status: 1, stdout: '', stderr: 'unexpected command' };
-    });
-
-    const report = await inspectCodexRuntime({
-      ...createDeps({ executable }),
-      run,
-    });
-
-    expect(report.status).toBe('ready');
-    expect(run).toHaveBeenCalledWith(
-      'cmd.exe',
-      expect.arrayContaining(['/d', '/s', '/c']),
-      expect.objectContaining({ windowsVerbatimArguments: true }),
-    );
-  });
+      expect(report.status).toBe('ready');
+      expect(run).toHaveBeenCalledWith(
+        'cmd.exe',
+        expect.arrayContaining(['/d', '/s', '/c']),
+        expect.objectContaining({ windowsVerbatimArguments: true }),
+      );
+    },
+  );
 
   it.each([
     'unknown command app-server',

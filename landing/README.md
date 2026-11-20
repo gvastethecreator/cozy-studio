@@ -20,7 +20,7 @@ bun run build:local   # dist-local/, for http://localhost:<port>/
 bun run build         # dist/, for GitHub Pages under /cozy-studio/
 ```
 
-`.github/workflows/pages.yml` runs `bun run build` and deploys `dist/` when a push to `main` changes this folder.
+`.github/workflows/pages.yml` runs `bun run test` and `bun run build`, then deploys `dist/` when a push to `main` changes this folder.
 
 In the repository's Pages settings, use GitHub Actions as the source and leave Custom domain empty. The production build uses `/cozy-studio/` for assets and links; `build:local` uses `/` for local preview.
 

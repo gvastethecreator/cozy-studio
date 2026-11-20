@@ -1,4 +1,5 @@
 import { Database } from 'bun:sqlite';
+import { describe, expect, it } from 'bun:test';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -560,91 +561,94 @@ async function inspectJobBatches() {
   }
 }
 
-const database = createLegacyDatabase();
-try {
-  const remoteDatabase = createLegacyDatabase();
-  remoteDatabase.run('ALTER TABLE jobs ADD COLUMN provider_id TEXT');
-  for (const status of ['running', 'queued']) {
-    remoteDatabase
-      .query(`INSERT INTO jobs (id, project_id, kind, status, original_prompt, final_prompt_used, created_at, updated_at, provider_id)
+describe('database migrations', () => {
+  it('migrates real legacy SQLite fixtures idempotently and transactionally', async () => {
+    const database = createLegacyDatabase();
+    try {
+      const remoteDatabase = createLegacyDatabase();
+      remoteDatabase.run('ALTER TABLE jobs ADD COLUMN provider_id TEXT');
+      for (const status of ['running', 'queued']) {
+        remoteDatabase
+          .query(`INSERT INTO jobs (id, project_id, kind, status, original_prompt, final_prompt_used, created_at, updated_at, provider_id)
       SELECT ?, project_id, 'image_generate', ?, original_prompt, final_prompt_used, created_at, updated_at, 'comfy'
       FROM jobs WHERE id = 'job-sentinel'`)
-      .run(`comfy-legacy-${status}`, status);
-  }
-  migrateDatabase(remoteDatabase);
-  const legacyComfyIsolated =
-    getJobStatus('comfy-legacy-running', remoteDatabase)?.status === 'needs_review' &&
-    !listRecoverableJobs(remoteDatabase).some((job) => job.id === 'comfy-legacy-running') &&
-    listRecoverableJobs(remoteDatabase).some((job) => job.id === 'comfy-legacy-queued');
-  const remoteCheckpoint = {
-    providerId: 'comfy' as const,
-    runtimeIdentity: 'runtime-a-hash',
-    promptId: '6f2d33aa-8e3c-4a56-8677-f496062a87f9',
-    phase: 'accepted' as const,
-    startedAt: 1000,
-  };
-  updateJobRemoteExecution('comfy-legacy-queued', remoteCheckpoint, remoteDatabase);
-  migrateDatabase(remoteDatabase);
-  const remoteIdentityPreserved =
-    JSON.stringify(getJob('comfy-legacy-queued', remoteDatabase)?.remoteExecution) ===
-    JSON.stringify(remoteCheckpoint);
-  remoteDatabase.close();
-  database
-    .query('UPDATE catalog_images SET tags = ? WHERE id = ?')
-    .run('{broken', 'catalog-sentinel');
-  migrateDatabase(database);
-  if (
-    database.query<{ count: number }, []>('SELECT COUNT(*) AS count FROM catalog_tags').get()
-      ?.count !== 0
-  ) {
-    throw new Error('Invalid legacy tags must not become organization entries.');
-  }
-  migrateDatabase(database);
-  const migrationRows = database
-    .query('SELECT version, name FROM schema_migrations ORDER BY version')
-    .all() as Array<{ version: number; name: string }>;
-  const sentinel = database.query('SELECT * FROM jobs WHERE id = ?').get('job-sentinel') as Record<
-    string,
-    unknown
-  > | null;
-  const indexes = database.query("PRAGMA index_list('jobs')").all() as Array<{ name: string }>;
-  const foreignKeyViolations = database.query('PRAGMA foreign_key_check').all();
-  const foreignKeyEnforcement = database.query('PRAGMA foreign_keys').get() as {
-    foreign_keys: number;
-  };
-  const assetForeignKeys = database.query("PRAGMA foreign_key_list('assets')").all() as Array<{
-    table: string;
-    from: string;
-  }>;
-  const referencingRowsPreserved =
-    Boolean(database.query('SELECT id FROM assets WHERE id = ?').get('asset-sentinel')) &&
-    Boolean(database.query('SELECT id FROM catalog_images WHERE id = ?').get('catalog-sentinel')) &&
-    Boolean(database.query('SELECT id FROM codex_turns WHERE id = ?').get('turn-sentinel')) &&
-    Boolean(database.query('SELECT id FROM job_events WHERE job_id = ?').get('job-sentinel')) &&
-    assetForeignKeys.some(
-      (foreignKey) => foreignKey.table === 'jobs' && foreignKey.from === 'job_id',
-    );
-  const requiredColumns = [
-    'provider_id',
-    'source_spec_json',
-    'execution_json',
-    'library_id',
-    'library_root',
-    'library_context_json',
-    'finalization_state',
-    'finalization_source_path',
-    'finalization_file_path',
-    'finalization_asset_id',
-    'finalization_catalog_id',
-    'workspace_id',
-    'recipe_id',
-    'batch_id',
-    'aspect_ratio',
-  ];
-  const columns = readColumnNames(database);
-  database
-    .query(
-      `UPDATE jobs
+          .run(`comfy-legacy-${status}`, status);
+      }
+      migrateDatabase(remoteDatabase);
+      const legacyComfyIsolated =
+        getJobStatus('comfy-legacy-running', remoteDatabase)?.status === 'needs_review' &&
+        !listRecoverableJobs(remoteDatabase).some((job) => job.id === 'comfy-legacy-running') &&
+        listRecoverableJobs(remoteDatabase).some((job) => job.id === 'comfy-legacy-queued');
+      const remoteCheckpoint = {
+        providerId: 'comfy' as const,
+        runtimeIdentity: 'runtime-a-hash',
+        promptId: '6f2d33aa-8e3c-4a56-8677-f496062a87f9',
+        phase: 'accepted' as const,
+        startedAt: 1000,
+      };
+      updateJobRemoteExecution('comfy-legacy-queued', remoteCheckpoint, remoteDatabase);
+      migrateDatabase(remoteDatabase);
+      const remoteIdentityPreserved =
+        JSON.stringify(getJob('comfy-legacy-queued', remoteDatabase)?.remoteExecution) ===
+        JSON.stringify(remoteCheckpoint);
+      remoteDatabase.close();
+      database
+        .query('UPDATE catalog_images SET tags = ? WHERE id = ?')
+        .run('{broken', 'catalog-sentinel');
+      migrateDatabase(database);
+      if (
+        database.query<{ count: number }, []>('SELECT COUNT(*) AS count FROM catalog_tags').get()
+          ?.count !== 0
+      ) {
+        throw new Error('Invalid legacy tags must not become organization entries.');
+      }
+      migrateDatabase(database);
+      const migrationRows = database
+        .query('SELECT version, name FROM schema_migrations ORDER BY version')
+        .all() as Array<{ version: number; name: string }>;
+      const sentinel = database
+        .query('SELECT * FROM jobs WHERE id = ?')
+        .get('job-sentinel') as Record<string, unknown> | null;
+      const indexes = database.query("PRAGMA index_list('jobs')").all() as Array<{ name: string }>;
+      const foreignKeyViolations = database.query('PRAGMA foreign_key_check').all();
+      const foreignKeyEnforcement = database.query('PRAGMA foreign_keys').get() as {
+        foreign_keys: number;
+      };
+      const assetForeignKeys = database.query("PRAGMA foreign_key_list('assets')").all() as Array<{
+        table: string;
+        from: string;
+      }>;
+      const referencingRowsPreserved =
+        Boolean(database.query('SELECT id FROM assets WHERE id = ?').get('asset-sentinel')) &&
+        Boolean(
+          database.query('SELECT id FROM catalog_images WHERE id = ?').get('catalog-sentinel'),
+        ) &&
+        Boolean(database.query('SELECT id FROM codex_turns WHERE id = ?').get('turn-sentinel')) &&
+        Boolean(database.query('SELECT id FROM job_events WHERE job_id = ?').get('job-sentinel')) &&
+        assetForeignKeys.some(
+          (foreignKey) => foreignKey.table === 'jobs' && foreignKey.from === 'job_id',
+        );
+      const requiredColumns = [
+        'provider_id',
+        'source_spec_json',
+        'execution_json',
+        'library_id',
+        'library_root',
+        'library_context_json',
+        'finalization_state',
+        'finalization_source_path',
+        'finalization_file_path',
+        'finalization_asset_id',
+        'finalization_catalog_id',
+        'workspace_id',
+        'recipe_id',
+        'batch_id',
+        'aspect_ratio',
+      ];
+      const columns = readColumnNames(database);
+      database
+        .query(
+          `UPDATE jobs
        SET provider_id = ?,
            source_spec_json = ?,
            workspace_id = ?,
@@ -652,92 +656,92 @@ try {
            batch_id = ?,
            aspect_ratio = ?
        WHERE id = ?`,
-    )
-    .run(
-      'codex',
-      JSON.stringify({
-        recipeId: 'styles',
-        output: { aspectRatio: '2:3' },
-        metadata: { workspaceId: 'workspace-summary', batchId: 'batch-1' },
-      }),
-      'workspace-summary',
-      'styles',
-      'batch-1',
-      '2:3',
-      'job-sentinel',
-    );
-  const summaryPage = listJobSummaries({}, database);
-  const summary = [...summaryPage.open, ...summaryPage.history].find(
-    (job) => job.id === 'job-sentinel',
-  );
-  const createdJob = createJob(
-    {
-      id: 'job-workspace-only',
-      workspaceId: 'workspace-created',
-      kind: 'image_generate',
-      providerId: 'codex',
-      sourceSpec: createGenerationTaskSpec({
-        id: 'spec-workspace-only',
-        task: 'image_generate',
-        providerId: 'codex',
-        prompt: 'workspace-only prompt',
-      }),
-      prompt: 'workspace-only prompt',
-      execution: {
-        model: 'gpt-5.5',
-        reasoningEffort: 'provider_default',
-        providerOptions: {
-          codex: {
-            transport: 'subscription_http',
-            image: { model: 'gpt-image-2', size: '1536x864', quality: 'medium' },
+        )
+        .run(
+          'codex',
+          JSON.stringify({
+            recipeId: 'styles',
+            output: { aspectRatio: '2:3' },
+            metadata: { workspaceId: 'workspace-summary', batchId: 'batch-1' },
+          }),
+          'workspace-summary',
+          'styles',
+          'batch-1',
+          '2:3',
+          'job-sentinel',
+        );
+      const summaryPage = listJobSummaries({}, database);
+      const summary = [...summaryPage.open, ...summaryPage.history].find(
+        (job) => job.id === 'job-sentinel',
+      );
+      const createdJob = createJob(
+        {
+          id: 'job-workspace-only',
+          workspaceId: 'workspace-created',
+          kind: 'image_generate',
+          providerId: 'codex',
+          sourceSpec: createGenerationTaskSpec({
+            id: 'spec-workspace-only',
+            task: 'image_generate',
+            providerId: 'codex',
+            prompt: 'workspace-only prompt',
+          }),
+          prompt: 'workspace-only prompt',
+          execution: {
+            model: 'gpt-5.5',
+            reasoningEffort: 'provider_default',
+            providerOptions: {
+              codex: {
+                transport: 'subscription_http',
+                image: { model: 'gpt-image-2', size: '1536x864', quality: 'medium' },
+              },
+            },
           },
         },
-      },
-    },
-    database,
-  );
-  updateJobRemoteExecution(
-    createdJob.id,
-    { providerId: 'codex', phase: 'submitting', startedAt: 2000 },
-    database,
-  );
-  const createdJobRow = database
-    .query('SELECT workspace_id, source_spec_json FROM jobs WHERE id = ?')
-    .get(createdJob.id) as { workspace_id: string; source_spec_json: string | null } | null;
-  const legacyAsset = addAsset(
-    {
-      jobId: 'job-sentinel',
-      filePath: 'D:/library/outputs/result.png',
-      thumbnailPath: null,
-      publicUrl: '/library/library-1/outputs/result.png',
-      prompt: 'sentinel prompt',
-      width: null,
-      height: null,
-      mimeType: 'image/png',
-    },
-    database,
-  );
-  const recoverableJobs = listRecoverableJobs(database);
-  const checkpoint = updateJobFinalization(
-    'job-sentinel',
-    {
-      state: 'asset_recorded',
-      sourcePath: 'D:/provider/result.png',
-      filePath: legacyAsset.filePath,
-      assetId: legacyAsset.id,
-      catalogId: null,
-    },
-    database,
-  );
-  const rollbackDatabase = createLegacyDatabase();
-  rollbackDatabase.run(`
+        database,
+      );
+      updateJobRemoteExecution(
+        createdJob.id,
+        { providerId: 'codex', phase: 'submitting', startedAt: 2000 },
+        database,
+      );
+      const createdJobRow = database
+        .query('SELECT workspace_id, source_spec_json FROM jobs WHERE id = ?')
+        .get(createdJob.id) as { workspace_id: string; source_spec_json: string | null } | null;
+      const legacyAsset = addAsset(
+        {
+          jobId: 'job-sentinel',
+          filePath: 'D:/library/outputs/result.png',
+          thumbnailPath: null,
+          publicUrl: '/library/library-1/outputs/result.png',
+          prompt: 'sentinel prompt',
+          width: null,
+          height: null,
+          mimeType: 'image/png',
+        },
+        database,
+      );
+      const recoverableJobs = listRecoverableJobs(database);
+      const checkpoint = updateJobFinalization(
+        'job-sentinel',
+        {
+          state: 'asset_recorded',
+          sourcePath: 'D:/provider/result.png',
+          filePath: legacyAsset.filePath,
+          assetId: legacyAsset.id,
+          catalogId: null,
+        },
+        database,
+      );
+      const rollbackDatabase = createLegacyDatabase();
+      rollbackDatabase.run(`
     CREATE TABLE schema_migrations (
       version INTEGER PRIMARY KEY,
       name TEXT NOT NULL,
       applied_at TEXT NOT NULL
     )
   `);
-  rollbackDatabase.run(`
+      rollbackDatabase.run(`
     CREATE TRIGGER reject_second_migration
     BEFORE INSERT ON schema_migrations
     WHEN NEW.version = 2
@@ -745,85 +749,103 @@ try {
       SELECT RAISE(ABORT, 'forced migration failure');
     END
   `);
-  let migrationFailed = false;
-  try {
-    migrateDatabase(rollbackDatabase);
-  } catch {
-    migrationFailed = true;
-  }
-  const rolledBackMigrationCount = (
-    rollbackDatabase.query('SELECT COUNT(*) AS count FROM schema_migrations').get() as {
-      count: number;
-    }
-  ).count;
-  const rollbackColumns = readColumnNames(rollbackDatabase);
-  const rollbackSentinel = rollbackDatabase
-    .query('SELECT original_prompt FROM jobs WHERE id = ?')
-    .get('job-sentinel') as { original_prompt: string } | null;
-  const rollbackForeignKeyEnforcement = rollbackDatabase.query('PRAGMA foreign_keys').get() as {
-    foreign_keys: number;
-  };
-  rollbackDatabase.close();
-  const columnSet = new Set(columns);
+      let migrationFailed = false;
+      try {
+        migrateDatabase(rollbackDatabase);
+      } catch {
+        migrationFailed = true;
+      }
+      const rolledBackMigrationCount = (
+        rollbackDatabase.query('SELECT COUNT(*) AS count FROM schema_migrations').get() as {
+          count: number;
+        }
+      ).count;
+      const rollbackColumns = readColumnNames(rollbackDatabase);
+      const rollbackSentinel = rollbackDatabase
+        .query('SELECT original_prompt FROM jobs WHERE id = ?')
+        .get('job-sentinel') as { original_prompt: string } | null;
+      const rollbackForeignKeyEnforcement = rollbackDatabase.query('PRAGMA foreign_keys').get() as {
+        foreign_keys: number;
+      };
+      rollbackDatabase.close();
+      const columnSet = new Set(columns);
 
-  console.log(
-    JSON.stringify({
-      idempotent:
-        migrationRows.length === LATEST_DATABASE_SCHEMA_VERSION &&
-        migrationRows.at(-1)?.version === LATEST_DATABASE_SCHEMA_VERSION &&
-        requiredColumns.every((column) => columnSet.has(column)),
-      sentinelPreserved: sentinel?.original_prompt === 'sentinel prompt',
-      projectContractRemoved:
-        !columns.includes('project_id') &&
-        !database
-          .query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'projects'")
-          .get() &&
-        createdJob.workspaceId === 'workspace-created' &&
-        createdJobRow?.workspace_id === 'workspace-created' &&
-        JSON.parse(createdJobRow?.source_spec_json ?? '{}').metadata?.workspaceId ===
-          'workspace-created',
-      indexesPresent:
-        indexes.some((index) => index.name === 'idx_jobs_library_created_desc') &&
-        indexes.some((index) => index.name === 'idx_jobs_finalization_state'),
-      foreignKeysValid:
-        foreignKeyEnforcement.foreign_keys === 1 && foreignKeyViolations.length === 0,
-      referencingRowsPreserved,
-      transactionRolledBack:
-        migrationFailed &&
-        rolledBackMigrationCount === 0 &&
-        !rollbackColumns.includes('provider_id') &&
-        rollbackSentinel?.original_prompt === 'sentinel prompt' &&
-        rollbackForeignKeyEnforcement.foreign_keys === 1,
-      recoverableCheckpoint:
-        checkpoint?.finalization?.state === 'asset_recorded' &&
-        checkpoint.finalization.assetId === legacyAsset.id &&
-        recoverableJobs.some(
-          (job) =>
-            job.id === 'job-sentinel' &&
-            job.finalization?.state === 'catalog_recorded' &&
-            job.finalization.assetId === 'asset-sentinel' &&
-            job.finalization.catalogId === 'catalog-sentinel',
-        ),
-      summaryProjection:
-        summary?.workspaceId === 'workspace-summary' &&
-        summary.recipeId === 'styles' &&
-        summary.batchId === 'batch-1' &&
-        summary.aspectRatio === '2:3' &&
-        summary.promptPreview === 'sentinel prompt' &&
-        !summary.workspaceId?.includes('{'),
-      schemaVersion: LATEST_DATABASE_SCHEMA_VERSION,
-      legacyComfyIsolated,
-      remoteIdentityPreserved,
-      completeJobHistory: inspectJobHistory(),
-      atomicBatchRecovery: await inspectJobBatches(),
-      durableOutputGenerations: inspectOutputGenerations(),
-      preMigrationBackup: inspectPreMigrationBackup(),
-      executionPolicyPreserved:
-        getJob('job-workspace-only', database)?.execution?.providerOptions?.codex?.image?.size ===
-          '1536x864' &&
-        getJob('job-workspace-only', database)?.remoteExecution?.providerId === 'codex',
-    }),
-  );
-} finally {
-  database.close();
-}
+      expect({
+        idempotent:
+          migrationRows.length === LATEST_DATABASE_SCHEMA_VERSION &&
+          migrationRows.at(-1)?.version === LATEST_DATABASE_SCHEMA_VERSION &&
+          requiredColumns.every((column) => columnSet.has(column)),
+        sentinelPreserved: sentinel?.original_prompt === 'sentinel prompt',
+        projectContractRemoved:
+          !columns.includes('project_id') &&
+          !database
+            .query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'projects'")
+            .get() &&
+          createdJob.workspaceId === 'workspace-created' &&
+          createdJobRow?.workspace_id === 'workspace-created' &&
+          JSON.parse(createdJobRow?.source_spec_json ?? '{}').metadata?.workspaceId ===
+            'workspace-created',
+        indexesPresent:
+          indexes.some((index) => index.name === 'idx_jobs_library_created_desc') &&
+          indexes.some((index) => index.name === 'idx_jobs_finalization_state'),
+        foreignKeysValid:
+          foreignKeyEnforcement.foreign_keys === 1 && foreignKeyViolations.length === 0,
+        referencingRowsPreserved,
+        transactionRolledBack:
+          migrationFailed &&
+          rolledBackMigrationCount === 0 &&
+          !rollbackColumns.includes('provider_id') &&
+          rollbackSentinel?.original_prompt === 'sentinel prompt' &&
+          rollbackForeignKeyEnforcement.foreign_keys === 1,
+        recoverableCheckpoint:
+          checkpoint?.finalization?.state === 'asset_recorded' &&
+          checkpoint.finalization.assetId === legacyAsset.id &&
+          recoverableJobs.some(
+            (job) =>
+              job.id === 'job-sentinel' &&
+              job.finalization?.state === 'catalog_recorded' &&
+              job.finalization.assetId === 'asset-sentinel' &&
+              job.finalization.catalogId === 'catalog-sentinel',
+          ),
+        summaryProjection:
+          summary?.workspaceId === 'workspace-summary' &&
+          summary.recipeId === 'styles' &&
+          summary.batchId === 'batch-1' &&
+          summary.aspectRatio === '2:3' &&
+          summary.promptPreview === 'sentinel prompt' &&
+          !summary.workspaceId?.includes('{'),
+        schemaVersion: LATEST_DATABASE_SCHEMA_VERSION,
+        legacyComfyIsolated,
+        remoteIdentityPreserved,
+        completeJobHistory: inspectJobHistory(),
+        atomicBatchRecovery: await inspectJobBatches(),
+        durableOutputGenerations: inspectOutputGenerations(),
+        preMigrationBackup: inspectPreMigrationBackup(),
+        executionPolicyPreserved:
+          getJob('job-workspace-only', database)?.execution?.providerOptions?.codex?.image?.size ===
+            '1536x864' &&
+          getJob('job-workspace-only', database)?.remoteExecution?.providerId === 'codex',
+      }).toEqual({
+        idempotent: true,
+        sentinelPreserved: true,
+        projectContractRemoved: true,
+        indexesPresent: true,
+        foreignKeysValid: true,
+        referencingRowsPreserved: true,
+        transactionRolledBack: true,
+        recoverableCheckpoint: true,
+        summaryProjection: true,
+        schemaVersion: 20,
+        legacyComfyIsolated: true,
+        remoteIdentityPreserved: true,
+        completeJobHistory: true,
+        executionPolicyPreserved: true,
+        atomicBatchRecovery: true,
+        durableOutputGenerations: true,
+        preMigrationBackup: true,
+      });
+    } finally {
+      database.close();
+    }
+  });
+});

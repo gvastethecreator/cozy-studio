@@ -53,6 +53,7 @@ const UNIT_TEST_FILES = [
 
 // Native Bun cases (bun:sqlite, Bun.Image) that Vitest excludes.
 const BUN_TEST_FILES = [
+  'apps/local-server/src/dbMigration.bun.test.ts',
   'apps/local-server/src/imagePipeline.bun.test.ts',
   'apps/local-server/src/mcpRoutes.bun.test.ts',
 ];

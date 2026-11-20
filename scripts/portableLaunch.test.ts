@@ -35,6 +35,17 @@ const linuxLauncher = path.join(repoRoot, 'scripts', 'Cozy Studio.sh');
 const unixLauncher = path.join(repoRoot, 'scripts', 'portable-launch.sh');
 const portableNote = path.join(repoRoot, 'PORTABLE.txt');
 
+// The real Bun binary, resolved once per file: each Bun spawn is slow on a loaded Windows machine.
+let bunExecutablePath: string | undefined;
+function resolveBunExecutable() {
+  if (bunExecutablePath === undefined) {
+    const discovery = spawnSync('bun', ['--print', 'process.execPath'], { encoding: 'utf8' });
+    expect(discovery.status).toBe(0);
+    bunExecutablePath = discovery.stdout.trim();
+  }
+  return bunExecutablePath;
+}
+
 describe('portable launchers', () => {
   it('rejects an unsupported build target before downloading or creating an artifact', async () => {
     await expect(buildPortable('../foreign-target')).rejects.toThrow('Unknown portable target');
@@ -319,10 +330,7 @@ describe('portable root update loop', { timeout: LAUNCHER_TEST_TIMEOUT }, () => 
         process.platform === 'win32'
           ? path.join(process.env.ProgramFiles ?? 'C:/Program Files', 'Git/bin/bash.exe')
           : '/bin/bash';
-      const runtime =
-        platform === 'windows'
-          ? spawnSync('bun', ['--print', 'process.execPath'], { encoding: 'utf8' }).stdout.trim()
-          : '';
+      const runtime = platform === 'windows' ? resolveBunExecutable() : '';
       try {
         const portableRoot = path.join(root, `${platform}-${fail ? 'rollback' : 'success'}`);
         mkdirSync(portableRoot);
@@ -520,69 +528,71 @@ describe('Unix portable launchers', { timeout: LAUNCHER_TEST_TIMEOUT }, () => {
 });
 
 describe('Windows portable dry-run', { timeout: LAUNCHER_TEST_TIMEOUT }, () => {
-  it('prefers bundled Bun and passes its PATH to child commands, including without global Bun', () => {
-    if (process.platform !== 'win32') return;
-    const root = mkdtempSync(path.join(tmpdir(), 'cozy portable runtime '));
-    try {
-      const runtimeDir = path.join(root, 'runtime');
-      const scriptDir = path.join(root, 'scripts');
-      mkdirSync(runtimeDir);
-      mkdirSync(scriptDir);
-      const discovery = spawnSync('bun', ['--print', 'process.execPath'], { encoding: 'utf8' });
-      expect(discovery.status).toBe(0);
-      const bundledBun = path.join(runtimeDir, 'bun.exe');
-      copyFileSync(discovery.stdout.trim(), bundledBun);
-      const launcher = path.join(scriptDir, 'Cozy Studio.bat');
-      copyFileSync(windowsLauncher, launcher);
-      writeFileSync(
-        path.join(scriptDir, 'portable-start.ts'),
-        [
-          'const child = Bun.spawnSync(["bun", "--print", "process.execPath"]);',
-          'console.log(JSON.stringify({',
-          'runtime: process.execPath, cwd: process.cwd(),',
-          'childRuntime: child.stdout.toString().trim(), portable: process.env.STUDIO_PORTABLE',
-          '}));',
-        ].join('\n'),
-      );
-      for (const initialPath of [process.env.PATH, 'C:\\Windows\\System32']) {
-        const result = spawnSync('cmd.exe', ['/c', `"${launcher}"`], {
-          cwd: tmpdir(),
-          encoding: 'utf8',
-          timeout: 20_000,
-          windowsVerbatimArguments: true,
-          env: { ...process.env, PATH: initialPath, STUDIO_PORTABLE_NONINTERACTIVE: '1' },
-        });
-        expect(result.status, result.stderr).toBe(0);
-        const output = JSON.parse(result.stdout.trim().split('\n').at(-1)!);
-        expect(output.runtime.toLowerCase()).toBe(bundledBun.toLowerCase());
-        expect(output.cwd).toBe(root);
-        expect(output.childRuntime.toLowerCase()).toBe(bundledBun.toLowerCase());
-        expect(output.portable).toBe('1');
+  it.runIf(process.platform === 'win32')(
+    'prefers bundled Bun and passes its PATH to child commands, including without global Bun',
+    () => {
+      const root = mkdtempSync(path.join(tmpdir(), 'cozy portable runtime '));
+      try {
+        const runtimeDir = path.join(root, 'runtime');
+        const scriptDir = path.join(root, 'scripts');
+        mkdirSync(runtimeDir);
+        mkdirSync(scriptDir);
+        const bundledBun = path.join(runtimeDir, 'bun.exe');
+        copyFileSync(resolveBunExecutable(), bundledBun);
+        const launcher = path.join(scriptDir, 'Cozy Studio.bat');
+        copyFileSync(windowsLauncher, launcher);
+        writeFileSync(
+          path.join(scriptDir, 'portable-start.ts'),
+          [
+            'const child = Bun.spawnSync(["bun", "--print", "process.execPath"]);',
+            'console.log(JSON.stringify({',
+            'runtime: process.execPath, cwd: process.cwd(),',
+            'childRuntime: child.stdout.toString().trim(), portable: process.env.STUDIO_PORTABLE',
+            '}));',
+          ].join('\n'),
+        );
+        for (const initialPath of [process.env.PATH, 'C:\\Windows\\System32']) {
+          const result = spawnSync('cmd.exe', ['/c', `"${launcher}"`], {
+            cwd: tmpdir(),
+            encoding: 'utf8',
+            timeout: 20_000,
+            windowsVerbatimArguments: true,
+            env: { ...process.env, PATH: initialPath, STUDIO_PORTABLE_NONINTERACTIVE: '1' },
+          });
+          expect(result.status, result.stderr).toBe(0);
+          const output = JSON.parse(result.stdout.trim().split('\n').at(-1)!);
+          expect(output.runtime.toLowerCase()).toBe(bundledBun.toLowerCase());
+          expect(output.cwd).toBe(root);
+          expect(output.childRuntime.toLowerCase()).toBe(bundledBun.toLowerCase());
+          expect(output.portable).toBe('1');
+        }
+      } finally {
+        rmSync(root, { recursive: true, force: true });
       }
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
-  });
+    },
+  );
 
-  it('prints a readable Bun message and pauses when bun is missing from PATH', () => {
-    if (process.platform !== 'win32') return;
-    const result = spawnSync('cmd.exe', ['/c', `"${windowsLauncher}"`], {
-      cwd: repoRoot,
-      encoding: 'utf8',
-      input: '\n',
-      timeout: 20_000,
-      windowsVerbatimArguments: true,
-      env: {
-        ...process.env,
-        PATH: 'C:\\Windows\\System32',
-        PATHEXT: '.COM;.EXE;.BAT;.CMD',
-        STUDIO_PORTABLE_NONINTERACTIVE: '1',
-      },
-    });
-    const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
-    expect(result.status).not.toBe(0);
-    expect(output).toMatch(/needs Bun/i);
-    expect(output).toContain(ONBOARDING_BUN_INSTALL_URL);
-    expect(output).toMatch(/does not bundle ChatGPT login/i);
-  });
+  it.runIf(process.platform === 'win32')(
+    'prints a readable Bun message and pauses when bun is missing from PATH',
+    () => {
+      const result = spawnSync('cmd.exe', ['/c', `"${windowsLauncher}"`], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        input: '\n',
+        timeout: 20_000,
+        windowsVerbatimArguments: true,
+        env: {
+          ...process.env,
+          PATH: 'C:\\Windows\\System32',
+          PATHEXT: '.COM;.EXE;.BAT;.CMD',
+          STUDIO_PORTABLE_NONINTERACTIVE: '1',
+        },
+      });
+      const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
+      expect(result.status).not.toBe(0);
+      expect(output).toMatch(/needs Bun/i);
+      expect(output).toContain(ONBOARDING_BUN_INSTALL_URL);
+      expect(output).toMatch(/does not bundle ChatGPT login/i);
+    },
+  );
 });

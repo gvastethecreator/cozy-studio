@@ -6,7 +6,6 @@ import {
   WORKBENCH_PRESENTATION,
   WORKBENCH_PRECISION_DENSITY,
   WORKBENCH_TYPOGRAPHY,
-  WORKBENCH_UI_VERSION,
   applyWorkbenchAmbientToDocument,
   supportsWorkbenchLighting,
   workbenchAmbientPortalProps,
@@ -16,7 +15,6 @@ import {
 describe('workbenchAmbient', () => {
   it('exposes Carbon Comfortable root props with a lighting gate', () => {
     const props = workbenchAmbientRootProps();
-    expect(WORKBENCH_UI_VERSION).toBe('0.4.0');
     expect(props.className.split(/\s+/)).toEqual(
       expect.arrayContaining(['wb', 'wb-ambient', 'wbp-system']),
     );

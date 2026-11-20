@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { RecipeId } from '../types';
-import { getActiveRecipeIndicator, listActiveRecipeIndicators } from './activeRecipeIndicator';
+import { getActiveRecipeIndicator } from './activeRecipeIndicator';
 
 const REGISTERED_RECIPE_IDS: Exclude<RecipeId, null>[] = [
   'animation-sequence',
@@ -29,7 +29,7 @@ describe('activeRecipeIndicator', () => {
   });
 
   it('keeps each recipe visually distinct', () => {
-    const indicators = listActiveRecipeIndicators();
+    const indicators = REGISTERED_RECIPE_IDS.map((recipeId) => getActiveRecipeIndicator(recipeId)!);
     const toneClasses = new Set(indicators.map((indicator) => indicator.toneClassName));
     const dotClasses = new Set(indicators.map((indicator) => indicator.dotClassName));
 

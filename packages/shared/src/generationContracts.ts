@@ -324,12 +324,6 @@ function normalizeQualityIntent(
   };
 }
 
-export function isBuiltInGenerationProvider(
-  providerId: string,
-): providerId is BuiltInGenerationProvider {
-  return BUILT_IN_GENERATION_PROVIDERS.includes(providerId as BuiltInGenerationProvider);
-}
-
 export function isGenerationTaskKind(value: string): value is GenerationTaskKind {
   return GENERATION_TASK_KINDS.includes(value as GenerationTaskKind);
 }

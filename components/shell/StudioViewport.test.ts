@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   getStudioViewportTransitionClassName,
-  isRecipesViewVisible,
   resolveStudioViewportRouteKey,
 } from './studioViewportRouting';
 
@@ -16,12 +15,6 @@ describe('StudioViewport routing', () => {
       'recipe-character-sprites',
     );
     expect(resolveStudioViewportRouteKey('recipe', null)).toBe('recipes-list');
-  });
-
-  it('keeps RecipesView as the StudioViewport fallback for recipes and default routes', () => {
-    expect(isRecipesViewVisible('recipes')).toBe(true);
-    expect(isRecipesViewVisible('studio')).toBe(false);
-    expect(isRecipesViewVisible('recipe')).toBe(false);
   });
 
   it('keeps viewport transitions compositor-friendly', () => {

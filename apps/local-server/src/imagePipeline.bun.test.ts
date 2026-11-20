@@ -2,7 +2,6 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'bun:test';
-import { isWebpPayload, readImageMetadata } from './imagePipeline';
 import { ensureThumbnailVariant } from './libraryAssetVariants';
 import { processReferences } from './referenceManager';
 
@@ -12,6 +11,16 @@ const ONE_BY_ONE_PNG = Uint8Array.from(
     'base64',
   ),
 );
+
+function readImageMetadata(bytes: Uint8Array) {
+  return new Bun.Image(bytes).metadata();
+}
+
+function isWebpPayload(bytes: Uint8Array) {
+  const ascii = (start: number, end: number) =>
+    Buffer.from(bytes.subarray(start, end)).toString('ascii');
+  return bytes.length >= 12 && ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP';
+}
 
 describe('Bun.Image hot path', () => {
   it('creates a Catalog Entry thumbnail webp without sharp', async () => {

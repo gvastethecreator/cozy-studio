@@ -14,14 +14,12 @@ describe('performStudioReset', () => {
       },
       clearGenerationState: () => calls.push('clearGenerationState'),
       clearUiState: () => calls.push('clearUiState'),
-      localStorageKeys: ['generation-config'],
       requestStudioReset: async () => {
         calls.push('requestStudioReset');
       },
       clearIndexedDb: async () => {
         calls.push('clearIndexedDb');
       },
-      removeLocalStorageItem: (key) => calls.push(`remove:${key}`),
       startTransition: (callback) => {
         calls.push('startTransition');
         callback();
@@ -32,7 +30,6 @@ describe('performStudioReset', () => {
     expect(calls).toEqual([
       'requestStudioReset',
       'clearIndexedDb',
-      'remove:generation-config',
       'clearGenerationState',
       'startTransition',
       'resetStudioState',
@@ -59,7 +56,6 @@ describe('performStudioReset', () => {
       clearIndexedDb: async () => {
         calls.push('clearIndexedDb');
       },
-      removeLocalStorageItem: (key) => calls.push(`remove:${key}`),
       startTransition: (callback) => {
         calls.push('startTransition');
         callback();

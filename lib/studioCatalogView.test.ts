@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CatalogImage } from '../packages/shared/src';
-import { collectWorkspaceCatalogImageIds } from '../hooks/useCatalog';
-import { createCatalogView, selectCatalogEntries } from './studioCatalogView';
+import { createCatalogView } from './studioCatalogView';
 import { buildLegacyWorkspaceSnapshotFromCatalog } from './studioLegacyWorkspaceSnapshotExport';
 
 function catalogImage(overrides: Partial<CatalogImage> = {}): CatalogImage {
@@ -48,33 +47,5 @@ describe('studioCatalogView', () => {
     expect(
       buildLegacyWorkspaceSnapshotFromCatalog(view)[0].images.map((image) => image.id),
     ).toEqual(['newer', 'older']);
-  });
-
-  it('filters Catalog Entries without forcing callers through legacy browser batch state', () => {
-    const view = createCatalogView([
-      catalogImage({ id: 'active-favorite', isFavorite: true, isDeleted: false }),
-      catalogImage({ id: 'deleted-favorite', isFavorite: true, isDeleted: true }),
-      catalogImage({ id: 'active-plain', isFavorite: false, isDeleted: false }),
-    ]);
-
-    expect(
-      selectCatalogEntries(view, { favorite: true, deleted: false }).map((entry) => entry.id),
-    ).toEqual(['active-favorite']);
-    expect(selectCatalogEntries(view, { deleted: true }).map((entry) => entry.id)).toEqual([
-      'deleted-favorite',
-    ]);
-  });
-
-  it('maps legacy null workspace ids into the default workspace cleanup seam', () => {
-    expect(
-      collectWorkspaceCatalogImageIds(
-        [
-          catalogImage({ id: 'default-1', workspaceId: 'default' }),
-          catalogImage({ id: 'legacy-default', workspaceId: null }),
-          catalogImage({ id: 'concept-1', workspaceId: 'concepts' }),
-        ],
-        'default',
-      ),
-    ).toEqual(['default-1', 'legacy-default']);
   });
 });

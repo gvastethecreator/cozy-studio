@@ -6,7 +6,6 @@ import {
   filterCompactStyleCatalog,
   formatCompactStyleStrength,
   groupCompactStylePresetsByCategory,
-  listCompactStyleCategories,
   listCompactStylePacks,
   mergeCompactStyleSearchIndexes,
   planCompactStyleCatalogPackIds,
@@ -118,10 +117,6 @@ describe('compactStyleCatalog', () => {
         favorites: ['SP06-001'],
       }).map((item) => item.id),
     ).toEqual(['SP06-001']);
-    expect(listCompactStyleCategories(index, 'pack_01')).toEqual([
-      { id: 'film', name: 'Film Stocks', count: 1 },
-      { id: 'light', name: 'Lighting', count: 1 },
-    ]);
     expect(
       filterCompactStyleCatalog({
         index,

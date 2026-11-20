@@ -78,11 +78,6 @@ export function useScopedGenerationDraft(
   prepare: (config: ImageGenerationConfig) => ImageGenerationConfig,
   characterLabMode?: CharacterLabModeId,
 ) {
-  // Preserve the original draft at its existing key; recipe drafts have explicit scopes.
-  const [legacy, , legacyReady, legacyPersistence] = useIndexedDBStorage<ImageGenerationConfig>(
-    'generation-config',
-    DEFAULT_GENERATION_CONFIG,
-  );
   const prepareDrafts = useCallback(
     (drafts: Record<string, ImageGenerationConfig>) =>
       Object.fromEntries(Object.entries(drafts).map(([key, value]) => [key, prepare(value)])),
@@ -96,23 +91,9 @@ export function useScopedGenerationDraft(
       recoverAfterRead: recoverDrafts,
     },
   );
-  const initial = useMemo(
-    () =>
-      scope === 'default:studio'
-        ? legacy
-        : {
-            ...DEFAULT_GENERATION_CONFIG,
-            executionModel: legacy.executionModel,
-            executionReasoningEffort: legacy.executionReasoningEffort,
-            executionSpeed: legacy.executionSpeed,
-            codexTransport: legacy.codexTransport,
-            codexImageModel: legacy.codexImageModel,
-          },
-    [scope, legacy],
-  );
   const workspace = useMemo(() => getWorkspaceScope(scope), [scope]);
   const config = useMemo(() => {
-    const active = drafts[scope] ?? initial;
+    const active = drafts[scope] ?? DEFAULT_GENERATION_CONFIG;
     const shared = withWorkspaceAttachments(
       active,
       {
@@ -123,14 +104,14 @@ export function useScopedGenerationDraft(
     );
     if (scope.endsWith(':character-lab')) return activateCharacterLabView(shared, characterLabMode);
     return scope.endsWith(':studio') ? projectStyleCompositionDraft(shared) : shared;
-  }, [drafts, initial, scope, workspace, characterLabMode]);
+  }, [drafts, scope, workspace, characterLabMode]);
   const setConfig = useCallback(
     (
       update: ImageGenerationConfig | ((current: ImageGenerationConfig) => ImageGenerationConfig),
     ) => {
-      if (!legacyReady || !draftsReady) return;
+      if (!draftsReady) return;
       setDrafts((current) => {
-        const active = current[scope] ?? initial;
+        const active = current[scope] ?? DEFAULT_GENERATION_CONFIG;
         const sharedAttachments = collectWorkspaceAttachments(current, workspace, active);
         const shared = withWorkspaceAttachments(
           active,
@@ -161,16 +142,16 @@ export function useScopedGenerationDraft(
         };
       });
     },
-    [scope, initial, setDrafts, legacyReady, draftsReady, workspace, characterLabMode],
+    [scope, setDrafts, draftsReady, workspace, characterLabMode],
   );
   const setRecipeDraft = useCallback(
     (recipeId: ImageGenerationConfig['recipeId'], value: ImageGenerationConfig) => {
-      if (!legacyReady || !draftsReady) return;
+      if (!draftsReady) return;
       setDrafts((current) => {
         const key = `${workspace}:${recipeId === 'styles' ? 'studio' : (recipeId ?? 'studio')}`;
         const restored =
           recipeId === 'character-lab'
-            ? restoreCharacterLabDraft(current[key] ?? initial, value)
+            ? restoreCharacterLabDraft(current[key] ?? DEFAULT_GENERATION_CONFIG, value)
             : value;
         return {
           ...shareWorkspaceAttachments(current, workspace, restored.attachments),
@@ -178,20 +159,13 @@ export function useScopedGenerationDraft(
         };
       });
     },
-    [workspace, setDrafts, initial, legacyReady, draftsReady],
+    [workspace, setDrafts, draftsReady],
   );
-  const retry = useCallback(async () => {
-    if (legacyPersistence.error) await legacyPersistence.retry();
-    await draftPersistence.retry();
-  }, [legacyPersistence.error, legacyPersistence.retry, draftPersistence.retry]);
   return [
     config,
     setConfig,
     setRecipeDraft,
-    legacyReady && draftsReady,
-    {
-      error: draftPersistence.error ?? legacyPersistence.error,
-      retry,
-    },
+    draftsReady,
+    { error: draftPersistence.error, retry: draftPersistence.retry },
   ] as const;
 }

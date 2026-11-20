@@ -69,18 +69,6 @@ export interface Variation {
   enabled: boolean;
   instruction: string;
 }
-export interface Composition {
-  schemaVersion: 1;
-  id: string;
-  name: string;
-  revision: number;
-  createdAt: string;
-  updatedAt: string;
-  mode: Mode;
-  locks: Locks;
-  variation: Variation;
-  layers: Layer[];
-}
 export interface Reference {
   id: string;
   role: 'subject' | 'style' | 'composition' | 'avoid';

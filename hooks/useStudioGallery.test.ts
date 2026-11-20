@@ -3,7 +3,7 @@ import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CatalogImage } from '../packages/shared/src';
 import { createCatalogView } from '../lib/studioCatalogView';
-import { buildStudioGalleryImages, useStudioGallery } from './useStudioGallery';
+import { useStudioGallery } from './useStudioGallery';
 
 function catalogImage(overrides: Partial<CatalogImage> = {}): CatalogImage {
   const id = overrides.id ?? 'catalog-image';
@@ -35,41 +35,6 @@ function catalogImage(overrides: Partial<CatalogImage> = {}): CatalogImage {
     createdAt: overrides.createdAt ?? '2026-05-24T00:00:00.000Z',
   };
 }
-
-describe('buildStudioGalleryImages', () => {
-  it('builds images from Catalog Entries when a Catalog View is provided', () => {
-    const catalogView = createCatalogView([
-      catalogImage({
-        id: 'catalog-image',
-        generationConfig: { prompt: 'Catalog config prompt' },
-      }),
-    ]);
-
-    const images = buildStudioGalleryImages(catalogView);
-
-    expect(images.map((image) => image.id)).toEqual(['catalog-image']);
-    expect(images[0].config.prompt).toBe('Catalog config prompt');
-  });
-
-  it('preserves catalog ordering for the grid', () => {
-    const catalogView = createCatalogView([
-      catalogImage({
-        id: 'older-favorite',
-        isFavorite: true,
-        createdAt: '2026-05-24T00:00:00.000Z',
-      }),
-      catalogImage({
-        id: 'newer-plain',
-        isFavorite: false,
-        createdAt: '2026-05-25T00:00:00.000Z',
-      }),
-    ]);
-
-    const images = buildStudioGalleryImages(catalogView);
-
-    expect(images.map((image) => image.id)).toEqual(catalogView.entries.map((entry) => entry.id));
-  });
-});
 
 afterEach(cleanup);
 it('keeps selection unique across empty searches and workspaces, including actions on hidden images', () => {

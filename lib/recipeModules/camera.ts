@@ -218,12 +218,6 @@ function getCameraPitch(elevation: number) {
   return zone;
 }
 
-/** "180% (closer)": the zoom value with the direction a reader would expect. */
-export function getCameraZoomLabel(distance: number) {
-  const direction = distance > 100 ? 'closer' : distance < 100 ? 'farther' : 'default';
-  return `${distance}% (${direction})`;
-}
-
 export function getCameraDirectorInstructions(
   azimuth: number,
   elevation: number,

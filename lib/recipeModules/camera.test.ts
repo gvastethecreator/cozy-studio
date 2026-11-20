@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { serializeRecipeProviderDirectives } from '../../packages/shared/src';
-import {
-  createCameraRecipeParams,
-  getCameraGeometryConstraints,
-  getCameraZoomLabel,
-} from './camera';
+import { createCameraRecipeParams, getCameraGeometryConstraints } from './camera';
 import { buildRecipeProviderDirectives, getRecipeModule } from './index';
 
 describe('camera recipe', () => {
@@ -26,7 +22,6 @@ describe('camera recipe', () => {
       vPos: 'LOW ANGLE (camera below the subject, looking up)',
       framing: 'EXTREME CLOSE-UP (zoomed far in; one detail of the subject fills the frame)',
     });
-    expect(getCameraZoomLabel(175)).toBe('175% (closer)');
     expect(() =>
       createCameraRecipeParams({
         azimuth: Number.NaN,

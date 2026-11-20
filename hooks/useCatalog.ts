@@ -68,15 +68,6 @@ function resolveCatalogMutationError(error: unknown, fallbackMessage: string) {
   return error instanceof Error ? error.message : fallbackMessage;
 }
 
-export function collectWorkspaceCatalogImageIds(entries: CatalogImage[], workspaceId: string) {
-  return entries.reduce<string[]>((acc, entry) => {
-    if (belongsToWorkspace(workspaceId, entry.workspaceId)) {
-      acc.push(entry.id);
-    }
-    return acc;
-  }, []);
-}
-
 export function useStudioCatalogController({
   query = '',
   favorites = false,

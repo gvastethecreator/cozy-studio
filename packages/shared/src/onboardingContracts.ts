@@ -21,7 +21,7 @@ export const ONBOARDING_STAGE_IDS = [
 ] as const;
 
 export type OnboardingStageId = (typeof ONBOARDING_STAGE_IDS)[number];
-export type OnboardingStreamAction = 'setup' | 'host_action';
+export type OnboardingStreamAction = 'setup';
 
 export interface OnboardingStagePayload {
   action: OnboardingStreamAction;
@@ -32,16 +32,6 @@ export interface OnboardingStagePayload {
 export type OnboardingProgressEvent =
   | { kind: 'stage'; stage: OnboardingStageId; message: string }
   | { kind: 'log'; message: string; level?: 'info' | 'warn' | 'error' };
-
-export const ONBOARDING_ACTION_IDS = [
-  'init_library',
-  'install_deps',
-  'start_app_server',
-  'open_url',
-  'spawn_codex_login',
-  'spawn_ask_codex',
-  'spawn_grok_login',
-] as const;
 
 export type OnboardingCheckId =
   | 'bun'

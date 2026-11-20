@@ -3,12 +3,6 @@ import type {
   SubscriptionProviderId,
 } from '../packages/shared/src/subscriptionAuth';
 
-export function subscriptionAccountTitle(providerId: SubscriptionProviderId) {
-  if (providerId === 'codex') return 'ChatGPT';
-  if (providerId === 'xai') return 'xAI';
-  return 'Google';
-}
-
 export function subscriptionAuthStatusLabel(
   status: SubscriptionAuthStatus | 'loading' | null | undefined,
 ) {

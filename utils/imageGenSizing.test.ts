@@ -4,7 +4,6 @@ import {
   IMAGE_GEN_RATIO_OPTIONS,
   getImageGenSizeForRatio,
   getRatioShapeStyle,
-  groupImageGenRatiosByOrientation,
   normalizeImageGenRatio,
 } from './imageGenSizing';
 
@@ -49,15 +48,5 @@ describe('imageGenSizing', () => {
     expect(getRatioShapeStyle('1:1')).toEqual({ width: '24px', height: '24px' });
     expect(getRatioShapeStyle('3:2').width).toBe('27px');
     expect(getRatioShapeStyle('2:3').height).toBe('24px');
-  });
-
-  it('groups generation ratios by orientation', () => {
-    const groups = groupImageGenRatiosByOrientation(IMAGE_GEN_RATIO_OPTIONS);
-    expect(groups.map((group) => group.label)).toEqual(['Landscape', 'Square', 'Portrait']);
-    expect(groups.map((group) => group.options.map((option) => option.ratio))).toEqual([
-      ['21:9', '16:9', '4:3', '3:2', '5:4'],
-      ['1:1'],
-      ['4:5', '2:3', '3:4', '9:16'],
-    ]);
   });
 });

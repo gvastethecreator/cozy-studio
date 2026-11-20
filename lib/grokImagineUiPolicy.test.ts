@@ -1,12 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   describeGrokImagineEditNotice,
-  formatCarouselPromptPreview,
-  formatCarouselSourceLabel,
   isImageEditorApplyDisabled,
   listGrokImagineRatioOptions,
   resolveGrokImagineGenerateBlock,
-  resolveGrokImagineToolbarAspectRatio,
   resolveImageEditorRequiresMask,
   summarizeGrokProviderStatusLine,
 } from './grokImagineUiPolicy';
@@ -74,8 +71,6 @@ describe('grokImagineUiPolicy', () => {
         diagnostics: ['Grok Build does not have a usable local login. Run `grok login`.'],
       }),
     ).toBe('Run grok login');
-    expect(resolveGrokImagineToolbarAspectRatio('2:3')).toBe('1:1');
-    expect(resolveGrokImagineToolbarAspectRatio('16:9')).toBe('16:9');
     expect(describeGrokImagineEditNotice('grok')).toMatch(/painted mask/);
     expect(describeGrokImagineEditNotice('codex')).toBeNull();
     const providerDomain = (canAttemptExecution?: boolean) =>
@@ -106,17 +101,6 @@ describe('grokImagineUiPolicy', () => {
       code: 'grok_not_ready',
       message: 'Grok Imagine is blocked. Choose a current Grok model.',
     });
-    expect(
-      formatCarouselPromptPreview(
-        'GROK OUTPUT OVERRIDE: create exactly one portrait 3:4 image. TARGET STYLE: Expressive Performance Spin Style.',
-      ),
-    ).toBe('Expressive Performance Spin Style');
-    expect(
-      formatCarouselSourceLabel({
-        model: 'codex-imagegen',
-        prompt: 'GROK OUTPUT OVERRIDE: keep one card.',
-      }),
-    ).toBe('Grok Imagine');
     expect(resolveImageEditorRequiresMask('grok')).toBe(false);
     expect(resolveImageEditorRequiresMask('antigravity')).toBe(false);
     expect(

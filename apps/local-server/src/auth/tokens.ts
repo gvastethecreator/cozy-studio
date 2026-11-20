@@ -523,10 +523,3 @@ export function isGoogleOAuthCredentialReady(
     return false;
   }
 }
-
-export function isGoogleHttpCredentialReady(
-  store: SubscriptionAuthStore = getSubscriptionAuthStore(),
-  env: Record<string, string | undefined> = process.env,
-) {
-  return Boolean(readGoogleApiKey(env)) || isGoogleOAuthCredentialReady(store, env);
-}

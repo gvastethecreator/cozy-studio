@@ -55,22 +55,6 @@ export async function waitForPortRelease(ports: readonly number[]) {
   }
 }
 
-export async function probeHttpHealth(url: string, timeoutMs = 2_000): Promise<boolean> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-    if (!response.ok) return false;
-    const json = (await response.json()) as { ok?: boolean };
-    return json?.ok === true;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 export async function probeUrl(url: string, timeoutMs = 2_000): Promise<boolean> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);

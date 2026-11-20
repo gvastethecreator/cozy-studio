@@ -56,26 +56,6 @@ export function getRatioShapeStyle(ratio: string, maxWidth = 27, maxHeight = 24)
   };
 }
 
-export function groupImageGenRatiosByOrientation<
-  T extends { ratio: string; width: number; height: number },
->(options: readonly T[]) {
-  const groups: Record<RatioOrientation, T[]> = {
-    landscape: [],
-    square: [],
-    portrait: [],
-  };
-  for (const option of options) {
-    groups[getRatioOrientation(option.ratio)].push(option);
-  }
-  return (['landscape', 'square', 'portrait'] as const)
-    .filter((orientation) => groups[orientation].length > 0)
-    .map((orientation) => ({
-      orientation,
-      label: RATIO_ORIENTATION_LABELS[orientation],
-      options: groups[orientation],
-    }));
-}
-
 export function getImageGenSizeForRatio(ratio: AspectRatio | null | undefined) {
   return (
     IMAGE_GEN_RATIO_OPTIONS.find((option) => option.ratio === ratio) || IMAGE_GEN_RATIO_OPTIONS[0]

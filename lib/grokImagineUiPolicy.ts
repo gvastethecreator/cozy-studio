@@ -3,7 +3,6 @@ import {
   isGrokImagineAspectRatio,
   isGrokImagineRecipeId,
   MAX_GROK_IMAGINE_SOURCE_IMAGES,
-  type GrokImagineAspectRatio,
 } from '../packages/shared/src/grokImagineContract';
 import type { GenerationProviderId } from '../packages/shared/src/generationContracts';
 import { IMAGE_GEN_RATIO_OPTIONS } from '../utils/imageGenSizing';
@@ -16,15 +15,6 @@ export interface GrokImagineGenerateBlock {
 
 export function listGrokImagineRatioOptions() {
   return IMAGE_GEN_RATIO_OPTIONS.filter((option) => isGrokImagineAspectRatio(option.ratio));
-}
-
-export function resolveGrokImagineToolbarAspectRatio(
-  aspectRatio?: string | null,
-): Exclude<GrokImagineAspectRatio, 'auto'> {
-  if (aspectRatio && aspectRatio !== 'auto' && isGrokImagineAspectRatio(aspectRatio)) {
-    return aspectRatio as Exclude<GrokImagineAspectRatio, 'auto'>;
-  }
-  return '1:1';
 }
 
 export function describeGrokImagineEditNotice(providerId: GenerationProviderId) {
@@ -79,29 +69,6 @@ export function formatGrokImagineNotReadyMessage({
     return 'Grok Imagine is blocked. Run `grok login`, then retry.';
   }
   return `Grok Imagine is blocked. ${action}.`;
-}
-
-export function formatCarouselPromptPreview(prompt?: string | null) {
-  const text = prompt?.trim() || '';
-  if (!text) return 'Generated image';
-
-  const targetStyle = text.match(/TARGET STYLE:\s*([^.\n]+)/i)?.[1]?.trim();
-  if (targetStyle) return targetStyle;
-
-  return text.replace(/^GROK OUTPUT OVERRIDE:\s*/i, '').trim() || text;
-}
-
-export function formatCarouselSourceLabel({
-  model,
-  prompt,
-}: {
-  model?: string | null;
-  prompt?: string | null;
-}) {
-  if (/GROK OUTPUT OVERRIDE/i.test(prompt || '') || /grok/i.test(model || '')) {
-    return 'Grok Imagine';
-  }
-  return (model || 'codex-imagegen').split('-').slice(0, 2).join(' ').toUpperCase();
 }
 
 export function resolveImageEditorRequiresMask(providerId?: GenerationProviderId | null) {

@@ -1,5 +1,4 @@
 import type {
-  CreateJobRequest,
   Job,
   JobDetailResponse,
   JobListQuery,
@@ -13,13 +12,6 @@ import type {
   RetryJobBatchRequest,
 } from '../../packages/shared/src';
 import { request, StudioApiError } from './http';
-
-export async function createStudioJob(body: CreateJobRequest) {
-  return request<Job>('/api/jobs', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
 
 export async function createReferenceHandoff(input: ReferenceHandoffRequest) {
   return request<ReferenceHandoffResponse>('/api/references/handoff', {

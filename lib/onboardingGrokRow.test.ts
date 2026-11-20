@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ONBOARDING_ACTION_IDS } from '../packages/shared/src';
 import { grokRowNeedsInstall, grokRowNeedsLogin } from './onboardingGrokRow';
 
 describe('optional Grok onboarding row', () => {
@@ -23,8 +22,7 @@ describe('optional Grok onboarding row', () => {
     ).toBe(false);
   });
 
-  it('keeps Grok off the Studio installer contract and primary CTA', () => {
-    expect(ONBOARDING_ACTION_IDS).not.toEqual(expect.arrayContaining(['ask_grok']));
+  it('keeps Grok off the primary CTA', () => {
     const source = readFileSync(
       path.join(import.meta.dirname, '..', 'components', 'OnboardingModal.tsx'),
       'utf8',

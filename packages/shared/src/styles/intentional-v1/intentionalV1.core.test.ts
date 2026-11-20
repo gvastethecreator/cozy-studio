@@ -52,21 +52,6 @@ function grant(req: core.RequestInput): core.RequestInput {
   }
   return req;
 }
-async function composition(): Promise<core.Composition> {
-  const r = await request();
-  return {
-    schemaVersion: 1,
-    id: 'composition-1',
-    name: 'Study',
-    revision: 1,
-    createdAt: '2026-09-20T00:00:00Z',
-    updatedAt: '2026-09-20T00:00:00Z',
-    mode: 'preserve',
-    locks: { ...core.PRESERVE_LOCKS },
-    variation: { ...core.NO_VARIATION },
-    layers: r.layers,
-  };
-}
 const rejectsCode = (promise: Promise<unknown>, code: string) =>
   assert.rejects(
     promise,
@@ -384,133 +369,6 @@ describe('intentional styles core', () => {
     await core.compileStyleRequest(r);
     assert.equal(JSON.stringify(r), before);
   });
-  it('composition round-trip retains all settings and disabled layers', async () => {
-    const c = await composition();
-    c.layers[0].fields.aesthetic = { enabled: false, weight: 0.17 };
-    c.layers[0].strength = 0.43;
-    c.layers[0].avoidRulesMode = 'strict';
-    const second = await core.createLayer(snap('SP18-031'), 'layer-2');
-    second.enabled = false;
-    c.layers.push(second);
-    assert.deepEqual(await core.importComposition(await core.exportComposition(c)), c);
-  });
-  it('composition preserves DNA beyond the old 860-character cap', async () => {
-    const c = await composition();
-    c.layers[0].snapshot.dna.aesthetic = 'Concrete field detail. '.repeat(100);
-    c.layers[0].snapshotHash = await core.sha256(c.layers[0].snapshot);
-    const copy = await core.importComposition(await core.exportComposition(c));
-    assert.equal(
-      copy.layers[0].snapshot.dna.aesthetic.length,
-      c.layers[0].snapshot.dna.aesthetic.length,
-    );
-    assert.ok(copy.layers[0].snapshot.dna.aesthetic.length > 860);
-  });
-  for (const key of ['prompt', 'attachments', 'apiKey', 'provider', 'referenceImages'])
-    it(`composition excludes ${key}`, async () => {
-      const c = await composition();
-      (c as core.Composition & Record<string, unknown>)[key] = 'forbidden';
-      await assert.rejects(core.exportComposition(c), /unknown/);
-    });
-  it('composition rejects oversize input before parse', async () =>
-    await assert.rejects(
-      core.importComposition(' '.repeat(core.MAX_COMPOSITION_BYTES + 1)),
-      /exceeds/,
-    ));
-  it('composition rejects bad JSON', async () =>
-    await assert.rejects(core.importComposition('{broken')));
-  it('composition rejects unsupported schema version', async () => {
-    const c = await composition();
-    (c as { schemaVersion: number }).schemaVersion = 2;
-    await assert.rejects(core.exportComposition(c), /unsupported/);
-  });
-  it('composition rejects impossible date', async () => {
-    const c = await composition();
-    c.createdAt = '2026-02-30T00:00:00Z';
-    await assert.rejects(core.exportComposition(c), /calendar/);
-  });
-  it('composition rejects update before creation', async () => {
-    const c = await composition();
-    c.updatedAt = '2025-09-20T00:00:00Z';
-    await assert.rejects(core.exportComposition(c), /before creation/);
-  });
-  it('revision uses expected revision and isolates inputs', async () => {
-    const c = await composition();
-    const changes = {
-      name: 'Changed',
-      mode: c.mode,
-      locks: c.locks,
-      variation: c.variation,
-      layers: c.layers,
-    };
-    const next = core.reviseComposition(c, 1, changes, '2026-09-20T01:00:00Z');
-    assert.equal(next.revision, 2);
-    assert.equal(c.revision, 1);
-    next.layers[0].strength = 0.2;
-    assert.notEqual(next.layers[0].strength, c.layers[0].strength);
-  });
-  it('revision conflicts reject stale writes', async () => {
-    const c = await composition();
-    assert.throws(
-      () => core.reviseComposition(c, 0, c, '2026-09-20T01:00:00Z'),
-      core.RevisionConflict,
-    );
-  });
-  it('revision forbids backward timestamp', async () => {
-    const c = await composition();
-    assert.throws(() => core.reviseComposition(c, 1, c, '2026-09-19T01:00:00Z'), /backwards/);
-  });
-  it('duplicate gets new instance identities and pinned snapshots', async () => {
-    const c = await composition();
-    const d = core.duplicateComposition(c, 'copy', 'Copy', '2026-09-20T02:00:00Z');
-    assert.notEqual(d.layers[0].layerId, c.layers[0].layerId);
-    assert.deepEqual(d.layers[0].snapshot, c.layers[0].snapshot);
-    assert.equal(d.revision, 1);
-  });
-  it('duplicate rejects same composition identity', async () => {
-    const c = await composition();
-    assert.throws(() => core.duplicateComposition(c, c.id, 'Copy', c.createdAt), /new composition/);
-  });
-  it('available updates never rewrite pinned snapshot', async () => {
-    const c = await composition();
-    const before = JSON.stringify(c);
-    const updates = core.getAvailableUpdates(c, { 'SP18-010': 4 });
-    assert.equal(updates[0].availableVersion, 4);
-    assert.equal(JSON.stringify(c), before);
-  });
-  const searchEntries = catalog.map((x) => ({
-    id: x.id,
-    name: x.name,
-    aliases: x.aliases,
-    packId: x.packId,
-    categoryId: x.categoryId,
-    kind: x.kind,
-    tags: x.tags,
-  }));
-  it('metadata search returns exact name first', () =>
-    assert.equal(core.searchCatalog(searchEntries, 'Studio Headshot')[0].id, 'SP01-001'));
-  it('search retains explicit pack scope', () =>
-    assert.equal(
-      core
-        .searchCatalog(searchEntries, 'oil', { packId: 'pack_18' })
-        .some((x) => x.packId === 'pack_06'),
-      false,
-    ));
-  it('search retains favorites scope with query', () =>
-    assert.deepEqual(
-      core.searchCatalog(searchEntries, '', { favoriteIds: ['SP09-001'] }).map((x) => x.id),
-      ['SP09-001'],
-    ));
-  it('search finds historical source alias', () =>
-    assert.equal(
-      core.searchCatalog(searchEntries, 'Octane Spectral GPU Path Tracer')[0].id,
-      'SP03-001',
-    ));
-  it('search normalizes accents', () =>
-    assert.equal(core.normalizeQuery('  Ilustración '), 'ilustracion'));
-  it('search limits validated', () =>
-    assert.throws(() => core.searchCatalog(searchEntries, '', {}, 0), /limit/));
-  it('search pagination bound respected', () =>
-    assert.equal(core.searchCatalog(searchEntries, '', {}, 5).length, 5));
   const current = { presetId: 'X', version: 2, snapshotHash: 'a'.repeat(64) };
   const verified: core.PreviewEvidence = {
     presetId: 'X',
@@ -573,14 +431,5 @@ describe('intentional styles core', () => {
         s.policy,
       ),
     );
-  });
-
-  it('oversize Unicode export rejects rather than making an unimportable file', async () => {
-    const c = await composition();
-    const s = snap('SP18-001');
-    for (const f of core.FIELDS) s.dna[f] = '界'.repeat(12000);
-    c.layers = [];
-    for (let i = 0; i < 5; i++) c.layers.push(await core.createLayer(s, 'large-' + i));
-    await assert.rejects(core.exportComposition(c), /exceeds 1 MiB/);
   });
 });

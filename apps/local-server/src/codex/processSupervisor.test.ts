@@ -17,19 +17,12 @@ vi.mock('../logger', () => ({
 }));
 
 let AppServerStartError: typeof import('./processSupervisor').AppServerStartError;
-let resolveAppServerProcessStatus: typeof import('./processSupervisor').resolveAppServerProcessStatus;
 
 beforeAll(async () => {
-  ({ AppServerStartError, resolveAppServerProcessStatus } = await import('./processSupervisor'));
+  ({ AppServerStartError } = await import('./processSupervisor'));
 });
 
 describe('processSupervisor', () => {
-  it('resolves process status from running and last start error fields', () => {
-    expect(resolveAppServerProcessStatus({ running: true, lastStartError: null })).toBe('running');
-    expect(resolveAppServerProcessStatus({ running: false, lastStartError: 'boom' })).toBe('error');
-    expect(resolveAppServerProcessStatus({ running: false, lastStartError: null })).toBe('stopped');
-  });
-
   it('preserves cause on AppServerStartError', () => {
     const cause = new Error('spawn failed');
     const error = new AppServerStartError('Failed to start codex app-server', cause);

@@ -7,7 +7,6 @@ import {
   onboardingFactsFromHealth,
   parseOnboardingHostActionRequest,
   resolvePrimaryCta,
-  ONBOARDING_ACTION_IDS,
   type OnboardingFacts,
   type OnboardingPrimaryCta,
 } from './onboardingContracts';
@@ -222,13 +221,5 @@ describe('parseOnboardingHostActionRequest', () => {
     expect(parseOnboardingHostActionRequest({ consent: true, action: 'codex exec' }).action).toBe(
       null,
     );
-  });
-});
-
-describe('onboarding action contract', () => {
-  it('allows grok login and open_url but has no Grok installer id', () => {
-    expect(ONBOARDING_ACTION_IDS).toContain('spawn_grok_login');
-    expect(ONBOARDING_ACTION_IDS).toContain('open_url');
-    expect(ONBOARDING_ACTION_IDS.join(' ')).not.toMatch(/ask_grok|install_grok|grok_install/i);
   });
 });

@@ -238,13 +238,6 @@ export function createCinematicFrameDirectives(frameShots: RecipeParams, frames:
     .map(({ index, shot }) => `Frame ${index + 1}: ${shot} Shot`);
 }
 
-export function createCinematicFrameInstructions(frameShots: RecipeParams, frames: number) {
-  const frameDirectives = createCinematicFrameDirectives(frameShots, frames);
-  return frameDirectives.length > 0
-    ? `\nSPECIFIC FRAME SHOTS:\n${frameDirectives.map((line) => `- ${line}`).join('\n')}`
-    : '';
-}
-
 function describePanelAspect(sheetAspect: string, rows: number, cols: number) {
   const [width, height] = sheetAspect.split(':').map(Number);
   if (!width || !height) return '';

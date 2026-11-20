@@ -9,7 +9,6 @@ import { resolvePrimaryCta } from '../../../packages/shared/src';
 import type { StudioReadinessLifecycle } from './studioReadinessLifecycle';
 import { createRuntimeRoutes, normalizeReadinessRefreshRequest } from './runtimeRoutes';
 import { applyOnboardingSetup } from './onboardingSetup';
-import { applyOnboardingHostAction } from './hostTerminal';
 import { subscribeEvents } from './events';
 
 function createCodexRuntimeReport(
@@ -706,43 +705,6 @@ describe('runtimeRoutes', () => {
     expect(writes).toEqual(['D:/repo/.env.local', 'init']);
   });
 
-  it('spawns a visible host terminal for login after consent', async () => {
-    const spawned: unknown[] = [];
-    const routes = createRoutes({
-      applyOnboardingHostActionFn: (raw, extra = {}) =>
-        applyOnboardingHostAction(raw, {
-          runner: (request) => {
-            spawned.push(request);
-          },
-          resolveCwd: () => 'D:/cozy-studio',
-          platform: 'win32',
-          ...extra,
-        }),
-    });
-
-    const blocked = await routes.request('/onboarding/host-action', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ consent: false, action: 'codex_login' }),
-    });
-    expect(blocked.status).toBe(400);
-    expect(spawned).toEqual([]);
-
-    const opened = await routes.request('/onboarding/host-action', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ consent: true, action: 'codex_login' }),
-    });
-    expect(opened.status).toBe(200);
-    await expect(opened.json()).resolves.toMatchObject({
-      ok: true,
-      action: 'codex_login',
-      command: 'codex login',
-      cwd: 'D:/cozy-studio',
-    });
-    expect(spawned).toHaveLength(1);
-  });
-
   it('publishes onboarding stage then probe after consented Setup', async () => {
     vi.stubGlobal('Bun', { ...(globalThis as { Bun?: object }).Bun, version: '1.3.14' });
     const seen: Array<{ type: string; payload: unknown }> = [];
@@ -806,44 +768,6 @@ describe('runtimeRoutes', () => {
     } finally {
       unsubscribe();
       vi.unstubAllGlobals();
-    }
-  });
-
-  it('publishes host-action stage and probe after consent, and stays quiet without it', async () => {
-    const seen: Array<{ type: string }> = [];
-    const unsubscribe = subscribeEvents((event) => {
-      seen.push({ type: event.type });
-    });
-    try {
-      const routes = createRoutes({
-        applyOnboardingHostActionFn: (raw, extra = {}) =>
-          applyOnboardingHostAction(raw, {
-            runner: () => {},
-            resolveCwd: () => 'D:/cozy-studio',
-            platform: 'win32',
-            ...extra,
-          }),
-      });
-
-      const blocked = await routes.request('/onboarding/host-action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ consent: false, action: 'codex_login' }),
-      });
-      expect(blocked.status).toBe(400);
-      expect(seen.filter((event) => event.type.startsWith('onboarding.'))).toEqual([]);
-
-      const opened = await routes.request('/onboarding/host-action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ consent: true, action: 'codex_login' }),
-      });
-      expect(opened.status).toBe(200);
-      expect(seen.some((event) => event.type === 'onboarding.stage')).toBe(true);
-      expect(seen.some((event) => event.type === 'onboarding.probe')).toBe(true);
-      expect(seen.some((event) => event.type === 'log.created')).toBe(true);
-    } finally {
-      unsubscribe();
     }
   });
 });

@@ -19,7 +19,6 @@ import {
   OnboardingSetupError,
   setupResultWithProbe,
 } from './onboardingSetup';
-import { applyOnboardingHostAction, OnboardingHostActionError } from './hostTerminal';
 import { getSubscriptionAuthStore, isSubscriptionLoggedIn } from './auth/store';
 import {
   providerDispatchHeld,
@@ -47,7 +46,6 @@ interface RuntimeRoutesDependencies {
   readWorkerStatus: () => WorkerStatus;
   readiness?: StudioReadinessLifecycle;
   applyOnboardingSetupFn?: typeof applyOnboardingSetup;
-  applyOnboardingHostActionFn?: typeof applyOnboardingHostAction;
   readGrokOnboardingFacts?: () => { grokCliAvailable: boolean; grokLoggedIn: boolean };
   readSubscriptionFacts?: () => { codexSignedIn: boolean; grokSignedIn: boolean };
   readEditableSettings?: () => { defaultProviderId?: GenerationProviderId | null };
@@ -131,7 +129,6 @@ export function createRuntimeRoutes({
   readWorkerStatus,
   readiness,
   applyOnboardingSetupFn = applyOnboardingSetup,
-  applyOnboardingHostActionFn = applyOnboardingHostAction,
   readGrokOnboardingFacts = () => ({ grokCliAvailable: false, grokLoggedIn: false }),
   readSubscriptionFacts = readSubscriptionOnboardingFacts,
   readEditableSettings,
@@ -282,36 +279,6 @@ export function createRuntimeRoutes({
       }
       publishOnboardingStage('setup', 'failed', 'Setup failed.');
       publishOnboardingLog('Setup failed.', 'error');
-      throw error;
-    }
-  });
-
-  routes.post('/onboarding/host-action', async (c) => {
-    let body: unknown = {};
-    try {
-      body = await c.req.json();
-    } catch {
-      body = {};
-    }
-    try {
-      const result = applyOnboardingHostActionFn(body, {
-        report: (event) => reportOnboardingProgress('host_action', event),
-      });
-      const probe = buildOnboardingResponse(buildHealthResponse());
-      if (result.ok) {
-        publishOnboardingActionFinished('host_action', probe);
-      } else {
-        publishOnboardingStage('host_action', 'failed', result.error ?? 'Host action failed.');
-        publishOnboardingLog(result.error ?? 'Host action failed.', 'error');
-        publishOnboardingProbe(probe);
-      }
-      return c.json({ ...result, probe });
-    } catch (error) {
-      if (error instanceof OnboardingHostActionError) {
-        return c.json(error.body, error.status);
-      }
-      publishOnboardingStage('host_action', 'failed', 'Host action failed.');
-      publishOnboardingLog('Host action failed.', 'error');
       throw error;
     }
   });

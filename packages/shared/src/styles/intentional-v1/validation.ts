@@ -1,5 +1,5 @@
-import { FIELDS, type Snapshot, type Layer, type Composition, type RequestInput } from './types.js';
-import { canonicalJson, utf8Bytes } from './canonical.js';
+import { FIELDS, type Snapshot, type Layer, type RequestInput } from './types.js';
+import { canonicalJson } from './canonical.js';
 type Obj = Record<string, unknown>;
 function fail(label: string): never {
   throw new Error(`Invalid ${label}`);
@@ -47,16 +47,6 @@ function id(v: unknown, label: string) {
 }
 function hash(v: unknown, label: string) {
   if (typeof v !== 'string' || !/^[a-f0-9]{64}$/.test(v)) fail(label + ': SHA-256 required');
-}
-function timestamp(v: unknown, label: string) {
-  text(v, label, 1, 40);
-  if (
-    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(v) ||
-    !Number.isFinite(Date.parse(v))
-  )
-    fail(label + ': UTC ISO timestamp required');
-  if (new Date(v).toISOString().replace('.000Z', 'Z') !== v.replace('.000Z', 'Z'))
-    fail(label + ': invalid calendar time');
 }
 function policy(v: unknown) {
   const p = obj(v, 'policy');
@@ -150,38 +140,6 @@ function variation(v: unknown) {
   text(x.instruction, 'variation.instruction', 0, 2000);
   if (x.enabled && !String(x.instruction).trim()) fail('variation: explicit instruction required');
 }
-export function validateComposition(value: unknown): asserts value is Composition {
-  const c = obj(value, 'composition');
-  keys(
-    c,
-    [
-      'schemaVersion',
-      'id',
-      'name',
-      'revision',
-      'createdAt',
-      'updatedAt',
-      'mode',
-      'locks',
-      'variation',
-      'layers',
-    ],
-    'composition',
-  );
-  one(c.schemaVersion, [1], 'composition.schemaVersion');
-  id(c.id, 'composition.id');
-  text(c.name, 'composition.name', 1, 240);
-  num(c.revision, 'composition.revision', 1, 1e9, true);
-  timestamp(c.createdAt, 'composition.createdAt');
-  timestamp(c.updatedAt, 'composition.updatedAt');
-  if (Date.parse(String(c.updatedAt)) < Date.parse(String(c.createdAt)))
-    fail('composition timestamps: update before creation');
-  mode(c.mode);
-  locks(c.locks);
-  variation(c.variation);
-  layers(c.layers);
-  canonicalJson(c);
-}
 export function validateRequest(value: unknown): asserts value is RequestInput {
   const r = obj(value, 'request');
   keys(
@@ -223,12 +181,4 @@ export function validateRequest(value: unknown): asserts value is RequestInput {
     fail('reference IDs: duplicates');
   array(r.baseAvoidRules, 'baseAvoidRules', 100).forEach((v) => text(v, 'baseAvoidRule', 1, 1000));
   canonicalJson(r);
-}
-export const MAX_COMPOSITION_BYTES = 1024 * 1024;
-export function parseComposition(textValue: string): Composition {
-  if (utf8Bytes(textValue).byteLength > MAX_COMPOSITION_BYTES)
-    fail('composition file: exceeds 1 MiB');
-  const value: unknown = JSON.parse(textValue);
-  validateComposition(value);
-  return value;
 }

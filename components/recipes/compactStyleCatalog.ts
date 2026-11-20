@@ -11,12 +11,6 @@ export type CompactStyleRoute =
   | { view: 'styles'; packId: string; categoryId: string }
   | { view: 'favorites' };
 
-export interface CompactStyleCategorySummary {
-  id: string;
-  name: string;
-  count: number;
-}
-
 export interface CompactStylePackSummary {
   id: string;
   name: string;
@@ -86,26 +80,6 @@ export function listCompactStylePacks(
     packs.push({ id: pack.id, name: pack.name, presetCount: pack.presetCount });
   }
   return packs;
-}
-
-export function listCompactStyleCategories(
-  index: StylePresetCatalogSearchIndex,
-  packId: string,
-): CompactStyleCategorySummary[] {
-  const categories: CompactStyleCategorySummary[] = [];
-  const byId = new Map<string, CompactStyleCategorySummary>();
-  for (const preset of index.presets) {
-    if (preset.packId !== packId) continue;
-    const existing = byId.get(preset.categoryId);
-    if (existing) {
-      existing.count += 1;
-      continue;
-    }
-    const next = { id: preset.categoryId, name: preset.categoryName, count: 1 };
-    byId.set(preset.categoryId, next);
-    categories.push(next);
-  }
-  return categories;
 }
 
 export function planCompactStyleCatalogPackIds({

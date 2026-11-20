@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   shouldAlwaysShowCatalogCardActions,
   shouldMountCatalogCardActions,
-  shouldShowCatalogCardQuickActions,
 } from './catalogCardActionSurface';
 
 describe('catalogCardActionSurface', () => {
@@ -39,27 +38,6 @@ describe('catalogCardActionSurface', () => {
         alwaysShowActions: false,
         isActionSurfaceActive: false,
         isSelected: true,
-      }),
-    ).toBe(true);
-  });
-
-  it('keeps favorite and select buttons hover/focus-only on desktop', () => {
-    expect(
-      shouldShowCatalogCardQuickActions({
-        alwaysShowActions: false,
-        isActionSurfaceActive: false,
-      }),
-    ).toBe(false);
-    expect(
-      shouldShowCatalogCardQuickActions({
-        alwaysShowActions: false,
-        isActionSurfaceActive: true,
-      }),
-    ).toBe(true);
-    expect(
-      shouldShowCatalogCardQuickActions({
-        alwaysShowActions: true,
-        isActionSurfaceActive: false,
       }),
     ).toBe(true);
   });

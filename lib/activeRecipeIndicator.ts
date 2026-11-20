@@ -89,7 +89,3 @@ export function getActiveRecipeIndicator(
   if (!recipeId) return null;
   return ACTIVE_RECIPE_INDICATORS[recipeId] ?? null;
 }
-
-export function listActiveRecipeIndicators() {
-  return Object.values(ACTIVE_RECIPE_INDICATORS);
-}

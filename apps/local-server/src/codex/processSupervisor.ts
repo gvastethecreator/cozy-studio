@@ -19,8 +19,6 @@ export interface ProcessInfo {
   lastStartAt: string | null;
 }
 
-export type AppServerProcessStatus = ProcessInfo['status'];
-
 export class AppServerStartError extends Error {
   readonly causeValue: unknown;
 
@@ -52,18 +50,6 @@ export function getAppServerDiagnostics() {
     ...diagnostics,
     lastInvocation: diagnostics.lastInvocation ? [...diagnostics.lastInvocation] : null,
   };
-}
-
-export function resolveAppServerProcessStatus({
-  running,
-  lastStartError,
-}: {
-  running: boolean;
-  lastStartError: string | null;
-}): AppServerProcessStatus {
-  if (running) return 'running';
-  if (lastStartError) return 'error';
-  return 'stopped';
 }
 
 export function ensureAppServer(reason: AppServerEnsureReason = 'session') {

@@ -14,10 +14,6 @@ export function resolveStudioViewportRouteKey(
   return 'recipes-list';
 }
 
-export function isRecipesViewVisible(routeView: AppPageView) {
-  return ['recipes', 'default'].includes(routeView);
-}
-
 export function getStudioViewportTransitionClassName(direction: number) {
   if (direction > 0) return 'studio-route-enter studio-route-enter-forward';
   if (direction < 0) return 'studio-route-enter studio-route-enter-back';

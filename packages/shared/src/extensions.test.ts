@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { globalStylePresetId, parseExtensionManifest } from './extensions';
+import { parseExtensionManifest } from './extensions';
 
 const valid = {
   schemaVersion: 1,
@@ -19,10 +19,9 @@ const valid = {
 };
 
 describe('parseExtensionManifest', () => {
-  it('accepts a style-pack manifest and namespaces preset ids', () => {
+  it('accepts a style-pack manifest', () => {
     const result = parseExtensionManifest(valid);
     expect(result.ok).toBe(true);
-    expect(globalStylePresetId(valid.id, 'SP14-001')).toBe('cozy.mythic-noir/SP14-001');
   });
 
   it('rejects unsafe paths, bad ids and unverifiable assets', () => {

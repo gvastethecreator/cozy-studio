@@ -17,12 +17,6 @@ interface UseStudioGalleryProps {
   onRequestClearWorkspace?: (workspaceId: string) => void | Promise<void>;
 }
 
-export function buildStudioGalleryImages(
-  catalogView: StudioCatalogView,
-): GeneratedImageWithConfig[] {
-  return catalogView.entries.map(materializeCatalogEntryImageWithConfig);
-}
-
 /**
  * Build the Studio's visual image grid from Catalog Entries.
  */

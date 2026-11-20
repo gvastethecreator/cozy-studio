@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   findAvailablePort,
   isPortAvailable,
-  probeHttpHealth,
   probeUrl,
   waitForPortRelease,
   waitForRendererReady,
@@ -28,26 +27,6 @@ describe('devPortFinder', () => {
     await new Promise<void>((resolve) => server.close(() => resolve()));
     await waiting;
     expect(released).toBe(true);
-  });
-
-  it('probeHttpHealth returns true for a server returning { ok: true } and false otherwise', async () => {
-    const port = await findAvailablePort(29200);
-    const server = http.createServer((req, res) => {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true }));
-    });
-
-    await new Promise<void>((resolve) => server.listen(port, '127.0.0.1', () => resolve()));
-
-    try {
-      const isHealthy = await probeHttpHealth(`http://127.0.0.1:${port}`);
-      expect(isHealthy).toBe(true);
-
-      const isUnreachable = await probeHttpHealth(`http://127.0.0.1:${port + 1}`, 300);
-      expect(isUnreachable).toBe(false);
-    } finally {
-      await new Promise<void>((resolve) => server.close(() => resolve()));
-    }
   });
 
   it('waits for successful renderer responses and rejects a renderer that exits', async () => {

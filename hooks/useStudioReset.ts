@@ -2,15 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { resetStudioData as requestStudioResetData } from '../services/studio-api/runtime';
 import { clearAll as clearAllIndexedDb } from '../utils/idb';
 
-const DEFAULT_RESET_LOCAL_STORAGE_KEYS = ['generation-config', 'user-wallet-balance'] as const;
-
 interface UseStudioResetProps {
   addToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
   resetStudioState: () => void;
   refreshRuntime: () => Promise<unknown>;
   clearGenerationState: () => void;
   ui: StudioUiResetActions;
-  localStorageKeys?: readonly string[];
 }
 
 export interface StudioUiResetActions {
@@ -39,10 +36,8 @@ interface PerformStudioResetOptions {
   refreshRuntime: () => Promise<unknown>;
   clearGenerationState: () => void;
   clearUiState: () => void;
-  localStorageKeys?: readonly string[];
   requestStudioReset?: () => Promise<unknown>;
   clearIndexedDb?: () => Promise<unknown>;
-  removeLocalStorageItem?: (key: string) => void;
   startTransition?: (callback: () => void) => void;
 }
 
@@ -52,23 +47,13 @@ export async function performStudioReset({
   refreshRuntime,
   clearGenerationState,
   clearUiState,
-  localStorageKeys = DEFAULT_RESET_LOCAL_STORAGE_KEYS,
   requestStudioReset = requestStudioResetData,
   clearIndexedDb = clearAllIndexedDb,
-  removeLocalStorageItem = (key: string) => window.localStorage.removeItem(key),
   startTransition = (callback) => callback(),
 }: PerformStudioResetOptions) {
   try {
     await requestStudioReset();
     await clearIndexedDb();
-
-    for (const key of localStorageKeys) {
-      try {
-        removeLocalStorageItem(key);
-      } catch {
-        // Ignore storage cleanup failures; state reset still proceeds.
-      }
-    }
 
     clearGenerationState();
 
@@ -99,7 +84,6 @@ export function useStudioReset({
   refreshRuntime,
   clearGenerationState,
   ui,
-  localStorageKeys = DEFAULT_RESET_LOCAL_STORAGE_KEYS,
 }: UseStudioResetProps) {
   const [isResettingStudio, setIsResettingStudio] = useState(false);
   const isMountedRef = useRef(true);
@@ -156,7 +140,6 @@ export function useStudioReset({
         refreshRuntime,
         clearGenerationState,
         clearUiState,
-        localStorageKeys,
       });
     } finally {
       if (isMountedRef.current) {
@@ -168,7 +151,6 @@ export function useStudioReset({
     clearGenerationState,
     clearUiState,
     isResettingStudio,
-    localStorageKeys,
     refreshRuntime,
     resetStudioState,
   ]);

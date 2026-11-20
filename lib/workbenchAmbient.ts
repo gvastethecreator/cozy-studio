@@ -1,4 +1,3 @@
-export const WORKBENCH_UI_VERSION = '0.4.0';
 export const WORKBENCH_DENSITY = 'comfortable';
 export const WORKBENCH_PRECISION_DENSITY = 'comfortable';
 export const WORKBENCH_TYPOGRAPHY = 'neutral';

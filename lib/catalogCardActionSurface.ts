@@ -17,10 +17,3 @@ export function shouldMountCatalogCardActions({
 }: CatalogCardActionSurfaceState) {
   return alwaysShowActions || isSelected || isActionSurfaceActive;
 }
-
-export function shouldShowCatalogCardQuickActions({
-  alwaysShowActions,
-  isActionSurfaceActive,
-}: Pick<CatalogCardActionSurfaceState, 'alwaysShowActions' | 'isActionSurfaceActive'>) {
-  return alwaysShowActions || isActionSurfaceActive;
-}

@@ -7,7 +7,6 @@ import { createSubscriptionAuthStore } from './store';
 import {
   getUsableAccessToken,
   isCodexHttpCredentialReady,
-  isGoogleHttpCredentialReady,
   isGoogleOAuthCredentialReady,
   isGrokHttpCredentialReady,
   tokensFromOAuthPayload,
@@ -102,9 +101,8 @@ describe('subscription tokens', () => {
     ).toBe(true);
   });
 
-  it('accepts a Google API key without treating OAuth as connected', () => {
+  it('does not treat a Google API key as a connected OAuth credential', () => {
     const store = makeStore();
-    expect(isGoogleHttpCredentialReady(store, { GOOGLE_API_KEY: 'google-secret' })).toBe(true);
     expect(isGoogleOAuthCredentialReady(store, { GOOGLE_API_KEY: 'google-secret' })).toBe(false);
   });
 

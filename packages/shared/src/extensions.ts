@@ -269,10 +269,6 @@ export function compareExtensionVersions(a: string, b: string) {
   return aPre.localeCompare(bPre);
 }
 
-export function globalStylePresetId(extensionId: string, presetId: string) {
-  return `${extensionId}/${presetId}`;
-}
-
 /** The Studio API path of a file inside an installed extension. */
 export function extensionFilePath(extensionId: string, relativePath: string) {
   const encoded = relativePath.split('/').map(encodeURIComponent).join('/');

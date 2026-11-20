@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { serializeRecipeProviderDirectives } from '../../packages/shared/src';
-import {
-  createCinematicFrameDirectives,
-  createCinematicFrameInstructions,
-  createCinematicLayoutInstruction,
-} from './cinematic';
+import { createCinematicFrameDirectives, createCinematicLayoutInstruction } from './cinematic';
 import { buildRecipeProviderDirectives, getRecipeModule } from './index';
 
 describe('cinematic recipe', () => {
@@ -16,7 +12,6 @@ describe('cinematic recipe', () => {
     expect(
       createCinematicFrameDirectives({ 6: 'Wide', 0: 'Wide', 1: 'Auto', 2: 'Close-Up' }, 3),
     ).toEqual(['Frame 1: Wide Shot', 'Frame 3: Close-Up Shot']);
-    expect(createCinematicFrameInstructions({ 0: 'Wide' }, 3)).toContain('SPECIFIC FRAME SHOTS');
   });
 
   it('builds compact provider directives for cinematic params', () => {

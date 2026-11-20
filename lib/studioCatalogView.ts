@@ -1,13 +1,5 @@
 import type { CatalogImage } from '../packages/shared/src';
 
-export interface CatalogEntryFilters {
-  workspaceId?: string | null;
-  favorite?: boolean;
-  deleted?: boolean;
-  batchId?: string | null;
-  jobId?: string | null;
-}
-
 export interface StudioCatalogView {
   entries: CatalogImage[];
   byId: Map<string, CatalogImage>;
@@ -48,29 +40,4 @@ export function createCatalogView(
     byId,
     byBatchId,
   };
-}
-
-export function selectCatalogEntries(
-  view: StudioCatalogView,
-  filters: CatalogEntryFilters = {},
-): CatalogImage[] {
-  return view.entries.filter((entry) => {
-    if (filters.workspaceId !== undefined && entry.workspaceId !== filters.workspaceId) {
-      return false;
-    }
-    if (filters.favorite !== undefined && entry.isFavorite !== filters.favorite) {
-      return false;
-    }
-    if (filters.deleted !== undefined && entry.isDeleted !== filters.deleted) {
-      return false;
-    }
-    if (filters.batchId !== undefined && entry.batchId !== filters.batchId) {
-      return false;
-    }
-    if (filters.jobId !== undefined && entry.jobId !== filters.jobId) {
-      return false;
-    }
-
-    return true;
-  });
 }

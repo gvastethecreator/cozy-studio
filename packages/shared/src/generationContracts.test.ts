@@ -6,7 +6,6 @@ import {
   createProviderInputMetrics,
   createGenerationTaskSpec,
   createProviderSessionContract,
-  isBuiltInGenerationProvider,
   isGenerationTaskKind,
   validateGenerationTaskSpec,
 } from './generationContracts';
@@ -131,13 +130,6 @@ describe('generationContracts', () => {
       '- Avoid: watermark',
       '- Reference role: mood.png (reference): Use for cool color mood only.',
     ]);
-  });
-
-  it('recognizes built-in providers while allowing future provider ids', () => {
-    expect(isBuiltInGenerationProvider('codex')).toBe(true);
-    expect(isBuiltInGenerationProvider('grok')).toBe(true);
-    expect(isBuiltInGenerationProvider('fal')).toBe(true);
-    expect(isBuiltInGenerationProvider('local-experiment')).toBe(false);
   });
 
   it('recognizes supported Generation Task kinds for worker routing', () => {

@@ -2,8 +2,6 @@ import {
   STUDIO_RESET_CONFIRMATION,
   type CodexRuntimeDoctorReport,
   type HealthResponse,
-  type OnboardingHostActionRequest,
-  type OnboardingHostActionResult,
   type OnboardingSetupRequest,
   type OnboardingSetupSuccessResponse,
   type StudioReadinessEnvelope,
@@ -39,15 +37,6 @@ export async function getStudioHealth(signal?: AbortSignal) {
 
 export async function runOnboardingSetup(body: OnboardingSetupRequest) {
   const result = await request<OnboardingSetupSuccessResponse>('/api/onboarding/setup', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-  invalidateRuntimeSnapshot();
-  return result;
-}
-
-export async function runOnboardingHostAction(body: OnboardingHostActionRequest) {
-  const result = await request<OnboardingHostActionResult>('/api/onboarding/host-action', {
     method: 'POST',
     body: JSON.stringify(body),
   });

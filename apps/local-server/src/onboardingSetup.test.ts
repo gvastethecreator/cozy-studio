@@ -103,34 +103,39 @@ describe('onboardingSetup', () => {
     expect(next).toContain('STUDIO_SERVER_PORT=17223');
   });
 
-  it('keeps literal paths with comments and variables intact when Bun restarts', () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'cozy-bootstrap-path-'));
-    const env = { ...process.env };
-    delete env.STUDIO_LIBRARY_DIR;
-    try {
-      for (const libraryPath of [
-        String.raw`D:\new\#OUTPUTS\Cozy Studio`,
-        '/home/artist/$HOME #pictures',
-        String.raw`D:\Jos\u00e9's #pictures\$drafts`,
-      ]) {
-        const contents = upsertStudioLibraryDir(
-          'export STUDIO_LIBRARY_DIR = /old\nSTUDIO_SERVER_PORT=17223\n',
-          libraryPath,
-        );
-        expect(contents.match(/STUDIO_LIBRARY_DIR/g)).toHaveLength(1);
-        expect(readStudioLibraryDirFromEnv(contents)).toBe(libraryPath);
-        writeFileSync(path.join(root, '.env'), contents);
-        const actual = execFileSync(
-          'bun',
-          ['-e', 'console.log(JSON.stringify(process.env.STUDIO_LIBRARY_DIR))'],
-          { cwd: root, env, encoding: 'utf8', timeout: 10_000, windowsHide: true },
-        );
-        expect(JSON.parse(actual)).toBe(libraryPath);
+  // Three Bun processes with 10 s limits each.
+  it(
+    'keeps literal paths with comments and variables intact when Bun restarts',
+    { timeout: 30_000 },
+    () => {
+      const root = mkdtempSync(path.join(tmpdir(), 'cozy-bootstrap-path-'));
+      const env = { ...process.env };
+      delete env.STUDIO_LIBRARY_DIR;
+      try {
+        for (const libraryPath of [
+          String.raw`D:\new\#OUTPUTS\Cozy Studio`,
+          '/home/artist/$HOME #pictures',
+          String.raw`D:\Jos\u00e9's #pictures\$drafts`,
+        ]) {
+          const contents = upsertStudioLibraryDir(
+            'export STUDIO_LIBRARY_DIR = /old\nSTUDIO_SERVER_PORT=17223\n',
+            libraryPath,
+          );
+          expect(contents.match(/STUDIO_LIBRARY_DIR/g)).toHaveLength(1);
+          expect(readStudioLibraryDirFromEnv(contents)).toBe(libraryPath);
+          writeFileSync(path.join(root, '.env'), contents);
+          const actual = execFileSync(
+            'bun',
+            ['-e', 'console.log(JSON.stringify(process.env.STUDIO_LIBRARY_DIR))'],
+            { cwd: root, env, encoding: 'utf8', timeout: 10_000, windowsHide: true },
+          );
+          expect(JSON.parse(actual)).toBe(libraryPath);
+        }
+      } finally {
+        rmSync(root, { recursive: true, force: true });
       }
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
-  });
+    },
+  );
 
   it('requires confirm before writing a OneDrive-like path, then proceeds', () => {
     const writes: string[] = [];

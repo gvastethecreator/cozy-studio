@@ -1,8 +1,8 @@
 # Cozy Studio agent rules
 
-This file is for agents that work in this repo. Start with `git status --short` and preserve unrelated work. Read `CONTEXT.md` for domain terms and the relevant section of `docs/ARCHITECTURE.md` before changing a product boundary.
+This file is for agents that work in this repo. Start with `git status --short` and preserve unrelated work. Before you change a named domain concept or a product boundary, read the relevant `CONTEXT.md` entries and the relevant section of `docs/ARCHITECTURE.md`.
 
-For product-module changes, inspect `docs/codemap/codemap.lock` and use the affected section of `docs/codemap/codemap.md` for callers, tests, and flows. Refresh the map only at the closeout of a change set that changes boundaries, dependencies, routes, data stores, queues or major flows, and commit the four artifacts in their own `docs(codemap): refresh` commit. Tests, docs, skills, styles, copy and internal edits do not need a refresh; `impact` still answers from a stale map and reports its freshness. GitHub Issues and Project `#8` are the task tracker; do not introduce a second `tasks.json` tracker.
+For product-module changes, inspect `docs/codemap/codemap.lock` and use the affected section of `docs/codemap/codemap.md` for callers, tests, and flows. Refresh the map only at the closeout of a change set that changes boundaries, dependencies, routes, data stores, queues or major flows, or before a release. Commit the four artifacts in their own `docs(codemap): refresh` commit. An ordinary feature or fix does not need a refresh, and neither do tests, docs, skills, styles, copy or internal edits; `impact` still answers from a stale map and reports its freshness. GitHub Issues and Project `#8` are the task tracker; do not introduce a second `tasks.json` tracker.
 
 ## Setup
 
@@ -12,7 +12,7 @@ That skill owns initialization, provider-specific readiness, and runtime checks.
 
 ## Image jobs
 
-Use the ChatGPT provider after Studio Settings Sign in. Do not start `codex app-server` or select the Codex provider for ordinary image jobs. Codex app-server jobs create Codex turns and spend Codex usage. ChatGPT HTTP does not create those turns. It can still hit its own HTTP usage limit. It is not a separate subscription and not API credits. In the Studio UI, if Settings still has the Codex provider selected, switch the next image job to ChatGPT before generating. For MCP generation, follow **Plan before you spend** in `skills/cozy-studio-mcp/SKILL.md`.
+Use the ChatGPT provider after Studio Settings Sign in. Do not start `codex app-server` or select the Codex provider for ordinary image jobs. Codex app-server jobs create Codex turns and spend Codex usage. ChatGPT HTTP does not create those turns. It can still hit its own HTTP usage limit. It is not a separate subscription. When its usage window is used up, jobs can spend the account's ChatGPT credits, which cost money; check the usage state before generating. In the Studio UI, if Settings still has the Codex provider selected, switch the next image job to ChatGPT before generating. For MCP generation, follow **Plan before you spend** in `skills/cozy-studio-mcp/SKILL.md`.
 
 ## Commands
 
@@ -33,7 +33,7 @@ For focused unit tests:
 bun run test -- path/to/test.ts
 ```
 
-For docs and skills, run `bun run docs:check` and validate changed skill packages. `validate:fast` is a fixed unit subset plus server typecheck; it does not select tests from the diff. `validate:full` is an alias of the release gate.
+For docs and skills, run `bun run docs:check` and validate changed skill packages. `validate:fast` is a fixed unit subset plus server typecheck; it does not select tests from the diff.
 
 If `rg` fails on Windows in this checkout, use PowerShell `Get-ChildItem` and `Select-String`.
 

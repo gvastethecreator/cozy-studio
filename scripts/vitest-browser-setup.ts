@@ -16,3 +16,10 @@ if (typeof window !== 'undefined' && typeof ResizeObserver === 'undefined') {
     disconnect() {}
   };
 }
+
+if (typeof window !== 'undefined') {
+  // findBy* waits 1 s by default. Lazy chunks and renders can pass that on a loaded machine;
+  // 3 s stays under the 5 s test timeout, so a missing element still fails.
+  const { configure } = await import('@testing-library/react');
+  configure({ asyncUtilTimeout: 3000 });
+}

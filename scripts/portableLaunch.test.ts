@@ -295,7 +295,10 @@ describe('portable launchers', () => {
   });
 });
 
-describe('portable root update loop', () => {
+// Launcher tests run real shells and Bun with 20 s child deadlines; one test may run two in a row.
+const LAUNCHER_TEST_TIMEOUT = 45_000;
+
+describe('portable root update loop', { timeout: LAUNCHER_TEST_TIMEOUT }, () => {
   const platforms = process.platform === 'win32' ? ['unix', 'windows'] : ['unix'];
   it.each(
     platforms
@@ -460,7 +463,7 @@ describe('portable root update loop', () => {
   );
 });
 
-describe('Unix portable launchers', () => {
+describe('Unix portable launchers', { timeout: LAUNCHER_TEST_TIMEOUT }, () => {
   it('starts from another directory using bundled Bun for both Linux and macOS launchers', () => {
     const bash =
       process.platform === 'win32'
@@ -516,7 +519,7 @@ describe('Unix portable launchers', () => {
   });
 });
 
-describe('Windows portable dry-run', () => {
+describe('Windows portable dry-run', { timeout: LAUNCHER_TEST_TIMEOUT }, () => {
   it('prefers bundled Bun and passes its PATH to child commands, including without global Bun', () => {
     if (process.platform !== 'win32') return;
     const root = mkdtempSync(path.join(tmpdir(), 'cozy portable runtime '));

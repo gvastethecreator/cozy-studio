@@ -223,7 +223,7 @@ Heavy or optional UI mounts only when it is visible or the user asks for it.
 
 ## Checks and automation
 
-`bun run architecture:verify` runs `bun run lint` (the import rules in `vite.config.ts`), `architecture:source:verify` (the source text rules) and `isolation:verify` together for local use. CI does not call it by name: `validate` runs lint and `architecture:source:verify`, and the full Vitest suite includes the isolation tests.
+`bun run validate` checks the architecture: `vp check` runs the import rules in `vite.config.ts`, and `architecture:source:verify` runs the source text rules. The full Vitest suite includes the isolation tests; `bun run isolation:verify` runs only those for a focused local check.
 
 Scripts and the Codex SDK are automation surfaces for audits, migrations, tests and maintenance, not the product runtime. [Tooling](TOOLING.md) and `package.json` list them.
 

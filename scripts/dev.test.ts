@@ -5,7 +5,7 @@ import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
 
-describe('development launcher', () => {
+describe('development launcher', { timeout: 30_000 }, () => {
   it('rejects an occupied UI port without stopping its existing server', async () => {
     const existingServer = spawn(
       process.execPath,
@@ -32,7 +32,8 @@ describe('development launcher', () => {
           encoding: 'utf8',
           stdio: ['ignore', 'pipe', 'pipe'],
           windowsHide: true,
-          timeout: 3000,
+          // Bun startup alone can pass 3 s on a loaded machine.
+          timeout: 15_000,
         });
       } catch (caught) {
         error = caught as typeof error;

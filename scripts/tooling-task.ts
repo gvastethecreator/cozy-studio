@@ -130,16 +130,6 @@ const TASKS: Record<string, TaskDefinition> = {
       },
     ],
   },
-  'test:unit': {
-    description: 'Run the focused fast unit suite used in iterative refactors.',
-    steps: [
-      {
-        label: 'Unit Test',
-        command: 'bunx',
-        args: ['vitest', 'run', ...UNIT_TEST_FILES],
-      },
-    ],
-  },
   'test:bun': {
     description: 'Run the native Bun test files that Vitest excludes.',
     steps: [{ label: 'Bun Test', command: 'bun', args: ['test', ...BUN_TEST_FILES] }],
@@ -203,16 +193,6 @@ const TASKS: Record<string, TaskDefinition> = {
       },
       { label: 'Bun Test', command: 'bun', args: ['test', ...BUN_TEST_FILES] },
       ...UI_BUILD_STEPS,
-    ],
-  },
-  'validate:full': {
-    description: 'Compatibility alias of the complete release gate.',
-    steps: [
-      {
-        label: 'Release Validate',
-        command: 'bun',
-        args: ['run', 'scripts/tooling-task.ts', 'validate:release'],
-      },
     ],
   },
   'validate:release': {

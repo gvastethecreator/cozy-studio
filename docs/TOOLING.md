@@ -52,7 +52,6 @@ In VS Code, **Test file** runs the active `.test.ts` or `.test.tsx` file. **Test
 | `bun run validate:fast`          | Fixed unit subset + server typecheck       |
 | `bun run validate`               | Main PR gate                               |
 | `bun run validate:release`       | Release gate                               |
-| `bun run validate:full`          | Compatibility alias of the release gate    |
 | `bun run typecheck:environments` | Web, server, shared, and script boundaries |
 | `bun run docs:check`             | Broken local doc links                     |
 | `bun run repo:hygiene:verify`    | Reject tracked secrets, DBs, and scratch   |

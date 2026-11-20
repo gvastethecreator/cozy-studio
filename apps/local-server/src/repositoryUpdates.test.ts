@@ -21,6 +21,10 @@ import type { RepositoryUpdateChannel } from '../../../packages/shared/src/repos
 import { createRepositoryUpdateRoutes } from './repositoryUpdateRoutes';
 import { createLocalApiSecurityMiddleware } from './localApiSecurity';
 
+// Each check or apply spawns several Git processes. On a loaded Windows machine one spawn can
+// take a second, so Git-backed waits use the same limit as one Git call.
+const GIT_TIMEOUT = 30_000;
+
 const roots: string[] = [];
 const activeUpdates: ReturnType<typeof createRepositoryUpdates>[] = [];
 const finishPendingRequests: (() => void)[] = [];
@@ -34,7 +38,7 @@ afterEach(async () => {
       for (const updates of testUpdates)
         expect(['checking', 'updating']).not.toContain(updates.status().phase);
     },
-    { timeout: 5000 },
+    { timeout: GIT_TIMEOUT },
   );
   for (const root of testRoots) rmSync(root, { recursive: true, force: true });
 });
@@ -59,7 +63,7 @@ const git = (cwd: string, ...args: string[]) =>
       cwd,
       encoding: 'utf8',
       windowsHide: true,
-      timeout: 30_000,
+      timeout: GIT_TIMEOUT,
       stdio: ['ignore', 'pipe', 'pipe'],
     },
   ).trim();
@@ -81,8 +85,12 @@ beforeAll(() => {
   git(join(template, 'studio'), 'config', '--local', 'maintenance.auto', 'false');
   // A relative origin makes every copy fetch from its own remote.
   git(join(template, 'studio'), 'remote', 'set-url', 'origin', '../remote');
-});
+}, GIT_TIMEOUT);
 afterAll(() => rmSync(template, { recursive: true, force: true }));
+
+// Read a branch tip from its loose ref instead of spawning `git rev-parse`.
+const headOf = (repo: string) =>
+  readFileSync(join(repo, '.git', 'refs', 'heads', 'main'), 'utf8').trim();
 
 function fixture(options: Partial<Parameters<typeof createRepositoryUpdates>[0]> = {}) {
   const base = mkdtempSync(join(tmpdir(), 'studio-update-'));
@@ -93,7 +101,7 @@ function fixture(options: Partial<Parameters<typeof createRepositoryUpdates>[0]>
   function advance(contents = 'v2') {
     writeFileSync(join(remote, 'app.txt'), contents);
     git(remote, 'commit', '-am', 'update');
-    return git(remote, 'rev-parse', 'HEAD');
+    return headOf(remote);
   }
   const install = vi.fn(async () => {});
   const restart = vi.fn();
@@ -120,7 +128,7 @@ function fixture(options: Partial<Parameters<typeof createRepositoryUpdates>[0]>
   };
 }
 
-describe('repository updates', () => {
+describe('repository updates', { timeout: GIT_TIMEOUT }, () => {
   let f: ReturnType<typeof fixture>;
   beforeEach(() => {
     f = fixture();
@@ -131,7 +139,7 @@ describe('repository updates', () => {
     beforeEach(async () => {
       target = f.advance();
       checked = await f.updates.check();
-    });
+    }, GIT_TIMEOUT);
 
     it('checks origin/main without changing HEAD, then fast-forwards, installs and restarts once', async () => {
       expect(checked).toMatchObject({
@@ -142,8 +150,8 @@ describe('repository updates', () => {
       expect(readFileSync(join(f.root, 'app.txt'), 'utf8')).toBe('v1');
       expect(f.updates.apply(target).phase).toBe('updating');
       expect(() => f.updates.apply(target)).toThrow('already running');
-      await vi.waitFor(() => expect(f.restart).toHaveBeenCalledTimes(1), { timeout: 5000 });
-      expect(f.git(f.root, 'rev-parse', 'HEAD')).toBe(target);
+      await vi.waitFor(() => expect(f.restart).toHaveBeenCalledTimes(1), { timeout: GIT_TIMEOUT });
+      expect(headOf(f.root)).toBe(target);
       expect(f.install).toHaveBeenCalledTimes(1);
     });
 
@@ -162,7 +170,9 @@ describe('repository updates', () => {
     it('rechecks local changes when applying', async () => {
       writeFileSync(join(f.root, 'app.txt'), 'my changes');
       f.updates.apply(target);
-      await vi.waitFor(() => expect(f.updates.status().phase).toBe('error'), { timeout: 5000 });
+      await vi.waitFor(() => expect(f.updates.status().phase).toBe('error'), {
+        timeout: GIT_TIMEOUT,
+      });
       expect(f.updates.status().error).toContain('local changes');
       expect(readFileSync(join(f.root, 'app.txt'), 'utf8')).toBe('my changes');
       expect(f.install).not.toHaveBeenCalled();
@@ -179,7 +189,7 @@ describe('repository updates', () => {
             canUpdate: true,
             canRestart: false,
           }),
-        { timeout: 5000 },
+        { timeout: GIT_TIMEOUT },
       );
       expect(f.restart).not.toHaveBeenCalled();
       expect(f.updates.blocksMutations()).toBe(true);
@@ -191,19 +201,19 @@ describe('repository updates', () => {
       // Installation retries use the applied commit, even when Git goes offline.
       f.git(f.root, 'remote', 'set-url', 'origin', join(f.root, 'missing-remote'));
       f.updates.apply(target);
-      await vi.waitFor(() => expect(f.restart).toHaveBeenCalledTimes(1), { timeout: 5000 });
+      await vi.waitFor(() => expect(f.restart).toHaveBeenCalledTimes(1), { timeout: GIT_TIMEOUT });
       expect(f.install).toHaveBeenCalledTimes(2);
     });
 
     it('rejects stale targets', async () => {
-      const old = f.git(f.root, 'rev-parse', 'HEAD');
+      const old = headOf(f.root);
       const accepted = target;
       target = f.advance('v3');
       f.updates.apply(accepted);
       await vi.waitFor(() => expect(f.updates.status().error).toContain('New commits arrived'), {
-        timeout: 5000,
+        timeout: GIT_TIMEOUT,
       });
-      expect(f.git(f.root, 'rev-parse', 'HEAD')).toBe(old);
+      expect(headOf(f.root)).toBe(old);
       expect(f.updates.status().latestCommit).toBe(target);
     });
 
@@ -280,7 +290,7 @@ describe('repository updates', () => {
   });
 });
 
-describe('release channel in a Git checkout', () => {
+describe('release channel in a Git checkout', { timeout: GIT_TIMEOUT }, () => {
   it('fetches an annotated published tag and stops before later main commits', async () => {
     const readRelease = vi.fn(async () => ({ version: '0.1.1', tag: 'v0.1.1', assets: [] }));
     const f = fixture({ getChannel: () => 'releases', readRelease });
@@ -296,8 +306,8 @@ describe('release channel in a Git checkout', () => {
       canUpdate: true,
     });
     f.updates.apply(releaseCommit);
-    await vi.waitFor(() => expect(f.restart).toHaveBeenCalledTimes(1), { timeout: 5000 });
-    expect(f.git(f.root, 'rev-parse', 'HEAD')).toBe(releaseCommit);
+    await vi.waitFor(() => expect(f.restart).toHaveBeenCalledTimes(1), { timeout: GIT_TIMEOUT });
+    expect(headOf(f.root)).toBe(releaseCommit);
     expect(readFileSync(join(f.root, 'app.txt'), 'utf8')).toBe('v2');
     expect(f.updates.status().currentVersion).toBe('0.1.1');
     f.git(f.remote, 'tag', 'v0.1.2');
@@ -350,14 +360,16 @@ describe('release channel in a Git checkout', () => {
     });
     expect(() => f.updates.apply(target)).toThrow('Check for updates');
     const checked = f.updates.check();
-    await vi.waitFor(() => expect(readRelease).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(readRelease).toHaveBeenCalledTimes(1), { timeout: GIT_TIMEOUT });
     finishCheck();
     await checked;
     f.updates.apply(target);
-    await vi.waitFor(() => expect(readRelease).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(readRelease).toHaveBeenCalledTimes(2), { timeout: GIT_TIMEOUT });
     channel = 'commits';
     finishApply();
-    await vi.waitFor(() => expect(f.updates.status().phase).toBe('error'), { timeout: 5000 });
+    await vi.waitFor(() => expect(f.updates.status().phase).toBe('error'), {
+      timeout: GIT_TIMEOUT,
+    });
     expect(f.updates.status()).toMatchObject({
       latestCommit: null,
       canUpdate: false,

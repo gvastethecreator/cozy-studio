@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import React from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, expect, it, vi } from 'vitest';
 import { DEFAULT_GENERATION_CONFIG } from '../constants';
 import ImageCarousel from './ImageCarousel';
 import { openCatalogImageFolder } from '../services/studio-api/catalog';
@@ -21,6 +21,11 @@ vi.mock('../services/studio-api/catalog', () => ({
   getCatalogCollectionSelection: vi.fn().mockResolvedValue([]),
   openCatalogImageFolder: vi.fn().mockResolvedValue(undefined),
 }));
+
+// Pay Vite's first transform of the lazy menu chain here, so findByRole only waits for the render.
+beforeAll(async () => {
+  await import('./ui/GsapDropdown');
+});
 
 afterEach(() => {
   cleanup();

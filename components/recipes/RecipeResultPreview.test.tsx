@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { StrictMode } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 const toast = vi.hoisted(() => ({ addToast: vi.fn() }));
 vi.mock('../../contexts/GlobalContext', () => ({
@@ -20,6 +20,11 @@ import { MODELS } from '../../constants';
 import { RecipeResultPreview } from './RecipeResultPreview';
 import { RecipeWorkbenchContext } from './recipeWorkbenchContextState';
 import type { Attachment, GeneratedImageWithConfig } from '../../types';
+
+// Pay Vite's first transform of the lazy menu chain here, so findByRole only waits for the render.
+beforeAll(async () => {
+  await Promise.all([import('../ImageActionsMenu'), import('../ui/GsapDropdown')]);
+});
 
 afterEach(() => {
   cleanup();

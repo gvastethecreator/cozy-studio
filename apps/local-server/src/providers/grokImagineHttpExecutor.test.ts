@@ -1,4 +1,5 @@
-import { Effect } from 'effect';
+import { Effect, Fiber } from 'effect';
+import { TestClock } from 'effect/testing';
 import { describe, expect, it } from 'vitest';
 
 import { createGenerationTaskSpec } from '../../../../packages/shared/src';
@@ -207,6 +208,7 @@ describe('Grok Imagine HTTP executor', () => {
   });
 
   it('falls back to CLI when a hosted image URL cannot be downloaded', async () => {
+    let downloads = 0;
     const fetchMock = async (input: string | URL | Request) => {
       const url = inputToUrl(input);
       if (url.endsWith('/images/generations')) {
@@ -214,6 +216,7 @@ describe('Grok Imagine HTTP executor', () => {
           headers: { 'content-type': 'application/json' },
         });
       }
+      downloads += 1;
       return new Response('unavailable', { status: 503 });
     };
     const executor = createGrokImagineHttpExecutor({
@@ -224,12 +227,21 @@ describe('Grok Imagine HTTP executor', () => {
       mkdir: (() => undefined) as typeof import('node:fs').mkdirSync,
       writeFile: (() => undefined) as typeof import('node:fs').writeFileSync,
     });
-    await expect(Effect.runPromise(Effect.scoped(executor(createContext())))).rejects.toMatchObject(
-      {
-        code: 'timeout',
-        fallbackAllowed: true,
-      },
-    );
+    // The test clock skips the download backoff. One live millisecond per step lets the
+    // mocked fetch settle before the clock moves on to the next retry.
+    const run = Effect.gen(function* () {
+      const fiber = yield* Effect.forkChild(Effect.scoped(executor(createContext())));
+      while (!fiber.pollUnsafe()) {
+        yield* TestClock.testClockWith((clock) => clock.withLive(Effect.sleep('1 millis')));
+        yield* TestClock.adjust('400 millis');
+      }
+      return yield* Fiber.join(fiber);
+    }).pipe(Effect.provide(TestClock.layer()));
+    await expect(Effect.runPromise(run)).rejects.toMatchObject({
+      code: 'timeout',
+      fallbackAllowed: true,
+    });
+    expect(downloads).toBe(3);
   });
 
   it('does not misclassify Studio Library write failures as provider timeouts', async () => {

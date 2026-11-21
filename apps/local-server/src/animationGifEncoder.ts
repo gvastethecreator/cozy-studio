@@ -176,18 +176,14 @@ function indexFrame(
 function lzwEncode(indices: Uint8Array, minCodeSize = 8) {
   const clearCode = 1 << minCodeSize;
   const endCode = clearCode + 1;
-  const resetDictionary = () => {
-    const dictionary = new Map<string, number>();
-    for (let index = 0; index < clearCode; index += 1) {
-      dictionary.set(String(index), index);
-    }
-    return dictionary;
-  };
-
-  let dictionary = resetDictionary();
+  // Single symbols are their own codes, so the table only holds (prefix code, symbol) pairs.
+  // Integer keys keep each lookup constant time, even on long runs of one color.
+  const dictionary = new Map<number, number>();
   let nextCode = endCode + 1;
   let codeSize = minCodeSize + 1;
-  const bytes: number[] = [];
+  // Each index emits at most one code and one clear code, plus the first clear, last and end codes.
+  const bytes = new Uint8Array(Math.ceil(((indices.length * 2 + 3) * 12) / 8));
+  let length = 0;
   let bitBuffer = 0;
   let bitCount = 0;
 
@@ -195,32 +191,27 @@ function lzwEncode(indices: Uint8Array, minCodeSize = 8) {
     bitBuffer |= code << bitCount;
     bitCount += codeSize;
     while (bitCount >= 8) {
-      bytes.push(bitBuffer & 0xff);
+      bytes[length++] = bitBuffer & 0xff;
       bitBuffer >>= 8;
       bitCount -= 8;
     }
   };
 
-  const reset = () => {
-    dictionary = resetDictionary();
-    nextCode = endCode + 1;
-    codeSize = minCodeSize + 1;
-  };
-
   writeCode(clearCode);
-  let prefix = String(indices[0] ?? 0);
+  let prefix = indices[0] ?? 0;
 
   for (let offset = 1; offset < indices.length; offset += 1) {
-    const value = indices[offset];
-    const joined = `${prefix},${value}`;
-    if (dictionary.has(joined)) {
-      prefix = joined;
+    const value = indices[offset]!;
+    const key = (prefix << minCodeSize) | value;
+    const existing = dictionary.get(key);
+    if (existing !== undefined) {
+      prefix = existing;
       continue;
     }
 
-    writeCode(dictionary.get(prefix) ?? 0);
+    writeCode(prefix);
     if (nextCode < 4096) {
-      dictionary.set(joined, nextCode);
+      dictionary.set(key, nextCode);
       nextCode += 1;
       // The decoder adds a dictionary entry after reading the next emitted code,
       // so keep the current width for one more code at each size boundary.
@@ -229,15 +220,17 @@ function lzwEncode(indices: Uint8Array, minCodeSize = 8) {
       }
     } else {
       writeCode(clearCode);
-      reset();
+      dictionary.clear();
+      nextCode = endCode + 1;
+      codeSize = minCodeSize + 1;
     }
-    prefix = String(value);
+    prefix = value;
   }
 
-  writeCode(dictionary.get(prefix) ?? 0);
+  writeCode(prefix);
   writeCode(endCode);
-  if (bitCount > 0) bytes.push(bitBuffer & 0xff);
-  return bytes;
+  if (bitCount > 0) bytes[length++] = bitBuffer & 0xff;
+  return bytes.subarray(0, length);
 }
 
 function pushAscii(bytes: number[], value: string) {
@@ -250,7 +243,7 @@ function pushU16(bytes: number[], value: number) {
   bytes.push(value & 0xff, (value >> 8) & 0xff);
 }
 
-function pushSubBlocks(bytes: number[], data: number[]) {
+function pushSubBlocks(bytes: number[], data: Uint8Array) {
   for (let offset = 0; offset < data.length; offset += 255) {
     const chunk = data.slice(offset, offset + 255);
     bytes.push(chunk.length, ...chunk);

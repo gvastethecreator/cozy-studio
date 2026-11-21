@@ -17,10 +17,12 @@ describe('draft persistence recovery', () => {
     vi.mocked(set).mockReset().mockResolvedValue(undefined);
     const { result, unmount } = renderHook(() => useIndexedDBStorage('draft', ''));
     await waitFor(() => expect(result.current[3].error).toContain('could not be read'));
+    vi.useFakeTimers();
     act(() => result.current[1]('new edit'));
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 350));
+      await vi.advanceTimersByTimeAsync(350);
     });
+    vi.useRealTimers();
     expect(set).not.toHaveBeenCalled();
     await act(async () => result.current[3].retry());
     expect(result.current[0]).toBe('new edit');

@@ -119,10 +119,12 @@ it('keeps loaded pages on an older-page failure and retries the same cursor', as
   await waitFor(() => expect(result.current.history).toHaveLength(2));
   expect(api.list.mock.calls[2][0].cursor).toBe('page-2');
   expect(result.current.nextCursor).toBeNull();
+  vi.useFakeTimers();
   rerender({ jobs: known.map((row) => ({ ...row })) });
   await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    await vi.advanceTimersByTimeAsync(150);
   });
+  vi.useRealTimers();
   expect(api.list).toHaveBeenCalledTimes(3);
   expect(result.current.history).toHaveLength(2);
   expect(result.current.nextCursor).toBeNull();

@@ -1,8 +1,6 @@
-import { Database } from 'bun:sqlite';
+import type { Database } from 'bun:sqlite';
 import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import type { GenerationTaskSpec } from '../../../../packages/shared/src';
-import { resolveJobWorkspaceId } from '../../../../packages/shared/src/workspaceContracts';
 import { getDb } from './connection';
 import { ensureDefaultWorkspaceRow } from './workspaces';
 
@@ -17,90 +15,66 @@ function now() {
   return new Date().toISOString();
 }
 
-function parseJson<T>(value: string | null | undefined, fallback: T): T {
-  if (!value) return fallback;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
-}
+/**
+ * The oldest schema this Studio opens. Every release, from v0.1.1 on, creates it. A new database
+ * starts here; Studio refuses an older database without changing it.
+ */
+const BASELINE_SCHEMA_VERSION = 20;
+const BASELINE_UPDATE_RELEASE_URL =
+  'https://github.com/gvastethecreator/cozy-studio/releases/tag/v0.2.0';
 
-function ensureColumn(
-  database: Database,
-  tableName: string,
-  columnName: string,
-  definition: string,
-) {
-  const columns = database.query(`PRAGMA table_info(${tableName})`).all() as { name: string }[];
-  if (!columns.some((column) => column.name === columnName)) {
-    database.run(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
-  }
-}
+/**
+ * Steps 1 to 20 of the earlier migration chain, which the baseline replaces. A new database
+ * records them, so its ledger matches an updated database and Studio v0.2.0 can still open it.
+ */
+const BASELINE_STEP_NAMES = [
+  'base-schema',
+  'job-library-context',
+  'job-finalization-checkpoints',
+  'workspace-authority-expand',
+  'drop-project-required-coupling',
+  'remove-project-contract',
+  'remote-execution-identity',
+  'atomic-job-batches-and-attempt-history',
+  'job-output-context',
+  'durable-output-generations',
+  'reference-import-receipts',
+  'catalog-collections',
+  'catalog-organization-presentation',
+  'reference-import-stored-digest',
+  'drop-orphan-workspace-tags',
+  'drop-cross-workspace-collection-members',
+  'settle-legacy-size-review-jobs',
+  'catalog-organize-history',
+  'catalog-smart-collections',
+  'catalog-image-dhash',
+] as const;
 
-function migrateBaseSchema(database: Database) {
-  database.run(`
-    CREATE TABLE IF NOT EXISTS settings (
+const SCHEMA_MIGRATIONS_SQL = `CREATE TABLE IF NOT EXISTS schema_migrations (
+      version INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      applied_at TEXT NOT NULL
+    )`;
+
+/**
+ * The version-20 schema exactly as `sqlite_master` holds it after steps 1 to 20, with the added
+ * columns and rebuilt tables of those steps. New and updated databases therefore have the same
+ * schema text. Do not reformat or edit it: change the schema with a new migration.
+ */
+const BASELINE_SCHEMA_SQL = [
+  `CREATE TABLE settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL,
       updated_at TEXT NOT NULL
-    )
-  `);
-  database.run(`
-    CREATE TABLE IF NOT EXISTS projects (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      description TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    )
-  `);
-  database.run(`
-    CREATE TABLE IF NOT EXISTS jobs (
-      id TEXT PRIMARY KEY,
-      project_id TEXT NOT NULL REFERENCES projects(id),
-      kind TEXT NOT NULL,
-      provider_id TEXT,
-      source_spec_json TEXT,
-      status TEXT NOT NULL,
-      execution_json TEXT,
-      original_prompt TEXT NOT NULL,
-      expanded_prompt TEXT,
-      final_prompt_used TEXT NOT NULL,
-      error TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      completed_at TEXT
-    )
-  `);
-  database.run(`
-    CREATE TABLE IF NOT EXISTS assets (
-      id TEXT PRIMARY KEY,
-      project_id TEXT NOT NULL REFERENCES projects(id),
-      job_id TEXT NOT NULL REFERENCES jobs(id),
-      file_path TEXT NOT NULL,
-      thumbnail_path TEXT,
-      public_url TEXT NOT NULL,
-      prompt TEXT NOT NULL,
-      width INTEGER,
-      height INTEGER,
-      mime_type TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      deleted_at TEXT
-    )
-  `);
-  database.run(`
-    CREATE TABLE IF NOT EXISTS libraries (
+    )`,
+  `CREATE TABLE libraries (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       path TEXT NOT NULL UNIQUE,
       is_default INTEGER DEFAULT 0,
       created_at TEXT NOT NULL
-    )
-  `);
-  ensureColumn(database, 'libraries', 'kind', "TEXT NOT NULL DEFAULT 'library'");
-  database.run(`
-    CREATE TABLE IF NOT EXISTS catalog_images (
+    , kind TEXT NOT NULL DEFAULT 'library')`,
+  `CREATE TABLE catalog_images (
       id TEXT PRIMARY KEY,
       library_id TEXT NOT NULL REFERENCES libraries(id),
       file_path TEXT NOT NULL,
@@ -125,25 +99,17 @@ function migrateBaseSchema(database: Database) {
       tags TEXT DEFAULT '[]',
       generation_config TEXT,
       created_at TEXT NOT NULL
-    )
-  `);
-  database.run('CREATE INDEX IF NOT EXISTS idx_catalog_library ON catalog_images(library_id)');
-  database.run('CREATE INDEX IF NOT EXISTS idx_catalog_workspace ON catalog_images(workspace_id)');
-  database.run('CREATE INDEX IF NOT EXISTS idx_catalog_job ON catalog_images(job_id)');
-  database.run('CREATE INDEX IF NOT EXISTS idx_catalog_favorite ON catalog_images(is_favorite)');
-  database.run('CREATE INDEX IF NOT EXISTS idx_catalog_deleted ON catalog_images(is_deleted)');
-  database.run('CREATE INDEX IF NOT EXISTS idx_catalog_created ON catalog_images(created_at)');
-  database.run(
-    'CREATE INDEX IF NOT EXISTS idx_catalog_deleted_created_desc ON catalog_images(is_deleted, created_at DESC)',
-  );
-  database.run(
-    "CREATE INDEX IF NOT EXISTS idx_catalog_workspace_key_deleted_created_desc ON catalog_images(COALESCE(workspace_id, 'default'), is_deleted, created_at DESC)",
-  );
-  database.run(
-    "CREATE INDEX IF NOT EXISTS idx_catalog_deleted_workspace_created_cover ON catalog_images(is_deleted, COALESCE(workspace_id, 'default'), created_at DESC, id DESC, library_id, file_size_bytes)",
-  );
-  database.run(`
-    CREATE TABLE IF NOT EXISTS user_style_presets (
+    , dhash TEXT)`,
+  `CREATE INDEX idx_catalog_library ON catalog_images(library_id)`,
+  `CREATE INDEX idx_catalog_workspace ON catalog_images(workspace_id)`,
+  `CREATE INDEX idx_catalog_job ON catalog_images(job_id)`,
+  `CREATE INDEX idx_catalog_favorite ON catalog_images(is_favorite)`,
+  `CREATE INDEX idx_catalog_deleted ON catalog_images(is_deleted)`,
+  `CREATE INDEX idx_catalog_created ON catalog_images(created_at)`,
+  `CREATE INDEX idx_catalog_deleted_created_desc ON catalog_images(is_deleted, created_at DESC)`,
+  `CREATE INDEX idx_catalog_workspace_key_deleted_created_desc ON catalog_images(COALESCE(workspace_id, 'default'), is_deleted, created_at DESC)`,
+  `CREATE INDEX idx_catalog_deleted_workspace_created_cover ON catalog_images(is_deleted, COALESCE(workspace_id, 'default'), created_at DESC, id DESC, library_id, file_size_bytes)`,
+  `CREATE TABLE user_style_presets (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       category TEXT NOT NULL,
@@ -158,32 +124,17 @@ function migrateBaseSchema(database: Database) {
       is_archived INTEGER DEFAULT 0,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
-    )
-  `);
-  database.run(
-    'CREATE INDEX IF NOT EXISTS idx_user_style_archived_updated ON user_style_presets(is_archived, updated_at DESC)',
-  );
-  database.run(`
-    CREATE TABLE IF NOT EXISTS workspaces (
+    )`,
+  `CREATE INDEX idx_user_style_archived_updated ON user_style_presets(is_archived, updated_at DESC)`,
+  `CREATE TABLE workspaces (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       library_id TEXT REFERENCES libraries(id),
       filter_json TEXT,
       sort_order TEXT DEFAULT 'newest',
       created_at TEXT NOT NULL
-    )
-  `);
-  database.run(`
-    CREATE TABLE IF NOT EXISTS codex_threads (
-      id TEXT PRIMARY KEY,
-      project_id TEXT NOT NULL REFERENCES projects(id),
-      codex_thread_id TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    )
-  `);
-  database.run(`
-    CREATE TABLE IF NOT EXISTS codex_turns (
+    , updated_at TEXT)`,
+  `CREATE TABLE codex_turns (
       id TEXT PRIMARY KEY,
       job_id TEXT NOT NULL REFERENCES jobs(id),
       codex_thread_id TEXT,
@@ -192,406 +143,27 @@ function migrateBaseSchema(database: Database) {
       status TEXT NOT NULL,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
-    )
-  `);
-  database.run(`
-    CREATE TABLE IF NOT EXISTS job_events (
+    )`,
+  `CREATE TABLE job_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       job_id TEXT REFERENCES jobs(id),
       type TEXT NOT NULL,
       message TEXT NOT NULL,
       metadata TEXT,
       created_at TEXT NOT NULL
-    )
-  `);
-  database.run(`
-    CREATE TABLE IF NOT EXISTS system_logs (
+    )`,
+  `CREATE TABLE system_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       level TEXT NOT NULL,
       scope TEXT NOT NULL,
       message TEXT NOT NULL,
       job_id TEXT,
       created_at TEXT NOT NULL
-    )
-  `);
-  ensureColumn(database, 'jobs', 'execution_json', 'TEXT');
-  ensureColumn(database, 'jobs', 'provider_id', 'TEXT');
-  ensureColumn(database, 'jobs', 'source_spec_json', 'TEXT');
-  database.run('CREATE INDEX IF NOT EXISTS idx_jobs_created_desc ON jobs(created_at DESC)');
-  database.run('CREATE INDEX IF NOT EXISTS idx_job_events_job_id_id ON job_events(job_id, id)');
-  database.run(
-    'CREATE INDEX IF NOT EXISTS idx_codex_turns_job_updated_desc ON codex_turns(job_id, updated_at DESC)',
-  );
-}
-
-const DATABASE_MIGRATIONS = [
-  {
-    version: 1,
-    name: 'base-schema',
-    migrate: migrateBaseSchema,
-  },
-  {
-    version: 2,
-    name: 'job-library-context',
-    migrate(database: Database) {
-      ensureColumn(database, 'jobs', 'library_id', 'TEXT');
-      ensureColumn(database, 'jobs', 'library_root', 'TEXT');
-      database.run(
-        'CREATE INDEX IF NOT EXISTS idx_jobs_library_created_desc ON jobs(library_id, created_at DESC)',
-      );
-    },
-  },
-  {
-    version: 3,
-    name: 'job-finalization-checkpoints',
-    migrate(database: Database) {
-      ensureColumn(database, 'jobs', 'finalization_state', 'TEXT');
-      ensureColumn(database, 'jobs', 'finalization_source_path', 'TEXT');
-      ensureColumn(database, 'jobs', 'finalization_file_path', 'TEXT');
-      ensureColumn(database, 'jobs', 'finalization_asset_id', 'TEXT');
-      ensureColumn(database, 'jobs', 'finalization_catalog_id', 'TEXT');
-      database.run(
-        'CREATE INDEX IF NOT EXISTS idx_jobs_finalization_state ON jobs(finalization_state)',
-      );
-    },
-  },
-  {
-    version: 4,
-    name: 'workspace-authority-expand',
-    migrate(database: Database) {
-      database.run(`
-        CREATE TABLE IF NOT EXISTS workspaces (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          library_id TEXT,
-          filter_json TEXT,
-          sort_order TEXT DEFAULT 'newest',
-          created_at TEXT NOT NULL,
-          updated_at TEXT
-        )
-      `);
-      ensureColumn(database, 'workspaces', 'updated_at', 'TEXT');
-      ensureColumn(database, 'jobs', 'workspace_id', 'TEXT');
-      ensureColumn(database, 'jobs', 'recipe_id', 'TEXT');
-      ensureColumn(database, 'jobs', 'batch_id', 'TEXT');
-      ensureColumn(database, 'jobs', 'aspect_ratio', 'TEXT');
-      ensureDefaultWorkspaceRow(database);
-      backfillJobOperationalColumns(database);
-      database.run(
-        'CREATE INDEX IF NOT EXISTS idx_jobs_workspace_created_desc ON jobs(workspace_id, created_at DESC)',
-      );
-      database.run(
-        'CREATE INDEX IF NOT EXISTS idx_jobs_status_created_desc ON jobs(status, created_at DESC)',
-      );
-      database.run('CREATE INDEX IF NOT EXISTS idx_jobs_batch_id ON jobs(batch_id)');
-      database.run(
-        'CREATE INDEX IF NOT EXISTS idx_jobs_recipe_created_desc ON jobs(recipe_id, created_at DESC)',
-      );
-    },
-  },
-  {
-    version: 5,
-    name: 'drop-project-required-coupling',
-    migrate(database: Database) {
-      // Keep legacy project rows for historical reads, but stop requiring product FK coupling
-      // for new writes by making project_id nullable via table rebuild when needed.
-      rebuildJobsWithoutRequiredProject(database);
-      rebuildAssetsWithoutRequiredProject(database);
-      rebuildCodexThreadsWithoutRequiredProject(database);
-    },
-  },
-  {
-    version: 6,
-    name: 'remove-project-contract',
-    migrate: removeLegacyProjectContract,
-  },
-  {
-    version: 7,
-    name: 'remote-execution-identity',
-    migrate(database: Database) {
-      ensureColumn(database, 'jobs', 'remote_execution_json', 'TEXT');
-      // Older executions may already be accepted by Comfy. A missing checkpoint
-      // cannot turn an upgrade or shutdown recovery into permission to resubmit.
-      database.run(`UPDATE jobs SET status = 'needs_review',
-        error = 'Legacy Comfy execution has no remote identity. Inspect the original runtime before starting another job.'
-        WHERE remote_execution_json IS NULL AND status IN ('queued', 'running')
-          AND (provider_id = 'comfy' OR json_extract(source_spec_json, '$.providerId') = 'comfy')
-          AND (status = 'running' OR EXISTS (
-            SELECT 1 FROM job_events WHERE job_events.job_id = jobs.id AND job_events.type = 'external.started'
-          ))`);
-    },
-  },
-  {
-    version: 8,
-    name: 'atomic-job-batches-and-attempt-history',
-    migrate(database: Database) {
-      ensureColumn(database, 'jobs', 'attempt', 'INTEGER NOT NULL DEFAULT 1');
-      ensureColumn(database, 'jobs', 'attempt_queued_at', 'TEXT');
-      database.run(`CREATE TABLE job_batches (
-        id TEXT PRIMARY KEY, request_hash TEXT NOT NULL, workspace_id TEXT NOT NULL,
-        requested_count INTEGER NOT NULL CHECK(requested_count > 0), created_at TEXT NOT NULL
-      )`);
-      database.run(`CREATE TABLE job_batch_members (
-        batch_id TEXT NOT NULL REFERENCES job_batches(id), job_id TEXT NOT NULL UNIQUE REFERENCES jobs(id),
-        position INTEGER NOT NULL, PRIMARY KEY(batch_id, position)
-      )`);
-      database.run(`CREATE TABLE job_attempts (
-        job_id TEXT NOT NULL REFERENCES jobs(id), attempt INTEGER NOT NULL, queued_at TEXT,
-        archived_at TEXT NOT NULL, event_end_id INTEGER NOT NULL, job_json TEXT NOT NULL,
-        PRIMARY KEY(job_id, attempt)
-      )`);
-      database.run(`CREATE TABLE job_batch_retries (
-        request_id TEXT PRIMARY KEY, batch_id TEXT NOT NULL REFERENCES job_batches(id),
-        request_hash TEXT NOT NULL, job_ids_json TEXT NOT NULL
-      )`);
-    },
-  },
-  {
-    version: 9,
-    name: 'job-output-context',
-    migrate(database: Database) {
-      // The output folder and naming captured at submit; the worker reads the job back from here.
-      ensureColumn(database, 'jobs', 'library_context_json', 'TEXT');
-    },
-  },
-  {
-    version: 10,
-    name: 'durable-output-generations',
-    migrate(database: Database) {
-      database.run(`CREATE TABLE output_generations (
-        generation_number INTEGER PRIMARY KEY AUTOINCREMENT,
-        owner_key TEXT NOT NULL UNIQUE
-      )`);
-    },
-  },
-  {
-    version: 11,
-    name: 'reference-import-receipts',
-    migrate(database: Database) {
-      database.run(`CREATE TABLE reference_import_receipts (
-        request_id TEXT PRIMARY KEY,
-        request_hash TEXT NOT NULL,
-        catalog_image_id TEXT NOT NULL,
-        sha256 TEXT NOT NULL,
-        mime_type TEXT NOT NULL,
-        byte_length INTEGER NOT NULL,
-        name TEXT NOT NULL,
-        created_at TEXT NOT NULL
-      )`);
-      database.run(
-        'CREATE INDEX idx_reference_import_receipts_sha256 ON reference_import_receipts(sha256)',
-      );
-    },
-  },
-  {
-    version: 12,
-    name: 'catalog-collections',
-    migrate(database: Database) {
-      database.run(`CREATE TABLE catalog_collections (
-        id TEXT PRIMARY KEY,
-        workspace_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      )`);
-      database.run(
-        'CREATE UNIQUE INDEX idx_catalog_collections_workspace_name ON catalog_collections(workspace_id, name COLLATE NOCASE)',
-      );
-      database.run(`CREATE TABLE catalog_collection_images (
-        collection_id TEXT NOT NULL REFERENCES catalog_collections(id) ON DELETE CASCADE,
-        image_id TEXT NOT NULL REFERENCES catalog_images(id) ON DELETE CASCADE,
-        added_at TEXT NOT NULL,
-        PRIMARY KEY (collection_id, image_id)
-      )`);
-      database.run(
-        'CREATE INDEX idx_catalog_collection_images_image ON catalog_collection_images(image_id)',
-      );
-    },
-  },
-  {
-    version: 13,
-    name: 'catalog-organization-presentation',
-    migrate(database: Database) {
-      database.run('ALTER TABLE catalog_collections ADD COLUMN emoji TEXT');
-      database.run('ALTER TABLE catalog_collections ADD COLUMN last_used_at TEXT');
-      database.run(`UPDATE catalog_collections SET last_used_at = (
-        SELECT MAX(added_at) FROM catalog_collection_images WHERE collection_id = catalog_collections.id
-      )`);
-      database.run(`CREATE TABLE catalog_tags (
-        workspace_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        color TEXT,
-        last_used_at TEXT,
-        PRIMARY KEY (workspace_id, name)
-      )`);
-      database.run(`INSERT INTO catalog_tags (workspace_id, name, last_used_at)
-        SELECT COALESCE(image.workspace_id, 'default'), tag.value, MAX(image.created_at)
-        FROM catalog_images image,
-          json_each(CASE WHEN json_valid(image.tags) THEN image.tags ELSE '[]' END) tag
-        WHERE tag.type = 'text'
-        GROUP BY COALESCE(image.workspace_id, 'default'), tag.value`);
-    },
-  },
-  {
-    version: 14,
-    name: 'reference-import-stored-digest',
-    migrate(database: Database) {
-      database.run(
-        "ALTER TABLE reference_import_receipts ADD COLUMN stored_sha256 TEXT NOT NULL DEFAULT ''",
-      );
-      database.run('UPDATE reference_import_receipts SET stored_sha256 = sha256');
-    },
-  },
-  {
-    version: 15,
-    name: 'drop-orphan-workspace-tags',
-    migrate(database: Database) {
-      // Tags of a deleted workspace. Keep them while a live image still uses that workspace id:
-      // the workspace strip recreates that workspace as "Imported", and its colors must survive.
-      database.run(`DELETE FROM catalog_tags
-        WHERE workspace_id <> 'default'
-          AND NOT EXISTS (SELECT 1 FROM workspaces WHERE workspaces.id = catalog_tags.workspace_id)
-          AND NOT EXISTS (SELECT 1 FROM catalog_images image
-            WHERE image.is_deleted = 0
-              AND COALESCE(image.workspace_id, 'default') = catalog_tags.workspace_id)`);
-    },
-  },
-  {
-    version: 16,
-    name: 'drop-cross-workspace-collection-members',
-    migrate(database: Database) {
-      // Every collection read already hides these rows, so no visible data changes.
-      database.run(`DELETE FROM catalog_collection_images
-        WHERE EXISTS (
-          SELECT 1 FROM catalog_collections collection
-          JOIN catalog_images image ON image.id = catalog_collection_images.image_id
-          WHERE collection.id = catalog_collection_images.collection_id
-            AND collection.workspace_id <> COALESCE(image.workspace_id, 'default'))`);
-    },
-  },
-  {
-    version: 17,
-    name: 'settle-legacy-size-review-jobs',
-    migrate(database: Database) {
-      // Builds from 2026-10-07 to 2026-10-26 saved the image and then held the job in
-      // needs_review for a size or aspect difference. The current finalizer completes such a job
-      // and records an asset.dimensions.info notice; apply that rule to the old rows.
-      // Only that finalizer wrote actualSize on a job.needs_review event. Images are not touched.
-      const legacyEvent = `SELECT MAX(e.id) FROM job_events e
-        WHERE e.job_id = jobs.id AND e.type = 'job.needs_review'
-          AND json_extract(CASE WHEN json_valid(e.metadata) THEN e.metadata ELSE '{}' END,
-            '$.actualSize') IS NOT NULL`;
-      const legacyJob = `jobs.status = 'needs_review' AND jobs.finalization_state = 'completed'
-        AND jobs.finalization_catalog_id IS NOT NULL AND (${legacyEvent}) IS NOT NULL`;
-      // Insert first: the job predicate reads the status that the update changes.
-      database.run(`INSERT INTO job_events (job_id, type, message, metadata, created_at)
-        SELECT jobs.id, 'asset.dimensions.info',
-          'Requested image size ' || COALESCE(json_extract(e.metadata, '$.requestedSize'), 'unknown')
-            || '; provider returned ' || json_extract(e.metadata, '$.actualSize')
-            || '. Original dimensions preserved.',
-          e.metadata, e.created_at
-        FROM jobs JOIN job_events e ON e.id = (${legacyEvent})
-        WHERE ${legacyJob}`);
-      // Keep updated_at: the Queue "clear list" filters compare with it.
-      database.run(`UPDATE jobs SET status = 'completed', error = NULL,
-        completed_at = COALESCE(completed_at, updated_at)
-        WHERE ${legacyJob}`);
-    },
-  },
-  {
-    version: 18,
-    name: 'catalog-organize-history',
-    migrate(database: Database) {
-      database.run(`CREATE TABLE catalog_organize_history (
-        id TEXT PRIMARY KEY,
-        workspace_id TEXT NOT NULL,
-        source TEXT NOT NULL CHECK (source IN ('ui', 'agent')),
-        changes_json TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        undone_at TEXT
-      )`);
-      database.run(`CREATE INDEX idx_catalog_organize_history_workspace
-        ON catalog_organize_history(workspace_id)`);
-    },
-  },
-  {
-    version: 19,
-    name: 'catalog-smart-collections',
-    migrate(database: Database) {
-      database.run('ALTER TABLE catalog_collections ADD COLUMN rule_json TEXT');
-    },
-  },
-  {
-    version: 20,
-    name: 'catalog-image-dhash',
-    migrate(database: Database) {
-      database.run('ALTER TABLE catalog_images ADD COLUMN dhash TEXT');
-    },
-  },
-  {
-    version: 21,
-    name: 'catalog-filter-count-indexes',
-    migrate(database: Database) {
-      // Favorite and unorganized counts otherwise read every full image row of the workspace.
-      database.run(`CREATE INDEX idx_catalog_workspace_deleted_favorite
-        ON catalog_images(COALESCE(workspace_id, 'default'), is_deleted, is_favorite)`);
-      // Workspace last: the grouped count for every workspace seeks this index too.
-      database.run(`CREATE INDEX idx_catalog_deleted_tag_count_workspace
-        ON catalog_images(is_deleted, ${CATALOG_TAG_COUNT_SQL}, COALESCE(workspace_id, 'default'))`);
-    },
-  },
-] as const;
-
-function backfillJobOperationalColumns(database: Database) {
-  const rows = database
-    .query('SELECT id, source_spec_json, workspace_id, recipe_id, batch_id, aspect_ratio FROM jobs')
-    .all() as Array<{
-    id: string;
-    source_spec_json: string | null;
-    workspace_id: string | null;
-    recipe_id: string | null;
-    batch_id: string | null;
-    aspect_ratio: string | null;
-  }>;
-
-  const update = database.query(
-    `UPDATE jobs
-     SET workspace_id = ?, recipe_id = ?, batch_id = ?, aspect_ratio = ?
-     WHERE id = ?`,
-  );
-
-  for (const row of rows) {
-    const sourceSpec = parseJson<GenerationTaskSpec | null>(row.source_spec_json, null);
-    const metadata = sourceSpec?.metadata;
-    const workspaceId = resolveJobWorkspaceId({
-      columnWorkspaceId: row.workspace_id,
-      sourceSpecMetadata: metadata,
-    });
-    const recipeId =
-      row.recipe_id ??
-      (typeof sourceSpec?.recipeId === 'string' && sourceSpec.recipeId.trim()
-        ? sourceSpec.recipeId
-        : null);
-    const batchId =
-      row.batch_id ??
-      (metadata &&
-      typeof metadata === 'object' &&
-      !Array.isArray(metadata) &&
-      typeof (metadata as Record<string, unknown>).batchId === 'string'
-        ? String((metadata as Record<string, unknown>).batchId)
-        : null);
-    const aspectRatio =
-      row.aspect_ratio ??
-      (typeof sourceSpec?.output?.aspectRatio === 'string' ? sourceSpec.output.aspectRatio : null);
-    update.run(workspaceId, recipeId, batchId, aspectRatio, row.id);
-  }
-}
-
-function rebuildJobsWithoutRequiredProject(database: Database) {
-  database.run(`
-    CREATE TABLE IF NOT EXISTS jobs_workspace_authority (
+    )`,
+  `CREATE INDEX idx_job_events_job_id_id ON job_events(job_id, id)`,
+  `CREATE INDEX idx_codex_turns_job_updated_desc ON codex_turns(job_id, updated_at DESC)`,
+  `CREATE TABLE "jobs" (
       id TEXT PRIMARY KEY,
-      project_id TEXT,
       workspace_id TEXT,
       recipe_id TEXT,
       batch_id TEXT,
@@ -615,74 +187,16 @@ function rebuildJobsWithoutRequiredProject(database: Database) {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       completed_at TEXT
-    )
-  `);
-  database.run(`
-    INSERT INTO jobs_workspace_authority (
-      id, project_id, workspace_id, recipe_id, batch_id, aspect_ratio, kind, provider_id,
-      source_spec_json, status, execution_json, library_id, library_root,
-      finalization_state, finalization_source_path, finalization_file_path,
-      finalization_asset_id, finalization_catalog_id, original_prompt, expanded_prompt,
-      final_prompt_used, error, created_at, updated_at, completed_at
-    )
-    SELECT
-      id, project_id, workspace_id, recipe_id, batch_id, aspect_ratio, kind, provider_id,
-      source_spec_json, status, execution_json, library_id, library_root,
-      finalization_state, finalization_source_path, finalization_file_path,
-      finalization_asset_id, finalization_catalog_id, original_prompt, expanded_prompt,
-      final_prompt_used, error, created_at, updated_at, completed_at
-    FROM jobs
-  `);
-  database.run('DROP TABLE jobs');
-  database.run('ALTER TABLE jobs_workspace_authority RENAME TO jobs');
-  database.run('CREATE INDEX IF NOT EXISTS idx_jobs_created_desc ON jobs(created_at DESC)');
-  database.run(
-    'CREATE INDEX IF NOT EXISTS idx_jobs_workspace_created_desc ON jobs(workspace_id, created_at DESC)',
-  );
-  database.run(
-    'CREATE INDEX IF NOT EXISTS idx_jobs_status_created_desc ON jobs(status, created_at DESC)',
-  );
-  database.run('CREATE INDEX IF NOT EXISTS idx_jobs_batch_id ON jobs(batch_id)');
-  database.run(
-    'CREATE INDEX IF NOT EXISTS idx_jobs_recipe_created_desc ON jobs(recipe_id, created_at DESC)',
-  );
-  database.run(
-    'CREATE INDEX IF NOT EXISTS idx_jobs_library_created_desc ON jobs(library_id, created_at DESC)',
-  );
-  database.run(
-    'CREATE INDEX IF NOT EXISTS idx_jobs_finalization_state ON jobs(finalization_state)',
-  );
-}
-
-function tableExists(database: Database, tableName: string) {
-  const row = database
-    .query(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?`)
-    .get(tableName) as { name: string } | null;
-  return Boolean(row);
-}
-
-function columnExists(database: Database, tableName: string, columnName: string) {
-  if (!tableExists(database, tableName)) return false;
-  return (database.query(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>).some(
-    (column) => column.name === columnName,
-  );
-}
-
-function removeLegacyProjectContract(database: Database) {
-  for (const tableName of ['assets', 'codex_threads', 'jobs']) {
-    if (columnExists(database, tableName, 'project_id')) {
-      database.run(`ALTER TABLE ${tableName} DROP COLUMN project_id`);
-    }
-  }
-  database.run('DROP TABLE IF EXISTS projects');
-}
-
-function rebuildAssetsWithoutRequiredProject(database: Database) {
-  if (!tableExists(database, 'assets')) return;
-  database.run(`
-    CREATE TABLE IF NOT EXISTS assets_workspace_authority (
+    , remote_execution_json TEXT, attempt INTEGER NOT NULL DEFAULT 1, attempt_queued_at TEXT, library_context_json TEXT)`,
+  `CREATE INDEX idx_jobs_created_desc ON jobs(created_at DESC)`,
+  `CREATE INDEX idx_jobs_workspace_created_desc ON jobs(workspace_id, created_at DESC)`,
+  `CREATE INDEX idx_jobs_status_created_desc ON jobs(status, created_at DESC)`,
+  `CREATE INDEX idx_jobs_batch_id ON jobs(batch_id)`,
+  `CREATE INDEX idx_jobs_recipe_created_desc ON jobs(recipe_id, created_at DESC)`,
+  `CREATE INDEX idx_jobs_library_created_desc ON jobs(library_id, created_at DESC)`,
+  `CREATE INDEX idx_jobs_finalization_state ON jobs(finalization_state)`,
+  `CREATE TABLE "assets" (
       id TEXT PRIMARY KEY,
-      project_id TEXT,
       job_id TEXT NOT NULL REFERENCES jobs(id),
       file_path TEXT NOT NULL,
       thumbnail_path TEXT,
@@ -693,45 +207,131 @@ function rebuildAssetsWithoutRequiredProject(database: Database) {
       mime_type TEXT NOT NULL,
       created_at TEXT NOT NULL,
       deleted_at TEXT
-    )
-  `);
-  database.run(`
-    INSERT INTO assets_workspace_authority (
-      id, project_id, job_id, file_path, thumbnail_path, public_url, prompt,
-      width, height, mime_type, created_at, deleted_at
-    )
-    SELECT
-      id, project_id, job_id, file_path, thumbnail_path, public_url, prompt,
-      width, height, mime_type, created_at, deleted_at
-    FROM assets
-  `);
-  database.run('DROP TABLE assets');
-  database.run('ALTER TABLE assets_workspace_authority RENAME TO assets');
-}
-
-function rebuildCodexThreadsWithoutRequiredProject(database: Database) {
-  if (!tableExists(database, 'codex_threads')) return;
-  database.run(`
-    CREATE TABLE IF NOT EXISTS codex_threads_workspace_authority (
+    )`,
+  `CREATE TABLE "codex_threads" (
       id TEXT PRIMARY KEY,
-      project_id TEXT,
       codex_thread_id TEXT NOT NULL,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
-    )
-  `);
-  database.run(`
-    INSERT INTO codex_threads_workspace_authority (
-      id, project_id, codex_thread_id, created_at, updated_at
-    )
-    SELECT id, project_id, codex_thread_id, created_at, updated_at
-    FROM codex_threads
-  `);
-  database.run('DROP TABLE codex_threads');
-  database.run('ALTER TABLE codex_threads_workspace_authority RENAME TO codex_threads');
+    )`,
+  `CREATE TABLE job_batches (
+        id TEXT PRIMARY KEY, request_hash TEXT NOT NULL, workspace_id TEXT NOT NULL,
+        requested_count INTEGER NOT NULL CHECK(requested_count > 0), created_at TEXT NOT NULL
+      )`,
+  `CREATE TABLE job_batch_members (
+        batch_id TEXT NOT NULL REFERENCES job_batches(id), job_id TEXT NOT NULL UNIQUE REFERENCES jobs(id),
+        position INTEGER NOT NULL, PRIMARY KEY(batch_id, position)
+      )`,
+  `CREATE TABLE job_attempts (
+        job_id TEXT NOT NULL REFERENCES jobs(id), attempt INTEGER NOT NULL, queued_at TEXT,
+        archived_at TEXT NOT NULL, event_end_id INTEGER NOT NULL, job_json TEXT NOT NULL,
+        PRIMARY KEY(job_id, attempt)
+      )`,
+  `CREATE TABLE job_batch_retries (
+        request_id TEXT PRIMARY KEY, batch_id TEXT NOT NULL REFERENCES job_batches(id),
+        request_hash TEXT NOT NULL, job_ids_json TEXT NOT NULL
+      )`,
+  `CREATE TABLE output_generations (
+        generation_number INTEGER PRIMARY KEY AUTOINCREMENT,
+        owner_key TEXT NOT NULL UNIQUE
+      )`,
+  `CREATE TABLE reference_import_receipts (
+        request_id TEXT PRIMARY KEY,
+        request_hash TEXT NOT NULL,
+        catalog_image_id TEXT NOT NULL,
+        sha256 TEXT NOT NULL,
+        mime_type TEXT NOT NULL,
+        byte_length INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      , stored_sha256 TEXT NOT NULL DEFAULT '')`,
+  `CREATE INDEX idx_reference_import_receipts_sha256 ON reference_import_receipts(sha256)`,
+  `CREATE TABLE catalog_collections (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      , emoji TEXT, last_used_at TEXT, rule_json TEXT)`,
+  `CREATE UNIQUE INDEX idx_catalog_collections_workspace_name ON catalog_collections(workspace_id, name COLLATE NOCASE)`,
+  `CREATE TABLE catalog_collection_images (
+        collection_id TEXT NOT NULL REFERENCES catalog_collections(id) ON DELETE CASCADE,
+        image_id TEXT NOT NULL REFERENCES catalog_images(id) ON DELETE CASCADE,
+        added_at TEXT NOT NULL,
+        PRIMARY KEY (collection_id, image_id)
+      )`,
+  `CREATE INDEX idx_catalog_collection_images_image ON catalog_collection_images(image_id)`,
+  `CREATE TABLE catalog_tags (
+        workspace_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        color TEXT,
+        last_used_at TEXT,
+        PRIMARY KEY (workspace_id, name)
+      )`,
+  `CREATE TABLE catalog_organize_history (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL,
+        source TEXT NOT NULL CHECK (source IN ('ui', 'agent')),
+        changes_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        undone_at TEXT
+      )`,
+  `CREATE INDEX idx_catalog_organize_history_workspace
+        ON catalog_organize_history(workspace_id)`,
+];
+
+const DATABASE_MIGRATIONS = [
+  {
+    version: 21,
+    name: 'catalog-filter-count-indexes',
+    migrate(database: Database) {
+      // Favorite and unorganized counts otherwise read every full image row of the workspace.
+      database.run(`CREATE INDEX idx_catalog_workspace_deleted_favorite
+        ON catalog_images(COALESCE(workspace_id, 'default'), is_deleted, is_favorite)`);
+      // Workspace last: the grouped count for every workspace seeks this index too.
+      database.run(`CREATE INDEX idx_catalog_deleted_tag_count_workspace
+        ON catalog_images(is_deleted, ${CATALOG_TAG_COUNT_SQL}, COALESCE(workspace_id, 'default'))`);
+    },
+  },
+] as const;
+
+export const LATEST_DATABASE_SCHEMA_VERSION =
+  DATABASE_MIGRATIONS.at(-1)?.version ?? BASELINE_SCHEMA_VERSION;
+
+function hasStudioTables(database: Database) {
+  return Boolean(
+    database
+      .query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name <> 'schema_migrations'")
+      .get(),
+  );
 }
 
-export const LATEST_DATABASE_SCHEMA_VERSION = DATABASE_MIGRATIONS.at(-1)?.version ?? 0;
+function readAppliedVersions(database: Database) {
+  const hasLedger = database
+    .query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'")
+    .get();
+  if (!hasLedger) return new Set<number>();
+  const rows = database.query('SELECT version FROM schema_migrations').all() as Array<{
+    version: number;
+  }>;
+  return new Set(rows.map((row) => row.version));
+}
+
+/** Stops before any write when the database predates the baseline. A new database passes. */
+function assertSupportedSchema(database: Database, appliedVersions: Set<number>) {
+  if (appliedVersions.has(BASELINE_SCHEMA_VERSION)) return;
+  if (appliedVersions.size === 0 && !hasStudioTables(database)) return;
+  const found = appliedVersions.size
+    ? `schema version ${Math.max(...appliedVersions)}`
+    : 'no schema version';
+  const file = database.filename && database.filename !== ':memory:' ? ` ${database.filename}` : '';
+  throw new Error(
+    `Studio cannot open the database${file}: it has ${found}, and this Studio opens schema ` +
+      `version ${BASELINE_SCHEMA_VERSION} and later. The database is unchanged. To keep its data, ` +
+      `open it once in Studio v0.2.0 (the release ZIP at ${BASELINE_UPDATE_RELEASE_URL}), which ` +
+      'updates it to a supported version. Then open it in this Studio.',
+  );
+}
 
 /** Folder beside the database file that holds the copies made before a migration. */
 const PRE_MIGRATION_BACKUP_DIR = path.join('state', 'pre-migration');
@@ -745,10 +345,6 @@ const PRE_MIGRATION_BACKUP_LIMIT = 3;
 function writePreMigrationBackup(database: Database, fromVersion: number) {
   const databasePath = database.filename;
   if (!databasePath || databasePath === ':memory:') return;
-  const hasData = database
-    .query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name <> 'schema_migrations'")
-    .get();
-  if (!hasData) return;
 
   const backupDir = path.join(path.dirname(databasePath), PRE_MIGRATION_BACKUP_DIR);
   const baseName = path.parse(databasePath).name;
@@ -786,65 +382,33 @@ function writePreMigrationBackup(database: Database, fromVersion: number) {
 }
 
 export function migrateDatabase(database: Database) {
-  database.run(`
-    CREATE TABLE IF NOT EXISTS schema_migrations (
-      version INTEGER PRIMARY KEY,
-      name TEXT NOT NULL,
-      applied_at TEXT NOT NULL
-    )
-  `);
-
-  const appliedVersions = new Set(
-    (
-      database.query('SELECT version FROM schema_migrations ORDER BY version ASC').all() as Array<{
-        version: number;
-      }>
-    ).map((row) => row.version),
+  const appliedVersions = readAppliedVersions(database);
+  assertSupportedSchema(database, appliedVersions);
+  const needsBaseline = !appliedVersions.has(BASELINE_SCHEMA_VERSION);
+  const pending = DATABASE_MIGRATIONS.filter(
+    (migration) => !appliedVersions.has(migration.version),
   );
-  if (DATABASE_MIGRATIONS.some((migration) => !appliedVersions.has(migration.version))) {
-    writePreMigrationBackup(database, Math.max(0, ...appliedVersions));
-  }
-  const requiresForeignKeySafeRebuild = !appliedVersions.has(5);
-  const foreignKeysWereEnabled =
-    (
-      database.query('PRAGMA foreign_keys').get() as {
-        foreign_keys: number;
-      }
-    ).foreign_keys === 1;
+  if (!needsBaseline && pending.length === 0) return;
+  // A new database has nothing to protect; an existing one is at the baseline or later here.
+  if (!needsBaseline) writePreMigrationBackup(database, Math.max(...appliedVersions));
 
-  // SQLite checks the implicit DELETE from DROP TABLE immediately when a
-  // referenced parent is rebuilt. Disable enforcement outside the transaction,
-  // then require a clean relationship check before the migration can commit.
-  if (requiresForeignKeySafeRebuild && foreignKeysWereEnabled) {
-    database.run('PRAGMA foreign_keys = OFF');
-  }
-
-  const applyPendingMigrations = database.transaction(() => {
-    for (const migration of DATABASE_MIGRATIONS) {
-      if (appliedVersions.has(migration.version)) continue;
+  database.transaction(() => {
+    if (needsBaseline) {
+      database.run(SCHEMA_MIGRATIONS_SQL);
+      for (const sql of BASELINE_SCHEMA_SQL) database.run(sql);
+      ensureDefaultWorkspaceRow(database);
+    }
+    const record = database.query(
+      'INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)',
+    );
+    if (needsBaseline) {
+      BASELINE_STEP_NAMES.forEach((name, index) => record.run(index + 1, name, now()));
+    }
+    for (const migration of pending) {
       migration.migrate(database);
-      database
-        .query('INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)')
-        .run(migration.version, migration.name, now());
+      record.run(migration.version, migration.name, now());
     }
-
-    if (requiresForeignKeySafeRebuild) {
-      const violations = database.query('PRAGMA foreign_key_check').all();
-      if (violations.length > 0) {
-        throw new Error(
-          `Database migration would leave ${violations.length} invalid foreign key relationship(s).`,
-        );
-      }
-    }
-  });
-
-  try {
-    applyPendingMigrations();
-  } finally {
-    if (requiresForeignKeySafeRebuild && foreignKeysWereEnabled) {
-      database.run('PRAGMA foreign_keys = ON');
-    }
-  }
+  })();
 }
 
 export function migrateDb(db?: Database) {

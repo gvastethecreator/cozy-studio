@@ -570,66 +570,6 @@ describe('studio_import_reference', () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
-
-  it('migrates previous receipts without rewriting their image or changing replay identity', async () => {
-    const root = mkdtempSync(path.join(os.tmpdir(), 'studio-reference-previous-receipt-'));
-    const database = openLibrary(path.join(root, 'library.sqlite'), root);
-    try {
-      const input = referenceArgs(ONE_BY_ONE_PNG, 'image/png');
-      const filePath = path.join(root, 'previous.png');
-      writeFileSync(filePath, ONE_BY_ONE_PNG);
-      const image = registerCatalogImage(
-        {
-          libraryId: LIBRARY_ID,
-          filePath,
-          prompt: input.name,
-          width: 1,
-          height: 1,
-          mimeType: input.mimeType,
-          fileSizeBytes: ONE_BY_ONE_PNG.length,
-          generationConfig: { source: 'imported reference' },
-        },
-        database,
-      );
-      database.run('ALTER TABLE reference_import_receipts DROP COLUMN stored_sha256');
-      database.run('DELETE FROM schema_migrations WHERE version = 14');
-      const hash = digest(
-        Buffer.from(
-          JSON.stringify({ mimeType: input.mimeType, name: input.name, sha256: input.sha256 }),
-        ),
-      );
-      database
-        .query(`INSERT INTO reference_import_receipts
-        (request_id, request_hash, catalog_image_id, sha256, mime_type, byte_length, name, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-        .run(
-          input.requestId,
-          hash,
-          image.id,
-          input.sha256,
-          input.mimeType,
-          ONE_BY_ONE_PNG.length,
-          input.name,
-          new Date().toISOString(),
-        );
-      migrateDatabase(database);
-      const result = await importStudioReference(input, {
-        database,
-        library: { id: LIBRARY_ID, path: root },
-      });
-      expect(result).toMatchObject({
-        catalogImageId: image.id,
-        sha256: input.sha256,
-        storedSha256: input.sha256,
-        mimeType: 'image/png',
-      });
-      expect(readFileSync(filePath)).toEqual(ONE_BY_ONE_PNG);
-      expect(countRows(database, 'catalog_images')).toBe(1);
-    } finally {
-      database.close();
-      rmSync(root, { recursive: true, force: true });
-    }
-  });
 });
 
 describe('registerCatalogImage filing', () => {

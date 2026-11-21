@@ -115,12 +115,12 @@ All paths are under `apps/local-server/src/`. `appFactory.ts` composes the route
 ## Persistence
 
 - SQLite is the durable source of truth for jobs, cataloged assets, storage folders, workspaces, settings, events and system logs. Browser storage keeps only bounded preferences and input state.
-- Ordered migrations in `apps/local-server/src/db/migrations.ts` run in a transaction and are recorded in `schema_migrations`.
+- `apps/local-server/src/db/migrations.ts` builds a new database from the schema version 20 baseline, then runs the later ordered migrations. Each start runs pending steps in one transaction and records them in `schema_migrations`. Studio opens schema version 20 (every release since v0.1.1) and later. It refuses an older database before any write; the user opens that database once in Studio v0.2.0, which updates it, and then in this Studio.
 - Workspace is the top-level catalog scope. Each workspace has exactly one Library: its Catalog Entries, tags and collections ([ADR 0012](adr/0012-one-library-per-workspace.md)). Tags are per workspace (`catalog_tags` key `(workspace_id, name)`). Project routes, contracts, columns and tables are retired.
 - Workspace delete (`DELETE /api/workspaces/:id`) first rejects Default (400) and an unknown id (404). Then it moves the live images to the trash through the soft-delete path (`archiveByFilter`). If an image fails to move, it answers 500 with `failed` and keeps the workspace, its tags and its collections. Then one transaction checks for new live images (409 when one arrived) and deletes the tags, the collections and the workspace row.
 - `PATCH /api/catalog/:id` takes `isFavorite` and `workspaceId` only. Tag and collection changes go through `POST /api/catalog/commands/organize` (`organizeCatalogImages`): up to 2000 images in one transaction, all checks before the first write, nothing deleted.
-- Migration 18 adds `catalog_organize_history`. Each changed organize call records its actual pairs and source in the same transaction; unchanged calls return a null operation ID. History keeps 20 changes per workspace and is removed with the workspace. `GET /api/catalog/commands/organize/history` reads it; `POST /api/catalog/commands/organize/:operationId/undo` restores the newest active change, preserving prior membership. Repeating Undo is safe; a newer active change returns 409. Created collections stay in place.
-- Migration 19 adds `catalog_collections.rule_json`; a non-null rule identifies a Smart Collection. Generation cannot add manual membership to a smart collection, and organize commands reject smart targets. Only manual memberships affect Unorganized. Library archives preserve smart rules and evaluate them against the imported images, including their saved provider metadata.
+- `catalog_organize_history` holds organize changes. Each changed organize call records its actual pairs and source in the same transaction; unchanged calls return a null operation ID. History keeps 20 changes per workspace and is removed with the workspace. `GET /api/catalog/commands/organize/history` reads it; `POST /api/catalog/commands/organize/:operationId/undo` restores the newest active change, preserving prior membership. Repeating Undo is safe; a newer active change returns 409. Created collections stay in place.
+- A non-null `catalog_collections.rule_json` identifies a Smart Collection. Generation cannot add manual membership to a smart collection, and organize commands reject smart targets. Only manual memberships affect Unorganized. Library archives preserve smart rules and evaluate them against the imported images, including their saved provider metadata.
 - Library Archive imports accept at most 1 GiB, with a 2 GiB expanded limit. ZIP structure and paths are validated before writes. Processed entries require matching length and CRC; images declared above 64 MiB are skipped without inflating or verifying their payload. Invalid image bytes are reported as skipped; invalid archive structure or corrupt processed entries reject the archive. Generation config drops credentials and local asset references.
 - Before Studio applies a pending schema migration to an existing database, it writes a `VACUUM INTO` copy to `.studio/state/pre-migration/` and keeps the newest 3. If the copy fails, no migration runs and startup stops with an error. Studio never restores a copy by itself.
 - Image move (`PATCH /api/catalog/:id` with `workspaceId`) rejects an unknown workspace with 400. In one transaction it changes `workspace_id`, creates each missing tag in the destination with the source color and removes the image from collections of other workspaces. The file does not move.
@@ -212,7 +212,7 @@ ComfyUI uses one configured API workflow template, and Studio does not start Com
 - Studio checks the template against the runtime's node definitions and rejects partner nodes (`api_node`).
 - It stores a runtime fingerprint and the client prompt ID before it submits once.
 - A cancellation must be confirmed for the stored remote ID. An unconfirmed one stays `needs_review`.
-- Resume reads the original remote execution and never sends it to a different runtime. Legacy active Comfy jobs without a remote identity move to review during migration and are not resubmitted.
+- Resume reads the original remote execution and never sends it to a different runtime.
 
 ## Demand-mounted surfaces
 
@@ -232,7 +232,7 @@ Scripts and the Codex SDK are automation surfaces for audits, migrations, tests 
 
 Settings → Advanced & maintenance opens storage controls backed by `/api/maintenance`: storage audit, inline-payload compaction, thumbnail backfill, tooling-log pruning and duplicate review.
 
-Migration 20 adds a lazy 256-bit dHash cache on Catalog Entries. `POST /api/maintenance/catalog/duplicates` hashes bounded batches of live images in one workspace, then groups images within 16 bits of each group's keeper. Favorites, manual organization and age determine keeper priority. The UI requires review and uses the existing restorable archive command; a scan never archives images.
+`catalog_images.dhash` is a lazy 256-bit dHash cache on Catalog Entries. `POST /api/maintenance/catalog/duplicates` hashes bounded batches of live images in one workspace, then groups images within 16 bits of each group's keeper. Favorites, manual organization and age determine keeper priority. The UI requires review and uses the existing restorable archive command; a scan never archives images.
 
 Compaction and backfill stay plans until a write request carries its confirm token. The browser cannot run shell commands. The `storage:*` scripts are the automation equivalent.
 

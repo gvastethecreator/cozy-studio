@@ -183,6 +183,12 @@ Symptoms: startup stops with "Studio did not update the database".
 
 Before Studio changes the database for a new version, it keeps a copy of the old database in `.studio/state/pre-migration/` inside your Studio data folder (the newest 3 copies). If that copy cannot be written, Studio does not update the database and does not start. Free disk space or fix access to that folder, then start Studio again. If Studio still does not start, stop it and ask for help before you replace any file.
 
+### Studio does not open an older database
+
+Symptoms: startup stops with "Studio cannot open the database … it has schema version N" (N is 19 or lower), or "it has no schema version".
+
+This Studio opens databases from schema version 20 and later. Every release since v0.1.1 creates version 20, so this database comes from an older checkout or an old backup. Studio did not change it. To keep its data, stop Studio, then open the database once in [Studio v0.2.0](https://github.com/gvastethecreator/cozy-studio/releases/tag/v0.2.0) (the release ZIP for your platform; set `STUDIO_LIBRARY_DIR` in its `.env.local` to that Studio data folder). Studio v0.2.0 updates the database. Then stop it and open the data folder in this Studio again. Keep the database and its `-wal` and `-shm` files together while you move or copy them.
+
 For a portable update, start through the root launcher. If the new server fails before readiness, the launcher restores the previous app and keeps `app.failed` for review; it does not restore the database. Keep the recovery folders when an update reports a blocked cleanup. [Portable update recovery](PLATFORMS.md#releases-and-updates) explains the protected paths and recovery copies.
 
 ### Ports are busy
@@ -196,19 +202,6 @@ Change `STUDIO_SERVER_PORT` or `STUDIO_CODEX_WS_PORT` in `.env.local`. `bun run 
 Symptoms: Bun stops responding after it extracts dependencies.
 
 Stop that install and retry with `bun install --backend copyfile`. Use the same backend with `--frozen-lockfile` when you validate that checkout. Do not change the package manager or edit the lockfile by hand.
-
-### `studio:init` reports a foreign-key failure
-
-Symptoms: SQLite reports `FOREIGN KEY constraint failed` while a migration rebuilds `jobs` or another parent table.
-
-Current migrations keep child rows and check `foreign_key_check` before they commit. Stop the local server, update the checkout, and then run:
-
-```bash
-bun install --frozen-lockfile
-bun run studio:init
-```
-
-Do not delete `.studio/studio.sqlite` to get past the error. If it still fails, keep the database and its `-wal` and `-shm` files together, and report the exact stack. Restore from a copy only after the server is stopped.
 
 ## Storage and logs
 

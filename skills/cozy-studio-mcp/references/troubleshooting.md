@@ -5,6 +5,7 @@ Find the error text, then do the action. Text in `<>` changes per call. A Studio
 ## Connection
 
 - `Cozy Studio is not running at <origin>. ...`: the bridge cannot reach Studio. Start Studio or ask the user to open it: [setup-and-repair.md](setup-and-repair.md) step 2.
+- Studio does not start, and its output has `Studio cannot open the database ...: it has schema version <N>` or `no schema version`: the database is older than schema version 20, and Studio did not change it. Do not edit, move or replace the database. Tell the user to open that Studio data folder once in Studio v0.2.0 (the release ZIP), then in this Studio. `docs/TROUBLESHOOTING.md` in the checkout has the steps.
 - No `cozy-studio-mcp` tools in the client, for example after `COZY_STUDIO_API_URL must be a loopback HTTP origin.`: the bridge did not start. Follow [setup-and-repair.md](setup-and-repair.md) step 3.
 - `Something other than this Studio answered at <origin> (HTTP <status>). ...`: with HTTP 500, an internal Studio error; otherwise a wrong port or an old Studio build. Follow [setup-and-repair.md](setup-and-repair.md) step 3.
 - 400 `Unknown Studio MCP tool. ...`, a tool from the `contract` topic missing in the client, or `Unknown guide topic. ...`: Studio or the bridge predates an update. Follow [setup-and-repair.md](setup-and-repair.md) step 3.

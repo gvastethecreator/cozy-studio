@@ -1,6 +1,14 @@
 import { Database } from 'bun:sqlite';
 import { describe, expect, it } from 'bun:test';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
@@ -34,132 +42,26 @@ import { addAsset } from './db/assets';
 import { LATEST_DATABASE_SCHEMA_VERSION, migrateDatabase } from './db/migrations';
 import { createGenerationTaskSpec } from '../../../packages/shared/src/generationContracts';
 
-function createLegacyDatabase() {
+/** A migrated database with one queued job and the asset, catalog, turn and event rows of it. */
+function createSeededDatabase() {
   const database = new Database(':memory:');
   database.run('PRAGMA foreign_keys = ON');
-  database.run(`
-    CREATE TABLE projects (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      description TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    )
-  `);
-  database.run(`
-    CREATE TABLE jobs (
-      id TEXT PRIMARY KEY,
-      project_id TEXT NOT NULL REFERENCES projects(id),
-      kind TEXT NOT NULL,
-      status TEXT NOT NULL,
-      original_prompt TEXT NOT NULL,
-      expanded_prompt TEXT,
-      final_prompt_used TEXT NOT NULL,
-      error TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      completed_at TEXT
-    )
-  `);
-  database.run(`
-    CREATE TABLE assets (
-      id TEXT PRIMARY KEY,
-      project_id TEXT NOT NULL REFERENCES projects(id),
-      job_id TEXT NOT NULL REFERENCES jobs(id),
-      file_path TEXT NOT NULL,
-      thumbnail_path TEXT,
-      public_url TEXT NOT NULL,
-      prompt TEXT NOT NULL,
-      width INTEGER,
-      height INTEGER,
-      mime_type TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      deleted_at TEXT
-    )
-  `);
-  database.run(`
-    CREATE TABLE libraries (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      path TEXT NOT NULL UNIQUE,
-      is_default INTEGER DEFAULT 0,
-      created_at TEXT NOT NULL
-    )
-  `);
-  database.run(`
-    CREATE TABLE catalog_images (
-      id TEXT PRIMARY KEY,
-      library_id TEXT NOT NULL REFERENCES libraries(id),
-      file_path TEXT NOT NULL,
-      thumbnail_path TEXT,
-      public_url TEXT NOT NULL,
-      thumbnail_url TEXT,
-      prompt TEXT,
-      negative_prompt TEXT,
-      aspect_ratio TEXT,
-      image_size TEXT,
-      width INTEGER,
-      height INTEGER,
-      mime_type TEXT NOT NULL,
-      file_size_bytes INTEGER,
-      job_id TEXT REFERENCES jobs(id),
-      workspace_id TEXT,
-      batch_id TEXT,
-      recipe_id TEXT,
-      is_favorite INTEGER DEFAULT 0,
-      is_deleted INTEGER DEFAULT 0,
-      deleted_at TEXT,
-      tags TEXT DEFAULT '[]',
-      generation_config TEXT,
-      created_at TEXT NOT NULL
-    )
-  `);
-  database.run(`
-    CREATE TABLE codex_turns (
-      id TEXT PRIMARY KEY,
-      job_id TEXT NOT NULL REFERENCES jobs(id),
-      codex_thread_id TEXT,
-      codex_turn_id TEXT,
-      transcript_path TEXT,
-      status TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    )
-  `);
-  database.run(`
-    CREATE TABLE job_events (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      job_id TEXT REFERENCES jobs(id),
-      type TEXT NOT NULL,
-      message TEXT NOT NULL,
-      metadata TEXT,
-      created_at TEXT NOT NULL
-    )
-  `);
-  database
-    .query(
-      'INSERT INTO projects (id, name, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
-    )
-    .run('project-sentinel', 'Sentinel Project', null, '2026-01-01', '2026-01-01');
+  migrateDatabase(database);
   database
     .query(
       `INSERT INTO jobs (
-        id, project_id, kind, status, original_prompt, expanded_prompt,
-        final_prompt_used, error, created_at, updated_at, completed_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, workspace_id, kind, status, original_prompt, final_prompt_used, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       'job-sentinel',
-      'project-sentinel',
+      'default',
       'image_generate',
       'queued',
       'sentinel prompt',
-      null,
       'sentinel prompt',
-      null,
       '2026-01-01',
       '2026-01-01',
-      null,
     );
   database
     .query('INSERT INTO libraries (id, name, path, is_default, created_at) VALUES (?, ?, ?, ?, ?)')
@@ -167,13 +69,12 @@ function createLegacyDatabase() {
   database
     .query(
       `INSERT INTO assets (
-        id, project_id, job_id, file_path, thumbnail_path, public_url, prompt,
+        id, job_id, file_path, thumbnail_path, public_url, prompt,
         width, height, mime_type, created_at, deleted_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       'asset-sentinel',
-      'project-sentinel',
       'job-sentinel',
       'D:/library/outputs/sentinel.png',
       null,
@@ -348,7 +249,7 @@ function inspectPreMigrationBackup() {
 }
 
 function inspectJobHistory() {
-  const historyDb = createLegacyDatabase();
+  const historyDb = createSeededDatabase();
   try {
     migrateDatabase(historyDb);
     historyDb.query("UPDATE jobs SET workspace_id = 'history-a', status = 'running'").run();
@@ -413,7 +314,7 @@ function inspectJobHistory() {
 }
 
 function inspectJobsSummary() {
-  const summaryDb = createLegacyDatabase();
+  const summaryDb = createSeededDatabase();
   try {
     migrateDatabase(summaryDb);
     summaryDb.query("UPDATE jobs SET status = 'completed'").run();
@@ -482,7 +383,7 @@ function inspectJobsSummary() {
 }
 
 async function inspectJobBatches() {
-  const batchDb = createLegacyDatabase();
+  const batchDb = createSeededDatabase();
   try {
     migrateDatabase(batchDb);
     let sequence = 0;
@@ -639,73 +540,47 @@ async function inspectJobBatches() {
   }
 }
 
-describe('database migrations', () => {
-  it('migrates real legacy SQLite fixtures idempotently and transactionally', async () => {
-    const database = createLegacyDatabase();
+/** A database from before the baseline (schema 19 or older) is refused before any write. */
+function inspectPreBaselineRefusal() {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'studio-pre-baseline-'));
+  const databasePath = path.join(root, 'studio.sqlite');
+  let db = new Database(databasePath);
+  try {
+    migrateDatabase(db);
+    createJob({ id: 'old-sentinel', kind: 'image_generate', prompt: 'owl' }, db);
+    db.run('DELETE FROM schema_migrations WHERE version >= 20');
+    db.close();
+    const bytesBefore = readFileSync(databasePath);
+    db = new Database(databasePath);
+    let failure = '';
     try {
-      const remoteDatabase = createLegacyDatabase();
-      remoteDatabase.run('ALTER TABLE jobs ADD COLUMN provider_id TEXT');
-      for (const status of ['running', 'queued']) {
-        remoteDatabase
-          .query(`INSERT INTO jobs (id, project_id, kind, status, original_prompt, final_prompt_used, created_at, updated_at, provider_id)
-      SELECT ?, project_id, 'image_generate', ?, original_prompt, final_prompt_used, created_at, updated_at, 'comfy'
-      FROM jobs WHERE id = 'job-sentinel'`)
-          .run(`comfy-legacy-${status}`, status);
-      }
-      migrateDatabase(remoteDatabase);
-      const legacyComfyIsolated =
-        getJobStatus('comfy-legacy-running', remoteDatabase)?.status === 'needs_review' &&
-        !listRecoverableJobs(remoteDatabase).some((job) => job.id === 'comfy-legacy-running') &&
-        listRecoverableJobs(remoteDatabase).some((job) => job.id === 'comfy-legacy-queued');
-      const remoteCheckpoint = {
-        providerId: 'comfy' as const,
-        runtimeIdentity: 'runtime-a-hash',
-        promptId: '6f2d33aa-8e3c-4a56-8677-f496062a87f9',
-        phase: 'accepted' as const,
-        startedAt: 1000,
-      };
-      updateJobRemoteExecution('comfy-legacy-queued', remoteCheckpoint, remoteDatabase);
-      migrateDatabase(remoteDatabase);
-      const remoteIdentityPreserved =
-        JSON.stringify(getJob('comfy-legacy-queued', remoteDatabase)?.remoteExecution) ===
-        JSON.stringify(remoteCheckpoint);
-      remoteDatabase.close();
-      database
-        .query('UPDATE catalog_images SET tags = ? WHERE id = ?')
-        .run('{broken', 'catalog-sentinel');
-      migrateDatabase(database);
-      if (
-        database.query<{ count: number }, []>('SELECT COUNT(*) AS count FROM catalog_tags').get()
-          ?.count !== 0
-      ) {
-        throw new Error('Invalid legacy tags must not become organization entries.');
-      }
+      migrateDatabase(db);
+    } catch (error) {
+      failure = error instanceof Error ? error.message : String(error);
+    }
+    db.close();
+    return (
+      failure.includes('it has schema version 19') &&
+      failure.includes('The database is unchanged.') &&
+      failure.includes('Studio v0.2.0') &&
+      readFileSync(databasePath).equals(bytesBefore) &&
+      !existsSync(path.join(root, 'state'))
+    );
+  } finally {
+    db.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+describe('database migrations', () => {
+  it('builds the schema idempotently and atomically and keeps job, batch and backup behavior', async () => {
+    const database = createSeededDatabase();
+    try {
       migrateDatabase(database);
       const migrationRows = database
         .query('SELECT version, name FROM schema_migrations ORDER BY version')
         .all() as Array<{ version: number; name: string }>;
-      const sentinel = database
-        .query('SELECT * FROM jobs WHERE id = ?')
-        .get('job-sentinel') as Record<string, unknown> | null;
       const indexes = database.query("PRAGMA index_list('jobs')").all() as Array<{ name: string }>;
-      const foreignKeyViolations = database.query('PRAGMA foreign_key_check').all();
-      const foreignKeyEnforcement = database.query('PRAGMA foreign_keys').get() as {
-        foreign_keys: number;
-      };
-      const assetForeignKeys = database.query("PRAGMA foreign_key_list('assets')").all() as Array<{
-        table: string;
-        from: string;
-      }>;
-      const referencingRowsPreserved =
-        Boolean(database.query('SELECT id FROM assets WHERE id = ?').get('asset-sentinel')) &&
-        Boolean(
-          database.query('SELECT id FROM catalog_images WHERE id = ?').get('catalog-sentinel'),
-        ) &&
-        Boolean(database.query('SELECT id FROM codex_turns WHERE id = ?').get('turn-sentinel')) &&
-        Boolean(database.query('SELECT id FROM job_events WHERE job_id = ?').get('job-sentinel')) &&
-        assetForeignKeys.some(
-          (foreignKey) => foreignKey.table === 'jobs' && foreignKey.from === 'job_id',
-        );
       const requiredColumns = [
         'provider_id',
         'source_spec_json',
@@ -786,7 +661,7 @@ describe('database migrations', () => {
       const createdJobRow = database
         .query('SELECT workspace_id, source_spec_json FROM jobs WHERE id = ?')
         .get(createdJob.id) as { workspace_id: string; source_spec_json: string | null } | null;
-      const legacyAsset = addAsset(
+      const asset = addAsset(
         {
           jobId: 'job-sentinel',
           filePath: 'D:/library/outputs/result.png',
@@ -805,13 +680,14 @@ describe('database migrations', () => {
         {
           state: 'asset_recorded',
           sourcePath: 'D:/provider/result.png',
-          filePath: legacyAsset.filePath,
-          assetId: legacyAsset.id,
+          filePath: asset.filePath,
+          assetId: asset.id,
           catalogId: null,
         },
         database,
       );
-      const rollbackDatabase = createLegacyDatabase();
+      // A new database is built in one transaction: a failure in the last step leaves no schema.
+      const rollbackDatabase = new Database(':memory:');
       rollbackDatabase.run(`
     CREATE TABLE schema_migrations (
       version INTEGER PRIMARY KEY,
@@ -820,9 +696,9 @@ describe('database migrations', () => {
     )
   `);
       rollbackDatabase.run(`
-    CREATE TRIGGER reject_second_migration
+    CREATE TRIGGER reject_last_migration
     BEFORE INSERT ON schema_migrations
-    WHEN NEW.version = 2
+    WHEN NEW.version = ${LATEST_DATABASE_SCHEMA_VERSION}
     BEGIN
       SELECT RAISE(ABORT, 'forced migration failure');
     END
@@ -838,13 +714,9 @@ describe('database migrations', () => {
           count: number;
         }
       ).count;
-      const rollbackColumns = readColumnNames(rollbackDatabase);
-      const rollbackSentinel = rollbackDatabase
-        .query('SELECT original_prompt FROM jobs WHERE id = ?')
-        .get('job-sentinel') as { original_prompt: string } | null;
-      const rollbackForeignKeyEnforcement = rollbackDatabase.query('PRAGMA foreign_keys').get() as {
-        foreign_keys: number;
-      };
+      const rollbackTables = rollbackDatabase
+        .query("SELECT name FROM sqlite_master WHERE type = 'table'")
+        .all() as Array<{ name: string }>;
       rollbackDatabase.close();
       const columnSet = new Set(columns);
 
@@ -853,12 +725,7 @@ describe('database migrations', () => {
           migrationRows.length === LATEST_DATABASE_SCHEMA_VERSION &&
           migrationRows.at(-1)?.version === LATEST_DATABASE_SCHEMA_VERSION &&
           requiredColumns.every((column) => columnSet.has(column)),
-        sentinelPreserved: sentinel?.original_prompt === 'sentinel prompt',
-        projectContractRemoved:
-          !columns.includes('project_id') &&
-          !database
-            .query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'projects'")
-            .get() &&
+        workspaceOnlyJob:
           createdJob.workspaceId === 'workspace-created' &&
           createdJobRow?.workspace_id === 'workspace-created' &&
           JSON.parse(createdJobRow?.source_spec_json ?? '{}').metadata?.workspaceId ===
@@ -866,18 +733,14 @@ describe('database migrations', () => {
         indexesPresent:
           indexes.some((index) => index.name === 'idx_jobs_library_created_desc') &&
           indexes.some((index) => index.name === 'idx_jobs_finalization_state'),
-        foreignKeysValid:
-          foreignKeyEnforcement.foreign_keys === 1 && foreignKeyViolations.length === 0,
-        referencingRowsPreserved,
         transactionRolledBack:
           migrationFailed &&
           rolledBackMigrationCount === 0 &&
-          !rollbackColumns.includes('provider_id') &&
-          rollbackSentinel?.original_prompt === 'sentinel prompt' &&
-          rollbackForeignKeyEnforcement.foreign_keys === 1,
+          rollbackTables.map(({ name }) => name).join() === 'schema_migrations',
+        preBaselineRefused: inspectPreBaselineRefusal(),
         recoverableCheckpoint:
           checkpoint?.finalization?.state === 'asset_recorded' &&
-          checkpoint.finalization.assetId === legacyAsset.id &&
+          checkpoint.finalization.assetId === asset.id &&
           recoverableJobs.some(
             (job) =>
               job.id === 'job-sentinel' &&
@@ -893,8 +756,6 @@ describe('database migrations', () => {
           summary.promptPreview === 'sentinel prompt' &&
           !summary.workspaceId?.includes('{'),
         schemaVersion: LATEST_DATABASE_SCHEMA_VERSION,
-        legacyComfyIsolated,
-        remoteIdentityPreserved,
         completeJobHistory: inspectJobHistory(),
         jobsSummary: inspectJobsSummary(),
         atomicBatchRecovery: await inspectJobBatches(),
@@ -906,17 +767,13 @@ describe('database migrations', () => {
           getJob('job-workspace-only', database)?.remoteExecution?.providerId === 'codex',
       }).toEqual({
         idempotent: true,
-        sentinelPreserved: true,
-        projectContractRemoved: true,
+        workspaceOnlyJob: true,
         indexesPresent: true,
-        foreignKeysValid: true,
-        referencingRowsPreserved: true,
         transactionRolledBack: true,
+        preBaselineRefused: true,
         recoverableCheckpoint: true,
         summaryProjection: true,
         schemaVersion: 21,
-        legacyComfyIsolated: true,
-        remoteIdentityPreserved: true,
         completeJobHistory: true,
         jobsSummary: true,
         executionPolicyPreserved: true,

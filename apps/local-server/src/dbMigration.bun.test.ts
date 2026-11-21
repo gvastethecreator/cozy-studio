@@ -14,9 +14,11 @@ import {
   updateJobStatus,
   updateJobFinalPrompt,
   listJobAttempts,
+  markReviewJobFailed,
   readJobsSummaryFromDb,
   requeueJob,
 } from './db/jobs';
+import { listJobEvents } from './db/events';
 import { getOutputGeneration } from './db/outputGenerations';
 import { createJobBatchRoutes } from './jobBatchRoutes';
 import { createPersistentJobIntake } from './persistentJobIntake';
@@ -921,6 +923,57 @@ describe('database migrations', () => {
         atomicBatchRecovery: true,
         durableOutputGenerations: true,
         preMigrationBackup: true,
+      });
+    } finally {
+      database.close();
+    }
+  });
+});
+
+describe('mark a Review job as failed', () => {
+  it('fails a non-resumable Review job with its submission and leaves a resumable one alone', () => {
+    const database = new Database(':memory:');
+    try {
+      migrateDatabase(database);
+      createJob(
+        { id: 'http-review', kind: 'image_generate', providerId: 'chatgpt', prompt: 'owl' },
+        database,
+      );
+      createJob(
+        { id: 'comfy-review', kind: 'image_generate', providerId: 'comfy', prompt: 'owl' },
+        database,
+      );
+      const comfyCheckpoint = {
+        providerId: 'comfy' as const,
+        runtimeIdentity: 'runtime-a-hash',
+        promptId: 'prompt-1',
+        phase: 'accepted' as const,
+        startedAt: 1000,
+      };
+      updateJobRemoteExecution(
+        'http-review',
+        { providerId: 'chatgpt', phase: 'submitting', startedAt: 1000 },
+        database,
+      );
+      updateJobRemoteExecution('comfy-review', comfyCheckpoint, database);
+      updateJobStatus('http-review', 'needs_review', 'ChatGPT HTTP returned 520.', database);
+      updateJobStatus('comfy-review', 'needs_review', null, database);
+
+      const marked = markReviewJobFailed('http-review', database);
+      expect(marked).toMatchObject({
+        status: 'failed',
+        error: 'Marked as failed after review. ChatGPT HTTP returned 520.',
+        remoteExecution: { providerId: 'chatgpt', phase: 'failed', startedAt: 1000 },
+      });
+      expect(listJobEvents('http-review', database).at(-1)).toMatchObject({ type: 'job.failed' });
+      // The normal Retry then sends a new submission instead of stopping at the recorded one.
+      expect(requeueJob('http-review', database)?.remoteExecution ?? null).toBeNull();
+
+      expect(markReviewJobFailed('comfy-review', database)).toBeNull();
+      expect(getJob('comfy-review', database)).toMatchObject({
+        status: 'needs_review',
+        error: null,
+        remoteExecution: comfyCheckpoint,
       });
     } finally {
       database.close();

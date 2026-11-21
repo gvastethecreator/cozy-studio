@@ -9,7 +9,7 @@ import { useT } from '../../lib/i18n';
 import { loadStylePresetCatalogSearchIndex } from './stylePresetCatalogSearchData';
 import {
   isStylePackLinked,
-  listProjectStylePacks,
+  findProjectStylePacks,
   setStyleCategoryLinked,
   setStylePackLinked,
 } from './workspaceStyleScope';
@@ -167,7 +167,7 @@ export function WorkspaceStyleScopeDialog({
   const installedIds = useMemo(() => new Set(packs.map((pack) => pack.id)), [packs]);
   const projectPacks = useMemo(() => {
     const suggested = new Set(suggestedPackIds);
-    return [...listProjectStylePacks(packs)].sort(
+    return [...findProjectStylePacks(packs)].sort(
       (a, b) => Number(suggested.has(b.id)) - Number(suggested.has(a.id)),
     );
   }, [packs, suggestedPackIds]);

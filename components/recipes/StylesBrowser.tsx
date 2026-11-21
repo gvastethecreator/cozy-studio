@@ -97,10 +97,11 @@ import { FAVORITES_PACK_ID, ALL_STYLE_CARDS_TAB_ID } from './styleTabRouting';
 import { useT } from '../../lib/i18n';
 import type { WorkspaceStyleRef } from '../../packages/shared/src/workspaceContracts';
 import { WorkspaceStyleScopeDialog } from './WorkspaceStyleScopeDialog';
+import { useWorkspaceStyleCount } from './useWorkspaceStyleCount';
 import {
   WORKSPACE_STYLE_COLLECTION_ID,
   createWorkspaceStyleCollection,
-  listProjectStylePacks,
+  findProjectStylePacks,
   suggestWorkspaceProjectPacks,
   type WorkspaceProjectStyles,
 } from './workspaceStyleScope';
@@ -659,7 +660,7 @@ function useStylesBrowserController({
         title: t('projectStyles.title'),
         description: t('projectStyles.description', { workspace: workspaceName }),
       }),
-      projectPacks: listProjectStylePacks(STYLE_RUNTIME_PACK_SUMMARIES),
+      projectPacks: findProjectStylePacks(STYLE_RUNTIME_PACK_SUMMARIES),
       suggestedPackIds: suggestions.map((pack) => pack.id),
       suggestion: suggestions[0]
         ? { packName: suggestions[0].cardTitle ?? suggestions[0].name }
@@ -1494,6 +1495,7 @@ function useStylesBrowserController({
   );
 
   const currentStyleTabId = isPackLandingOpen ? STYLE_PACKS_TAB_ID : currentPackId;
+  const workspaceStyleCount = useWorkspaceStyleCount(projectStyles.scope);
   const styleRecipeNavigationSections = useMemo<StyleRecipeNavigationSection[]>(() => {
     const browseItems: StyleRecipeNavigationItem[] = [
       {
@@ -1515,7 +1517,22 @@ function useStylesBrowserController({
         icon: <LayoutGrid width={14} height={14} />,
       },
     ];
+    const workspaceCollection = projectStyles.collection;
     const personalItems: StyleRecipeNavigationItem[] = [
+      // The workspace's project styles open as a collection tab, so the tab menu names them.
+      ...(workspaceCollection
+        ? [
+            {
+              id: `collection:${workspaceCollection.id}`,
+              label: workspaceCollection.title,
+              caption: projectStyles.workspaceName,
+              countLabel: workspaceStyleCount === null ? '…' : `${workspaceStyleCount}`,
+              tabId: getStyleCollectionTabId(workspaceCollection.id),
+              theme: getStyleCollectionTheme(workspaceCollection),
+              icon: getStyleCollectionIcon(workspaceCollection.icon, 14),
+            } satisfies StyleRecipeNavigationItem,
+          ]
+        : []),
       {
         id: 'personal:my_styles',
         label: USER_STYLE_PACK_NAME,
@@ -1586,8 +1603,11 @@ function useStylesBrowserController({
     favorites.length,
     globalStyleCategoryCount,
     globalStylePresetCount,
+    projectStyles.collection,
+    projectStyles.workspaceName,
     styleCollectionsModule,
     userStylePresets.length,
+    workspaceStyleCount,
   ]);
   const styleTabNavigationItems = useMemo(
     () => [

@@ -36,7 +36,7 @@ export function createWorkspaceStyleCollection(
   };
 }
 
-export function listProjectStylePacks<T extends ProjectPackSummary>(summaries: readonly T[]) {
+export function findProjectStylePacks<T extends ProjectPackSummary>(summaries: readonly T[]) {
   return summaries.filter((summary) => Boolean(summary.project?.name.trim()));
 }
 
@@ -59,7 +59,7 @@ export function suggestWorkspaceProjectPacks<T extends ProjectPackSummary>(
 ) {
   const workspace = normalizeName(workspaceName);
   if (workspace.length < 3) return [];
-  return listProjectStylePacks(summaries).filter((summary) => {
+  return findProjectStylePacks(summaries).filter((summary) => {
     const project = normalizeName(summary.project!.name);
     if (project.length < 3) return false;
     return ` ${workspace} `.includes(` ${project} `) || ` ${project} `.includes(` ${workspace} `);

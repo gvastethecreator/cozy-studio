@@ -1,3 +1,7 @@
+import {
+  isPresetInWorkspaceStyleScope,
+  type WorkspaceStyleRef,
+} from '../../packages/shared/src/workspaceContracts';
 import type {
   StylePresetCatalogSearchIndex,
   StylePresetCatalogSearchPackSummary,
@@ -9,7 +13,8 @@ export type CompactStyleRoute =
   | { view: 'packs' }
   | { view: 'categories'; packId: string }
   | { view: 'styles'; packId: string; categoryId: string }
-  | { view: 'favorites' };
+  | { view: 'favorites' }
+  | { view: 'project' };
 
 export interface CompactStylePackSummary {
   id: string;
@@ -86,16 +91,22 @@ export function planCompactStyleCatalogPackIds({
   route,
   query,
   packSummaries,
+  projectScope = [],
 }: {
   route: CompactStyleRoute;
   query: string;
   packSummaries: readonly CompactStylePackSummary[];
+  projectScope?: readonly WorkspaceStyleRef[];
 }) {
   const runtimePackIds = packSummaries
     .map((pack) => pack.id)
     .filter((packId) => packId !== 'user_styles' && packId !== 'favorites');
   if (compactStyleSearchTerms(query).length > 0) return runtimePackIds;
   if (route.view === 'packs') return [];
+  if (route.view === 'project') {
+    const scopedPackIds = new Set(projectScope.map((ref) => ref.packId));
+    return runtimePackIds.filter((packId) => scopedPackIds.has(packId));
+  }
   if (route.view === 'categories' || route.view === 'styles') {
     return runtimePackIds.includes(route.packId) ? [route.packId] : [];
   }
@@ -107,11 +118,13 @@ export function filterCompactStyleCatalog({
   route,
   query,
   favorites,
+  projectScope = [],
 }: {
   index: StylePresetCatalogSearchIndex;
   route: CompactStyleRoute;
   query: string;
   favorites: readonly string[];
+  projectScope?: readonly WorkspaceStyleRef[];
 }): StylePresetCatalogSearchResult[] {
   const terms = compactStyleSearchTerms(query);
   const favoriteIds = new Set(favorites);
@@ -120,6 +133,13 @@ export function filterCompactStyleCatalog({
       return terms.every((term) => preset.searchableText.includes(term));
     }
     if (route.view === 'favorites') return favoriteIds.has(preset.id);
+    if (route.view === 'project') {
+      return isPresetInWorkspaceStyleScope(projectScope, {
+        packId: preset.packId,
+        presetId: preset.id,
+        category: preset.categoryName,
+      });
+    }
     if (route.view === 'styles') {
       return preset.packId === route.packId && preset.categoryId === route.categoryId;
     }
@@ -134,15 +154,18 @@ export function compactStyleMenuTitle({
   query,
   resultCount,
   packs,
+  projectTitle = 'Project styles',
 }: {
   route: CompactStyleRoute;
   query: string;
   resultCount: number;
   packs: readonly CompactStylePackSummary[];
+  projectTitle?: string;
 }) {
   const trimmed = query.trim();
   if (trimmed) return `${resultCount} results`;
   if (route.view === 'packs') return 'Packs';
+  if (route.view === 'project') return projectTitle;
   if (route.view === 'favorites') return 'Favorites';
   if (route.view === 'categories') {
     return packs.find((pack) => pack.id === route.packId)?.name ?? 'Categories';
@@ -155,7 +178,7 @@ export function compactStyleMenuTitle({
 
 export function compactStyleParentRoute(route: CompactStyleRoute): CompactStyleRoute {
   if (route.view === 'styles') return { view: 'categories', packId: route.packId };
-  if (route.view === 'categories') return { view: 'packs' };
+  if (route.view === 'categories' || route.view === 'project') return { view: 'packs' };
   return { view: 'all' };
 }
 

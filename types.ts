@@ -5,6 +5,7 @@ import type {
   CodexServiceTier,
   JobStatus,
   StudioImageSize,
+  WorkspaceStyleRef,
 } from './packages/shared/src';
 import { MODELS } from './constants';
 
@@ -105,6 +106,8 @@ export interface Workspace {
   name?: string; // Optional custom name
   createdAt: number;
   lastImage?: string; // Cache for the thumbnail
+  /** Styles linked to this workspace's project; see Workspace Style Scope in CONTEXT.md. */
+  styleScope?: WorkspaceStyleRef[];
 }
 
 export interface StudioGenerationPlaceholder {

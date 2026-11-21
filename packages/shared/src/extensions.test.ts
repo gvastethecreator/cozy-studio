@@ -22,6 +22,8 @@ describe('parseExtensionManifest', () => {
   it('accepts a style-pack manifest', () => {
     const result = parseExtensionManifest(valid);
     expect(result.ok).toBe(true);
+    const project = { ...valid.stylePack, project: { name: 'Black Flag' } };
+    expect(parseExtensionManifest({ ...valid, stylePack: project }).ok).toBe(true);
   });
 
   it('rejects unsafe paths, bad ids and unverifiable assets', () => {
@@ -29,6 +31,7 @@ describe('parseExtensionManifest', () => {
       ...valid,
       id: 'Mythic',
       files: { ...valid.files, pack: '../pack.json' },
+      stylePack: { ...valid.stylePack, project: { name: ' ' } },
       assets: [{ name: 'cards-full', optional: true, sha256: 'nope', bytes: 10 }],
     });
     expect(result).toEqual({
@@ -36,6 +39,7 @@ describe('parseExtensionManifest', () => {
       issues: [
         'id must be a lowercase publisher.name',
         'files.pack must be a relative path',
+        'stylePack.project needs a name',
         'assets[0] needs name, optional, sha256 and bytes',
       ],
     });

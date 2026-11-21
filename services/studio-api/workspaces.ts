@@ -1,4 +1,8 @@
-import type { StudioWorkspace, StudioWorkspaceSortOrder } from '../../packages/shared/src';
+import type {
+  StudioWorkspace,
+  StudioWorkspaceSortOrder,
+  WorkspaceStyleRef,
+} from '../../packages/shared/src';
 import type { LibraryArchiveImportResult } from '../../packages/shared/src/libraryArchive';
 import {
   getStudioApiBase,
@@ -52,6 +56,7 @@ export async function updateWorkspace(
     name?: string;
     filter?: Record<string, unknown>;
     sortOrder?: StudioWorkspaceSortOrder;
+    styleScope?: readonly WorkspaceStyleRef[];
   },
 ) {
   return request<StudioWorkspace>(`/api/workspaces/${encodeURIComponent(id)}`, {

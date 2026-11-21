@@ -437,6 +437,15 @@ describe('Studio MCP boundary', () => {
         },
       ],
     });
+    Object.assign(workspaces[0], { styleScope: [{ packId: headshot.packId }] });
+    expect(
+      (await (await call('studio_find_styles', { q: 'portrait', workspaceId: 'default' })).json())
+        .styles[0],
+    ).toMatchObject({ presetId: headshot.id, inWorkspaceStyles: true });
+    expect(
+      (await call('studio_find_styles', { q: 'portrait', workspaceId: 'missing' })).status,
+    ).toBe(400);
+    delete (workspaces[0] as { styleScope?: unknown }).styleScope;
     runtimeBody = 'not json';
     const unreadable = await call('studio_find_styles', { q: 'portrait' });
     expect(unreadable.status).toBe(400);

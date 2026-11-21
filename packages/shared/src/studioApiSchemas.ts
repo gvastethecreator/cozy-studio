@@ -6,11 +6,18 @@ const StudioWorkspaceSortOrderSchema = Schema.Union([
   Schema.Literal('favorite'),
 ]);
 
+export const WorkspaceStyleRefSchema = Schema.Struct({
+  packId: Schema.String,
+  category: Schema.optional(Schema.String),
+  presetId: Schema.optional(Schema.String),
+});
+
 export const StudioWorkspaceSchema = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
   filter: Schema.Record(Schema.String, Schema.Unknown),
   sortOrder: StudioWorkspaceSortOrderSchema,
+  styleScope: Schema.Array(WorkspaceStyleRefSchema),
   createdAt: Schema.String,
   updatedAt: Schema.String,
 });
@@ -26,6 +33,7 @@ export const UpdateStudioWorkspaceRequestSchema = Schema.Struct({
   name: Schema.optional(Schema.String),
   filter: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
   sortOrder: Schema.optional(StudioWorkspaceSortOrderSchema),
+  styleScope: Schema.optional(Schema.Array(WorkspaceStyleRefSchema)),
 });
 
 export const CreateJobRequestBoundarySchema = Schema.Struct({

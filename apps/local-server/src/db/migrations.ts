@@ -293,6 +293,14 @@ const DATABASE_MIGRATIONS = [
         ON catalog_images(is_deleted, ${CATALOG_TAG_COUNT_SQL}, COALESCE(workspace_id, 'default'))`);
     },
   },
+  {
+    version: 22,
+    name: 'workspace-style-scope',
+    migrate(database: Database) {
+      // JSON list of the style packs, categories and presets linked to the workspace; NULL = none.
+      database.run('ALTER TABLE workspaces ADD COLUMN style_scope_json TEXT');
+    },
+  },
 ] as const;
 
 export const LATEST_DATABASE_SCHEMA_VERSION =

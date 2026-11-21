@@ -6,6 +6,7 @@ import {
   UpdateStudioWorkspaceRequestSchema,
 } from '../../../packages/shared/src/studioApiSchemas';
 import type { CatalogBatchCommandResult } from '../../../packages/shared/src/types';
+import type { WorkspaceStyleRef } from '../../../packages/shared/src/workspaceContracts';
 
 import {
   createWorkspaceInDb,
@@ -40,6 +41,7 @@ function updateCatalogWorkspace(
     name?: string;
     filter?: Record<string, unknown>;
     sortOrder?: 'newest' | 'oldest' | 'favorite';
+    styleScope?: readonly WorkspaceStyleRef[];
   },
 ) {
   return updateWorkspaceInDb(getDb(), id, patch);
@@ -128,6 +130,7 @@ export function createWorkspaceRoutes(
       name: body.name,
       filter: body.filter,
       sortOrder: body.sortOrder,
+      styleScope: body.styleScope,
     });
     return workspace ? c.json(workspace) : c.json({ error: 'Workspace not found' }, 404);
   });

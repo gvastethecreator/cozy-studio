@@ -340,6 +340,7 @@ describe('StudioSettingsModal provider defaults', () => {
         updatedAt: '2026-01-01T00:00:00.000Z',
         filter: {},
         sortOrder: 'newest',
+        styleScope: [],
       },
       imported: 1,
       skipped: [],

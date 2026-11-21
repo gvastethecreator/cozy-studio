@@ -61,6 +61,13 @@ import type {
 import { DEFAULT_SELECTED_STYLE_STRENGTH, type SelectedStyleSlot } from './styleLayerComposer';
 import { StyleBrowseSwitch } from './StyleBrowseSwitch';
 import { NoStylePacksNotice } from './NoStylePacksNotice';
+import { useT } from '../../lib/i18n';
+import {
+  workspaceStyleRefKey,
+  type WorkspaceStyleRef,
+} from '../../packages/shared/src/workspaceContracts';
+
+const EMPTY_PROJECT_SCOPE: readonly WorkspaceStyleRef[] = [];
 
 export interface CompactStyleSelectorProps {
   selectedStyles: SelectedStyleSlot[];
@@ -82,6 +89,11 @@ export interface CompactStyleSelectorProps {
   onExploreStyles: () => void;
   catalogOpen?: boolean;
   catalogExpanded?: boolean;
+  /** Styles linked to the active workspace; the menu opens on them when there are some. */
+  projectScope?: readonly WorkspaceStyleRef[];
+  /** A project pack that looks like this workspace's project, offered when nothing is linked. */
+  projectSuggestion?: { packName: string } | null;
+  onEditProjectStyles?: () => void;
 }
 
 type CatalogLoadState =
@@ -119,7 +131,13 @@ function useCompactStyleSelectorController({
   onExploreStyles,
   catalogOpen = false,
   catalogExpanded = false,
+  projectScope = EMPTY_PROJECT_SCOPE,
+  projectSuggestion = null,
+  onEditProjectStyles,
 }: CompactStyleSelectorProps) {
+  const { t } = useT();
+  const hasProjectScope = projectScope.length > 0;
+  const projectScopeKey = projectScope.map(workspaceStyleRefKey).join('|');
   const instanceId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -132,7 +150,13 @@ function useCompactStyleSelectorController({
   const [menuHasOpened, setMenuHasOpened] = useState(false);
   const [weightId, setWeightId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [route, setRoute] = useState<CompactStyleRoute>({ view: 'packs' });
+  const [route, setRoute] = useState<CompactStyleRoute>(() =>
+    hasProjectScope ? { view: 'project' } : { view: 'packs' },
+  );
+  // A workspace switch, or a new link, starts the menu on the project's styles again.
+  useEffect(() => {
+    setRoute(projectScopeKey ? { view: 'project' } : { view: 'packs' });
+  }, [projectScopeKey]);
   const [catalog, setCatalog] = useState<CatalogLoadState>({ status: 'idle' });
   const [preview, setPreview] = useState<{
     result: StylePresetCatalogSearchResult | null;
@@ -163,12 +187,13 @@ function useCompactStyleSelectorController({
         route,
         query,
         favorites,
+        projectScope,
       }),
-    [favorites, mergedIndex, query, route],
+    [favorites, mergedIndex, projectScope, query, route],
   );
   const categoryGroups = useMemo(
     () =>
-      !query.trim() && route.view === 'categories'
+      !query.trim() && (route.view === 'categories' || route.view === 'project')
         ? groupCompactStylePresetsByCategory(results)
         : [],
     [query, results, route.view],
@@ -177,14 +202,18 @@ function useCompactStyleSelectorController({
     () => new Set(selectedStyles.map((slot) => slot.preset.id)),
     [selectedStyles],
   );
-  const packIdsKey = planCompactStyleCatalogPackIds({ route, query, packSummaries: packs }).join(
-    '|',
-  );
+  const packIdsKey = planCompactStyleCatalogPackIds({
+    route,
+    query,
+    packSummaries: packs,
+    projectScope,
+  }).join('|');
   const title = compactStyleMenuTitle({
     route,
     query,
     resultCount: results.length,
     packs,
+    projectTitle: t('projectStyles.title'),
   });
   const showBack = Boolean(query.trim()) || route.view !== 'packs';
   const browseLabel = query.trim() ? '' : route.view === 'all' ? 'Browse packs' : 'All styles';
@@ -603,6 +632,9 @@ function useCompactStyleSelectorController({
             thumbRevision: thumbRevision,
             renderStyleChoice: renderStyleChoice,
             results: results,
+            hasProjectScope: hasProjectScope,
+            projectSuggestion: projectSuggestion,
+            onEditProjectStyles: onEditProjectStyles,
             selectedCount: selectedCount,
             maxSlots: maxSlots,
             closeMenu: closeMenu,
@@ -658,6 +690,9 @@ function useCompactStyleSelectorController({
 
   return {
     rootRef,
+    hasProjectScope,
+    projectSuggestion,
+    onEditProjectStyles,
     selectedCount,
     maxSlots,
     catalogOpen,
@@ -924,6 +959,9 @@ function CompactCatalogMenu({
     | 'thumbRevision'
     | 'renderStyleChoice'
     | 'results'
+    | 'hasProjectScope'
+    | 'projectSuggestion'
+    | 'onEditProjectStyles'
     | 'selectedCount'
     | 'maxSlots'
     | 'closeMenu'
@@ -1203,6 +1241,9 @@ type CompactChoicesModel = Pick<
   | 'thumbRevision'
   | 'renderStyleChoice'
   | 'results'
+  | 'hasProjectScope'
+  | 'projectSuggestion'
+  | 'onEditProjectStyles'
 >;
 
 function CompactCatalogChoices({ model }: { model: CompactChoicesModel }) {
@@ -1236,13 +1277,78 @@ function CompactCatalogContents({ model }: { model: CompactChoicesModel }) {
     );
   if (!query.trim() && route.view === 'packs') return <CompactPackChoices model={model} />;
   if (!query.trim() && route.view === 'categories') return <CompactCategoryChoices model={model} />;
+  if (!query.trim() && route.view === 'project') return <CompactProjectChoices model={model} />;
   return <CompactSearchChoices model={model} />;
+}
+function CompactProjectChoices({ model }: { model: CompactChoicesModel }) {
+  const { t } = useT();
+  if (model.categoryGroups.length === 0)
+    return (
+      <div className="cs-empty-result">
+        <strong>{t('projectStyles.notInstalledTitle')}</strong>
+        <p>{t('projectStyles.notInstalledHint')}</p>
+      </div>
+    );
+  return (
+    <>
+      <CompactCategoryChoices model={model} />
+      {model.onEditProjectStyles ? (
+        <div className="cs-option-wrap">
+          <button
+            type="button"
+            className="cs-choice"
+            data-project-styles-edit
+            onClick={model.onEditProjectStyles}
+          >
+            <span className="cs-option-text">{t('projectStyles.edit')}</span>
+          </button>
+        </div>
+      ) : null}
+    </>
+  );
+}
+function CompactProjectEntry({ model }: { model: CompactChoicesModel }) {
+  const { t } = useT();
+  const { hasProjectScope, projectSuggestion, onEditProjectStyles, navigate } = model;
+  if (hasProjectScope)
+    return (
+      <div className="cs-option-wrap">
+        <button
+          type="button"
+          className="cs-choice"
+          data-project-styles-entry
+          onClick={() => navigate({ view: 'project' })}
+        >
+          <Folder width={13} height={13} />
+          <span className="cs-option-text">{t('projectStyles.title')}</span>
+          <ChevronRight width={13} height={13} />
+        </button>
+      </div>
+    );
+  if (!projectSuggestion || !onEditProjectStyles) return null;
+  return (
+    <div className="cs-option-wrap">
+      <button
+        type="button"
+        className="cs-choice"
+        data-project-styles-suggestion
+        data-tooltip={t('projectStyles.suggestionHint', { pack: projectSuggestion.packName })}
+        onClick={onEditProjectStyles}
+      >
+        <Plus width={13} height={13} />
+        <span className="cs-option-text">
+          {t('projectStyles.suggest', { pack: projectSuggestion.packName })}
+        </span>
+      </button>
+    </div>
+  );
 }
 function CompactPackChoices({ model }: { model: CompactChoicesModel }) {
   const { packs, navigate } = model;
   if (packs.length === 0) return <NoStylePacksNotice compact />;
   return (
     <>
+      <CompactProjectEntry model={model} />
       {packs.map((pack) => (
         <div key={pack.id} className="cs-option-wrap">
           <button

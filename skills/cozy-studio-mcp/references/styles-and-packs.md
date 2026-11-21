@@ -9,12 +9,19 @@ Studio compiles `styles` on the server with the same functions and Settings as t
    - `packId` is the style pack id (`stylePack.id` in the manifest from `studio_extensions`). It can differ from the extension id.
    - Each result has `packId`, `presetId`, `name`, `category`, `hasIntentionalPolicy` and `summary` (up to 160 characters of the preset's aesthetic). A copied preset is left out while its source pack is installed, so each style shows once.
    - Results carry no images. The user sees previews in the Studio style catalog.
+   - Add `workspaceId` to put the styles linked to that workspace's project first, with `inWorkspaceStyles: true`. `studio_workspaces` shows the links as `styleScope`. Linked styles are a suggestion; `studio_generate` applies only the `styles` you pass.
    - Done when you have the `packId` and `presetId` of each preset to use.
 
 2. Check the compiler.
    - Call `studio_settings`. `intentionalStylesV1` picks the compiler: `false` (the default) runs the legacy compiler, `true` runs Intentional styles.
    - With Intentional styles on, use only presets with `hasIntentionalPolicy: true`.
    - Done when every chosen preset fits the active compiler.
+
+## Link styles to a workspace
+
+1. Call `studio_set_workspace_styles` with `workspaceId` and `styles`: each item is a whole pack `{packId}`, one category `{packId, category}` (the `category` from `studio_find_styles`) or one preset `{packId, presetId}`. `[]` unlinks all. It replaces the list and needs Full control.
+2. The user usually sets these links in Studio. Ask before you change links they made.
+3. Done when `studio_workspaces` returns the new `styleScope`.
 
 ## Apply styles
 

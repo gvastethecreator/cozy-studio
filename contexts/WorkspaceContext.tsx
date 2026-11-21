@@ -24,7 +24,10 @@ import {
   loadDurableWorkspacesFromApi,
   migrateIndexedDbWorkspacesToServer,
 } from '../lib/workspaceIdbMigration';
-import { DEFAULT_WORKSPACE_ID } from '../packages/shared/src/workspaceContracts';
+import {
+  DEFAULT_WORKSPACE_ID,
+  type WorkspaceStyleRef,
+} from '../packages/shared/src/workspaceContracts';
 import { useToastUi } from './ToastUiContext';
 
 interface WorkspaceState {
@@ -37,7 +40,8 @@ type WorkspaceAction =
   | { type: 'RESET' }
   | { type: 'CREATE'; workspace: Workspace; activate?: boolean }
   | { type: 'DELETE'; id: string }
-  | { type: 'RENAME'; id: string; name: string };
+  | { type: 'RENAME'; id: string; name: string }
+  | { type: 'SET_STYLE_SCOPE'; id: string; styleScope: WorkspaceStyleRef[] };
 
 function ensureDefaultWorkspace(workspaces: Workspace[]): Workspace[] {
   if (workspaces.some((workspace) => workspace.id === DEFAULT_WORKSPACE_ID)) {
@@ -94,6 +98,13 @@ function workspaceReducer(state: WorkspaceState, action: WorkspaceAction): Works
           w.id === action.id ? { ...w, name: action.name } : w,
         ),
       };
+    case 'SET_STYLE_SCOPE':
+      return {
+        ...state,
+        workspaces: state.workspaces.map((w) =>
+          w.id === action.id ? { ...w, styleScope: action.styleScope } : w,
+        ),
+      };
     default:
       return state;
   }
@@ -108,6 +119,8 @@ export interface WorkspaceContextValue {
   adoptWorkspace: (workspace: Workspace, options?: { activate?: boolean }) => void;
   deleteWorkspace: (id: string) => void;
   renameWorkspace: (id: string, name: string) => void;
+  /** Saves the styles linked to a workspace's project. Never changes a draft or a generation. */
+  setWorkspaceStyleScope: (id: string, styleScope: WorkspaceStyleRef[]) => void;
   activeWorkspaceId: string;
   setActiveWorkspace: (id: string) => void;
   resetWorkspaces: () => void;
@@ -321,6 +334,22 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     [addToast, state.workspaces],
   );
 
+  const setWorkspaceStyleScope = useCallback(
+    (id: string, styleScope: WorkspaceStyleRef[]) => {
+      const previous = state.workspaces.find((workspace) => workspace.id === id)?.styleScope ?? [];
+      dispatch({ type: 'SET_STYLE_SCOPE', id, styleScope });
+      void updateWorkspaceApi(id, { styleScope }).catch((error) => {
+        runtimeLogger.error('Failed to save workspace styles', error);
+        dispatch({ type: 'SET_STYLE_SCOPE', id, styleScope: previous });
+        addToast(
+          'Unable to save the project styles. Check that the studio backend is running and try again.',
+          'error',
+        );
+      });
+    },
+    [addToast, state.workspaces],
+  );
+
   const setActiveWorkspace = useCallback(
     (id: string) => {
       if (!state.workspaces.some((workspace) => workspace.id === id) || id === activeWorkspaceId)
@@ -352,6 +381,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
       adoptWorkspace,
       deleteWorkspace,
       renameWorkspace,
+      setWorkspaceStyleScope,
       activeWorkspaceId,
       libraryFilters,
       setLibraryFilters,
@@ -369,6 +399,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
       adoptWorkspace,
       deleteWorkspace,
       renameWorkspace,
+      setWorkspaceStyleScope,
       setActiveWorkspace,
       resetWorkspaces,
     ],

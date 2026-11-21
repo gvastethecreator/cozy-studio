@@ -148,6 +148,32 @@ describe('compactStyleCatalog', () => {
     ).toBe('Photography');
   });
 
+  it('lists only the workspace project styles on the project route', () => {
+    const projectScope = [
+      { packId: 'pack_01', category: 'Lighting' },
+      { packId: 'pack_06', presetId: 'SP06-001' },
+      { packId: 'pack_99' },
+    ];
+    expect(
+      planCompactStyleCatalogPackIds({
+        route: { view: 'project' },
+        query: '',
+        packSummaries: index.packs,
+        projectScope,
+      }),
+    ).toEqual(['pack_01', 'pack_06']);
+    expect(
+      filterCompactStyleCatalog({
+        index,
+        route: { view: 'project' },
+        query: '',
+        favorites: [],
+        projectScope,
+      }).map((item) => item.id),
+    ).toEqual(['SP01-002', 'SP06-001']);
+    expect(compactStyleParentRoute({ view: 'project' })).toEqual({ view: 'packs' });
+  });
+
   it('merges extra user styles without duplicating runtime presets', () => {
     const extra: StylePresetCatalogSearchIndex = {
       packs: [{ id: 'user_styles', name: 'My Styles', presetCount: 1 }],

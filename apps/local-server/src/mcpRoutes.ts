@@ -43,7 +43,11 @@ import {
   type JobExecutionOptions,
   type JobsSummary,
 } from '../../../packages/shared/src/types';
-import type { StudioWorkspace } from '../../../packages/shared/src/workspaceContracts';
+import {
+  normalizeWorkspaceStyleScope,
+  type StudioWorkspace,
+  type WorkspaceStyleRef,
+} from '../../../packages/shared/src/workspaceContracts';
 import type { ImageGenerationConfig, Attachment } from '../../../types';
 import { compileMcpStyles, findStyles, loadInstalledStylePacks } from './mcpStyles';
 import { jobImageMetadata } from './providers/jobImageMetadata';
@@ -423,10 +427,20 @@ export function createMcpRoutes({
         });
       }
       case 'studio_find_styles': {
-        const { q, packId, limit } = studioMcpTools.studio_find_styles.schema.parse(args);
+        const { q, packId, workspaceId, limit } =
+          studioMcpTools.studio_find_styles.schema.parse(args);
+        let workspaceStyles: WorkspaceStyleRef[] | undefined;
+        if (workspaceId) {
+          const workspace = await get(`/api/workspaces/${workspaceId}`);
+          if (workspace.status === 404) return c.json({ error: 'Unknown workspaceId.' }, 400);
+          if (!workspace.ok) return workspace;
+          workspaceStyles = normalizeWorkspaceStyleScope(
+            ((await workspace.json()) as { styleScope?: unknown }).styleScope,
+          );
+        }
         const packs = await loadInstalledStylePacks(get, packId ? new Set([packId]) : undefined);
         if (!Array.isArray(packs)) return c.json(packs, 400);
-        return c.json({ styles: findStyles(packs, { q, limit }) });
+        return c.json({ styles: findStyles(packs, { q, limit, workspaceStyles }) });
       }
       case 'studio_workspaces': {
         const { workspaceId } = studioMcpTools.studio_workspaces.schema.parse(args);
@@ -456,6 +470,10 @@ export function createMcpRoutes({
           recentChanges: recentChanges.slice(0, 5),
         });
       }
+      case 'studio_set_workspace_styles':
+        return send('PATCH', `/api/workspaces/${String(args.workspaceId)}`, {
+          styleScope: args.styles,
+        });
       case 'studio_extensions':
         return get('/api/extensions');
       case 'studio_extension_json':

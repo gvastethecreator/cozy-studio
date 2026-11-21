@@ -44,6 +44,15 @@ export interface StylePackSummary {
    * hides a copy while its source pack is installed.
    */
   copiedFrom?: Record<string, StylePresetSource>;
+  /**
+   * Marks a private project pack, such as the styles of one game. Studio lists it under Projects
+   * instead of the style collections and suggests it to workspaces whose name holds this name.
+   */
+  project?: StylePackProject;
+}
+
+export interface StylePackProject {
+  name: string;
 }
 
 export interface StylePresetSource {
@@ -370,6 +379,15 @@ export function parseExtensionManifest(value: unknown): ExtensionManifestParseRe
     )
   )
     issues.push('stylePack.copiedFrom maps preset ids to a source packId and presetId');
+  else if (
+    stylePack.project !== undefined &&
+    !(
+      isRecord(stylePack.project) &&
+      typeof stylePack.project.name === 'string' &&
+      stylePack.project.name.trim() !== ''
+    )
+  )
+    issues.push('stylePack.project needs a name');
 
   if (!Array.isArray(assets)) issues.push('assets must be an array');
   else

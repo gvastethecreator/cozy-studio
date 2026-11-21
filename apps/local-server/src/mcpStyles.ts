@@ -13,6 +13,10 @@ import {
   type ExtensionManifest,
 } from '../../../packages/shared/src/extensions';
 import type { EditableStudioSettings } from '../../../packages/shared/src/studioSettings';
+import {
+  isPresetInWorkspaceStyleScope,
+  type WorkspaceStyleRef,
+} from '../../../packages/shared/src/workspaceContracts';
 import * as Intentional from '../../../packages/shared/src/styles/intentional-v1';
 
 type Get = (path: string) => Promise<Response>;
@@ -53,9 +57,16 @@ export async function loadInstalledStylePacks(
   );
 }
 
-export function findStyles(packs: StyleRuntimePack[], { q, limit }: { q?: string; limit: number }) {
+export function findStyles(
+  packs: StyleRuntimePack[],
+  {
+    q,
+    limit,
+    workspaceStyles,
+  }: { q?: string; limit: number; workspaceStyles?: readonly WorkspaceStyleRef[] },
+) {
   const query = q?.trim().toLowerCase();
-  return packs
+  const matches = packs
     .flatMap((pack) => pack.presets.map((preset) => ({ pack, preset })))
     .filter(
       ({ preset }) =>
@@ -64,15 +75,27 @@ export function findStyles(packs: StyleRuntimePack[], { q, limit }: { q?: string
           value?.toLowerCase().includes(query),
         ),
     )
-    .slice(0, limit)
-    .map(({ pack, preset }) => ({
-      packId: pack.id,
-      presetId: preset.id,
-      name: getStyleRuntimePresetDisplayName(preset),
-      category: preset.category ?? null,
-      hasIntentionalPolicy: Boolean(preset.intentional),
-      summary: String(preset.style.aesthetic ?? '').slice(0, 160),
+    .map((match) => ({
+      ...match,
+      linked: workspaceStyles
+        ? isPresetInWorkspaceStyleScope(workspaceStyles, {
+            packId: match.pack.id,
+            presetId: match.preset.id,
+            category: match.preset.category,
+          })
+        : false,
     }));
+  // A stable sort keeps the pack order inside the linked and the other styles.
+  if (workspaceStyles) matches.sort((a, b) => Number(b.linked) - Number(a.linked));
+  return matches.slice(0, limit).map(({ pack, preset, linked }) => ({
+    ...(workspaceStyles && { inWorkspaceStyles: linked }),
+    packId: pack.id,
+    presetId: preset.id,
+    name: getStyleRuntimePresetDisplayName(preset),
+    category: preset.category ?? null,
+    hasIntentionalPolicy: Boolean(preset.intentional),
+    summary: String(preset.style.aesthetic ?? '').slice(0, 160),
+  }));
 }
 
 /** Compiles studio_generate styles with the same functions and settings the Studio UI uses. */

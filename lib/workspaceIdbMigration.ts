@@ -2,8 +2,9 @@ import type { Workspace } from '../types';
 import {
   DEFAULT_WORKSPACE_ID,
   normalizeWorkspaceId,
+  normalizeWorkspaceStyleScope,
+  type StudioWorkspace,
 } from '../packages/shared/src/workspaceContracts';
-import type { StudioWorkspace } from '../packages/shared/src/workspaceContracts';
 import { createWorkspace, listWorkspaces } from '../services/studio-api/workspaces';
 import { del, get, set } from '../utils/idb';
 
@@ -15,6 +16,7 @@ export function mapStudioWorkspaceToUi(workspace: StudioWorkspace): Workspace {
     id: workspace.id,
     name: workspace.name,
     createdAt: Number.isFinite(createdAtMs) ? createdAtMs : Date.now(),
+    styleScope: normalizeWorkspaceStyleScope(workspace.styleScope),
   };
 }
 

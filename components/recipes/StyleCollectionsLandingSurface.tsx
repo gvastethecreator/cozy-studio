@@ -15,7 +15,16 @@ import {
   getStyleFolderImages,
   type StyleFolderImageCandidate,
 } from './styles/collections/styleCollectionFolderImages';
-import { getStyleLandingFolder } from '../../lib/installedStylePacks';
+import { getStyleLandingFolder, isInstalledStylePack } from '../../lib/installedStylePacks';
+import { useT } from '../../lib/i18n';
+import {
+  isPresetInWorkspaceStyleScope,
+  workspaceStyleRefKey,
+  type WorkspaceStyleRef,
+} from '../../packages/shared/src/workspaceContracts';
+import { loadStylePresetCatalogSearchIndex } from './stylePresetCatalogSearchData';
+import { getStyleCollectionTabId } from './styleTabRouting';
+import { WORKSPACE_STYLE_COLLECTION_ID, type WorkspaceProjectStyles } from './workspaceStyleScope';
 import {
   loadStyleThumbnailPack,
   getStyleThumbnail,
@@ -29,6 +38,8 @@ import { getPackIcon, getStyleCollectionIcon } from './styleNavigationPresentati
 import { NoStylePacksNotice } from './NoStylePacksNotice';
 
 const FAVORITES_PACK_ID = 'favorites';
+const NO_STYLE_REFS: WorkspaceStyleRef[] = [];
+const NO_PROJECT_PACKS: WorkspaceProjectStyles['projectPacks'] = [];
 const STYLE_NAVIGATION_PREVIEW_DELAY_MS = 150;
 
 const VISIBLE_STYLE_COLLECTIONS = STYLE_COLLECTIONS.filter(
@@ -47,6 +58,78 @@ interface StyleCollectionsLandingSurfaceProps {
   onNavigateToStyleTab: (tabId: string) => void;
   onPrefetchStyleTab?: (tabId: string) => void;
   onToggleNavigationPanel: () => void;
+  projectStyles?: WorkspaceProjectStyles;
+}
+
+/** How many installed styles the workspace scope holds; null while unknown. */
+function useWorkspaceStyleCount(scope: readonly WorkspaceStyleRef[]) {
+  const [count, setCount] = useState<number | null>(null);
+  const scopeKey = scope.map(workspaceStyleRefKey).join('|');
+  useEffect(() => {
+    const packIds = [...new Set(scope.map((ref) => ref.packId))].filter(isInstalledStylePack);
+    if (packIds.length === 0) {
+      setCount(0);
+      return;
+    }
+    let cancelled = false;
+    loadStylePresetCatalogSearchIndex(packIds).then(
+      (index) => {
+        if (cancelled) return;
+        setCount(
+          index.presets.filter((preset) =>
+            isPresetInWorkspaceStyleScope(scope, {
+              packId: preset.packId,
+              presetId: preset.id,
+              category: preset.categoryName,
+            }),
+          ).length,
+        );
+      },
+      () => {
+        if (!cancelled) setCount(null);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+    // scopeKey stands for the scope's content.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopeKey]);
+  return count;
+}
+
+function ProjectStylesEmptyCard({ projectStyles }: { projectStyles: WorkspaceProjectStyles }) {
+  const { t } = useT();
+  const suggestion = projectStyles.suggestion;
+  return (
+    <div
+      data-project-styles-empty
+      className="col-span-full flex flex-wrap items-center gap-2 rounded-[var(--wb-radius)] border border-dashed border-[color:var(--wb-line)] bg-[color:var(--wb-well)] p-3 text-xs text-[color:var(--wb-muted)]"
+    >
+      <span className="min-w-0 flex-1">
+        {t('projectStyles.emptyTitle', { workspace: projectStyles.workspaceName })}
+        {suggestion ? ` ${t('projectStyles.suggestionHint', { pack: suggestion.packName })}` : ''}
+      </span>
+      {suggestion ? (
+        <button
+          type="button"
+          className="studio-primary-control shrink-0 rounded px-3 py-1.5"
+          data-project-styles-suggestion
+          onClick={projectStyles.openEditor}
+        >
+          {t('projectStyles.suggest', { pack: suggestion.packName })}
+        </button>
+      ) : null}
+      <button
+        type="button"
+        className="studio-ghost-control shrink-0 rounded border border-[color:var(--wb-line)] px-3 py-1.5"
+        data-project-styles-choose
+        onClick={projectStyles.openEditor}
+      >
+        {t('projectStyles.choose')}
+      </button>
+    </div>
+  );
 }
 
 interface StyleFolderCardProps {
@@ -304,7 +387,9 @@ function SourcePackCard({
   onOpen,
   onPrefetch,
   thumbnailRevision,
+  eyebrow = 'Source pack',
 }: {
+  eyebrow?: string;
   pack: (typeof STYLE_RUNTIME_PACK_SUMMARIES)[number];
   targetId: string;
   getStyleTabHash: (tabId: string) => string;
@@ -327,7 +412,7 @@ function SourcePackCard({
       description={pack.cardDescription ?? pack.description}
       countLabel={`${pack.presetCount}`}
       countAriaLabel={`${pack.name} presets ${pack.presetCount}`}
-      eyebrow="Source pack"
+      eyebrow={eyebrow}
       sourcePackIds={[pack.id]}
       imageCandidates={imageCandidates}
       tabHash={getStyleTabHash(pack.id)}
@@ -687,8 +772,15 @@ export function StyleCollectionsLandingSurface({
   onNavigateToStyleTab,
   onPrefetchStyleTab,
   onToggleNavigationPanel,
+  projectStyles,
 }: StyleCollectionsLandingSurfaceProps) {
+  const { t } = useT();
   const thumbnailRevision = useStyleLandingThumbnailCatalog();
+  const workspaceStyleCount = useWorkspaceStyleCount(projectStyles?.scope ?? NO_STYLE_REFS);
+  const workspaceStyleCountLabel = workspaceStyleCount === null ? '…' : `${workspaceStyleCount}`;
+  const workspaceStyleTabId = getStyleCollectionTabId(WORKSPACE_STYLE_COLLECTION_ID);
+  const workspaceStyleTargetId = `collection:${WORKSPACE_STYLE_COLLECTION_ID}`;
+  const projectPacks = projectStyles?.projectPacks ?? NO_PROJECT_PACKS;
   const [activeNavigationTargetId, setActiveNavigationTargetId] = useState<string | null>(null);
   const cardsScrollerRef = useRef<HTMLDivElement | null>(null);
   const personalStyleCollections = useMemo(
@@ -742,8 +834,43 @@ export function StyleCollectionsLandingSurface({
       }),
     }));
 
+    const workspaceItems: StyleNavigationItem[] = projectStyles?.collection
+      ? [
+          {
+            id: workspaceStyleTargetId,
+            targetId: workspaceStyleTargetId,
+            label: projectStyles.collection.title,
+            caption: projectStyles.workspaceName,
+            countLabel: workspaceStyleCountLabel,
+            tabId: workspaceStyleTabId,
+            icon: getStyleCollectionIcon(projectStyles.collection.icon, 14),
+            kind: 'collection',
+          },
+        ]
+      : [];
+    const projectSection: StyleNavigationSection[] =
+      projectPacks.length > 0
+        ? [
+            {
+              id: 'projects',
+              title: t('projectStyles.family'),
+              items: projectPacks.map((pack) => ({
+                id: `project:${pack.id}`,
+                targetId: `project:${pack.id}`,
+                label: pack.cardTitle ?? pack.name,
+                caption: t('projectStyles.packEyebrow'),
+                countLabel: `${pack.presetCount}`,
+                tabId: pack.id,
+                icon: getPackIcon(pack.id),
+                kind: 'source',
+              })),
+            },
+          ]
+        : [];
+
     return [
-      { id: 'personal', title: 'Personal', items: personalItems },
+      { id: 'personal', title: 'Personal', items: [...workspaceItems, ...personalItems] },
+      ...projectSection,
       ...collectionSections,
       {
         id: 'source',
@@ -766,8 +893,14 @@ export function StyleCollectionsLandingSurface({
     favoritesCount,
     getCollectionTabId,
     personalStyleCollections,
+    projectPacks,
+    projectStyles,
     styleCollectionFamilySections,
+    t,
     userStyleCount,
+    workspaceStyleCountLabel,
+    workspaceStyleTabId,
+    workspaceStyleTargetId,
   ]);
 
   const previewNavigationItem = useCallback(
@@ -856,8 +989,35 @@ export function StyleCollectionsLandingSurface({
                   Personal
                 </h3>
                 <div className="h-px flex-1 bg-white/6" />
+                {projectStyles?.collection ? (
+                  <button
+                    type="button"
+                    className="studio-ghost-control shrink-0 rounded px-2 py-1 text-[length:var(--wbp-label)]"
+                    data-project-styles-edit
+                    onClick={projectStyles.openEditor}
+                  >
+                    {t('projectStyles.edit')}
+                  </button>
+                ) : null}
               </div>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3">
+              {/* Top-aligned, so a short empty-state button keeps its height beside a card. */}
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] items-start gap-3">
+                {projectStyles && !projectStyles.collection ? (
+                  <ProjectStylesEmptyCard projectStyles={projectStyles} />
+                ) : null}
+                {projectStyles?.collection ? (
+                  <StyleCollectionCard
+                    collection={projectStyles.collection}
+                    countLabel={workspaceStyleCountLabel}
+                    familyLabel={projectStyles.workspaceName}
+                    targetId={workspaceStyleTargetId}
+                    tabId={workspaceStyleTabId}
+                    isHighlighted={activeNavigationTargetId === workspaceStyleTargetId}
+                    getStyleTabHash={getStyleTabHash}
+                    onOpen={() => onNavigateToStyleTab(workspaceStyleTabId)}
+                    thumbnailRevision={thumbnailRevision}
+                  />
+                ) : null}
                 {personalStyleCollections.map((collection) => {
                   const tabId =
                     collection.id === 'my_styles' ? USER_STYLE_PACK_ID : FAVORITES_PACK_ID;
@@ -892,6 +1052,37 @@ export function StyleCollectionsLandingSurface({
                 })}
               </div>
             </section>
+
+            {projectPacks.length > 0 ? (
+              <section data-style-collection-family="projects" className="min-w-0">
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="min-w-0">
+                    <h3 className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
+                      {t('projectStyles.family')}
+                    </h3>
+                    <p className="mt-0.5 line-clamp-1 text-[length:var(--wbp-label)] font-medium text-[color:var(--wb-dim)]">
+                      {t('projectStyles.familyDescription')}
+                    </p>
+                  </div>
+                  <div className="h-px flex-1 bg-white/6" />
+                </div>
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3">
+                  {projectPacks.map((pack) => (
+                    <SourcePackCard
+                      key={pack.id}
+                      pack={pack}
+                      eyebrow={t('projectStyles.packEyebrow')}
+                      targetId={`project:${pack.id}`}
+                      isHighlighted={activeNavigationTargetId === `project:${pack.id}`}
+                      getStyleTabHash={getStyleTabHash}
+                      onOpen={() => onNavigateToStyleTab(pack.id)}
+                      onPrefetch={() => onPrefetchStyleTab?.(pack.id)}
+                      thumbnailRevision={thumbnailRevision}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
             {styleCollectionFamilySections.map(({ family, collections }) => (
               <StyleCollectionFamilySection

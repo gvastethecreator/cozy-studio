@@ -4,10 +4,12 @@ import { randomUUID } from 'node:crypto';
 import {
   DEFAULT_WORKSPACE_ID,
   isDefaultWorkspaceId,
+  normalizeWorkspaceStyleScope,
 } from '../../../../packages/shared/src/workspaceContracts';
 import type {
   StudioWorkspace,
   StudioWorkspaceSortOrder,
+  WorkspaceStyleRef,
 } from '../../../../packages/shared/src/workspaceContracts';
 import type { CatalogBatchCommandResult } from '../../../../packages/shared/src/types';
 import { getDb } from './connection';
@@ -34,6 +36,19 @@ function parseJson(value: string | null) {
   }
 }
 
+function readStyleScope(value: unknown) {
+  if (typeof value !== 'string' || !value) return [];
+  try {
+    return normalizeWorkspaceStyleScope(JSON.parse(value));
+  } catch {
+    return [];
+  }
+}
+
+function writeStyleScope(scope: readonly WorkspaceStyleRef[]) {
+  return scope.length > 0 ? JSON.stringify(scope) : null;
+}
+
 function readSortOrder(value: unknown): StudioWorkspaceSortOrder {
   return value === 'oldest' || value === 'favorite' ? value : 'newest';
 }
@@ -44,6 +59,7 @@ function mapWorkspace(row: Record<string, unknown>): StudioWorkspace {
     name: typeof row.name === 'string' && row.name.trim() ? row.name : 'Default',
     filter: parseJson(typeof row.filter_json === 'string' ? row.filter_json : null),
     sortOrder: readSortOrder(row.sort_order),
+    styleScope: readStyleScope(row.style_scope_json),
     createdAt: String(row.created_at),
     updatedAt: typeof row.updated_at === 'string' ? row.updated_at : String(row.created_at),
   };
@@ -102,6 +118,7 @@ export function createWorkspaceInDb(
     name: input.name.trim() || 'Untitled Workspace',
     filter: input.filter ?? {},
     sortOrder: input.sortOrder ?? 'newest',
+    styleScope: [],
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -129,6 +146,7 @@ export function updateWorkspaceInDb(
     name?: string;
     filter?: Record<string, unknown>;
     sortOrder?: StudioWorkspaceSortOrder;
+    styleScope?: readonly WorkspaceStyleRef[];
   },
 ) {
   const current = getWorkspaceFromDb(database, id);
@@ -136,13 +154,18 @@ export function updateWorkspaceInDb(
   database
     .query(
       `UPDATE workspaces
-       SET name = ?, filter_json = ?, sort_order = ?, updated_at = ?
+       SET name = ?, filter_json = ?, sort_order = ?, style_scope_json = ?, updated_at = ?
        WHERE id = ?`,
     )
     .run(
       patch.name ?? current.name,
       JSON.stringify(patch.filter === undefined ? current.filter : patch.filter),
       patch.sortOrder ?? current.sortOrder,
+      writeStyleScope(
+        patch.styleScope === undefined
+          ? current.styleScope
+          : normalizeWorkspaceStyleScope(patch.styleScope),
+      ),
       now(),
       id,
     );

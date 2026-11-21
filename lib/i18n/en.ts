@@ -754,6 +754,35 @@ export const en = {
   'styleExplorer.useSelected': { one: 'Use {count} selected', other: 'Use {count} selected' },
   'styleExplorer.emptyTitle': 'Explore styles',
   'styleExplorer.emptyHint': 'Click a card image to preview it.',
+  'projectStyles.title': 'Project styles',
+  'projectStyles.family': 'Projects',
+  'projectStyles.familyDescription': 'Private packs made for one project.',
+  'projectStyles.packEyebrow': 'Project pack',
+  'projectStyles.description': 'Styles linked to {workspace}.',
+  'projectStyles.emptyTitle': '{workspace} has no project styles.',
+  'projectStyles.suggestionHint': '{pack} looks like the project of this workspace.',
+  'projectStyles.choose': 'Choose styles',
+  'projectStyles.edit': 'Edit project styles',
+  'projectStyles.suggest': 'Use {pack}',
+  'projectStyles.dialogTitle': 'Project styles for {workspace}',
+  'projectStyles.dialogHint':
+    'Pick the packs or categories that belong to this workspace. They show first in Create. No style goes into a prompt until you choose it.',
+  'projectStyles.projectPacks': 'Project packs',
+  'projectStyles.otherPacks': 'Other packs',
+  'projectStyles.suggested': 'Suggested',
+  'projectStyles.showCategories': 'Show the categories of {pack}',
+  'projectStyles.loadingCategories': 'Loading categories…',
+  'projectStyles.categoriesError': 'Could not load the categories.',
+  'projectStyles.presetLinks': { one: '{count} single style', other: '{count} single styles' },
+  'projectStyles.missingPack':
+    '{pack} is not installed. Install it in Settings → Styles & workflows.',
+  'projectStyles.notInstalledTitle': 'Project styles are not installed',
+  'projectStyles.notInstalledHint':
+    'The packs linked to this workspace are missing. Install them in Settings → Styles & workflows.',
+  'projectStyles.cancel': 'Cancel',
+  'projectStyles.save': 'Save',
+  'projectStyles.clear': 'Unlink all',
+  'projectStyles.count': { one: '{count} style', other: '{count} styles' },
 } as const;
 
 export type MessageKey = keyof typeof en;

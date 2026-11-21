@@ -14,6 +14,7 @@ describe('shared Studio API schemas', () => {
       name: 'Default',
       filter: {},
       sortOrder: 'newest',
+      styleScope: [{ packId: 'pack_35', category: '1. Biomes' }],
       createdAt: '2026-08-08T00:00:00.000Z',
       updatedAt: '2026-08-08T00:00:00.000Z',
     };

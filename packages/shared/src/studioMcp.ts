@@ -212,10 +212,11 @@ export const studioMcpTools = {
   studio_find_styles: {
     access: 'read',
     description:
-      'Find installed style presets by id, name or category for studio_generate styles. Each result has packId, presetId, name, category, hasIntentionalPolicy and a short summary.',
+      "Find installed style presets by id, name or category for studio_generate styles. Each result has packId, presetId, name, category, hasIntentionalPolicy and a short summary. With workspaceId, the styles linked to that workspace's project come first with inWorkspaceStyles: true. Linked styles are a suggestion: studio_generate applies only the styles you pass.",
     schema: z.strictObject({
       q: z.string().max(200).optional(),
       packId: id.optional(),
+      workspaceId: id.optional(),
       limit: z.number().int().min(1).max(50).default(20),
     }),
   },
@@ -224,6 +225,23 @@ export const studioMcpTools = {
     description:
       "List Studio workspaces. With workspaceId, also return that workspace's tags and collections with image counts and its unorganized count. Reuse these names when you generate or organize.",
     schema: z.strictObject({ workspaceId: id.optional() }),
+  },
+  studio_set_workspace_styles: {
+    access: 'write',
+    description:
+      "Replace the styles linked to one workspace's project (its styleScope, shown by studio_workspaces). Each item links a whole pack ({packId}), one category ({packId, category}, the category name from studio_find_styles) or one preset ({packId, presetId}). [] unlinks all. Linking changes no draft and no generation. Needs Full control access. Ask the user before changing links they made.",
+    schema: z.strictObject({
+      workspaceId: id,
+      styles: z
+        .array(
+          z.strictObject({
+            packId: id,
+            category: z.string().min(1).max(200).optional(),
+            presetId: id.optional(),
+          }),
+        )
+        .max(200),
+    }),
   },
   studio_extensions: {
     access: 'read',

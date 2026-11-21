@@ -95,6 +95,17 @@ import type { StylePresetSourceProvenance, StylePresetVisualState } from './Styl
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { FAVORITES_PACK_ID, ALL_STYLE_CARDS_TAB_ID } from './styleTabRouting';
 import { useT } from '../../lib/i18n';
+import type { WorkspaceStyleRef } from '../../packages/shared/src/workspaceContracts';
+import { WorkspaceStyleScopeDialog } from './WorkspaceStyleScopeDialog';
+import {
+  WORKSPACE_STYLE_COLLECTION_ID,
+  createWorkspaceStyleCollection,
+  listProjectStylePacks,
+  suggestWorkspaceProjectPacks,
+  type WorkspaceProjectStyles,
+} from './workspaceStyleScope';
+
+const EMPTY_WORKSPACE_STYLE_SCOPE: WorkspaceStyleRef[] = [];
 const StyleCatalogPanel = React.lazy(() =>
   import('./StyleCatalogPanel').then((module) => ({ default: module.StyleCatalogPanel })),
 );
@@ -631,7 +642,31 @@ function useStylesBrowserController({
     useStyleCatalogInteraction(config);
 
   // -- FILTERS & STATE --
-  const { activeWorkspaceId } = useWorkspaceState();
+  const { activeWorkspaceId, workspaces, setWorkspaceStyleScope } = useWorkspaceState();
+  const activeWorkspace = workspaces.find((workspace) => workspace.id === activeWorkspaceId);
+  const workspaceName = activeWorkspace?.name?.trim() || 'Default';
+  const projectScope = activeWorkspace?.styleScope ?? EMPTY_WORKSPACE_STYLE_SCOPE;
+  const [isProjectStylesDialogOpen, setIsProjectStylesDialogOpen] = useState(false);
+  const projectStyles = useMemo((): WorkspaceProjectStyles => {
+    const suggestions =
+      projectScope.length > 0
+        ? []
+        : suggestWorkspaceProjectPacks(workspaceName, STYLE_RUNTIME_PACK_SUMMARIES);
+    return {
+      workspaceName,
+      scope: projectScope,
+      collection: createWorkspaceStyleCollection(projectScope, {
+        title: t('projectStyles.title'),
+        description: t('projectStyles.description', { workspace: workspaceName }),
+      }),
+      projectPacks: listProjectStylePacks(STYLE_RUNTIME_PACK_SUMMARIES),
+      suggestedPackIds: suggestions.map((pack) => pack.id),
+      suggestion: suggestions[0]
+        ? { packName: suggestions[0].cardTitle ?? suggestions[0].name }
+        : null,
+      openEditor: () => setIsProjectStylesDialogOpen(true),
+    };
+  }, [projectScope, t, workspaceName]);
   const navigation = useStyleBrowserNavigation({
     syncRoute: !workbench.openStyles,
     scopeKey: activeWorkspaceId,
@@ -816,9 +851,12 @@ function useStylesBrowserController({
   const activeStyleCollectionId = getStyleCollectionIdFromTabId(currentPackId);
   const activeStyleCollection = useMemo(() => {
     if (!activeStyleCollectionId || !styleCollectionsModule) return null;
-    const collection = styleCollectionsModule.STYLE_COLLECTIONS.find(
-      (item) => item.id === activeStyleCollectionId && item.entries.length > 0,
-    );
+    const collection =
+      activeStyleCollectionId === WORKSPACE_STYLE_COLLECTION_ID
+        ? projectStyles.collection
+        : styleCollectionsModule.STYLE_COLLECTIONS.find(
+            (item) => item.id === activeStyleCollectionId && item.entries.length > 0,
+          );
     // Packs with copies from the collection's sources, such as Essentials, feed it too.
     return collection
       ? {
@@ -829,7 +867,7 @@ function useStylesBrowserController({
           ],
         }
       : null;
-  }, [activeStyleCollectionId, styleCollectionsModule]);
+  }, [activeStyleCollectionId, projectStyles.collection, styleCollectionsModule]);
 
   const styleRuntimePackLoadRequest = useMemo(
     () =>
@@ -1593,6 +1631,11 @@ function useStylesBrowserController({
   );
 
   return {
+    projectStyles,
+    isProjectStylesDialogOpen,
+    closeProjectStylesDialog: () => setIsProjectStylesDialogOpen(false),
+    saveProjectStyles: (scope: WorkspaceStyleRef[]) =>
+      setWorkspaceStyleScope(activeWorkspaceId, scope),
     catalogMounted,
     isGenerating,
     explorerOpen,
@@ -1742,10 +1785,24 @@ function StylesBrowserView({
     selectedStyleLayers,
     userStyleEditorSession,
     userStyles,
+    projectStyles,
+    isProjectStylesDialogOpen,
+    closeProjectStylesDialog,
+    saveProjectStyles,
   } = model;
 
   return (
     <>
+      {isProjectStylesDialogOpen ? (
+        <WorkspaceStyleScopeDialog
+          workspaceName={projectStyles.workspaceName}
+          scope={projectStyles.scope}
+          packs={STYLE_RUNTIME_PACK_SUMMARIES}
+          suggestedPackIds={projectStyles.suggestedPackIds}
+          onSave={saveProjectStyles}
+          onClose={closeProjectStylesDialog}
+        />
+      ) : null}
       {!catalogOnly && (
         <RecipeLayout isGenerating={isGenerating} className="styles-workbench flex size-full">
           {explorerOpen && !catalogExpanded && inspectedStyle ? styleDetail : <RecipeResults />}
@@ -1845,6 +1902,7 @@ function StyleCompositionControls({
     | 'toggleFavorite'
     | 'handleChooseCompactStyle'
     | 'handleCatalogPrompt'
+    | 'projectStyles'
     | 'removeSelectedStyle'
     | 'updateSelectedStyleStrength'
     | 'toggleSelectedStyleEnabled'
@@ -1882,6 +1940,7 @@ function StyleCompositionControls({
     toggleFavorite,
     handleChooseCompactStyle,
     handleCatalogPrompt,
+    projectStyles,
     removeSelectedStyle,
     updateSelectedStyleStrength,
     toggleSelectedStyleEnabled,
@@ -1939,6 +1998,9 @@ function StyleCompositionControls({
           onToggleEnabled={toggleSelectedStyleEnabled}
           onMove={moveSelectedStyle}
           onBrowseCatalog={() => openStyleCatalog(false)}
+          projectScope={projectStyles.scope}
+          projectSuggestion={projectStyles.suggestion}
+          onEditProjectStyles={projectStyles.openEditor}
         />
       </React.Suspense>
       {selectedStyles.length > 0 ? (

@@ -2614,6 +2614,8 @@ button.studio-status-provider:hover {
 }
 .styles-catalog-panel [data-style-collection-family='personal'] [data-style-folder-target] {
   aspect-ratio: 2 / 1;
+  /* Its 3:4 cover files would otherwise spill over the next section. */
+  overflow: hidden;
 }
 .styles-catalog-panel .style-preset-tile {
   aspect-ratio: auto;

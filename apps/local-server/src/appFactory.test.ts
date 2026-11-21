@@ -463,6 +463,7 @@ describe('createStudioApp', () => {
       name: 'Injected Workspace',
       filter: { favorite: true },
       sortOrder: 'newest' as const,
+      styleScope: [],
       createdAt: '2026-05-31T00:00:00.000Z',
       updatedAt: '2026-05-31T00:00:00.000Z',
     };

@@ -188,6 +188,14 @@ _Avoid_: thumbnail import glob, eager global image map, style data source
 Lightweight grouping record for style pack metadata, categories, ordering, and references to Style Preset Manifests.
 _Avoid_: monolithic preset pack, category dump, generated style bundle
 
+**Project Style Pack**:
+Private style pack made for one project, such as one game. Its Style Pack Manifest sets `project.name`. Studio lists it under Projects in the style explorer, outside the style collections, and suggests it to Workspaces whose name holds that project name.
+_Avoid_: hardcoded project collection, workspace pack
+
+**Workspace Style Scope**:
+The style packs, pack categories and single presets that the user links to one Workspace's project. Create opens the style picker on them and the style explorer shows them as Project styles. It is a shortcut, not a default: it never puts a style into a draft or a generation.
+_Avoid_: style defaults, workspace styles preset, auto-applied styles
+
 **Cozy Extension**:
 Versioned declarative content package, such as a style pack, installed from an Extension Source. It holds data and images, never code that Studio runs.
 _Avoid_: plugin, runtime module, code extension
@@ -326,6 +334,7 @@ _Avoid_: direct repair command, secret-printing audit, destructive storage scan
 - A **Style Search Projection** is derived from **Style Preset Manifests** and **Style Pack Manifests**.
 - A **Style Pack Manifest** groups many **Style Preset Manifests** without owning all preset content inline.
 - An **Extension Source** offers many **Cozy Extensions**. A style-pack extension carries one **Style Pack Manifest** and its **Style Preset Manifests**.
+- A **Workspace** has one **Workspace Style Scope**, which may be empty. It links by pack id, so it can name packs that are not installed; Studio then says so and keeps the link.
 - A **Local Generation Run** creates one or more **Persistent Jobs** and returns their catalog-derived image results.
 - **Local Studio Sync** mirrors **Persistent Jobs** and requests scoped **Image Catalog** reconciliation.
 - **Local Studio Sync** uses **Studio Event Revisions** to detect missed changes and request scoped reconciliation.

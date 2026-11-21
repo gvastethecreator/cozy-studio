@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { openTestDatabase } from './db/testDatabase';
-import { createWorkspaceInDb, deleteWorkspaceFromDb } from './db/workspaces';
+import {
+  createWorkspaceInDb,
+  deleteWorkspaceFromDb,
+  getWorkspaceFromDb,
+  updateWorkspaceInDb,
+} from './db/workspaces';
 import { createWorkspaceRoutes, type WorkspaceRoutesDependencies } from './workspaceRoutes';
 
 function createRouteHarness() {
@@ -11,6 +16,7 @@ function createRouteHarness() {
       name: input.name,
       filter: input.filter ?? {},
       sortOrder: input.sortOrder ?? 'newest',
+      styleScope: [],
       createdAt: '2026-08-08T00:00:00.000Z',
       updatedAt: '2026-08-08T00:00:00.000Z',
     }),
@@ -59,6 +65,31 @@ describe('Workspace API shared boundary', () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({ code: 'invalid_request_body' });
     expect(createCatalogWorkspace).not.toHaveBeenCalled();
+  });
+});
+
+describe('updateWorkspaceInDb', () => {
+  it('stores a clean style scope, keeps it on other edits and clears it with []', () => {
+    const database = openTestDatabase();
+    createWorkspaceInDb(database, { id: 'ws-a', name: 'Black Flag biomas' });
+    updateWorkspaceInDb(database, 'ws-a', {
+      styleScope: [
+        { packId: 'pack_35', category: '1. Biomes' },
+        { packId: 'pack_35', category: '1. Biomes' },
+        { packId: 'pack_36', category: 'ignored', presetId: 'SP36-001' },
+        { packId: ' ' },
+      ],
+    });
+    updateWorkspaceInDb(database, 'ws-a', { name: 'Biomas' });
+    expect(getWorkspaceFromDb(database, 'ws-a')?.styleScope).toEqual([
+      { packId: 'pack_35', category: '1. Biomes' },
+      { packId: 'pack_36', presetId: 'SP36-001' },
+    ]);
+    updateWorkspaceInDb(database, 'ws-a', { styleScope: [] });
+    const row = database
+      .query("SELECT style_scope_json FROM workspaces WHERE id = 'ws-a'")
+      .get() as { style_scope_json: string | null };
+    expect(row.style_scope_json).toBeNull();
   });
 });
 

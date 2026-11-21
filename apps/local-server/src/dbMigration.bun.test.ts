@@ -164,10 +164,9 @@ function inspectOutputGenerations() {
   }
 }
 
-/** Undoes the newest migration (21: two catalog indexes) so the next start applies it again. */
+/** Undoes the newest migration (22: the workspace style scope column) so the next start applies it again. */
 function rewindLatestMigration(db: Database) {
-  db.run('DROP INDEX idx_catalog_workspace_deleted_favorite');
-  db.run('DROP INDEX idx_catalog_deleted_tag_count_workspace');
+  db.run('ALTER TABLE workspaces DROP COLUMN style_scope_json');
 }
 
 function inspectPreMigrationBackup() {
@@ -195,7 +194,7 @@ function inspectPreMigrationBackup() {
       );
     }
     writeFileSync(path.join(backupDir, 'notes.txt'), 'kept');
-    // Restore the v20 schema as well as its migration ledger before exercising v21.
+    // Restore the v21 schema as well as its migration ledger before exercising v22.
     rewindLatestMigration(db);
     db.query('DELETE FROM schema_migrations WHERE version = ?').run(latest);
     migrateDatabase(db);
@@ -773,7 +772,7 @@ describe('database migrations', () => {
         preBaselineRefused: true,
         recoverableCheckpoint: true,
         summaryProjection: true,
-        schemaVersion: 21,
+        schemaVersion: 22,
         completeJobHistory: true,
         jobsSummary: true,
         executionPolicyPreserved: true,

@@ -1112,6 +1112,7 @@ export function StyleCatalogPanel({
     | 'toggleFavorite'
     | 'handleCatalogPrompt'
     | 'styleDetail'
+    | 'projectStyles'
   >;
 }) {
   const {
@@ -1134,6 +1135,7 @@ export function StyleCatalogPanel({
     toggleFavorite,
     handleCatalogPrompt,
     styleDetail,
+    projectStyles,
   } = model;
 
   return (
@@ -1177,6 +1179,7 @@ export function StyleCatalogPanel({
               onNavigateToStyleTab={navigateToStyleTab}
               onPrefetchStyleTab={prefetchStyleTab}
               onToggleNavigationPanel={() => toggleStylePanel('navigation')}
+              projectStyles={projectStyles}
             />
           </React.Suspense>
         ) : (

@@ -50,12 +50,12 @@ The file is `{port, pid, startedAt, version}`. A file whose `pid` no longer runs
 
 Settings > Advanced & maintenance > **Agent access (MCP)** controls every call, including calls from already connected clients. Studio reads the setting again on each call. Each level includes the one before it.
 
-| Level        | `mcpAccess` | Adds                                                                                                                                                                                                                            |
-| ------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Off          | `off`       | Nothing. Every call except `studio_guide` returns 403.                                                                                                                                                                          |
-| Read only    | `read`      | The default. Every read tool, including `studio_plan_generation`.                                                                                                                                                               |
-| Organize     | `organize`  | `studio_organize_images`, `studio_undo_organize` and `studio_save_smart_collection`: tags, manual memberships and saved filters. They never delete, archive or move images, delete collections, or spend provider usage.        |
-| Full control | `write`     | `studio_generate`, `studio_retry_batch`, `studio_cancel`, `studio_import_reference`, `studio_import_reference_file`, `studio_update_settings`, `studio_install_extension`, `studio_remove_extension` and `studio_apply_update`. |
+| Level        | `mcpAccess` | Adds                                                                                                                                                                                                                                                           |
+| ------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Off          | `off`       | Nothing. Every call except `studio_guide` returns 403.                                                                                                                                                                                                         |
+| Read only    | `read`      | The default. Every read tool, including `studio_plan_generation`.                                                                                                                                                                                              |
+| Organize     | `organize`  | `studio_organize_images`, `studio_undo_organize` and `studio_save_smart_collection`: tags, manual memberships and saved filters. They never delete, archive or move images, delete collections, or spend provider usage.                                       |
+| Full control | `write`     | `studio_generate`, `studio_retry_batch`, `studio_cancel`, `studio_import_reference`, `studio_import_reference_file`, `studio_update_settings`, `studio_set_workspace_styles`, `studio_install_extension`, `studio_remove_extension` and `studio_apply_update`. |
 
 The bridge answers `studio_guide` itself from `skills/cozy-studio-mcp/` and this page, so it works while Studio is offline and when Agent access is Off.
 
@@ -72,9 +72,10 @@ The setting controls the MCP gateway, not the app's own UI and API. Local MCP cl
 | `studio_onboarding`                                                | read               | Onboarding probe and provider readiness, with the ChatGPT sign-in state.                                                     |
 | `studio_providers`                                                 | read               | Provider readiness.                                                                                                          |
 | `studio_recipes`                                                   | read               | Workflow summaries; `q` filters them, `id` returns one workflow with parameters and defaults.                                |
-| `studio_find_styles`                                               | read               | Installed style presets by id, name or category, for `studio_generate` `styles`.                                             |
+| `studio_find_styles`                                               | read               | Installed style presets by id, name or category, for `studio_generate` `styles`; `workspaceId` puts linked styles first.     |
 | `studio_plan_generation`                                           | read               | Preview a `studio_generate` call: provider, model, workspace, filing and prompt. Spends nothing.                             |
-| `studio_workspaces`                                                | read               | Workspaces; with `workspaceId`, its tags, collections and `unorganized` count.                                               |
+| `studio_workspaces`                                                | read               | Workspaces with their linked `styleScope`; with `workspaceId`, its tags, collections and `unorganized` count.                |
+| `studio_set_workspace_styles`                                      | write              | Replace the packs, categories and presets linked to one workspace's project. Changes no generation.                          |
 | `studio_settings`                                                  | read               | Editable Studio Settings.                                                                                                    |
 | `studio_update_settings`                                           | write              | Change agent-safe settings.                                                                                                  |
 | `studio_extensions`, `studio_extension_json`, `studio_user_styles` | read               | Installed packs, their JSON files, saved user styles.                                                                        |
@@ -186,7 +187,9 @@ Provider settings (`defaultProviderId`, `providerDefaults`), the output folder (
 
 ### Packs and updates
 
-`studio_find_styles` takes `{q?, packId?, limit}` (`limit` 1 to 50, default 20) and returns `{styles: [{packId, presetId, name, category, hasIntentionalPolicy, summary}]}`. `q` matches the preset id, name, display name and category.
+`studio_find_styles` takes `{q?, packId?, workspaceId?, limit}` (`limit` 1 to 50, default 20) and returns `{styles: [{packId, presetId, name, category, hasIntentionalPolicy, summary}]}`. `q` matches the preset id, name, display name and category. With `workspaceId`, each style also has `inWorkspaceStyles`, and the styles linked to that workspace come first. An unknown id returns 400 `Unknown workspaceId.`
+
+`studio_set_workspace_styles` takes `{workspaceId, styles}`. Each of up to 200 `styles` is `{packId}` (a whole pack), `{packId, category}` (one category, by the name `studio_find_styles` returns) or `{packId, presetId}` (one preset). It replaces the workspace's `styleScope` and returns the workspace. `[]` unlinks all. It never changes a draft or a generation.
 
 `studio_install_extension` takes `{sourceId, extensionId, layers?}` from `studio_available_extensions`. Installing a pack that has `updateAvailable` updates it. Without `layers`, the tool keeps the layers already installed for that pack. `layers: ["cards"]` adds full-quality cards; `layers: []` installs without them.
 

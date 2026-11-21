@@ -20,6 +20,7 @@ describe('workspaceIdbMigration', () => {
         name: 'Current',
         filter: {},
         sortOrder: 'newest',
+        styleScope: [],
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -38,6 +39,7 @@ describe('workspaceIdbMigration', () => {
       name: 'Concept',
       filter: {},
       sortOrder: 'newest',
+      styleScope: [{ packId: 'pack_35' }],
       createdAt: '2026-01-02T00:00:00.000Z',
       updatedAt: '2026-01-02T00:00:00.000Z',
     });
@@ -45,6 +47,7 @@ describe('workspaceIdbMigration', () => {
       id: 'ws-1',
       name: 'Concept',
       createdAt: Date.parse('2026-01-02T00:00:00.000Z'),
+      styleScope: [{ packId: 'pack_35' }],
     });
   });
 
@@ -70,6 +73,7 @@ describe('workspaceIdbMigration', () => {
         name: input.name,
         filter: {},
         sortOrder: 'newest',
+        styleScope: [],
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       }),
@@ -82,6 +86,7 @@ describe('workspaceIdbMigration', () => {
           name: 'Default',
           filter: {},
           sortOrder: 'newest',
+          styleScope: [],
           createdAt: '2026-01-01T00:00:00.000Z',
           updatedAt: '2026-01-01T00:00:00.000Z',
         },
@@ -92,6 +97,7 @@ describe('workspaceIdbMigration', () => {
           name: 'Default',
           filter: {},
           sortOrder: 'newest',
+          styleScope: [],
           createdAt: '2026-01-01T00:00:00.000Z',
           updatedAt: '2026-01-01T00:00:00.000Z',
         },
@@ -100,6 +106,7 @@ describe('workspaceIdbMigration', () => {
           name: 'Local Only',
           filter: {},
           sortOrder: 'newest',
+          styleScope: [],
           createdAt: '2026-01-01T00:00:00.000Z',
           updatedAt: '2026-01-01T00:00:00.000Z',
         },

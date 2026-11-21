@@ -37,6 +37,7 @@ import {
   getJob,
   getJobStatus,
   listJobSummaries,
+  readJobsSummary,
   requeueJob,
   updateJobFinalPrompt,
 } from './db/jobs';
@@ -166,6 +167,7 @@ export interface StudioJobStore {
   getJob: typeof getJob;
   getJobStatus: typeof getJobStatus;
   listJobSummaries: typeof listJobSummaries;
+  readJobsSummary: typeof readJobsSummary;
 }
 
 export interface StudioAssetStore {
@@ -183,6 +185,7 @@ const defaultJobStore: StudioJobStore = {
   getJob,
   getJobStatus,
   listJobSummaries,
+  readJobsSummary,
 };
 const defaultAssetStore: StudioAssetStore = { listAssets };
 const defaultLogStore: StudioLogStore = { listLogs };
@@ -566,6 +569,7 @@ export async function createStudioApp(
     '/api/jobs',
     createJobRoutes({
       listJobs: (query) => jobStore.listJobSummaries(query),
+      readJobsSummary: () => jobStore.readJobsSummary(),
       getJob: (jobId) => jobStore.getJob(jobId),
       getJobStatus: (jobId) => jobStore.getJobStatus(jobId),
       getJobDetail,
@@ -731,6 +735,7 @@ export async function createStudioApp(
     createEventStreamRoutes({
       subscribeEvents,
       readEventRevision: getCurrentEventRevision,
+      readMcpAccess: () => readEditableStudioSettings(settingsStorage).mcpAccess,
     }),
   );
 

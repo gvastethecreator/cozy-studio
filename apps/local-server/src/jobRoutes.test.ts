@@ -7,6 +7,7 @@ import {
   type StudioEvent,
   type UnknownStudioEvent,
 } from '../../../packages/shared/src';
+import { createDefaultEditableStudioSettings } from '../../../packages/shared/src/studioSettings';
 import { createJobRoutes } from './jobRoutes';
 
 function isReferenceProcessingError(
@@ -158,7 +159,11 @@ describe('jobRoutes', () => {
       limit: 2,
       cursor: 'next',
     });
-    for (const query of ['status=running', 'limit=0', 'limit=101', 'limit=no']) {
+    await routes.request('/?status=active');
+    expect(listJobs).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'active' }));
+    await routes.request('/?status=needs_review');
+    expect(listJobs).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'needs_review' }));
+    for (const query of ['status=stuck', 'limit=0', 'limit=101', 'limit=no']) {
       expect((await routes.request(`/?${query}`)).status).toBe(400);
     }
 
@@ -426,7 +431,38 @@ describe('jobRoutes', () => {
       publishEvent,
       logJobCreated,
       enqueueJob,
+      readEditableSettings: () => ({
+        ...createDefaultEditableStudioSettings(),
+        chatgptCreditSpend: 'ask',
+      }),
+      readChatgptUsageStatus: async () => ({
+        state: 'credits',
+        windowPercentLeft: 0,
+        windowLabel: 'Weekly',
+        resetsAt: null,
+        creditBalance: 12,
+        creditsUnlimited: false,
+      }),
     });
+
+    // The route passes the user's confirmation to the credits check; without it Studio asks.
+    const chatgptJob = { kind: 'image_generate', providerId: 'chatgpt', prompt: 'draw' };
+    const asked = await routes.request('/', {
+      method: 'POST',
+      body: JSON.stringify(chatgptJob),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    expect(asked.status).toBe(409);
+    expect(await asked.json()).toMatchObject({ code: 'chatgpt_credits_confirmation_required' });
+    const confirmed = await routes.request('/', {
+      method: 'POST',
+      body: JSON.stringify({ ...chatgptJob, confirmCreditSpend: true }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    expect(confirmed.status).toBe(201);
+    expect(createJobFn).toHaveBeenLastCalledWith(
+      expect.objectContaining({ providerId: 'chatgpt' }),
+    );
 
     const blockedResponse = await routes.request('/', {
       method: 'POST',

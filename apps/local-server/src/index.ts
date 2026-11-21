@@ -1,4 +1,4 @@
-import { getSettings } from './config';
+import { getSettings, resolveStudioDataRoot } from './config';
 import { listRecoverableJobs } from './db/jobs';
 import { createStudioApp } from './appFactory';
 import { providerDispatchHeld, scheduleRecoverableJobs } from './providerDispatchHold';
@@ -9,6 +9,8 @@ import { STUDIO_RESTART_EXIT_CODE } from '../../../packages/shared/src/repositor
 import { LOCAL_EXTENSION_BODY_LIMIT } from './localExtensionInstall';
 import { LIBRARY_ARCHIVE_MAX_BYTES } from '../../../packages/shared/src/libraryArchive';
 import { MIN_BUN_VERSION } from './imagePipeline';
+import { removeStudioServerDiscovery, writeStudioServerDiscovery } from './serverDiscovery';
+import studioPackage from '../../../package.json';
 
 export { createStudioApp } from './appFactory';
 
@@ -51,6 +53,7 @@ if (import.meta.main) {
       const pathname = new URL(req.url).pathname;
       if (
         pathname === '/api/events' ||
+        pathname === '/api/agent/events' ||
         pathname === '/api/workspaces/import' ||
         /^\/api\/workspaces\/[^/]+\/export$/.test(pathname)
       ) {
@@ -69,9 +72,25 @@ if (import.meta.main) {
 
   console.log(`Cozy Studio local-server listening on http://${hostname}:${boundPort}`);
 
+  const dataRoot = resolveStudioDataRoot();
+  try {
+    writeStudioServerDiscovery(dataRoot, {
+      port: boundPort,
+      pid: process.pid,
+      startedAt: new Date().toISOString(),
+      version: studioPackage.version,
+    });
+  } catch (error) {
+    log('warn', 'server', `Could not write the server discovery file: ${String(error)}`);
+  }
+
   let shutdownPromise: Promise<void> | null = null;
   const shutdown = () => {
     if (!shutdownPromise) {
+      // A file left behind names an ended process, which readers skip.
+      try {
+        removeStudioServerDiscovery(dataRoot);
+      } catch {}
       shutdownPromise = shutdownStudioServer({
         stopHttpServer: () => server.stop(true),
         stopStudio: () => studio.shutdown(),

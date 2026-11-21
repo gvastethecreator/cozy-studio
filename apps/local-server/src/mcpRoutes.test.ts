@@ -130,6 +130,12 @@ describe('Studio MCP boundary', () => {
     };
     let workspacesDown = false;
     let runtimeBody = JSON.stringify(runtimePack);
+    const jobsSummary = {
+      counts: { queued: 2, running: 1, needs_review: 0 },
+      active: [{ batchId: 'batch-1', jobId: 'job-3', counts: { queued: 2, running: 1 } }],
+      recentFailures: [],
+      reviewGroups: 0,
+    };
     const app = new Hono().route(
       '/api/mcp',
       createMcpRoutes({
@@ -172,6 +178,7 @@ describe('Studio MCP boundary', () => {
             });
             return Response.json(organized);
           }
+          if (path === '/api/jobs/summary') return Response.json(jobsSummary);
           if (path === '/api/catalog/unorganized-counts')
             return Response.json([
               ...workspaces.map(({ id }) => ({ workspaceId: id, count: 3 })),
@@ -441,6 +448,7 @@ describe('Studio MCP boundary', () => {
     const total = 3 * workspaces.length;
     expect(await (await call('studio_status')).json()).toMatchObject({
       mcpAccessLabel: 'Organize',
+      jobs: jobsSummary,
       update: {
         source: 'release',
         channel: 'releases',
@@ -626,6 +634,11 @@ describe('Studio MCP boundary', () => {
       'GET /api/updates',
       'POST /api/updates/check',
     ]);
+    await call('studio_jobs', { summary: true });
+    expect(requests.at(-1)?.path).toBe('/api/jobs/summary');
+    await call('studio_jobs', { status: 'active' });
+    expect(requests.at(-1)?.path).toBe('/api/jobs?limit=30&status=active');
+    expect((await call('studio_jobs', { status: 'stuck' })).status).toBe(400);
     await call('studio_job', { jobId: 'job-1' });
     expect(requests.at(-1)?.path).toBe('/api/jobs/job-1/status');
     // detail is an allowlist: prompts, transcripts and event metadata stay in Studio.

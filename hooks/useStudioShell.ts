@@ -21,6 +21,7 @@ import { useHashRouter, type AppPageView } from './useHashRouter';
 import { useImageInputSurface } from './useImageInputSurface';
 import { useStudioActionConfirmations } from './useStudioActionConfirmations';
 import { useStudioActivitySession } from './useStudioActivitySession';
+import { useJobsDeepLink } from './useJobsDeepLink';
 import { useStudioCatalogController } from './useCatalog';
 import { useCarouselSelection } from './useCarouselSelection';
 import { useStudioGallery } from './useStudioGallery';
@@ -277,6 +278,13 @@ export function useStudioShell(): StudioShellController {
     isGenerating: pipeline.isGenerating,
     isQueueOpen: viewState.queue.isOpen,
     setIsQueueOpen: viewState.queue.setIsOpen,
+  });
+
+  const { queueLink, clearQueueLink } = useJobsDeepLink({
+    isQueueOpen: viewState.queue.isOpen,
+    openQueue: () => viewState.queue.setIsOpen(true),
+    inspectJob: activitySession.selection.inspectJob,
+    addToast,
   });
 
   const {
@@ -818,6 +826,8 @@ export function useStudioShell(): StudioShellController {
       retryPersistentJob: activitySession.selection.retryJob,
       cancelPersistentJob: activitySession.selection.cancelJob,
       onInspectJob: activitySession.selection.inspectJob,
+      queueLink,
+      clearQueueLink,
     }),
     [
       modal.isModalOpen,
@@ -829,6 +839,8 @@ export function useStudioShell(): StudioShellController {
       activitySession.selection.retryJob,
       activitySession.selection.cancelJob,
       activitySession.selection.inspectJob,
+      queueLink,
+      clearQueueLink,
     ],
   );
 

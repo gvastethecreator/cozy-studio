@@ -41,6 +41,7 @@ import {
   type CatalogUnorganizedCount,
   type JobDetailResponse,
   type JobExecutionOptions,
+  type JobsSummary,
 } from '../../../packages/shared/src/types';
 import type { StudioWorkspace } from '../../../packages/shared/src/workspaceContracts';
 import type { ImageGenerationConfig, Attachment } from '../../../types';
@@ -351,6 +352,7 @@ export function createMcpRoutes({
           checkedAt?: string | null;
         } | null;
         const behind = update?.behind ?? 0;
+        const jobs = (await readJson('/api/jobs/summary')) as JobsSummary | null;
         // A failed workspace read counts nothing, so studio_status never fails on it.
         const listed: unknown = await readJson('/api/workspaces');
         const workspaces = Array.isArray(listed) ? (listed as StudioWorkspace[]) : [];
@@ -370,6 +372,7 @@ export function createMcpRoutes({
           mcpAccess: settings.mcpAccess,
           mcpAccessLabel: STUDIO_MCP_ACCESS_LABELS[settings.mcpAccess],
           chatgptUsage,
+          jobs,
           ...((chatgptUsage?.state === 'credits' || chatgptUsage?.state === 'exhausted') && {
             usageNotice:
               `${chatgptUsage.summary ?? ''} Tell the user before planning ChatGPT generation.${chatgptUsage.state === 'credits' && chatgptUsage.creditPolicy === 'ask' ? ' Studio asks before spending: ask the user, and only after they agree pass confirmCreditSpend: true.' : ''}`.trim(),
@@ -460,7 +463,7 @@ export function createMcpRoutes({
       case 'studio_user_styles':
         return get('/api/styles/user');
       case 'studio_jobs':
-        return query('/api/jobs');
+        return args.summary ? get('/api/jobs/summary') : query('/api/jobs');
       case 'studio_job': {
         if (!args.detail) return get(`/api/jobs/${String(args.jobId)}/status`);
         const response = await get(`/api/jobs/${String(args.jobId)}`);

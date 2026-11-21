@@ -16,6 +16,7 @@ For duplicate review, direct the user to Settings > Advanced & maintenance > **D
 | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Is Studio healthy? Is an update available?       | `studio_status`: `health`, `update` and `notice`.                                                                                                          |
 | How many images have no tags and no collection?  | `studio_status`: `unorganized.total` for all workspaces, `unorganized.workspaces` for each one. For one workspace: `studio_workspaces` with `workspaceId`. |
+| What is running, queued or waiting for review?   | `studio_status` `jobs`, or `studio_jobs` with `summary: true`: counts, batches in progress and failures of the last 24 hours, with no job lists.           |
 | Which jobs failed, and why?                      | `studio_jobs` with `status: "failed"`, then `studio_job` with `detail: true`.                                                                              |
 | Which packs are installed? Which have an update? | `studio_extensions` and `studio_available_extensions` (`updateAvailable`).                                                                                 |
 

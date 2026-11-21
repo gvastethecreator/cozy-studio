@@ -18,6 +18,9 @@ import type {
   JobListQuery,
   JobCounts,
   JobAttemptRecord,
+  JobListStatusFilter,
+  JobsSummary,
+  TerminalJobStatus,
 } from '../../../../packages/shared/src';
 import {
   normalizeWorkspaceId,
@@ -377,6 +380,20 @@ const OPEN_JOB_SQL = "status IN ('queued', 'running', 'needs_review')";
 // Unary `+` keeps the planner off the status index: history is most of the table, so walking
 // created_at order with LIMIT beats sorting every terminal job. Check with EXPLAIN QUERY PLAN.
 const TERMINAL_JOB_SQL = "+status IN ('completed', 'failed', 'cancelled')";
+/** The open jobs each status filter returns, and its history page: every terminal status, one, or none. */
+const JOB_LIST_FILTERS: Record<
+  JobListStatusFilter | 'all',
+  { open: string; history: TerminalJobStatus | 'all' | null }
+> = {
+  all: { open: OPEN_JOB_SQL, history: 'all' },
+  active: { open: OPEN_JOB_SQL, history: null },
+  queued: { open: "status = 'queued'", history: null },
+  running: { open: "status = 'running'", history: null },
+  needs_review: { open: "status = 'needs_review'", history: null },
+  completed: { open: OPEN_JOB_SQL, history: 'completed' },
+  failed: { open: OPEN_JOB_SQL, history: 'failed' },
+  cancelled: { open: OPEN_JOB_SQL, history: 'cancelled' },
+};
 
 function decodeJobHistoryCursor(cursor: string) {
   let value: unknown;
@@ -420,24 +437,29 @@ export function listJobSummariesFromDb(database: Database, query: JobListQuery =
       .all(...params) as Array<{ status: JobStatus; count: number }>;
     for (const row of grouped) counts[row.status] = row.count;
     counts.open = counts.queued + counts.running + counts.needs_review;
-    counts.history = query.status
-      ? counts[query.status]
-      : counts.completed + counts.failed + counts.cancelled;
+    const filter = JOB_LIST_FILTERS[query.status ?? 'all'];
+    counts.history =
+      filter.history && filter.history !== 'all'
+        ? counts[filter.history]
+        : counts.completed + counts.failed + counts.cancelled;
     counts.total = counts.open + counts.history;
     const open = database
       .query(
-        `SELECT ${JOB_SUMMARY_COLUMNS} FROM jobs WHERE ${scope} AND ${OPEN_JOB_SQL} ORDER BY created_at DESC, id DESC`,
+        `SELECT ${JOB_SUMMARY_COLUMNS} FROM jobs WHERE ${scope} AND ${filter.open} ORDER BY created_at DESC, id DESC`,
       )
       .all(...params);
-    const historyWhere = `${scope} AND ${query.status ? 'status = ?' : TERMINAL_JOB_SQL}`;
-    const historyParams = query.status ? [...params, query.status] : [...params];
+    const historyParams =
+      filter.history && filter.history !== 'all' ? [...params, filter.history] : [...params];
     if (cursor) historyParams.push(cursor[0], cursor[1]);
-    const history = database
-      .query(`SELECT ${JOB_SUMMARY_COLUMNS} FROM jobs WHERE ${historyWhere}
+    const history = filter.history
+      ? database
+          .query(`SELECT ${JOB_SUMMARY_COLUMNS} FROM jobs
+      WHERE ${scope} AND ${filter.history === 'all' ? TERMINAL_JOB_SQL : 'status = ?'}
       ${cursor ? 'AND (created_at, id) < (?, ?)' : ''}
       ORDER BY created_at DESC, id DESC LIMIT ?`)
-      .all(...historyParams, limit + 1)
-      .map((row) => mapJobSummaryRow(row as Record<string, unknown>));
+          .all(...historyParams, limit + 1)
+          .map((row) => mapJobSummaryRow(row as Record<string, unknown>))
+      : [];
     const hasMore = history.length > limit;
     history.length = Math.min(limit, history.length);
     const last = history.at(-1);
@@ -464,6 +486,116 @@ export function listJobSummariesFromDb(database: Database, query: JobListQuery =
 
 export function listJobSummaries(query: JobListQuery = {}, db?: Database) {
   return listJobSummariesFromDb(getDb(db), query);
+}
+
+const JOBS_SUMMARY_GROUP_LIMIT = 10;
+const JOBS_SUMMARY_FAILURE_WINDOW_MS = 24 * 60 * 60 * 1000;
+const JOBS_SUMMARY_COLUMNS = `jobs.id, jobs.batch_id, jobs.workspace_id, jobs.provider_id, jobs.status,
+  jobs.error, jobs.updated_at, COALESCE(workspaces.name, jobs.workspace_id) AS workspace_name,
+  substr(COALESCE(NULLIF(trim(jobs.final_prompt_used), ''), jobs.original_prompt, ''), 1, 160) AS prompt_preview`;
+const JOBS_SUMMARY_FROM = 'jobs LEFT JOIN workspaces ON jobs.workspace_id = workspaces.id';
+
+interface JobsSummaryRow {
+  id: string;
+  batch_id: string | null;
+  workspace_id: string | null;
+  provider_id: GenerationProviderId | null;
+  status: JobStatus;
+  error: string | null;
+  updated_at: string;
+  workspace_name: string | null;
+  prompt_preview: string | null;
+}
+
+/** Rows grouped by batch (a job without a batch is its own group), newest group first. */
+function groupJobsSummaryRows(rows: JobsSummaryRow[]) {
+  const groups = new Map<string, JobsSummaryRow[]>();
+  for (const row of rows) {
+    const key = row.batch_id ?? row.id;
+    groups.set(key, [...(groups.get(key) ?? []), row]);
+  }
+  return [...groups.values()]
+    .map((group) => group.sort((left, right) => right.updated_at.localeCompare(left.updated_at)))
+    .sort((left, right) => right[0]!.updated_at.localeCompare(left[0]!.updated_at))
+    .slice(0, JOBS_SUMMARY_GROUP_LIMIT)
+    .map((group) => {
+      const newest = group[0]!;
+      const workspaceId = resolveJobWorkspaceId({ columnWorkspaceId: newest.workspace_id });
+      return {
+        rows: group,
+        group: {
+          batchId: newest.batch_id,
+          jobId: newest.id,
+          workspaceId,
+          workspaceName: newest.workspace_name ?? workspaceId,
+          providerId: newest.provider_id,
+          promptPreview: createPromptPreview(newest.prompt_preview),
+          updatedAt: newest.updated_at,
+        },
+      };
+    });
+}
+
+/** Every query reads through the status or batch index; none walks the job history. */
+export function readJobsSummaryFromDb(database: Database, at = Date.now()): JobsSummary {
+  return database.transaction(() => {
+    const counts = { queued: 0, running: 0, needs_review: 0 };
+    const grouped = database
+      .query(`SELECT status, COUNT(*) AS count FROM jobs WHERE ${OPEN_JOB_SQL} GROUP BY status`)
+      .all() as Array<{ status: keyof typeof counts; count: number }>;
+    for (const row of grouped) counts[row.status] = row.count;
+    const { reviewGroups } = database
+      .query(
+        "SELECT COUNT(DISTINCT COALESCE(batch_id, id)) AS reviewGroups FROM jobs WHERE status = 'needs_review'",
+      )
+      .get() as { reviewGroups: number };
+    const working = database
+      .query(
+        `SELECT ${JOBS_SUMMARY_COLUMNS} FROM ${JOBS_SUMMARY_FROM} WHERE jobs.status IN ('queued', 'running')`,
+      )
+      .all() as JobsSummaryRow[];
+    const batchIds = [...new Set(working.flatMap(({ batch_id }) => (batch_id ? [batch_id] : [])))];
+    const batched = batchIds.length
+      ? (database
+          .query(
+            `SELECT ${JOBS_SUMMARY_COLUMNS} FROM ${JOBS_SUMMARY_FROM} WHERE jobs.batch_id IN (${batchIds.map(() => '?').join(', ')})`,
+          )
+          .all(...batchIds) as JobsSummaryRow[])
+      : [];
+    const failures = database
+      .query(
+        `SELECT ${JOBS_SUMMARY_COLUMNS} FROM ${JOBS_SUMMARY_FROM} WHERE jobs.status = 'failed' AND jobs.updated_at >= ?`,
+      )
+      .all(new Date(at - JOBS_SUMMARY_FAILURE_WINDOW_MS).toISOString()) as JobsSummaryRow[];
+    return {
+      counts,
+      active: groupJobsSummaryRows([
+        ...working.filter(({ batch_id }) => !batch_id),
+        ...batched,
+      ]).map(({ rows, group }) => {
+        const statusCounts: Record<JobStatus, number> = {
+          queued: 0,
+          running: 0,
+          needs_review: 0,
+          completed: 0,
+          failed: 0,
+          cancelled: 0,
+        };
+        for (const row of rows) statusCounts[row.status] += 1;
+        return { ...group, counts: statusCounts };
+      }),
+      recentFailures: groupJobsSummaryRows(failures).map(({ rows, group }) => ({
+        ...group,
+        failed: rows.length,
+        error: rows[0]!.error && createPromptPreview(rows[0]!.error),
+      })),
+      reviewGroups,
+    };
+  })();
+}
+
+export function readJobsSummary(db?: Database) {
+  return readJobsSummaryFromDb(getDb(db));
 }
 
 export function listRecoverableJobs(db?: Database) {

@@ -1,6 +1,8 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import type { StudioEvent, UnknownStudioEvent } from '../../../packages/shared/src';
+import { STUDIO_MCP_ACCESS_LABELS } from '../../../packages/shared/src/studioMcp';
+import type { StudioMcpAccess } from '../../../packages/shared/src/studioSettings';
 import type { subscribeEvents } from './events';
 
 export const EVENT_STREAM_KEEPALIVE_MS = 10_000;
@@ -25,15 +27,34 @@ export function createServerConnectedEvent(
 interface EventStreamRoutesDependencies {
   subscribeEvents: typeof subscribeEvents;
   readEventRevision?: () => number;
+  readMcpAccess: () => StudioMcpAccess;
 }
 
 export function createEventStreamRoutes({
   subscribeEvents,
   readEventRevision = () => 0,
+  readMcpAccess,
 }: EventStreamRoutesDependencies) {
   const routes = new Hono();
 
-  routes.get('/events', (c) => {
+  // Studio's own UI reads /events. External clients read /agent/events, which follows Agent access
+  // and ends when the user turns it off.
+  routes.get('/events', (c) => streamEvents(c, () => true));
+  routes.get('/agent/events', (c) => {
+    const access = readMcpAccess();
+    if (access === 'off')
+      return c.json(
+        {
+          error: `The event stream needs ${STUDIO_MCP_ACCESS_LABELS.read} access. Agent access is ${STUDIO_MCP_ACCESS_LABELS.off}. Ask the user to change Agent access (MCP) in Studio Settings > Advanced & maintenance.`,
+          access,
+          required: 'read',
+        },
+        403,
+      );
+    return streamEvents(c, () => readMcpAccess() !== 'off');
+  });
+
+  function streamEvents(c: Context, allowed: () => boolean) {
     c.header('X-Accel-Buffering', 'no');
 
     return streamSSE(c, async (stream) => {
@@ -54,6 +75,10 @@ export function createEventStreamRoutes({
 
       const send = (event: StudioEvent | UnknownStudioEvent) => {
         if (stream.aborted) return;
+        if (!allowed()) {
+          abort();
+          return;
+        }
         if (pendingWrites >= EVENT_STREAM_MAX_PENDING_WRITES) {
           abort();
           return;
@@ -86,11 +111,8 @@ export function createEventStreamRoutes({
         });
 
         while (!stream.aborted) {
-          if (stream.aborted) {
-            break;
-          }
-
           await stream.sleep(EVENT_STREAM_KEEPALIVE_MS);
+          if (!allowed()) break;
           await stream.write(`: keep-alive ${Date.now()}\n\n`);
         }
       } finally {
@@ -98,7 +120,7 @@ export function createEventStreamRoutes({
         c.req.raw.signal.removeEventListener('abort', abort);
       }
     });
-  });
+  }
 
   return routes;
 }

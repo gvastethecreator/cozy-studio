@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { validateCatalogCollectionName } from './catalogCollections';
 import { normalizeImageHashtag } from './catalogTags';
 import { EXTENSION_LAYERS } from './extensions';
-import { CATALOG_SORT_OPTIONS } from './types';
+import { CATALOG_SORT_OPTIONS, JOB_LIST_STATUS_FILTERS } from './types';
 import { isPreferredWorkflow } from './workflowCatalog';
 import { WORKFLOW_MODULES } from './workflowModules';
 import type { StudioMcpAccess } from './studioSettings';
@@ -191,7 +191,7 @@ export const studioMcpTools = {
   studio_status: {
     access: 'read',
     description:
-      'Read Studio health, Agent access (mcpAccess: read, organize, or write = Full control; at off it returns 403), the ChatGPT usage state, update status and how many images are unorganized. Call it first. chatgptUsage.state is window (jobs use the usage window), credits (the window is used up and ChatGPT jobs spend credits, which cost money), exhausted (ChatGPT jobs fail until the reset) or unknown; creditPolicy is the user setting (ask, use or stop) that Studio enforces. unorganized.total counts all workspaces; unorganized.workspaces lists each workspace with unorganized images (id, name, count). When the result has a notice, tell the user an update is available and ask before applying it. When it has an organizeNotice (unorganized.total above zero), recommend organizing those images one workspace at a time.',
+      'Read Studio health, Agent access (mcpAccess: read, organize, or write = Full control; at off it returns 403), the ChatGPT usage state, update status and how many images are unorganized. Call it first. chatgptUsage.state is window (jobs use the usage window), credits (the window is used up and ChatGPT jobs spend credits, which cost money), exhausted (ChatGPT jobs fail until the reset) or unknown; creditPolicy is the user setting (ask, use or stop) that Studio enforces. jobs counts queued, running and needs_review jobs and lists the batches in progress (active, with counts by state for progress), the batches with failures in the last 24 hours (recentFailures, with the newest error) and how many batches need review (reviewGroups); a job sent alone counts as its own batch with batchId null. unorganized.total counts all workspaces; unorganized.workspaces lists each workspace with unorganized images (id, name, count). When the result has a notice, tell the user an update is available and ask before applying it. When it has an organizeNotice (unorganized.total above zero), recommend organizing those images one workspace at a time.',
     schema: empty,
   },
   studio_providers: {
@@ -246,12 +246,13 @@ export const studioMcpTools = {
   studio_jobs: {
     access: 'read',
     description:
-      'List jobs in Studio, optionally by workspace or terminal status. Active jobs (queued, running, needs_review) are always included; status filters only finished history.',
+      'List jobs in Studio, optionally by workspace or status. Without status, or with a finished status (completed, failed, cancelled), every open job (queued, running, needs_review) comes back with one page of finished history. status active returns only the open jobs, and queued, running or needs_review only those jobs, with no history. summary: true returns only the jobs summary for all workspaces (the same as studio_status jobs) and ignores the other arguments: use it to check progress without reading job lists.',
     schema: z.strictObject({
       ...page,
       workspaceId: id.optional(),
-      status: z.enum(['completed', 'failed', 'cancelled']).optional(),
+      status: z.enum(JOB_LIST_STATUS_FILTERS).optional(),
       cursor: z.string().max(1024).optional(),
+      summary: z.boolean().optional(),
     }),
   },
   studio_job: {

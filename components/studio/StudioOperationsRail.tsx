@@ -3,6 +3,7 @@ import React from 'react';
 
 import type { StudioQueueResultPreview } from '../../lib/studioQueueResults';
 import type { ShellActivityJob as StudioJob } from '../../lib/shellActivityJob';
+import type { QueueLink } from '../../hooks/useJobsDeepLink';
 
 const QueuePanel = React.lazy(() =>
   import('../QueuePanel').then((module) => ({ default: module.QueuePanel })),
@@ -19,6 +20,8 @@ export interface StudioOperationsRailProps {
   retryPersistentJob?: (jobId: string) => void;
   cancelPersistentJob: (jobId: string) => void;
   onInspectJob: (jobId: string) => void;
+  queueLink: QueueLink | null;
+  clearQueueLink: () => void;
 }
 
 export const StudioOperationsRail: React.FC<StudioOperationsRailProps> = ({
@@ -32,6 +35,8 @@ export const StudioOperationsRail: React.FC<StudioOperationsRailProps> = ({
   retryPersistentJob,
   cancelPersistentJob,
   onInspectJob,
+  queueLink,
+  clearQueueLink,
 }) => {
   return (
     <AnimatePresence>
@@ -58,6 +63,8 @@ export const StudioOperationsRail: React.FC<StudioOperationsRailProps> = ({
               onCancelServerJob={cancelPersistentJob}
               onInspectJob={onInspectJob}
               onClose={() => setIsQueueOpen(false)}
+              link={queueLink}
+              onDismissLink={clearQueueLink}
             />
           </React.Suspense>
         </div>

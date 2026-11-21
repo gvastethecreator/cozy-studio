@@ -153,6 +153,12 @@ function createFakeStores(overrides?: StudioStoreOverrides) {
     getJob: vi.fn(() => null),
     getJobStatus: vi.fn(() => null),
     listJobSummaries: vi.fn(() => emptyJobPage),
+    readJobsSummary: vi.fn(() => ({
+      counts: { queued: 0, running: 0, needs_review: 0 },
+      active: [],
+      recentFailures: [],
+      reviewGroups: 0,
+    })),
     ...overrides,
   };
   const assetStore: StudioAssetStore = {

@@ -6,19 +6,31 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { studioMcpTools } from '../packages/shared/src/studioMcp';
+import { resolveStudioDataRoot } from '../apps/local-server/src/config';
+import { readStudioServerDiscovery } from '../apps/local-server/src/serverDiscovery';
 
-const base = new URL(process.env.COZY_STUDIO_API_URL ?? 'http://127.0.0.1:17223');
+const configured = process.env.COZY_STUDIO_API_URL
+  ? new URL(process.env.COZY_STUDIO_API_URL)
+  : null;
 if (
-  base.protocol !== 'http:' ||
-  !['127.0.0.1', '[::1]', 'localhost'].includes(base.hostname) ||
-  base.username ||
-  base.password ||
-  base.pathname !== '/' ||
-  base.search ||
-  base.hash
+  configured &&
+  (configured.protocol !== 'http:' ||
+    !['127.0.0.1', '[::1]', 'localhost'].includes(configured.hostname) ||
+    configured.username ||
+    configured.password ||
+    configured.pathname !== '/' ||
+    configured.search ||
+    configured.hash)
 ) {
   throw new Error('COZY_STUDIO_API_URL must be a loopback HTTP origin.');
 }
+// Without COZY_STUDIO_API_URL, each call reads the port the running Studio wrote, so a Studio that
+// restarted on another port is found without reloading the connection.
+const studioBase = () => {
+  if (configured) return configured;
+  const port = readStudioServerDiscovery(resolveStudioDataRoot())?.port ?? 17223;
+  return new URL(`http://127.0.0.1:${port}`);
+};
 
 // Pack downloads and git fetches can outlast an ordinary call.
 const slowTools = new Set(['studio_install_extension', 'studio_updates', 'studio_apply_update']);
@@ -124,6 +136,7 @@ server.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
     };
   }
   const seconds = slowTools.has(name) ? 120 : 30;
+  const base = studioBase();
   try {
     const response = await fetch(new URL('/api/mcp/call', base), {
       method: 'POST',

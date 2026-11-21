@@ -29,6 +29,7 @@ import {
   isStudioJobVisibleAfterListClear,
 } from '../lib/studioJobsListClear';
 import { QueueBatchCard } from './QueueBatchCard';
+import type { QueueLink } from '../hooks/useJobsDeepLink';
 import type { TerminalJobStatus } from '../packages/shared/src';
 import type { WorkerStatus } from '../packages/shared/src/workerContracts';
 import { formatDate, formatDateTime, useT } from '../lib/i18n';
@@ -54,6 +55,9 @@ interface QueuePanelProps {
   onRetryServerJob?: (jobId: string) => void;
   onCancelServerJob: (jobId: string) => void;
   onClose?: () => void;
+  /** What a startup link asked for: the Review list, or one batch card above the list. */
+  link?: QueueLink | null;
+  onDismissLink?: () => void;
 }
 
 const EMPTY_RESULTS: StudioQueueResultPreview[] = [];
@@ -281,6 +285,7 @@ function useQueuePanelData(
   results: StudioQueueResultPreview[],
   serverJobs: StudioJob[],
   onClose: QueuePanelProps['onClose'],
+  link: QueuePanelProps['link'],
 ) {
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -294,6 +299,15 @@ function useQueuePanelData(
   const waitReasons = new Map(worker.status?.waiting.map((entry) => [entry.jobId, entry]) ?? []);
   const [view, setView] = useState<'active' | 'review' | 'history'>('active');
   const [autoSelectedView, setAutoSelectedView] = useState(false);
+  // A link can arrive while the panel is already open, so it switches the view when it changes.
+  const [appliedLink, setAppliedLink] = useState<QueuePanelProps['link']>(null);
+  if (link !== appliedLink) {
+    setAppliedLink(link);
+    if (link?.kind === 'review') {
+      setAutoSelectedView(true);
+      setView('review');
+    }
+  }
   const [visibleCount, setVisibleCount] = useState(20);
   const { clearedAt, clearListedJobs, attentionClearedAt, showAllHistory } =
     useStudioJobsListClearedAt();
@@ -407,6 +421,39 @@ function useQueuePanelData(
     resultsByJobId,
     summary,
   };
+}
+
+function LinkedBatch({
+  batchId,
+  serverJobs,
+  onDismiss,
+}: {
+  batchId: string;
+  serverJobs: StudioJob[];
+  onDismiss?: () => void;
+}) {
+  // The newest job change reloads the card, so a linked batch in progress stays current.
+  const revision = serverJobs
+    .filter((job) => job.batchId === batchId)
+    .reduce((latest, job) => (job.updatedAt > latest ? job.updatedAt : latest), '');
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-[11px] text-[color:var(--wb-muted)]">
+        <span>Batch from a link</span>
+        {onDismiss ? (
+          <button
+            type="button"
+            aria-label="Close linked batch"
+            onClick={onDismiss}
+            className="studio-hit-target rounded p-1 hover:text-[color:var(--wb-ink)]"
+          >
+            <XCircle width={14} height={14} />
+          </button>
+        ) : null}
+      </div>
+      <QueueBatchCard batchId={batchId} revision={revision} />
+    </div>
+  );
 }
 
 function QueueEmptyState({ view }: { view: 'active' | 'review' | 'history' }) {
@@ -532,10 +579,12 @@ export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
     onRetryServerJob,
     onCancelServerJob,
     onClose,
+    link,
+    onDismissLink,
   }) => {
     // Memoized: subscribe so job dates follow the language.
     useT();
-    const data = useQueuePanelData(results, serverJobs, onClose);
+    const data = useQueuePanelData(results, serverJobs, onClose, link);
     const {
       setActiveResultId,
       panelRef,
@@ -627,6 +676,9 @@ export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
                 Refresh jobs
               </button>
             </div>
+          ) : null}
+          {link?.kind === 'batch' ? (
+            <LinkedBatch batchId={link.batchId} serverJobs={serverJobs} onDismiss={onDismissLink} />
           ) : null}
           {view === 'history' && (
             <QueueHistoryFilters

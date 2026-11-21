@@ -14,6 +14,7 @@ import {
   updateJobStatus,
   updateJobFinalPrompt,
   listJobAttempts,
+  readJobsSummaryFromDb,
   requeueJob,
 } from './db/jobs';
 import { getOutputGeneration } from './db/outputGenerations';
@@ -406,6 +407,75 @@ function inspectJobHistory() {
     );
   } finally {
     historyDb.close();
+  }
+}
+
+function inspectJobsSummary() {
+  const summaryDb = createLegacyDatabase();
+  try {
+    migrateDatabase(summaryDb);
+    summaryDb.query("UPDATE jobs SET status = 'completed'").run();
+    summaryDb
+      .query("INSERT OR REPLACE INTO workspaces (id, name, created_at) VALUES ('ws-a', 'Alpha', ?)")
+      .run('2026-11-20T00:00:00.000Z');
+    const insert = summaryDb.query(`INSERT INTO jobs (id, workspace_id, batch_id, kind, provider_id,
+      status, original_prompt, final_prompt_used, error, created_at, updated_at)
+      VALUES (?, 'ws-a', ?, 'image_generate', 'chatgpt', ?, ?, '', ?, ?, ?)`);
+    const at = Date.parse('2026-11-20T12:00:00.000Z');
+    const ago = (minutes: number) => new Date(at - minutes * 60_000).toISOString();
+    for (const [id, batchId, status, minutes, error] of [
+      ['a-1', 'batch-a', 'running', 1, null],
+      ['a-2', 'batch-a', 'queued', 2, null],
+      ['a-3', 'batch-a', 'completed', 3, null],
+      ['solo', null, 'queued', 5, null],
+      ['f-1', 'batch-f', 'failed', 30, 'Quota reached'],
+      ['f-2', 'batch-f', 'failed', 40, 'Older error'],
+      ['f-old', 'batch-old', 'failed', 25 * 60, 'Yesterday'],
+      ['r-1', 'batch-r', 'needs_review', 60, null],
+      ['r-2', 'batch-r', 'needs_review', 61, null],
+    ] as const)
+      insert.run(id, batchId, status, `prompt ${id}`, error, ago(minutes), ago(minutes));
+    const queries: string[] = [];
+    const recording = new Proxy(summaryDb, {
+      get(target, key) {
+        if (key === 'query')
+          return (sql: string) => {
+            queries.push(sql);
+            return target.query(sql);
+          };
+        const value = Reflect.get(target, key);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+    const summary = readJobsSummaryFromDb(recording, at);
+    // No summary query may walk the whole job table, which holds every finished job.
+    const tableScans = queries.flatMap((sql) =>
+      (summaryDb.query(`EXPLAIN QUERY PLAN ${sql}`).all() as Array<{ detail: string }>)
+        .map(({ detail }) => detail)
+        .filter((detail) => detail.startsWith('SCAN jobs')),
+    );
+    const active = listJobSummaries({ status: 'active' }, summaryDb);
+    const running = listJobSummaries({ status: 'running' }, summaryDb);
+    return (
+      queries.length === 5 &&
+      tableScans.length === 0 &&
+      JSON.stringify(summary.counts) ===
+        JSON.stringify({ queued: 2, running: 1, needs_review: 2 }) &&
+      summary.reviewGroups === 1 &&
+      summary.active.map(({ batchId, jobId }) => `${batchId}:${jobId}`).join() ===
+        'batch-a:a-1,null:solo' &&
+      summary.active[0]?.counts.completed === 1 &&
+      summary.active[0]?.workspaceName === 'Alpha' &&
+      summary.recentFailures.length === 1 &&
+      summary.recentFailures[0]?.failed === 2 &&
+      summary.recentFailures[0]?.error === 'Quota reached' &&
+      active.open.length === 5 &&
+      active.history.length === 0 &&
+      running.open.map(({ id }) => id).join() === 'a-1' &&
+      running.history.length === 0
+    );
+  } finally {
+    summaryDb.close();
   }
 }
 
@@ -824,6 +894,7 @@ describe('database migrations', () => {
         legacyComfyIsolated,
         remoteIdentityPreserved,
         completeJobHistory: inspectJobHistory(),
+        jobsSummary: inspectJobsSummary(),
         atomicBatchRecovery: await inspectJobBatches(),
         durableOutputGenerations: inspectOutputGenerations(),
         preMigrationBackup: inspectPreMigrationBackup(),
@@ -845,6 +916,7 @@ describe('database migrations', () => {
         legacyComfyIsolated: true,
         remoteIdentityPreserved: true,
         completeJobHistory: true,
+        jobsSummary: true,
         executionPolicyPreserved: true,
         atomicBatchRecovery: true,
         durableOutputGenerations: true,

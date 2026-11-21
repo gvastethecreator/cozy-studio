@@ -293,11 +293,46 @@ export interface JobSummary {
 }
 
 export type TerminalJobStatus = Extract<JobStatus, 'completed' | 'failed' | 'cancelled'>;
+/**
+ * A terminal status filters the history page and keeps every open job. `active` or an open status
+ * returns only those open jobs, with no history page.
+ */
+export const JOB_LIST_STATUS_FILTERS = [
+  'active',
+  'queued',
+  'running',
+  'needs_review',
+  'completed',
+  'failed',
+  'cancelled',
+] as const;
+export type JobListStatusFilter = (typeof JOB_LIST_STATUS_FILTERS)[number];
 export interface JobListQuery {
   workspaceId?: string;
-  status?: TerminalJobStatus;
+  status?: JobListStatusFilter;
   cursor?: string;
   limit?: number;
+}
+/** One batch, or one job sent alone, in the jobs summary. */
+interface JobsSummaryGroup {
+  batchId: string | null;
+  /** The group's newest job, for a `?job=` link. */
+  jobId: string;
+  workspaceId: string;
+  workspaceName: string;
+  providerId: GenerationProviderId | null;
+  promptPreview: string;
+  updatedAt: string;
+}
+/** A small read for status displays: counts and the groups that need a look, no job lists. */
+export interface JobsSummary {
+  counts: Record<'queued' | 'running' | 'needs_review', number>;
+  /** Groups with queued or running jobs, newest first. counts covers every job in the group. */
+  active: Array<JobsSummaryGroup & { counts: Record<JobStatus, number> }>;
+  /** Groups with jobs that failed in the last 24 hours, newest first, with the newest error. */
+  recentFailures: Array<JobsSummaryGroup & { failed: number; error: string | null }>;
+  /** How many groups hold needs_review jobs. */
+  reviewGroups: number;
 }
 export type JobCounts = Record<JobStatus, number> & {
   open: number;

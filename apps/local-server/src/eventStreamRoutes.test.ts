@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { StudioEvent } from '../../../packages/shared/src';
+import type { StudioMcpAccess } from '../../../packages/shared/src/studioSettings';
 import {
   EVENT_STREAM_KEEPALIVE_MS,
   createEventStreamRoutes,
@@ -24,6 +26,7 @@ describe('eventStreamRoutes', () => {
     const subscribeEvents = vi.fn(() => () => true);
     const routes = createEventStreamRoutes({
       subscribeEvents,
+      readMcpAccess: () => 'off',
     });
 
     const response = await routes.request('/events');
@@ -42,5 +45,39 @@ describe('eventStreamRoutes', () => {
     expect(subscribeEvents).toHaveBeenCalledTimes(1);
 
     await reader!.cancel();
+  });
+
+  it('follows Agent access on the agent stream and leaves the UI stream open', async () => {
+    let access: StudioMcpAccess = 'off';
+    let deliver: ((event: StudioEvent) => void) | undefined;
+    const routes = createEventStreamRoutes({
+      subscribeEvents: (listener) => {
+        deliver = listener;
+        return () => true;
+      },
+      readMcpAccess: () => access,
+    });
+
+    const refused = await routes.request('/agent/events');
+    expect(refused.status).toBe(403);
+    expect(await refused.json()).toMatchObject({ access: 'off', required: 'read' });
+
+    const ui = await routes.request('/events');
+    expect(ui.status).toBe(200);
+    await ui.body!.cancel();
+
+    access = 'read';
+    const agent = await routes.request('/agent/events');
+    expect(agent.status).toBe(200);
+    const reader = agent.body!.getReader();
+    expect(new TextDecoder().decode((await reader.read()).value)).toContain('server.connected');
+
+    access = 'off';
+    deliver!({
+      type: 'job.created',
+      payload: {} as never,
+      createdAt: new Date().toISOString(),
+    } as StudioEvent);
+    expect((await reader.read()).done).toBe(true);
   });
 });

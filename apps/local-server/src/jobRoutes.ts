@@ -6,6 +6,8 @@ import type {
   JobDetailResponse,
   JobListPage,
   JobListQuery,
+  JobListStatusFilter,
+  JobsSummary,
   JobStatusSnapshot,
 } from '../../../packages/shared/src/types';
 import {
@@ -13,7 +15,7 @@ import {
   type CreateJobRequestBoundary,
 } from '../../../packages/shared/src/studioApiSchemas';
 import { collectGrokImagineJobIssues } from '../../../packages/shared/src/grokImagineContract';
-import { isRecord } from '../../../packages/shared/src/types';
+import { JOB_LIST_STATUS_FILTERS, isRecord } from '../../../packages/shared/src/types';
 import { canResumeStudioJob } from '../../../packages/shared/src/jobRecovery';
 import { createJobBatchRoutes } from './jobBatchRoutes';
 import type { JobBatchStore } from './db/jobBatches';
@@ -29,6 +31,7 @@ interface JobRoutesDependencies extends PersistentJobIntakeDependencies {
   getJobDetail: (jobId: string) => Promise<JobDetailResponse | null>;
   requeueJob?: (jobId: string, expected?: { attempt: number; status: Job['status'] }) => Job | null;
   batchStore?: JobBatchStore;
+  readJobsSummary?: () => JobsSummary;
   cancelQueuedOrRunningJob: (jobId: string) => Job | null;
 }
 
@@ -53,6 +56,7 @@ export function createJobRoutes({
   getJobDetail,
   requeueJob,
   batchStore,
+  readJobsSummary,
   cancelQueuedOrRunningJob,
   ensureDefaultWorkspaceId,
   createJobId,
@@ -111,13 +115,15 @@ export function createJobRoutes({
       }),
     );
 
+  if (readJobsSummary) routes.get('/summary', (c) => c.json(readJobsSummary()));
+
   routes.get('/', (c) => {
     const status = c.req.query('status');
     const limit = c.req.query('limit');
     const cursor = c.req.query('cursor');
     const workspaceId = c.req.query('workspaceId');
     if (
-      (status && !['completed', 'failed', 'cancelled'].includes(status)) ||
+      (status && !(JOB_LIST_STATUS_FILTERS as readonly string[]).includes(status)) ||
       (limit && (!/^\d+$/.test(limit) || Number(limit) < 1 || Number(limit) > 100)) ||
       (cursor && cursor.length > 1024) ||
       (workspaceId && workspaceId.length > 512)
@@ -128,7 +134,7 @@ export function createJobRoutes({
       return c.json(
         listJobs({
           workspaceId,
-          status: status as JobListQuery['status'],
+          status: status as JobListStatusFilter | undefined,
           cursor,
           limit: limit ? Number(limit) : undefined,
         }),
@@ -315,6 +321,7 @@ export function createJobRoutes({
       prompt: boundaryBody.prompt ?? '',
       execution: boundaryBody.execution as CreateJobRequest['execution'],
       references: boundaryBody.references as CreateJobRequest['references'],
+      confirmCreditSpend: boundaryBody.confirmCreditSpend,
     };
 
     const result = await persistentJobIntake.createJob(body);

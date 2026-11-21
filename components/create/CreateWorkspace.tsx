@@ -126,6 +126,17 @@ export const CreateWorkspace: React.FC<CreateWorkspaceProps> = ({
       ?.querySelector<HTMLButtonElement>(`[data-pane="${next}"]`)
       ?.focus();
   };
+  const stylesOpen = pane === 'styles';
+  const workbench = React.useMemo(
+    () => ({
+      ...context,
+      stylesOpen,
+      catalogExpanded: panelExpanded,
+      openStyles,
+      closeStyles,
+    }),
+    [closeStyles, context, openStyles, panelExpanded, stylesOpen],
+  );
   useLayoutEffect(() => {
     const element = workspaceRef.current;
     if (!element) return;
@@ -148,15 +159,7 @@ export const CreateWorkspace: React.FC<CreateWorkspaceProps> = ({
   }, []);
 
   return (
-    <RecipeWorkbenchContext
-      value={{
-        ...context,
-        stylesOpen: pane === 'styles',
-        catalogExpanded: panelExpanded,
-        openStyles,
-        closeStyles,
-      }}
-    >
+    <RecipeWorkbenchContext value={workbench}>
       <div
         ref={workspaceRef}
         className="create-workspace"

@@ -18,15 +18,20 @@ export function RecipeControls({
 
 export function useWorkflowPrompt(prompt: WorkflowPrompt) {
   const { value, label, placeholder } = prompt;
-  const { setPrompt } = useContext(RecipeWorkbenchContext);
+  const { promptStore } = useContext(RecipeWorkbenchContext);
   const onChange = useRef(prompt.onChange);
   useLayoutEffect(() => {
     onChange.current = prompt.onChange;
   });
   useLayoutEffect(() => {
-    setPrompt?.({ value, label, placeholder, onChange: (next) => onChange.current(next) });
-    return () => setPrompt?.(null);
-  }, [setPrompt, value, label, placeholder]);
+    promptStore.publish({
+      value,
+      label,
+      placeholder,
+      onChange: (next) => onChange.current(next),
+    });
+  }, [promptStore, value, label, placeholder]);
+  useLayoutEffect(() => () => promptStore.publish(null), [promptStore]);
 }
 
 export function RecipePrimaryAction({

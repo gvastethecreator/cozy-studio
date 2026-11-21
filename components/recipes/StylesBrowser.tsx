@@ -1332,8 +1332,9 @@ function useStylesBrowserController({
   const [promptNotice, setPromptNotice] = useState('');
   const handleUseStylePrompt = useCallback(
     async (preset: StyleRuntimePreset) => {
+      const previous = config.prompt ?? '';
       const promptText = await buildStylePromptText(preset);
-      setPreviousPrompt(config.prompt ?? '');
+      setPreviousPrompt(previous);
       updateConfig('prompt', promptText);
       setPromptNotice('Style added as prompt.');
       if (catalogExpanded) closeStyleCatalog();

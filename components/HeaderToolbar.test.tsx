@@ -28,7 +28,10 @@ import type { StudioCommandCenterProjection } from '../lib/commandCenterProjecti
 import type { StudioUsageSummary } from '../lib/studioDiagnostics';
 import { ThemeProvider } from '../hooks/useTheme';
 import { HeaderToolbar, type HeaderToolbarProps } from './HeaderToolbar';
-import { RecipeWorkbenchContext } from './recipes/recipeWorkbenchContextState';
+import {
+  RecipeWorkbenchContext,
+  createWorkflowPromptStore,
+} from './recipes/recipeWorkbenchContextState';
 
 afterEach(() => {
   cleanup();
@@ -110,6 +113,7 @@ function renderHeader(
           sidePanel: null,
           compare: compare ?? null,
           setCompare: vi.fn(),
+          promptStore: createWorkflowPromptStore(),
         }}
       >
         <HeaderToolbar {...props} />

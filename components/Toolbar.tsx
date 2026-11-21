@@ -1,6 +1,9 @@
 import { useLatestRef } from '../hooks/useLatestRef';
 import { RECIPE_PROMPT_PLACEHOLDERS } from '../lib/recipeShellMetadata';
-import { RecipeWorkbenchContext } from './recipes/recipeWorkbenchContextState';
+import {
+  RecipeWorkbenchContext,
+  useWorkflowPromptState,
+} from './recipes/recipeWorkbenchContextState';
 import { CATALOG_IMAGE_DRAG_TYPE } from '../lib/catalogImageDrag';
 import { providerBrandChipLabel } from '../lib/providerBrand';
 import { PROVIDER_NOT_READY, type ProviderReadiness } from '../lib/providerReadiness';
@@ -707,7 +710,7 @@ function ToolbarLayout({ model }: { model: ToolbarModel }) {
 }
 
 function ToolbarDraftPersistence({ model }: { model: ToolbarModel }) {
-  const { prompt } = React.useContext(RecipeWorkbenchContext);
+  const { promptStore } = React.useContext(RecipeWorkbenchContext);
   const { draftPersistenceError, retryDraftPersistence, downloadDraftCopy } =
     model.draftPersistence;
   if (!draftPersistenceError) return null;
@@ -721,7 +724,10 @@ function ToolbarDraftPersistence({ model }: { model: ToolbarModel }) {
         <button type="button" onClick={() => void retryDraftPersistence()}>
           Retry saving draft
         </button>
-        <button type="button" onClick={() => downloadDraftCopy(prompt?.value ?? model.localPrompt)}>
+        <button
+          type="button"
+          onClick={() => downloadDraftCopy(promptStore.get()?.value ?? model.localPrompt)}
+        >
           Save draft copy
         </button>
       </div>
@@ -794,7 +800,6 @@ function ToolbarRail({ model }: { model: ToolbarModel }) {
     selectedCodexTransport,
     updateConfig,
   } = model;
-  const { prompt } = React.useContext(RecipeWorkbenchContext);
   return (
     <div ref={toolScrollRef} className="create-tool-scroll min-h-0 flex-1">
       {!sourceFirst || isContextOnly ? railTools : null}
@@ -1792,7 +1797,8 @@ function ToolbarPromptInput({ model }: { model: ToolbarModel }) {
     onFilesDrop,
     acceptRailImageDrop,
   } = model;
-  const { prompt } = React.useContext(RecipeWorkbenchContext);
+  const prompt = useWorkflowPromptState();
+  const { promptStore } = React.useContext(RecipeWorkbenchContext);
   return (
     <LivePromptTextarea
       textareaRef={textareaRef}
@@ -1819,7 +1825,7 @@ function ToolbarPromptInput({ model }: { model: ToolbarModel }) {
       onChange={(e) => {
         const next = e.target.value;
         if (prompt) {
-          prompt.onChange(next);
+          promptStore.change(next);
           return;
         }
         setLocalPrompt(next);
@@ -1875,13 +1881,17 @@ function ToolbarReferences({ model }: { model: ToolbarModel }) {
 function useToolbarPrompt(prompt: string | undefined, updateConfig: ToolbarProps['updateConfig']) {
   const source = prompt || '';
   const [draft, setDraft] = useState({ source, value: source });
-  const lastPushedPromptRef = useRef(source);
+  const lastPushedPromptRef = useRef<string | null>(source);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   if (draft.source !== source) {
     setDraft({ source, value: source === lastPushedPromptRef.current ? draft.value : source });
   }
   useEffect(() => {
-    if (source !== lastPushedPromptRef.current && debounceTimerRef.current) {
+    if (source === lastPushedPromptRef.current) return;
+    // Once another writer replaced the prompt, a later return to the last typed text (Undo) is
+    // also theirs, not an echo of this composer's write.
+    lastPushedPromptRef.current = null;
+    if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = null;
     }
@@ -2057,7 +2067,7 @@ function useToolbarProvider(props: ToolbarProps) {
 }
 
 function ToolbarRailContext({ model }: { model: ToolbarModel }) {
-  const { prompt } = React.useContext(RecipeWorkbenchContext);
+  const prompt = useWorkflowPromptState();
   const {
     generationConfig,
     maxAttachments,
@@ -2134,7 +2144,7 @@ function ToolbarRailContext({ model }: { model: ToolbarModel }) {
 }
 
 function ToolbarRailPrompt({ model }: { model: ToolbarModel }) {
-  const { prompt } = React.useContext(RecipeWorkbenchContext);
+  const prompt = useWorkflowPromptState();
   const {
     composerDragDepth,
     shouldShowQuickStartError,

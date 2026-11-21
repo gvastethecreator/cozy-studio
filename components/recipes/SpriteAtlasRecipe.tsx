@@ -541,7 +541,13 @@ function useSpriteAtlasRecipeController({
     );
   };
 
-  const handleQueueRow = () => {
+  // The draft hands back a new attachments array on every prompt key; the handler reads it only
+  // when clicked, so a ref keeps handleQueueRow (and the memoized run actions) stable while typing.
+  const attachmentsRef = React.useRef(config.attachments);
+  React.useLayoutEffect(() => {
+    attachmentsRef.current = config.attachments;
+  });
+  const handleQueueRow = React.useCallback(() => {
     if (!activeRun || !selectedRow) return;
     if (!activeProviderId) {
       setError('Choose a provider before queueing this row.');
@@ -577,7 +583,7 @@ function useSpriteAtlasRecipeController({
         outputBackground: activeRun.contract.transparent ? 'transparent' : 'workflow',
         // A row is one wide strip. The widest ratio gives each frame slot the most pixels.
         aspectRatio: '21:9',
-        ...(anchorAttachment ? { attachments: [anchorAttachment, ...config.attachments] } : {}),
+        ...(anchorAttachment ? { attachments: [anchorAttachment, ...attachmentsRef.current] } : {}),
         // The stored run contract wins over the current draft settings.
         recipeParams: {
           ...createSpriteAtlasContractParams(activeRun.contract),
@@ -602,7 +608,16 @@ function useSpriteAtlasRecipeController({
         },
       },
     );
-  };
+  }, [
+    activeProviderId,
+    activeRun,
+    images,
+    onGenerate,
+    promptError,
+    refetchRun,
+    selectedPrompt,
+    selectedRow,
+  ]);
 
   const handleImportRow = () => {
     if (!activeRun || !selectedRow || !rowCatalogImageId) return;
@@ -616,10 +631,10 @@ function useSpriteAtlasRecipeController({
     );
   };
 
-  const handleSyncRun = () => {
+  const handleSyncRun = React.useCallback(() => {
     if (!activeRun) return;
     void runAction(() => reconcileSpriteAtlasRun(activeRun.id), 'Rows synced with their jobs.');
-  };
+  }, [activeRun, runAction]);
 
   const handleBlockRow = () => {
     if (!activeRun || !selectedRow) return;
@@ -638,23 +653,23 @@ function useSpriteAtlasRecipeController({
     );
   };
 
-  const handleComposeFixture = () => {
+  const handleComposeFixture = React.useCallback(() => {
     if (!activeRun) return;
     void runAction(
       () => composeSpriteAtlasFixture(activeRun.id),
       'Fixture atlas written to the run fixture folder. The run status did not change.',
     );
-  };
+  }, [activeRun, runAction]);
 
-  const handleCompose = () => {
+  const handleCompose = React.useCallback(() => {
     if (!activeRun) return;
     void runAction(() => composeSpriteAtlas(activeRun.id), 'Production atlas composed.');
-  };
+  }, [activeRun, runAction]);
 
-  const handleRunQa = () => {
+  const handleRunQa = React.useCallback(() => {
     if (!activeRun) return;
     void runAction(() => runSpriteAtlasQa(activeRun.id), 'QA report written.');
-  };
+  }, [activeRun, runAction]);
 
   const selectPreset = (preset: SpriteAtlasPresetSummary) => {
     updateConfig('recipeId', 'sprite-atlas');
@@ -1005,24 +1020,35 @@ const SelectField: React.FC<{
   );
 };
 
-const FilterChip: React.FC<{
+function FilterChipButton<T extends string>({
+  value,
+  active,
+  onSelect,
+  children,
+}: {
+  value: T;
   active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}> = ({ active, onClick, children }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    aria-pressed={active}
-    className={`min-h-8 rounded-[var(--wb-radius)] border px-2 text-[length:var(--wbp-label)] font-semibold tracking-normal transition ${
-      active
-        ? 'border-sky-400/2 bg-sky-500/15 text-[color:var(--wb-ink)]'
-        : 'border-[color:var(--wb-line)] bg-white/[0.035] text-[color:var(--wb-muted)] hover:border-[color:var(--wb-border)] hover:text-[color:var(--wb-ink)]'
-    }`}
-  >
-    {children}
-  </button>
-);
+  onSelect: (value: T) => void;
+  children: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(value)}
+      aria-pressed={active}
+      className={`min-h-8 rounded-[var(--wb-radius)] border px-2 text-[length:var(--wbp-label)] font-semibold tracking-normal transition ${
+        active
+          ? 'border-sky-400/2 bg-sky-500/15 text-[color:var(--wb-ink)]'
+          : 'border-[color:var(--wb-line)] bg-white/[0.035] text-[color:var(--wb-muted)] hover:border-[color:var(--wb-border)] hover:text-[color:var(--wb-ink)]'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Takes the state setter and its own value, so a parent render skips every chip. */
+const FilterChip = React.memo(FilterChipButton) as typeof FilterChipButton;
 
 const IconButton: React.FC<{
   label: string;
@@ -1052,9 +1078,11 @@ const IconButton: React.FC<{
   );
 };
 
-const PipelineStep: React.FC<{
+const PipelineStep = React.memo(function PipelineStep({
+  stage,
+}: {
   stage: ReturnType<typeof buildPipeline>[number];
-}> = ({ stage }) => {
+}) {
   const tone =
     stage.state === 'complete'
       ? 'border-emerald-500/2 bg-emerald-500/10 text-[color:var(--wb-success)] '
@@ -1073,7 +1101,7 @@ const PipelineStep: React.FC<{
       </div>
     </div>
   );
-};
+});
 
 const EmptyState: React.FC<{
   icon: React.ReactNode;
@@ -1344,8 +1372,9 @@ function AtlasConfiguration({
               {(['all', ...SPRITE_ATLAS_ASSET_KINDS] as const).map((kind) => (
                 <FilterChip
                   key={kind}
+                  value={kind}
                   active={assetKindFilter === kind}
-                  onClick={() => setAssetKindFilter(kind)}
+                  onSelect={setAssetKindFilter}
                 >
                   {kind}
                 </FilterChip>
@@ -1518,8 +1547,9 @@ function AtlasRunOutput({
           {ROW_STATUS_FILTERS.map((status) => (
             <FilterChip
               key={status}
+              value={status}
               active={rowStatusFilter === status}
-              onClick={() => setRowStatusFilter(status)}
+              onSelect={setRowStatusFilter}
             >
               {status === 'all' ? 'all' : ROW_STATUS_LABELS[status]}
             </FilterChip>
@@ -1822,7 +1852,7 @@ function AtlasRunHeading({
   );
 }
 
-function AtlasRunActions({
+const AtlasRunActions = React.memo(function AtlasRunActions({
   activeRun,
   runAction,
   refreshRuns,
@@ -1922,7 +1952,7 @@ function AtlasRunActions({
       </IconButton>
     </div>
   );
-}
+});
 
 function AtlasOutputPreview({
   activeRun,

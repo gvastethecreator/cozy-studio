@@ -10,7 +10,7 @@ import {
 } from '../../packages/shared/src';
 import * as atlasApi from '../../services/studio-api/spriteAtlas';
 import { SpriteAtlasRecipe } from './SpriteAtlasRecipe';
-import { RecipeWorkbenchContext } from './recipeWorkbenchContextState';
+import { RecipeWorkbenchContext, createWorkflowPromptStore } from './recipeWorkbenchContextState';
 
 const workflowRunListeners = new Set<(payload: WorkflowRunUpdatedEventPayload) => void>();
 
@@ -140,6 +140,7 @@ describe('SpriteAtlasRecipe', () => {
               sidePanel,
               compare: null,
               setCompare: () => {},
+              promptStore: createWorkflowPromptStore(),
             }}
           >
             {children}

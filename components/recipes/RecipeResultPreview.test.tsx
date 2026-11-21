@@ -18,7 +18,7 @@ vi.mock('../../hooks/useImagePresentation', () => ({
 
 import { MODELS } from '../../constants';
 import { RecipeResultPreview } from './RecipeResultPreview';
-import { RecipeWorkbenchContext } from './recipeWorkbenchContextState';
+import { RecipeWorkbenchContext, createWorkflowPromptStore } from './recipeWorkbenchContextState';
 import type { Attachment, GeneratedImageWithConfig } from '../../types';
 
 // Pay Vite's first transform of the lazy menu chain here, so findByRole only waits for the render.
@@ -313,6 +313,7 @@ it('targets the thumbnail actions independently from the selected result', async
         sidePanel: null,
         compare: null,
         setCompare: vi.fn(),
+        promptStore: createWorkflowPromptStore(),
         imageActions: {
           workspaceId: 'default',
           onLoadConfig: vi.fn(),

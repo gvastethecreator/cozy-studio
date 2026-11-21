@@ -6,7 +6,7 @@ import type { CatalogImage } from '../../packages/shared/src';
 import type { Attachment, ImageGenerationConfig } from '../../types';
 import { DEFAULT_GENERATION_CONFIG } from '../../constants';
 import { useCatalogPage } from '../../hooks/useCatalogPage';
-import { RecipeWorkbenchContext } from './recipeWorkbenchContextState';
+import { RecipeWorkbenchContext, createWorkflowPromptStore } from './recipeWorkbenchContextState';
 import { TimelineRecipe } from './TimelineRecipe';
 
 const api = vi.hoisted(() => ({ query: vi.fn(), detail: vi.fn() }));
@@ -82,6 +82,7 @@ function TimelineWithCatalog({
         sidePanel: null,
         compare: null,
         setCompare: () => {},
+        promptStore: createWorkflowPromptStore(),
         history,
       }}
     >

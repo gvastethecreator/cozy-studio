@@ -1,4 +1,7 @@
-import { RecipeWorkbenchContext } from './recipes/recipeWorkbenchContextState';
+import {
+  RecipeWorkbenchContext,
+  createWorkflowPromptStore,
+} from './recipes/recipeWorkbenchContextState';
 /** @vitest-environment jsdom */
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -236,6 +239,22 @@ describe('Toolbar composer chrome', () => {
     }
   });
 
+  it('shows a prompt restored from outside even when it matches an earlier typed prompt', () => {
+    const updateConfig = vi.fn();
+    const view = renderToolbar({ updateConfig });
+    const prompt = screen.getByRole('textbox', { name: 'Prompt input' });
+    fireEvent.change(prompt, { target: { value: 'A lighthouse keeper' } });
+    fireEvent.blur(prompt);
+    expect(updateConfig).toHaveBeenLastCalledWith('prompt', 'A lighthouse keeper');
+    const show = (text: string) =>
+      view.rerender(<Toolbar {...view.props} generationConfig={config({ prompt: text })} />);
+    show('A lighthouse keeper');
+    show('Style prompt');
+    expect(prompt).toHaveProperty('value', 'Style prompt');
+    show('A lighthouse keeper');
+    expect(prompt).toHaveProperty('value', 'A lighthouse keeper');
+  });
+
   it('opens a different workflow at the start of the tool rail', () => {
     const view = renderToolbar({ interactionScope: 'recipes:character-sheet' });
     const rail = view.container.querySelector<HTMLElement>('.create-tool-scroll')!;
@@ -404,6 +423,13 @@ describe('Toolbar composer chrome', () => {
       onGenerate,
     });
     initial.unmount();
+    const promptStore = createWorkflowPromptStore();
+    promptStore.publish({
+      value: 'Motion only',
+      label: 'Motion prompt',
+      placeholder: 'Motion',
+      onChange: onPrompt,
+    });
     const value = {
       controls: null,
       action: null,
@@ -411,12 +437,7 @@ describe('Toolbar composer chrome', () => {
       sidePanel: null,
       compare: null,
       setCompare: () => {},
-      prompt: {
-        value: 'Motion only',
-        label: 'Motion prompt',
-        placeholder: 'Motion',
-        onChange: onPrompt,
-      },
+      promptStore,
       primaryAction: { execute: onPrepare, disabled: false },
     };
     const view = render(

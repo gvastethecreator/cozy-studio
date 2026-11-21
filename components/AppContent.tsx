@@ -1,4 +1,5 @@
-import React, { Suspense, useLayoutEffect, useState } from 'react';
+import type { ImageGenerationConfig } from '../types';
+import React, { Suspense, useLayoutEffect, useMemo, useState } from 'react';
 
 import { useStudioShell } from '../hooks/useStudioShell';
 import { hasMountedStudioOverlay } from '../lib/studioOverlayVisibility';
@@ -12,7 +13,7 @@ import { LazySurfaceFallback } from './ui/LazySurfaceFallback';
 import {
   RecipeWorkbenchContext,
   type CanvasCompareChrome,
-  type WorkflowPrompt,
+  createWorkflowPromptStore,
   type WorkflowAction,
 } from './recipes/recipeWorkbenchContextState';
 import ToastContainer from './ToastContainer';
@@ -126,7 +127,7 @@ function useAppWorkbench() {
   const [overlayTarget, setOverlayTarget] = useState<HTMLElement | null>(null);
   const [sidePanelTarget, setSidePanelTarget] = useState<HTMLElement | null>(null);
   const [compactControls, setCompactControls] = useState<HTMLElement | null>(null);
-  const [prompt, setPrompt] = useState<WorkflowPrompt | null>(null);
+  const [promptStore] = useState(createWorkflowPromptStore);
   const [primaryAction, setPrimaryAction] = useState<WorkflowAction | null>(null);
   const [generateBlock, setGenerateBlock] = useState<string | null>(null);
   const [isNarrowWorkbench, setIsNarrowWorkbench] = useState(false);
@@ -163,8 +164,7 @@ function useAppWorkbench() {
     setSidePanelTarget,
     compactControls,
     setCompactControls,
-    prompt,
-    setPrompt,
+    promptStore,
     primaryAction,
     setPrimaryAction,
     generateBlock,
@@ -191,8 +191,7 @@ function AppWorkspace({ model }: { model: AppWorkbenchModel }) {
     overlayTarget,
     sidePanelTarget,
     compactControls,
-    prompt,
-    setPrompt,
+    promptStore,
     primaryAction,
     setPrimaryAction,
     generateBlock,
@@ -213,52 +212,99 @@ function AppWorkspace({ model }: { model: AppWorkbenchModel }) {
     isCreate,
     hasActiveOverlay,
   } = model;
+  const activeWorkspaceId = shell.headerToolbar.props.activeWorkspaceId;
+  const {
+    handleLoadRecipe,
+    handleGenerate,
+    handleDelete,
+    handleToggleFavorite,
+    handleUseAsSource,
+  } = shell.viewport.studioGridProps;
+  const { recipePageProps } = shell.viewport;
+  const history = shell.history;
+  const { id: selectedHistoryId, setId: setSelectedHistoryId } = shell.historySelection;
+  const latestResultId = workflowImages.find(
+    (image) => (image.config.recipeId ?? null) === (activeRecipe ?? null),
+  )?.id;
+  const imageActions = useMemo(
+    () => ({
+      workspaceId: activeWorkspaceId,
+      onLoadConfig: handleLoadRecipe,
+      onRegenerate: (config: ImageGenerationConfig) =>
+        handleGenerate(config.prompt, config, { preventModal: true }),
+      onDelete: handleDelete,
+    }),
+    [activeWorkspaceId, handleDelete, handleGenerate, handleLoadRecipe],
+  );
+  const results = useMemo(
+    () => (
+      <Suspense fallback={<LazySurfaceFallback label="Loading results" />}>
+        <CreateResults
+          key={`${activeWorkspaceId}:${activeRecipe ?? 'default'}`}
+          title={activeRecipe ? getRecipeShellTitle(activeRecipe) : undefined}
+          recipePageProps={recipePageProps}
+          images={stageImages}
+          history={history}
+          selectedId={selectedHistoryId}
+          onSelectId={setSelectedHistoryId}
+          onToggleFavorite={handleToggleFavorite}
+          onUseAsSource={handleUseAsSource}
+        />
+      </Suspense>
+    ),
+    [
+      activeRecipe,
+      activeWorkspaceId,
+      handleToggleFavorite,
+      handleUseAsSource,
+      history,
+      recipePageProps,
+      selectedHistoryId,
+      setSelectedHistoryId,
+      stageImages,
+    ],
+  );
+  const workbench = useMemo(
+    () => ({
+      controls: controlsTarget,
+      action: actionTarget,
+      overlay: overlayTarget,
+      sidePanel: sidePanelTarget,
+      compactControls,
+      promptStore,
+      primaryAction,
+      setPrimaryAction,
+      generateBlock,
+      setGenerateBlock,
+      compare,
+      setCompare,
+      history: isWorkspace ? history : undefined,
+      imageActions,
+      latestResultId,
+      results,
+    }),
+    [
+      actionTarget,
+      compactControls,
+      compare,
+      controlsTarget,
+      generateBlock,
+      history,
+      imageActions,
+      isWorkspace,
+      latestResultId,
+      overlayTarget,
+      primaryAction,
+      promptStore,
+      results,
+      setCompare,
+      setGenerateBlock,
+      setPrimaryAction,
+      sidePanelTarget,
+    ],
+  );
   return (
-    <RecipeWorkbenchContext
-      value={{
-        controls: controlsTarget,
-        action: actionTarget,
-        overlay: overlayTarget,
-        sidePanel: sidePanelTarget,
-        compactControls,
-        prompt,
-        setPrompt,
-        primaryAction,
-        setPrimaryAction,
-        generateBlock,
-        setGenerateBlock,
-        compare,
-        setCompare,
-        history: isWorkspace ? shell.history : undefined,
-        imageActions: {
-          workspaceId: shell.headerToolbar.props.activeWorkspaceId,
-          onLoadConfig: shell.viewport.studioGridProps.handleLoadRecipe,
-          onRegenerate: (config) =>
-            shell.viewport.studioGridProps.handleGenerate(config.prompt, config, {
-              preventModal: true,
-            }),
-          onDelete: shell.viewport.studioGridProps.handleDelete,
-        },
-        latestResultId: workflowImages.find(
-          (image) => (image.config.recipeId ?? null) === (activeRecipe ?? null),
-        )?.id,
-        results: (
-          <Suspense fallback={<LazySurfaceFallback label="Loading results" />}>
-            <CreateResults
-              key={`${shell.headerToolbar.props.activeWorkspaceId}:${activeRecipe ?? 'default'}`}
-              title={activeRecipe ? getRecipeShellTitle(activeRecipe) : undefined}
-              recipePageProps={shell.viewport.recipePageProps}
-              images={stageImages}
-              history={shell.history}
-              selectedId={shell.historySelection.id}
-              onSelectId={shell.historySelection.setId}
-              onToggleFavorite={shell.viewport.studioGridProps.handleToggleFavorite}
-              onUseAsSource={shell.viewport.studioGridProps.handleUseAsSource}
-            />
-          </Suspense>
-        ),
-      }}
-    >
+    <RecipeWorkbenchContext value={workbench}>
       <div
         {...ambient}
         className={cn(

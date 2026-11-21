@@ -1,5 +1,14 @@
 import { CozyLoader as Loader2 } from '../CozyMascot';
-import React, { useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, {
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Check,
   NavArrowDown as ChevronDown,
@@ -183,7 +192,13 @@ function getAccent(accent: string) {
   return ACCENT_CLASSES[accent] ?? ACCENT_CLASSES.zinc;
 }
 
-function CharacterLabIcon({ id, size = 18 }: { id: string; size?: number }) {
+const CharacterLabIcon = memo(function CharacterLabIcon({
+  id,
+  size = 18,
+}: {
+  id: string;
+  size?: number;
+}) {
   const frame = getCharacterLabIconFrame(id);
   if (!frame) return <Sparkles width={size} height={size} aria-hidden="true" />;
 
@@ -201,7 +216,7 @@ function CharacterLabIcon({ id, size = 18 }: { id: string; size?: number }) {
       }}
     />
   );
-}
+});
 
 function CharacterLabOptionIcon({
   id,
@@ -700,7 +715,7 @@ function SourcePreviewCard({ source }: { source: Attachment | null }) {
   );
 }
 
-function ActionButton({
+const ActionButton = memo(function ActionButton({
   action,
   selected,
   onSelect,
@@ -765,7 +780,7 @@ function ActionButton({
       )}
     </button>
   );
-}
+});
 
 function describeCharacterSource(
   source: boolean,
@@ -882,10 +897,16 @@ function useCharacterLabRecipeSessionController({
   const [capabilityNotice, setCapabilityNotice] = useState('');
   const providerBlock = useContext(RecipeWorkbenchContext).generateBlock ?? null;
 
-  const patchView = (patch: Partial<CharacterLabViewDraft>) =>
-    setConfig((current) => updateCharacterLabView(current, selectedMode, patch));
-  const setSubject = (value: string) =>
-    setConfig((current) => updateCharacterLabView(current, selectedMode, {}, value));
+  const patchView = useCallback(
+    (patch: Partial<CharacterLabViewDraft>) =>
+      setConfig((current) => updateCharacterLabView(current, selectedMode, patch)),
+    [selectedMode, setConfig],
+  );
+  const setSubject = useCallback(
+    (value: string) =>
+      setConfig((current) => updateCharacterLabView(current, selectedMode, {}, value)),
+    [selectedMode, setConfig],
+  );
   useWorkflowPrompt({
     value: view.prompt,
     onChange: (prompt) => patchView({ prompt }),
@@ -993,11 +1014,14 @@ function useCharacterLabRecipeSessionController({
     [bodyType, clothing, expression, labAspectRatio, style],
   );
 
-  const setAction = (action: CharacterLabAction) => {
-    setConfig((current) => updateCharacterLabView(current, action.mode, { actionId: action.id }));
-    setSearch('');
-    setCapabilityNotice('');
-  };
+  const setAction = useCallback(
+    (action: CharacterLabAction) => {
+      setConfig((current) => updateCharacterLabView(current, action.mode, { actionId: action.id }));
+      setSearch('');
+      setCapabilityNotice('');
+    },
+    [setConfig, setSearch],
+  );
 
   const handleSourceFiles = async (files: File[]) => {
     const next = (
@@ -1099,11 +1123,17 @@ function useCharacterLabRecipeSessionController({
     <CharacterLabControlField
       key={control}
       control={control}
-      controls={controls}
+      wide={
+        control === 'style' ||
+        control === 'clothing' ||
+        control === 'bodyType' ||
+        controls.filter((field) => field === 'expression' || field === 'labAspectRatio').length ===
+          1
+      }
       outputBackground={config.outputBackground}
       sourceAttached={Boolean(source)}
       selectedMode={selectedMode}
-      view={view}
+      value={view[control]}
       onChange={patchView}
     />
   );
@@ -1279,6 +1309,14 @@ function CharacterActionCatalog({
     selectedAction,
     setAction,
   } = model;
+  const selectAction = useCallback(
+    (action: CharacterLabAction) => {
+      setAction(action);
+      setActionBrowserOpen(false);
+      actionToggleRef.current?.focus();
+    },
+    [actionToggleRef, setAction, setActionBrowserOpen],
+  );
 
   return (
     <RecipeOptionsPanel
@@ -1381,11 +1419,7 @@ function CharacterActionCatalog({
                       key={action.id}
                       action={action}
                       selected={action.id === selectedAction.id}
-                      onSelect={(action) => {
-                        setAction(action);
-                        setActionBrowserOpen(false);
-                        actionToggleRef.current?.focus();
-                      }}
+                      onSelect={selectAction}
                     />
                   ))}
                 </div>
@@ -1593,21 +1627,22 @@ function CharacterExecutionControls({
   );
 }
 
-function CharacterLabControlField({
+/** Takes the field's value, not the whole view, so typing the brief or prompt skips every field. */
+const CharacterLabControlField = memo(function CharacterLabControlField({
   control,
-  controls,
+  wide,
   outputBackground,
   sourceAttached,
   selectedMode,
-  view,
+  value,
   onChange,
 }: {
   control: CharacterLabControl;
-  controls: CharacterLabControl[];
+  wide: boolean;
   outputBackground: ImageGenerationConfig['outputBackground'];
   sourceAttached: boolean;
   selectedMode: CharacterLabModeId;
-  view: CharacterLabViewDraft;
+  value: string;
   onChange: (patch: Partial<CharacterLabViewDraft>) => void;
 }) {
   if (control === 'backgroundColor')
@@ -1628,9 +1663,9 @@ function CharacterLabControlField({
               key={palette.name}
               type="button"
               aria-label={`Background ${palette.name}`}
-              aria-pressed={view.backgroundColor === palette.backgroundColor}
+              aria-pressed={value === palette.backgroundColor}
               onClick={() => onChange({ backgroundColor: palette.backgroundColor })}
-              className={`flex h-8 items-center justify-center rounded-[var(--wb-radius)] border bg-[color:var(--wb-well)] ${view.backgroundColor === palette.backgroundColor ? 'border-[color:var(--wb-ink)]' : 'border-[color:var(--wb-line)]'}`}
+              className={`flex h-8 items-center justify-center rounded-[var(--wb-radius)] border bg-[color:var(--wb-well)] ${value === palette.backgroundColor ? 'border-[color:var(--wb-ink)]' : 'border-[color:var(--wb-line)]'}`}
             >
               <span className="flex -space-x-1">
                 {palette.swatches.map((swatch) => (
@@ -1678,17 +1713,9 @@ function CharacterLabControlField({
     <SelectField
       key={control}
       {...field}
-      value={view[control]}
-      onChange={(value) => onChange({ [control]: value })}
-      className={
-        control === 'style' ||
-        control === 'clothing' ||
-        control === 'bodyType' ||
-        controls.filter((field) => field === 'expression' || field === 'labAspectRatio').length ===
-          1
-          ? 'col-span-2'
-          : undefined
-      }
+      value={value}
+      onChange={(next) => onChange({ [control]: next })}
+      className={wide ? 'col-span-2' : undefined}
     />
   );
-}
+});

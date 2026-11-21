@@ -2,7 +2,14 @@ import { t, useT } from '../lib/i18n';
 import type { MessageKey } from '../lib/i18n/en';
 import type { LibraryFilters } from '../hooks/useLibraryUrlState';
 import { CozyLoader as Loader2 } from './CozyMascot';
-import React, { useRef, useState, useMemo, useSyncExternalStore } from 'react';
+import React, {
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+  useMemo,
+  useSyncExternalStore,
+} from 'react';
 import type {
   GeneratedImageWithConfig,
   ImageGenerationConfig,
@@ -1477,6 +1484,59 @@ function ImageGridView({ model }: { model: ImageGridModel }) {
   );
 }
 
+const SEARCH_COMMIT_DELAY_MS = 250;
+
+/**
+ * Keeps typing local and commits the query after a pause or on Enter, so a key is not a URL
+ * change and a catalog request. A query that changes from outside (back/forward, the Tags menu,
+ * reset) replaces the text.
+ */
+function LibrarySearchInput({
+  query,
+  onCommit,
+}: {
+  query: string;
+  onCommit: (query: string) => void;
+}) {
+  const { t } = useT();
+  const [text, setText] = useState(query);
+  // The last query this box committed or adopted, so its own commit is not read as an outside change.
+  const [seen, setSeen] = useState(query);
+  if (query !== seen) {
+    setSeen(query);
+    setText(query);
+  }
+  const commit = (next: string) => {
+    setSeen(next);
+    onCommit(next);
+  };
+  const commitPending = useEffectEvent(() => commit(text));
+  useEffect(() => {
+    if (text === seen) return;
+    const timer = setTimeout(commitPending, SEARCH_COMMIT_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [seen, text]);
+  return (
+    <input
+      type="search"
+      aria-label={t('library.search')}
+      placeholder={t('library.searchPlaceholder')}
+      title={t('library.searchHint')}
+      value={text}
+      onChange={(event) => {
+        const next = event.target.value;
+        setText(next);
+        // Clearing the box shows the whole Library at once.
+        if (!next) commit(next);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' && text !== seen) commit(text);
+      }}
+      className="studio-well"
+    />
+  );
+}
+
 function ImageGridToolbar({ model }: { model: ImageGridModel }) {
   const { t } = useT();
   const {
@@ -1498,15 +1558,7 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
     <div className="library-toolbar studio-bar" aria-label={t('library.controls')}>
       <label className="library-search">
         <span className="sr-only">{t('library.search')}</span>
-        <input
-          type="search"
-          aria-label={t('library.search')}
-          placeholder={t('library.searchPlaceholder')}
-          title={t('library.searchHint')}
-          value={searchQuery}
-          onChange={(event) => onLibraryFiltersChange({ q: event.target.value })}
-          className="studio-well"
-        />
+        <LibrarySearchInput query={searchQuery} onCommit={(q) => onLibraryFiltersChange({ q })} />
       </label>
       <div className="library-toolbar-actions" role="toolbar" aria-label={t('library.actions')}>
         <ImageTagsMenu

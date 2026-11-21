@@ -30,7 +30,10 @@ import {
   RecipeEditor,
   RecipeOptionsPanel,
 } from '../recipes/RecipeWorkbenchContext';
-import { RecipeWorkbenchContext } from '../recipes/recipeWorkbenchContextState';
+import {
+  RecipeWorkbenchContext,
+  createWorkflowPromptStore,
+} from '../recipes/recipeWorkbenchContextState';
 
 beforeEach(() => {
   vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1280);
@@ -202,6 +205,7 @@ describe('CreateWorkspace', () => {
             overlay: null,
             compare: null,
             setCompare: () => {},
+            promptStore: createWorkflowPromptStore(),
             latestResultId: resultId,
             results: <div>Workflow result</div>,
           }}

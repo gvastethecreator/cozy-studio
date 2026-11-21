@@ -8,7 +8,7 @@ import {
   updateCharacterLabView,
 } from '../../lib/characterLabDraft';
 import { CharacterLabRecipe } from './CharacterLabRecipe';
-import { RecipeWorkbenchContext } from './recipeWorkbenchContextState';
+import { RecipeWorkbenchContext, createWorkflowPromptStore } from './recipeWorkbenchContextState';
 
 const draft = vi.hoisted(() => ({ setGenerationConfig: vi.fn() }));
 vi.mock('../../contexts/GenerationContext', () => ({
@@ -22,7 +22,7 @@ afterEach(cleanup);
 
 describe('CharacterLabRecipe', () => {
   it('registers each alias instructions without overwriting another mode', () => {
-    const setPrompt = vi.fn();
+    const promptStore = createWorkflowPromptStore();
     const config = updateCharacterLabView(
       activateCharacterLabView(DEFAULT_GENERATION_CONFIG, 'poses'),
       'poses',
@@ -35,7 +35,7 @@ describe('CharacterLabRecipe', () => {
       sidePanel: null,
       compare: null,
       setCompare: () => {},
-      setPrompt,
+      promptStore,
     };
     const props = { config, updateConfig: vi.fn(), onGenerate: vi.fn(), isGenerating: false };
     const view = render(
@@ -44,7 +44,7 @@ describe('CharacterLabRecipe', () => {
       </RecipeWorkbenchContext>,
     );
     expect(screen.queryByRole('textbox', { name: 'Additional instructions' })).toBeNull();
-    const posePrompt = setPrompt.mock.calls.at(-1)![0];
+    const posePrompt = promptStore.get()!;
     expect(posePrompt.value).toBe('Pose instructions');
     posePrompt.onChange('Revised pose');
     const changed = draft.setGenerationConfig.mock.calls.at(-1)![0](config);
@@ -55,14 +55,14 @@ describe('CharacterLabRecipe', () => {
         <CharacterLabRecipe {...props} config={changed} recipeAliasId="character-scenes" />
       </RecipeWorkbenchContext>,
     );
-    const scenePrompt = setPrompt.mock.calls.at(-1)![0];
+    const scenePrompt = promptStore.get()!;
     expect(scenePrompt.value).not.toBe('Revised pose');
     scenePrompt.onChange('Scene instructions');
     const sceneChanged = draft.setGenerationConfig.mock.calls.at(-1)![0](changed);
     expect(getCharacterLabView(sceneChanged, 'scenes').view.prompt).toBe('Scene instructions');
     expect(getCharacterLabView(sceneChanged, 'poses').view.prompt).toBe('Revised pose');
     view.unmount();
-    expect(setPrompt).toHaveBeenLastCalledWith(null);
+    expect(promptStore.get()).toBeNull();
   });
   it('explains unavailable actions before interaction and restores generation for an image action', () => {
     const onGenerate = vi.fn();
@@ -139,6 +139,7 @@ describe('CharacterLabRecipe', () => {
       sidePanel: null,
       compare: null,
       setCompare: () => {},
+      promptStore: createWorkflowPromptStore(),
       generateBlock: block,
     };
     const props = { updateConfig: vi.fn(), onGenerate, isGenerating: false };
@@ -180,6 +181,7 @@ describe('CharacterLabRecipe', () => {
           sidePanel: document.body,
           compare: null,
           setCompare: () => {},
+          promptStore: createWorkflowPromptStore(),
         }}
       >
         <CharacterLabRecipe

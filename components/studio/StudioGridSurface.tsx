@@ -54,6 +54,7 @@ export interface StudioGridSurfaceProps {
     error: string | null;
     loadMore: () => void | Promise<void>;
     refresh: () => void;
+    otherWorkspaceImageCount?: number;
   };
 }
 
@@ -266,6 +267,7 @@ export const StudioGridSurface: React.FC<StudioGridSurfaceProps> = ({
             catalogError={catalog.error}
             onLoadMore={catalog.loadMore}
             onRetryCatalog={catalog.refresh}
+            otherWorkspaceImageCount={catalog.otherWorkspaceImageCount}
           />
         </ErrorBoundary>
       </div>

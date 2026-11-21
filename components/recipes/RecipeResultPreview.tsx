@@ -834,7 +834,7 @@ function describeResultContext({
   if (isGenerating) return { label: 'Previous result', description: 'Previous result' };
   if (reference?.dataUrl === selected.src)
     return { label: 'Used as source', description: 'Result · used as source' };
-  return { label: 'Not a source', description: 'Recent result · not attached as source' };
+  return { label: 'Recent result', description: 'Recent result · not attached as source' };
 }
 
 function RecipeResultImagePresentation({

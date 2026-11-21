@@ -21,6 +21,8 @@ interface PendingConfirmation extends ConfirmationRequest {
 interface UseStudioActionConfirmationsProps {
   addToast: (message: string, type: 'success' | 'error' | 'info') => void;
   clearWorkspace: (workspaceId: string) => void | Promise<void>;
+  /** Names the workspace in the archive confirmation, as delete does. */
+  workspaces?: readonly { id: string; name?: string }[];
   deleteWorkspace: (workspaceId: string) => void | Promise<void>;
   resetStudio: () => void | Promise<void>;
   restoreAllFromTrash: () => void;
@@ -30,6 +32,7 @@ interface UseStudioActionConfirmationsProps {
 export function useStudioActionConfirmations({
   addToast,
   clearWorkspace,
+  workspaces = [],
   deleteWorkspace,
   resetStudio,
   restoreAllFromTrash,
@@ -82,7 +85,7 @@ export function useStudioActionConfirmations({
           confirmLabel: 'Archive workspace',
           tone: 'warning',
           details: [
-            `Workspace: ${workspaceId}`,
+            `Workspace: ${workspaces.find((workspace) => workspace.id === workspaceId)?.name || workspaceId}`,
             `${imageCount} image${imageCount === 1 ? '' : 's'} will leave the active workspace.`,
             'Archived images can still be restored later from Archived Images.',
           ],
@@ -91,7 +94,7 @@ export function useStudioActionConfirmations({
         () => clearWorkspace(workspaceId),
       );
     },
-    [addToast, clearWorkspace, requestConfirmation],
+    [addToast, clearWorkspace, requestConfirmation, workspaces],
   );
 
   const requestDeleteWorkspace = useCallback(

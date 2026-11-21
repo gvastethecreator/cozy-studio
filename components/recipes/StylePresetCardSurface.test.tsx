@@ -133,8 +133,8 @@ describe('StylePresetCard', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Select style Polished Glass' })[0]);
     expect(onApply).toHaveBeenCalledExactlyOnceWith(PRESET);
     expect(screen.queryByRole('dialog')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Copy prompt' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Use as prompt' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy prompt for Polished Glass' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use Polished Glass as prompt' }));
     expect(onCopy).toHaveBeenCalledTimes(1);
     expect(onUsePrompt).toHaveBeenCalledExactlyOnceWith(PRESET);
     expect(onApply).toHaveBeenCalledTimes(1);

@@ -118,13 +118,52 @@ export function WorkspaceStrip({
   } = useWorkspaceMenus(onRenameWorkspace);
   const isCompact = layout === 'compact';
   // Rendered under a memoized header: subscribe so dates and sizes follow the language.
-  useT();
+  const { t } = useT();
+  const [filter, setFilter] = React.useState('');
+  const filterRef = React.useRef<HTMLInputElement>(null);
+  React.useEffect(() => {
+    if (!isCompact) return;
+    // The switcher opens in a dropdown; type at once to find a workspace.
+    const frame = requestAnimationFrame(() => filterRef.current?.focus({ preventScroll: true }));
+    return () => cancelAnimationFrame(frame);
+  }, [isCompact]);
+  const query = filter.trim().toLocaleLowerCase();
+  const matches = (workspace: Workspace, index: number) =>
+    !query ||
+    getWorkspaceDisplayName(workspace, getWorkspaceLabel(workspace, index))
+      .toLocaleLowerCase()
+      .includes(query);
+  const firstMatch = workspaces.find(matches);
 
   return (
     <div
       className={`vt-workspace-list gap-1 px-1 ${isCompact ? 'grid max-h-[min(70vh,26rem)] w-[min(82vw,22rem)] overflow-x-hidden overflow-y-auto py-1 custom-scrollbar' : 'hidden max-w-[44vw] items-center overflow-x-auto py-0.5 no-scrollbar md:flex xl:max-w-[52vw]'}`}
     >
+      {isCompact ? (
+        <div className="sticky top-0 z-10 bg-[color:var(--wb-panel)] pb-1">
+          <input
+            ref={filterRef}
+            type="search"
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' || !firstMatch) return;
+              event.preventDefault();
+              onSwitchWorkspace(firstMatch.id);
+            }}
+            aria-label={t('workspaces.filterLabel')}
+            placeholder={t('workspaces.filterPlaceholder')}
+            className="studio-field h-9 w-full rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-2.5 text-[12px] text-[color:var(--wb-ink)] placeholder:text-[color:var(--wb-muted)]"
+          />
+          {query && !firstMatch ? (
+            <p role="status" className="px-1 pt-2 text-[12px] text-[color:var(--wb-muted)]">
+              {t('workspaces.noMatch')}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       {workspaces.map((workspace, index) => {
+        if (!matches(workspace, index)) return null;
         const label = getWorkspaceLabel(workspace, index);
         const gradientClass = getWorkspaceGradient(index);
         const isActive = activeWorkspaceId === workspace.id;

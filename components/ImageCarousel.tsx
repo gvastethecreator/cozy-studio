@@ -59,6 +59,8 @@ interface ImageCarouselProps {
   onClose: () => void;
   onDelete: (id: string) => void;
   onRegenerate: (config: ImageGenerationConfig) => void;
+  /** Names what "Generate variation" runs on: count, provider and usage state. */
+  describeVariation?: (config: ImageGenerationConfig) => string;
   onAddToContext: (image: GeneratedImageWithConfig) => void;
   onLoadConfig: (
     config: ImageGenerationConfig,
@@ -358,6 +360,7 @@ function useImageCarousel(props: ImageCarouselProps) {
     onClose,
     onDelete,
     onRegenerate,
+    describeVariation,
     onAddToContext,
     onLoadConfig,
     onToggleFavorite,
@@ -628,6 +631,7 @@ function useImageCarousel(props: ImageCarouselProps) {
     hasReference,
     onLoadConfig,
     onRegenerate,
+    describeVariation,
     onDelete,
     handleCopyPrompt,
     copiedPrompt,
@@ -952,6 +956,7 @@ function CarouselDetailActions({
     onLoadConfig,
     currentImage,
     onRegenerate,
+    describeVariation,
     onDelete,
   } = model;
   return (
@@ -996,7 +1001,11 @@ function CarouselDetailActions({
       <ActionButton
         onClick={() => onRegenerate(currentImage.config)}
         icon={<RefreshCw width={16} height={16} />}
-        label="Generate variation"
+        label={
+          describeVariation
+            ? `Generate ${describeVariation(currentImage.config)}`
+            : 'Generate variation'
+        }
         variant="primary"
       />
       <ActionButton

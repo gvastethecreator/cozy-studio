@@ -409,6 +409,7 @@ export function useStudioShell(): StudioShellController {
     requestResetStudio,
   } = useStudioActionConfirmations({
     addToast,
+    workspaces,
     clearWorkspace: async (workspaceId) => {
       await clearCatalogWorkspace(workspaceId);
       clearWorkspaceSelection(workspaceId);
@@ -776,9 +777,15 @@ export function useStudioShell(): StudioShellController {
         error: activeCatalog.error?.message ?? null,
         loadMore: () => activeCatalog.loadMore(),
         refresh: () => void activeCatalog.refresh(),
+        otherWorkspaceImageCount: workspacesWithThumbs.reduce(
+          (total, workspace) =>
+            workspace.id === activeWorkspaceId ? total : total + (workspace.imageCount ?? 0),
+          0,
+        ),
       },
     };
   }, [
+    workspacesWithThumbs,
     libraryFilters,
     setLibraryFilters,
     handleViewChange,

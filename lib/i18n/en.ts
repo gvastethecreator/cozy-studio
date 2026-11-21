@@ -38,6 +38,9 @@ export const en = {
   'library.catalogError': 'Catalog failed to load',
   'library.offlineTitle': "Studio can't reach its local server",
   'library.offlineHint': 'Start Cozy Studio again, then press Retry.',
+  'workspaces.filterLabel': 'Find a workspace',
+  'workspaces.filterPlaceholder': 'Find a workspace…',
+  'workspaces.noMatch': 'No workspace matches.',
   'library.retry': 'Retry',
   'library.loadingImages': 'Loading images…',
   'library.createImage': 'Create an image',
@@ -47,6 +50,10 @@ export const en = {
   'library.loadMore': 'Load more',
   'library.noMatches': 'No matching images',
   'library.startHere': 'Your library starts here',
+  'library.emptyWorkspace': 'This workspace is empty',
+  'library.emptyWorkspaceHint':
+    'Your other workspaces have {images} images. Open one, or create an image here.',
+  'library.openWorkspaces': 'Open workspaces',
   'library.unorganizedFilterHint':
     'The Unorganized filter hides every image with a tag or a collection. Turn it off to see these images.',
   'library.emptyCollection': 'No images in this collection.',

@@ -1,4 +1,5 @@
-import { t, useT } from '../lib/i18n';
+import { formatNumber, t, useT } from '../lib/i18n';
+import { OPEN_WORKSPACE_SWITCHER } from '../lib/workspaceLifecycle';
 import type { MessageKey } from '../lib/i18n/en';
 import type { LibraryFilters } from '../hooks/useLibraryUrlState';
 import { CozyLoader as Loader2 } from './CozyMascot';
@@ -301,6 +302,8 @@ export interface ImageGridProps {
   catalogError?: string | null;
   onLoadMore?: () => void | Promise<void>;
   onRetryCatalog?: () => void;
+  /** Images in the other workspaces; an empty workspace then says so instead of "first run". */
+  otherWorkspaceImageCount?: number;
 }
 
 function subscribeViewportSize(onStoreChange: () => void) {
@@ -857,6 +860,7 @@ function useImageGrid(props: ImageGridProps) {
     catalogError = null,
     onLoadMore,
     onRetryCatalog,
+    otherWorkspaceImageCount = 0,
     generationPlaceholders = EMPTY_GENERATION_PLACEHOLDERS,
   } = props;
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
@@ -1409,6 +1413,7 @@ function useImageGrid(props: ImageGridProps) {
     autoLoadSentinelRef,
     hasMore,
     onLoadMore,
+    otherWorkspaceImageCount,
   };
 }
 type ImageGridModel = ReturnType<typeof useImageGrid>;
@@ -2069,8 +2074,30 @@ function ImageGridNoMatches({ model }: { model: ImageGridModel }) {
     collectionId,
     onLibraryFiltersChange,
     onCreate,
+    otherWorkspaceImageCount,
   } = model;
   const filtered = Boolean(searchQuery || showFavoritesOnly || showUnorganizedOnly || collectionId);
+  if (!filtered && otherWorkspaceImageCount > 0)
+    return (
+      <div className="max-w-md space-y-3">
+        <h2 className="text-lg font-semibold">{t('library.emptyWorkspace')}</h2>
+        <p className="text-sm text-[color:var(--wb-muted)]">
+          {t('library.emptyWorkspaceHint', { images: formatNumber(otherWorkspaceImageCount) })}
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <button
+            type="button"
+            className="studio-primary-control px-4 py-2"
+            onClick={() => window.dispatchEvent(new Event(OPEN_WORKSPACE_SWITCHER))}
+          >
+            {t('library.openWorkspaces')}
+          </button>
+          <button type="button" className="studio-ghost-control px-4 py-2" onClick={onCreate}>
+            {t('library.createImage')}
+          </button>
+        </div>
+      </div>
+    );
   return (
     <div className="max-w-md space-y-3">
       <h2 className="text-lg font-semibold">

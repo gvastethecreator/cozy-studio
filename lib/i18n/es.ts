@@ -39,6 +39,9 @@ export const es: Dictionary = {
   'library.catalogError': 'No se pudo cargar el catálogo',
   'library.offlineTitle': 'Studio no puede conectar con su servidor local',
   'library.offlineHint': 'Vuelve a abrir Cozy Studio y pulsa Reintentar.',
+  'workspaces.filterLabel': 'Buscar un espacio',
+  'workspaces.filterPlaceholder': 'Buscar un espacio…',
+  'workspaces.noMatch': 'Ningún espacio coincide.',
   'library.retry': 'Reintentar',
   'library.loadingImages': 'Cargando imágenes…',
   'library.createImage': 'Crear una imagen',
@@ -48,6 +51,10 @@ export const es: Dictionary = {
   'library.loadMore': 'Cargar más',
   'library.noMatches': 'No hay imágenes que coincidan',
   'library.startHere': 'Tu biblioteca empieza aquí',
+  'library.emptyWorkspace': 'Este espacio está vacío',
+  'library.emptyWorkspaceHint':
+    'Tus otros espacios tienen {images} imágenes. Abre uno o crea una imagen aquí.',
+  'library.openWorkspaces': 'Abrir espacios',
   'library.unorganizedFilterHint':
     'El filtro Sin organizar oculta todas las imágenes con etiquetas o una colección. Desactívalo para ver estas imágenes.',
   'library.emptyCollection': 'No hay imágenes en esta colección.',

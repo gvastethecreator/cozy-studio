@@ -265,7 +265,9 @@ function StylePresetCardActions({
       </button>
       <button
         type="button"
-        aria-label={copied ? 'Prompt copied' : 'Copy prompt'}
+        aria-label={
+          copied ? `Prompt copied for ${presetDisplayName}` : `Copy prompt for ${presetDisplayName}`
+        }
         onClick={(event) => onCopy(event, preset)}
       >
         {copied ? <Check width={16} height={16} /> : <Copy width={16} height={16} />}
@@ -273,7 +275,7 @@ function StylePresetCardActions({
       {onUsePrompt && (
         <button
           type="button"
-          aria-label="Use as prompt"
+          aria-label={`Use ${presetDisplayName} as prompt`}
           onClick={(event) => {
             event.stopPropagation();
             onUsePrompt(preset);

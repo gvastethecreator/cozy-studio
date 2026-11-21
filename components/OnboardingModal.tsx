@@ -1599,7 +1599,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = (props) => {
                     },
                     {
                       title: 'Keep creating',
-                      detail: 'Generate, then reuse results from History.',
+                      detail: 'Generate, then reuse results from the Library.',
                       Icon: Folder,
                     },
                   ].map(({ title, detail, Icon }, index) => (

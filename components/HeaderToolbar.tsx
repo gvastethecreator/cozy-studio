@@ -20,6 +20,7 @@ import { resolveRecipeAlias, type RecipeAliasId } from '../lib/recipeAliases';
 import type { StudioUsageSummary } from '../lib/studioDiagnostics';
 import type { Workspace, RecipeId } from '../types';
 import { WorkspaceStrip } from './header/WorkspaceStrip';
+import { OPEN_WORKSPACE_SWITCHER } from '../lib/workspaceLifecycle';
 import type { StudioCommandCenterProjection } from '../lib/commandCenterProjection';
 import { getRecipeShellTitle } from '../lib/recipeShellMetadata';
 import type { GenerationProviderId } from '../packages/shared/src';
@@ -214,6 +215,11 @@ function WorkspaceMenu({
   const workspaceButtonRef = React.useRef<HTMLButtonElement>(null);
   const workspaceLabel =
     workspaces.find((workspace) => workspace.id === activeWorkspaceId)?.name || 'Studio';
+  React.useEffect(() => {
+    const open = () => setIsWorkspaceOpen(true);
+    window.addEventListener(OPEN_WORKSPACE_SWITCHER, open);
+    return () => window.removeEventListener(OPEN_WORKSPACE_SWITCHER, open);
+  }, []);
   return (
     <div ref={workspaceRef} className="relative">
       <Tooltip content="Workspaces" position="bottom">

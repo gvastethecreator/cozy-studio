@@ -1,5 +1,8 @@
 export const DEFAULT_WORKSPACE_ID = 'default';
 
+/** Window event that opens the header workspace switcher, e.g. from an empty workspace. */
+export const OPEN_WORKSPACE_SWITCHER = 'studio:open-workspace-switcher';
+
 export function isDefaultWorkspace(workspaceId: string) {
   return workspaceId === DEFAULT_WORKSPACE_ID;
 }

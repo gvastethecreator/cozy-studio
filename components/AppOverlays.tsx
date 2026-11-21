@@ -28,7 +28,11 @@ export const AppOverlays: React.FC<AppOverlaysProps> = ({ controller }) => {
 
   return (
     <>
-      <StudioImageOverlays {...imageOverlays} providerId={systemOverlays.activeProviderId} />
+      <StudioImageOverlays
+        {...imageOverlays}
+        providerId={systemOverlays.activeProviderId}
+        chatgptUsage={systemOverlays.chatgptUsage}
+      />
       <StudioSystemOverlays {...systemOverlays} />
       <StudioWorkspaceOverlays {...workspaceOverlays} />
       <StudioConfirmationOverlay {...confirmationOverlay} />

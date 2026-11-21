@@ -557,7 +557,7 @@ function useCompactStyleSelectorController({
           <button
             type="button"
             className="cs-prompt-action"
-            aria-label="Copy prompt"
+            aria-label={`Copy prompt for ${result.name}`}
             onClick={() => onCopyPrompt(result)}
           >
             Copy
@@ -567,7 +567,7 @@ function useCompactStyleSelectorController({
           <button
             type="button"
             className="cs-prompt-action"
-            aria-label="Use as prompt"
+            aria-label={`Use ${result.name} as prompt`}
             onClick={() => onUsePrompt(result)}
           >
             Prompt

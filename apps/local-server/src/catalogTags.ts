@@ -21,12 +21,18 @@ export function recordCatalogTagUse(workspaceId: string, tags: string[], db?: Da
   }
 }
 
+// Reads the workspace's image tags once. A per-tag subquery over catalog_images rescans every live
+// image for each tag, which blocked the server for minutes on a large Library.
 export function listCatalogTags(workspaceId: string, db?: Database): CatalogTag[] {
   return getDb(db)
-    .query(`SELECT tag.name, tag.color, tag.last_used_at AS lastUsedAt,
-    (SELECT COUNT(*) FROM catalog_images image WHERE COALESCE(image.workspace_id, 'default') = tag.workspace_id
-      AND image.is_deleted = 0 AND EXISTS (SELECT 1 FROM json_each(${catalogTagArraySql}) WHERE value = tag.name)) AS imageCount
-    FROM catalog_tags tag WHERE workspace_id = ? ORDER BY last_used_at DESC, name ASC`)
+    .query(`WITH image_tag AS MATERIALIZED (
+      SELECT DISTINCT image.id AS image_id, tag_value.value AS name
+      FROM catalog_images image, json_each(${catalogTagArraySql}) AS tag_value
+      WHERE COALESCE(image.workspace_id, 'default') = ?1 AND image.is_deleted = 0
+    )
+    SELECT tag.name, tag.color, tag.last_used_at AS lastUsedAt,
+      (SELECT COUNT(DISTINCT image_id) FROM image_tag WHERE image_tag.name = tag.name) AS imageCount
+    FROM catalog_tags tag WHERE tag.workspace_id = ?1 ORDER BY tag.last_used_at DESC, tag.name ASC`)
     .all(workspaceId) as CatalogTag[];
 }
 

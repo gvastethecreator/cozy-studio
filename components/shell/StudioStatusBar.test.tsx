@@ -79,6 +79,14 @@ describe('StudioStatusBar', () => {
                 resetLabel: null,
               },
             ],
+            // The shell derives this from the server's usage state; the pill reads only it.
+            usageCopy: {
+              state: 'window',
+              short: '91% left',
+              tone: 'ok',
+              line: '91% of the weekly window left.',
+              blocksGeneration: false,
+            },
           },
         }}
         commandCenter={{
@@ -105,7 +113,9 @@ describe('StudioStatusBar', () => {
     expect(screen.getByRole('list', { name: 'Provider status' })).toBeTruthy();
     expect(screen.getByLabelText('Codex: Ready')).toBeTruthy();
     expect(screen.getByLabelText('Codex: Ready').textContent).toContain('55%');
-    expect(screen.getByLabelText('ChatGPT: Ready').textContent).toContain('91%');
+    expect(
+      screen.getByLabelText('ChatGPT: Ready. 91% of the weekly window left.').textContent,
+    ).toContain('91%');
     expect(screen.queryByLabelText('Google: Ready')).toBeNull();
     expect(screen.getByRole('button', { name: 'Open runtime status: Ready' }).textContent).toBe('');
     fireEvent.click(screen.getByRole('button', { name: 'Codex usage status' }));

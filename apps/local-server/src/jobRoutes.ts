@@ -30,6 +30,7 @@ interface JobRoutesDependencies extends PersistentJobIntakeDependencies {
   getJobStatus?: (jobId: string) => JobStatusSnapshot | null;
   getJobDetail: (jobId: string) => Promise<JobDetailResponse | null>;
   requeueJob?: (jobId: string, expected?: { attempt: number; status: Job['status'] }) => Job | null;
+  markReviewJobFailed?: (jobId: string) => Job | null;
   batchStore?: JobBatchStore;
   readJobsSummary?: () => JobsSummary;
   cancelQueuedOrRunningJob: (jobId: string) => Job | null;
@@ -55,6 +56,7 @@ export function createJobRoutes({
   },
   getJobDetail,
   requeueJob,
+  markReviewJobFailed,
   batchStore,
   readJobsSummary,
   cancelQueuedOrRunningJob,
@@ -183,6 +185,29 @@ export function createJobRoutes({
       return c.json({ error: 'Job cannot be cancelled right now' }, 409);
     }
 
+    return c.json(updatedJob);
+  });
+
+  // The user's way out of Review when Studio cannot resume the job. The client confirms first
+  // that the provider may already have made the image, so a retry can use usage twice.
+  routes.post('/:id/mark-failed', (c) => {
+    const job = getJob(c.req.param('id'));
+    if (!job) return c.json({ error: 'Job not found' }, 404);
+    if (job.status !== 'needs_review' || canResumeStudioJob(job)) {
+      return c.json(
+        {
+          error: canResumeStudioJob(job)
+            ? 'Resume this job instead. Studio can still read its remote result.'
+            : 'Only a job in Review can be marked as failed.',
+          code: 'invalid_mark_failed_status',
+          status: job.status,
+        },
+        409,
+      );
+    }
+    const updatedJob = markReviewJobFailed?.(job.id);
+    if (!updatedJob) return c.json({ error: 'This job changed. Refresh it and try again.' }, 409);
+    publishEvent('job.failed', updatedJob);
     return c.json(updatedJob);
   });
 

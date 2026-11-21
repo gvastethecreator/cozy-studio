@@ -69,9 +69,13 @@ export function StudioStatusBar({
             const weeklyLimit = usage?.limits.find((limit) => /weekly/i.test(limit.label));
             // ChatGPT shows its usage state: window left, using credits, or limit reached.
             const usageCopy = provider.id === 'chatgpt' ? usage?.usageCopy : null;
+            // No stale percent: ChatGPT shows only its state, and nothing shows while offline.
             const usageText =
-              usageCopy?.short ??
-              (weeklyLimit ? `${Math.round(weeklyLimit.availablePercent)}% left` : null);
+              provider.id === 'chatgpt'
+                ? (usageCopy?.short ?? null)
+                : weeklyLimit && usage?.tone !== 'offline'
+                  ? `${Math.round(weeklyLimit.availablePercent)}% left`
+                  : null;
             const usageDot =
               provider.canExecute && usageCopy?.tone === 'warning'
                 ? 'bg-amber-400'

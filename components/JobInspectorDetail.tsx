@@ -1,5 +1,10 @@
-import React, { useMemo } from 'react';
-import { canRetryStudioJob, canResumeStudioJob } from '../lib/studioJobRetry';
+import React, { useMemo, useState } from 'react';
+import {
+  canMarkStudioJobFailed,
+  canRetryStudioJob,
+  canResumeStudioJob,
+  readableJobError,
+} from '../lib/studioJobRetry';
 import {
   Activity,
   WarningCircle as AlertCircle,
@@ -29,6 +34,8 @@ import {
 } from '../lib/jobInspectorFormatter';
 import { cn } from '../lib/utils';
 import { getStudioApiBase } from '../services/studio-api/http';
+import { markStudioJobFailed } from '../services/studio-api/jobs';
+import { ConfirmationModal } from './ConfirmationModal';
 import { readLatestSubscriptionHttpDiagnostic } from '../lib/subscriptionHttpDiagnosticView';
 import { SubscriptionHttpDiagnosticNotice } from './SubscriptionHttpDiagnosticNotice';
 import { formatDateTime, formatNumber } from '../lib/i18n';
@@ -100,7 +107,8 @@ function formatTimestamp(value: string | null) {
 }
 
 function JobFailureBanner({ detail }: { detail: JobDetailResponse }) {
-  const { status, error } = detail.job;
+  const { status } = detail.job;
+  const error = readableJobError(detail.job);
   const diagnostic = readLatestSubscriptionHttpDiagnostic(detail.events);
   const isFailure = status === 'failed';
   const title = isFailure ? 'Job failed' : 'Job was cancelled';
@@ -141,7 +149,7 @@ function JobStatusBanner({
   detail: JobDetailResponse;
   hasReadableAssistantReply: boolean;
 }) {
-  const { status, error } = detail.job;
+  const { status } = detail.job;
   const diagnostic = readLatestSubscriptionHttpDiagnostic(detail.events);
 
   if (status === 'failed' || status === 'cancelled') return <JobFailureBanner detail={detail} />;
@@ -164,10 +172,11 @@ function JobStatusBanner({
                   Review the provider result
                 </h3>
                 <p className="mt-2 text-[13px] leading-6 text-[color:var(--wb-warning)] ">
-                  {error || 'The provider did not return a confirmed, usable image result.'} Check
-                  the activity timeline and the provider runtime for this job. Retry and
-                  cancellation stay unavailable until its result is reconciled. When a remote ID is
-                  available, Resume job checks that existing execution and imports its output.
+                  {readableJobError(detail.job)} Check the activity timeline and the provider
+                  runtime for this job.{' '}
+                  {canResumeStudioJob(detail.job)
+                    ? 'Resume job checks the existing remote execution and imports its output.'
+                    : 'Studio cannot read this result again. If no image arrived, mark the job as failed to get Retry.'}
                 </p>
                 {diagnostic ? <SubscriptionHttpDiagnosticNotice value={diagnostic} /> : null}
               </div>
@@ -789,11 +798,60 @@ function JobAttemptHistory({ detail }: { detail: JobDetailResponse }) {
               {attempt.metrics
                 ? ` · elapsed ${formatDuration(findTiming(attempt.metrics.timings, 'total'))}`
                 : ''}
-              {attempt.job.error ? ` — ${attempt.job.error}` : ''}
+              {attempt.job.error ? ` — ${readableJobError(attempt.job)}` : ''}
             </p>
           ))}
         </details>
       ) : null}
+    </>
+  );
+}
+
+/**
+ * The way out of Review for a job Studio cannot resume. The confirmation owns the usage risk: the
+ * provider may have made the image, so the Retry that follows can use usage twice.
+ */
+function MarkJobFailedAction({ jobId, prompt }: { jobId: string; prompt: string }) {
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const confirm = async () => {
+    setIsConfirming(false);
+    setError(null);
+    try {
+      // The job.failed event refreshes this inspector, which then offers Retry.
+      await markStudioJobFailed(jobId);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Studio could not mark this job.');
+    }
+  };
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setIsConfirming(true)}
+        className="inline-flex items-center justify-center gap-2 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-4 py-2.5 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)] transition-colors hover:border-[color:var(--wb-border)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] cursor-pointer"
+      >
+        Mark as failed
+      </button>
+      {error ? (
+        <p role="alert" className="basis-full text-[12px] text-[color:var(--wb-danger)]">
+          {error}
+        </p>
+      ) : null}
+      <ConfirmationModal
+        isOpen={isConfirming}
+        title="Mark this job as failed?"
+        description={`“${truncateHeadline(prompt, 90)}” is in Review because Studio could not confirm its result. The provider may already have made the image.`}
+        details={[
+          'Only do this if no image from this job arrived in the Library.',
+          'After this, Retry sends the job again. If the provider did make the image, the retry uses your provider usage a second time.',
+        ]}
+        confirmLabel="Mark as failed"
+        cancelLabel="Keep in Review"
+        tone="warning"
+        onClose={() => setIsConfirming(false)}
+        onConfirm={confirm}
+      />
     </>
   );
 }
@@ -877,6 +935,9 @@ function JobInspectorHeader({
               <RotateCcw width={14} height={14} />
               <span>{canResumeStudioJob(detail.job) ? 'Resume job' : 'Retry job'}</span>
             </button>
+          ) : null}
+          {canMarkStudioJobFailed(detail.job) ? (
+            <MarkJobFailedAction jobId={detail.job.id} prompt={titlePrompt} />
           ) : null}
           <button
             type="button"

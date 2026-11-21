@@ -63,7 +63,7 @@ export async function createStudioJobBatch(body: CreateJobBatchRequest) {
   try {
     return await submit();
   } catch (error) {
-    if (error instanceof StudioApiError && error.status < 500) throw error;
+    if (error instanceof StudioApiError && error.status >= 400 && error.status < 500) throw error;
     // A lost acknowledgement repeats only this accepted request identity.
     try {
       return await submit();
@@ -89,6 +89,11 @@ export async function retryStudioJobBatch(batchId: string, body: RetryJobBatchRe
     method: 'POST',
     body: JSON.stringify(body),
   });
+}
+
+/** Moves a Review job that Studio cannot resume to `failed`, so the normal Retry applies. */
+export async function markStudioJobFailed(jobId: string) {
+  return request<Job>(`/api/jobs/${encodeURIComponent(jobId)}/mark-failed`, { method: 'POST' });
 }
 
 export async function cancelStudioJob(jobId: string) {

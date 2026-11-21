@@ -48,6 +48,7 @@ import { copyImageToClipboard, downloadImage, generateSmartFilename } from '../u
 import Tooltip from './Tooltip';
 import ActionButton from './ui/ActionButton';
 import { getCatalogImageDetail } from '../services/studio-api/catalog';
+import { STUDIO_OFFLINE_MESSAGE } from '../services/studio-api/http';
 import { buildGenerationConfigFromCatalogImage } from '../utils/catalogImageGenerationConfig';
 import { useToastUi } from '../contexts/GlobalContext';
 import { useImageConversion } from '../contexts/ImageConversionContext';
@@ -1879,12 +1880,17 @@ function ImageGridBulkActions({ model }: { model: ImageGridModel }) {
 function ImageGridEmptyState({ model }: { model: ImageGridModel }) {
   const { t } = useT();
   const { catalogError, onRetryCatalog, isCatalogLoading } = model;
+  const offline = catalogError === STUDIO_OFFLINE_MESSAGE;
   return (
     <div className="flex h-full w-full items-center justify-center px-6 text-center">
       {catalogError ? (
         <div className="max-w-md rounded-[var(--wb-radius)] border border-rose-500/2 bg-rose-950/20 p-4 text-sm text-[color:var(--wb-danger)] ">
-          <div className="font-semibold">{t('library.catalogError')}</div>
-          <div className="mt-1 text-[color:var(--wb-danger)] ">{catalogError}</div>
+          <div className="font-semibold">
+            {offline ? t('library.offlineTitle') : t('library.catalogError')}
+          </div>
+          <div className="mt-1 text-[color:var(--wb-danger)] ">
+            {offline ? t('library.offlineHint') : catalogError}
+          </div>
           {onRetryCatalog && (
             <button
               type="button"

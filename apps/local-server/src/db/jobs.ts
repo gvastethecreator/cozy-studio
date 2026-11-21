@@ -27,7 +27,9 @@ import {
   resolveJobWorkspaceId,
   withWorkspaceMetadata,
 } from '../../../../packages/shared/src/workspaceContracts';
+import { canResumeStudioJob } from '../../../../packages/shared/src/jobRecovery';
 import { getDb } from './connection';
+import { addJobEvent } from './events';
 import { getOutputGeneration } from './outputGenerations';
 import { ensureDefaultWorkspaceRow } from './workspaces';
 
@@ -314,6 +316,37 @@ export function requeueJob(
       )
       .run(now(), resume ? 0 : 1, resume ? 0 : 1, now(), id);
     if (result.changes !== 1) return null;
+    return getJob(id, database);
+  })();
+}
+
+/**
+ * The user's way out of Review for a job Studio cannot resume: it becomes `failed`, so the normal
+ * Retry applies. A recorded HTTP submission is marked failed too, or the retry would stop at it.
+ */
+export function markReviewJobFailed(id: string, db?: Database) {
+  const database = getDb(db);
+  return database.transaction(() => {
+    const previous = getJob(id, database);
+    if (!previous || previous.status !== 'needs_review' || canResumeStudioJob(previous))
+      return null;
+    const error = `Marked as failed after review. ${previous.error ?? 'The provider did not return a confirmed, usable image result.'}`;
+    const result = database
+      .query(
+        `UPDATE jobs SET status = 'failed', error = ?, updated_at = ?, completed_at = COALESCE(completed_at, ?),
+       remote_execution_json = CASE WHEN json_extract(remote_execution_json, '$.providerId') IN ('chatgpt', 'codex')
+         THEN json_set(remote_execution_json, '$.phase', 'failed') ELSE remote_execution_json END
+       WHERE id = ? AND status = 'needs_review'`,
+      )
+      .run(error, now(), now(), id);
+    if (result.changes !== 1) return null;
+    addJobEvent(
+      id,
+      'job.failed',
+      'Marked as failed after review. A retry may use provider usage again.',
+      undefined,
+      database,
+    );
     return getJob(id, database);
   })();
 }

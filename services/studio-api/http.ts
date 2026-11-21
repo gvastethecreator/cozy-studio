@@ -25,6 +25,14 @@ export class StudioApiError extends Error {
   }
 }
 
+/** The code `request()` uses when Studio's local server does not answer at all. */
+export const STUDIO_OFFLINE = 'studio_offline';
+export const STUDIO_OFFLINE_MESSAGE = "Studio's local server is not responding.";
+
+export function isStudioOfflineError(error: unknown) {
+  return error instanceof StudioApiError && error.code === STUDIO_OFFLINE;
+}
+
 function decodeLocalStudioError(text: string, status: number) {
   const trimmed = text.trim();
   let message = trimmed || `Local studio request failed: ${status}`;
@@ -64,10 +72,14 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(`${apiBase}${path}`, {
-    ...init,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${apiBase}${path}`, { ...init, headers });
+  } catch (error) {
+    if (init?.signal?.aborted) throw error;
+    // A network failure means the local server is down, not that the request was wrong.
+    throw new StudioApiError(STUDIO_OFFLINE_MESSAGE, { status: 0, code: STUDIO_OFFLINE });
+  }
 
   if (!response.ok) {
     const { message, code, reason, payload } = decodeLocalStudioError(

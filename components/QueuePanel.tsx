@@ -14,7 +14,7 @@ import {
 
 import { getActiveRecipeIndicator } from '../lib/activeRecipeIndicator';
 import { summarizePersistentJobs } from '../lib/persistentJobSummary';
-import { canRetryStudioJob, canResumeStudioJob } from '../lib/studioJobRetry';
+import { canRetryStudioJob, canResumeStudioJob, readableJobError } from '../lib/studioJobRetry';
 import type { StudioQueueResultPreview } from '../lib/studioQueueResults';
 import type { ShellActivityJob as StudioJob } from '../lib/shellActivityJob';
 import { cn } from '../lib/utils';
@@ -896,6 +896,7 @@ const ServerJobItem: React.FC<{
   const createdAtMs = toEpochMs(job.createdAt);
   const statusLabel =
     job.status === 'needs_review' ? 'Needs review' : formatQueueTaskLabel(job.status);
+  const errorText = readableJobError(job);
 
   return (
     <article
@@ -945,9 +946,9 @@ const ServerJobItem: React.FC<{
       {waitReason ? (
         <p className="mt-2 text-xs text-[color:var(--wb-warning)] ">{waitReason}</p>
       ) : null}
-      {job.error ? (
+      {errorText ? (
         <p className="mt-2 line-clamp-2 text-[11px] leading-relaxed text-[color:var(--wb-danger)] ">
-          {job.error}
+          {errorText}
         </p>
       ) : null}
       <div className="flex items-center justify-between gap-2">

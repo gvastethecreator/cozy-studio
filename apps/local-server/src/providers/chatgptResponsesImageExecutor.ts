@@ -286,7 +286,8 @@ function classifyProviderFailure(
   else if (category === 'entitlement_denied')
     detail =
       'This account cannot access HTTP image generation. Check the accepted ChatGPT account.';
-  else if (category === 'http_error') detail = 'ChatGPT reported a service failure.';
+  else if (category === 'http_error' && !(httpStatus && message === errorPageSummary(httpStatus)))
+    detail = 'ChatGPT reported a service failure.';
   // Keep bounded vendor detail for diagnosis; never include credentials.
   if (message && detail !== message) detail += ` ${message}`;
   return new SubscriptionHttpError(detail, {
@@ -333,7 +334,17 @@ function isFailedSseEvent(event: unknown): event is Record<string, unknown> {
   );
 }
 
-function summarizeCodexError(body: string, secrets: readonly string[]) {
+/** A proxy such as Cloudflare answers some failures with an HTML page instead of JSON. */
+function isHtmlErrorPage(body: string) {
+  return /^\s*(?:<!doctype html|<html)/i.test(body);
+}
+
+function errorPageSummary(status: number) {
+  return `ChatGPT's service returned an error page (HTTP ${status}). This is usually temporary.`;
+}
+
+function summarizeCodexError(body: string, status: number, secrets: readonly string[]) {
+  if (isHtmlErrorPage(body)) return errorPageSummary(status);
   try {
     const payload = JSON.parse(body) as unknown;
     if (isRecord(payload) && isRecord(payload.error) && typeof payload.error.message === 'string') {
@@ -360,7 +371,7 @@ function classifyCodexHttpFailure(
   }
   return classifyProviderFailure(
     payload,
-    summarizeCodexError(body, secrets),
+    summarizeCodexError(body, status, secrets),
     status,
     secrets,
     retryAfterSeconds,

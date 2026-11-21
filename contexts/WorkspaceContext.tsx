@@ -19,6 +19,7 @@ import {
   updateWorkspace as updateWorkspaceApi,
 } from '../services/studio-api/workspaces';
 import { CATALOG_WORKSPACE_SEEN } from '../services/studio-api/catalog';
+import { isStudioOfflineError, STUDIO_OFFLINE_MESSAGE } from '../services/studio-api/http';
 import {
   loadDurableWorkspacesFromApi,
   migrateIndexedDbWorkspacesToServer,
@@ -118,7 +119,8 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
   const { query, setQuery, hasInitialLibraryLink } = useLibraryUrlState();
   const [state, dispatch] = useReducer(workspaceReducer, undefined, createInitialWorkspaceState);
   const [isHydrated, setIsHydrated] = useState(false);
-  const [hydrationError, setHydrationError] = useState(false);
+  // 'offline' when the local server did not answer; Studio then retries by itself.
+  const [hydrationError, setHydrationError] = useState<'offline' | 'failed' | null>(null);
   const [retryVersion, setRetryVersion] = useState(0);
   const { addToast } = useToastUi();
   const activePersistRef = useRef<number | null>(null);
@@ -174,7 +176,6 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   useEffect(() => {
     let cancelled = false;
-    setHydrationError(false);
     const hydrate = async () => {
       try {
         let workspaces: Workspace[] | undefined;
@@ -195,10 +196,14 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
         }
         if (cancelled) return;
         dispatch({ type: 'HYDRATE', workspaces, activeWorkspaceId });
+        setHydrationError(null);
         setIsHydrated(true);
       } catch (error) {
         runtimeLogger.error('Unable to resolve the active workspace', error);
-        if (!cancelled) setHydrationError(true);
+        const offline =
+          isStudioOfflineError(error) ||
+          (error instanceof Error && isStudioOfflineError(error.cause));
+        if (!cancelled) setHydrationError(offline ? 'offline' : 'failed');
       }
     };
     void hydrate();
@@ -206,6 +211,13 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
       cancelled = true;
     };
   }, [retryVersion]);
+
+  useEffect(() => {
+    if (hydrationError !== 'offline') return;
+    // Retry quietly: the message stays until the server answers.
+    const timer = window.setTimeout(() => setRetryVersion((version) => version + 1), 4000);
+    return () => window.clearTimeout(timer);
+  }, [hydrationError, retryVersion]);
 
   // An agent can create a workspace while this window is open. Add only that workspace, so a
   // pending optimistic create or delete in this window keeps its state.
@@ -369,7 +381,11 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
       ) : (
         <div className="studio-startup-state" role={hydrationError ? 'alert' : 'status'}>
           <span>
-            {hydrationError ? 'Could not load the current workspace.' : 'Loading workspace…'}
+            {hydrationError === 'offline'
+              ? `${STUDIO_OFFLINE_MESSAGE} Start Cozy Studio again; this page reconnects by itself.`
+              : hydrationError
+                ? 'Could not load the current workspace.'
+                : 'Loading workspace…'}
           </span>
           {hydrationError && (
             <button type="button" onClick={() => setRetryVersion((version) => version + 1)}>

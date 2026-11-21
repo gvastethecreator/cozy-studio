@@ -45,6 +45,7 @@ function createJob(overrides: Partial<Job> = {}): Job {
     createdAt: overrides.createdAt ?? '2026-05-29T00:00:00.000Z',
     updatedAt: overrides.updatedAt ?? '2026-05-29T00:00:00.000Z',
     completedAt: overrides.completedAt ?? null,
+    ...(overrides.remoteExecution && { remoteExecution: overrides.remoteExecution }),
   };
 }
 
@@ -268,6 +269,60 @@ describe('jobRoutes', () => {
     expect(requeueJob).toHaveBeenCalledWith('job-failed', { attempt: 1, status: 'failed' });
     expect(publishEvent).toHaveBeenCalledWith('job.progress', requeued);
     expect(enqueueJob).toHaveBeenCalledWith(requeued);
+  });
+
+  it('marks a non-resumable Review job as failed and refuses a job Studio can resume', async () => {
+    const review = createJob({
+      id: 'job-review',
+      providerId: 'chatgpt',
+      status: 'needs_review',
+      remoteExecution: { providerId: 'chatgpt', phase: 'submitting', startedAt: 1 },
+    });
+    const resumable = createJob({
+      id: 'job-comfy',
+      providerId: 'comfy',
+      status: 'needs_review',
+      remoteExecution: {
+        providerId: 'comfy',
+        runtimeIdentity: 'local',
+        promptId: 'prompt-1',
+        phase: 'accepted',
+        startedAt: 1,
+      },
+    });
+    const failed = createJob({ id: 'job-review', providerId: 'chatgpt', status: 'failed' });
+    const markReviewJobFailed = vi.fn(() => failed);
+    const publishEvent = vi.fn();
+    const jobs: Record<string, Job> = { 'job-review': review, 'job-comfy': resumable };
+    const routes = createJobRoutes({
+      listJobs: () => emptyJobPage,
+      getJob: (jobId) => jobs[jobId] ?? null,
+      getJobDetail: async () => null,
+      markReviewJobFailed,
+      cancelQueuedOrRunningJob: () => null,
+      createJobId: () => 'job-new',
+      createJob: () => createJob({ id: 'job-new' }),
+      updateJobFinalPrompt: () => null,
+      processReferences: async () => ({ augmentedPrompt: 'x', persistedRefs: [] }),
+      hydrateSourceSpecAssetPaths: (sourceSpec) => sourceSpec,
+      readLibraryDir: () => 'D:/library',
+      resolveProviderExecutionBlocker: () => null,
+      isReferenceProcessingError,
+      publishEvent,
+      logJobCreated: () => {},
+      enqueueJob: vi.fn(),
+    });
+
+    const marked = await routes.request('/job-review/mark-failed', { method: 'POST' });
+    expect(marked.status).toBe(200);
+    await expect(marked.json()).resolves.toEqual(failed);
+    expect(markReviewJobFailed).toHaveBeenCalledWith('job-review');
+    expect(publishEvent).toHaveBeenCalledWith('job.failed', failed);
+
+    const refused = await routes.request('/job-comfy/mark-failed', { method: 'POST' });
+    expect(refused.status).toBe(409);
+    await expect(refused.json()).resolves.toMatchObject({ code: 'invalid_mark_failed_status' });
+    expect(markReviewJobFailed).toHaveBeenCalledTimes(1);
   });
 
   it('rejects retry for completed jobs so regeneration does not copy finished work', async () => {

@@ -37,6 +37,7 @@ import {
   getJob,
   getJobStatus,
   listJobSummaries,
+  markReviewJobFailed,
   readJobsSummary,
   requeueJob,
   updateJobFinalPrompt,
@@ -164,6 +165,7 @@ export interface StudioJobStore {
   createJob: typeof createJob;
   updateJobFinalPrompt: typeof updateJobFinalPrompt;
   requeueJob: typeof requeueJob;
+  markReviewJobFailed: typeof markReviewJobFailed;
   getJob: typeof getJob;
   getJobStatus: typeof getJobStatus;
   listJobSummaries: typeof listJobSummaries;
@@ -182,6 +184,7 @@ const defaultJobStore: StudioJobStore = {
   createJob,
   updateJobFinalPrompt,
   requeueJob,
+  markReviewJobFailed,
   getJob,
   getJobStatus,
   listJobSummaries,
@@ -574,6 +577,7 @@ export async function createStudioApp(
       getJobStatus: (jobId) => jobStore.getJobStatus(jobId),
       getJobDetail,
       requeueJob: (jobId, expected) => jobStore.requeueJob(jobId, undefined, expected),
+      markReviewJobFailed: (jobId) => jobStore.markReviewJobFailed(jobId),
       batchStore: jobBatchStore,
       cancelQueuedOrRunningJob: (jobId) => workerController.cancelQueuedOrRunningJob(jobId),
       ensureDefaultWorkspaceId: () => ensureDefaultWorkspace()?.id ?? 'default',

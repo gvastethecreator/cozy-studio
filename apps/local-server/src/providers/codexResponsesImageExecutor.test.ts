@@ -813,4 +813,35 @@ describe('ChatGPT responses image executor and captured Codex HTTP jobs', () => 
       JSON.stringify((error as { cause?: SubscriptionHttpError }).cause?.diagnostic),
     ).not.toContain('PRIVATE_PROMPT_SENTINEL');
   });
+
+  it('names an HTML error page instead of storing its markup as the job error', async () => {
+    const page = '<!DOCTYPE html><html><head><style>@keyframes enlarge-appear {}</style></head>';
+    const executor = createChatgptResponsesImageExecutor({
+      getAccessToken: async () => 'codex-secret',
+      fetch: vi.fn(async () => new Response(page, { status: 520 })),
+      now: () => Date.parse('2026-09-25T22:00:00.000Z'),
+    });
+    const error = await Effect.runPromise(
+      Effect.scoped(
+        executor({
+          id: 'job-520',
+          providerId: 'chatgpt',
+          workspaceId: 'workspace-1',
+          prompt: 'stone keep',
+          checkpointRemoteExecution: vi.fn(),
+          execution: {
+            ...CODEX_HTTP_EXECUTION_DEFAULTS,
+            providerOptions: {
+              chatgpt: {
+                image: { model: CODEX_HTTP_IMAGE_MODEL, size: '1024x1024', quality: 'medium' },
+              },
+            },
+          },
+        }),
+      ),
+    ).catch((caught: unknown) => caught);
+    expect((error as Error).message).toBe(
+      "ChatGPT HTTP returned 520 after submission. Review this job before sending another request. ChatGPT's service returned an error page (HTTP 520). This is usually temporary.",
+    );
+  });
 });

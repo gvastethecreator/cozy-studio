@@ -49,7 +49,7 @@ import {
   grokRowNeedsLogin,
   ONBOARDING_GROK_INSTALL_URL,
 } from '../lib/onboardingGrokRow';
-import { StudioApiError } from '../services/studio-api/http';
+import { STUDIO_OFFLINE_MESSAGE, StudioApiError } from '../services/studio-api/http';
 import {
   getEditableStudioSettings,
   updateEditableStudioSettings,
@@ -301,6 +301,25 @@ function SetupRow({
 
 const ROW_PRIMARY = 'studio-primary-control onboarding-connections-button';
 const ROW_GHOST = 'studio-ghost-control onboarding-connections-button';
+
+/** The one setup row while Studio's local server does not answer. */
+function OfflineRow({ onRefresh, isChecking }: { onRefresh: () => void; isChecking: boolean }) {
+  const { t } = useT();
+  return (
+    <SetupRow
+      icon={<RefreshCw width={18} height={18} />}
+      title={t('onboarding.offline.title')}
+      status={{ tone: 'danger', label: t('onboarding.offline.status') }}
+      actions={
+        <button type="button" disabled={isChecking} onClick={onRefresh} className={ROW_PRIMARY}>
+          {t('onboarding.offline.refresh')}
+        </button>
+      }
+    >
+      <p>{t('onboarding.offline.detail')}</p>
+    </SetupRow>
+  );
+}
 
 /** ChatGPT web sign-in, the default provider. Studio polls until the browser step finishes. */
 function ChatGptRow({
@@ -1456,7 +1475,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = (props) => {
   });
 
   const runtimeLabel = isDesktopRuntime ? 'Desktop runtime' : 'Web runtime';
-  const headline = isReady ? 'Ready for your next idea.' : 'Make yourself at home.';
+  // When the local server does not answer, every other row would only repeat it with stale data.
+  const offline = error === STUDIO_OFFLINE_MESSAGE;
+  const headline = offline
+    ? "Studio can't reach its local server."
+    : isReady
+      ? 'Ready for your next idea.'
+      : 'Make yourself at home.';
   const intro = 'Describe it, add a reference, and make it yours.';
 
   const handlePrimaryCta = React.useCallback(() => {
@@ -1551,9 +1576,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = (props) => {
                   <div>
                     <h2>{headline}</h2>
                     <p>
-                      {error
-                        ? 'Studio could not reach the local backend. Check the setup details below.'
-                        : intro}
+                      {offline
+                        ? "Setup can't be checked until the local server answers."
+                        : error
+                          ? 'Studio could not reach the local backend. Check the setup details below.'
+                          : intro}
                     </p>
                   </div>
                   <CozyMascot size="clamp(96px, 14vw, 152px)" state="welcome" />
@@ -1593,7 +1620,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = (props) => {
                   ))}
                 </div>
                 <section className="onboarding-setup">
-                  {connectedProvider === 'chatgpt' ? (
+                  {offline ? (
+                    <OfflineRow onRefresh={onRefresh} isChecking={isChecking} />
+                  ) : connectedProvider === 'chatgpt' ? (
                     <ChatGptRow
                       isReady={isReady}
                       usage={props.chatgptUsage ?? null}
@@ -1607,9 +1636,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = (props) => {
                       onOpenProviders={onOpenSettings}
                     />
                   )}
-                  <StylePacksRow isOpen={isOpen} onOpen={onOpenStylePacks} />
-                  <ImagesFolderRow isOpen={isOpen} />
-                  <OnboardingDiagnostics modal={props} setup={setup} />
+                  {offline ? null : (
+                    <>
+                      <StylePacksRow isOpen={isOpen} onOpen={onOpenStylePacks} />
+                      <ImagesFolderRow isOpen={isOpen} />
+                      <OnboardingDiagnostics modal={props} setup={setup} />
+                    </>
+                  )}
                 </section>
               </div>
             </main>

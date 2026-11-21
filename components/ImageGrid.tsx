@@ -21,17 +21,17 @@ import {
   Refresh as RefreshCw,
   Trash as Trash2,
   Check,
-  List as ClipboardList,
+  Copy,
   Heart,
   HeartSolid,
   Label,
   MediaImageXmark as ImageOff,
   MediaImage as Photo,
   Sort as ArrowUpDown,
-  ViewGrid as LayoutCards,
-  ViewGrid as LayoutCollage,
   ViewGrid as LayoutGrid,
+  ViewColumns3 as LayoutCollage,
   List as LayoutList,
+  ViewStructureUp as LayoutCards,
   CheckSquare,
   Square,
   ViewColumns2,
@@ -130,7 +130,7 @@ const CompactActionButton: React.FC<CompactActionButtonProps> = ({
         }}
         aria-label={label}
         aria-pressed={isActive}
-        className={`relative flex min-h-8 min-w-8 touch-manipulation items-center justify-center rounded-[var(--wb-radius)] border border-transparent transition-[background-color,border-color,color,transform,box-shadow] active:scale-95 focus-visible:ring-2 focus-visible:ring-white/25 ${toneClass}`}
+        className={`relative flex min-h-8 min-w-8 touch-manipulation items-center justify-center rounded-[var(--wb-radius)] border border-transparent transition-[background-color,border-color,color,scale,box-shadow] studio-pressable focus-visible:ring-2 focus-visible:ring-white/25 ${toneClass}`}
       >
         {icon}
         {isActive && variant !== 'primary' && (
@@ -239,7 +239,7 @@ const GenerationPlaceholderItem: React.FC<{
   viewMode: ImageGridViewMode;
 }> = React.memo(({ placeholder, viewMode }) => (
   <div
-    className={`masonry-item overflow-hidden rounded-[var(--wb-radius)] border border-accent-400/2 bg-[color:var(--wb-panel)] shadow-lg ${viewMode === 'mosaic' ? 'mb-4' : ''}`}
+    className={`masonry-item overflow-hidden rounded-[var(--wb-radius)] border border-accent-400/2 bg-[color:var(--wb-panel)] ${viewMode === 'mosaic' ? 'mb-4' : ''}`}
   >
     <output
       aria-label={`Generation job ${placeholder.status}`}
@@ -611,7 +611,7 @@ function ImageItemView({ model }: { model: ImageItemModel }) {
         onMouseLeave={() => setIsActionSurfaceActive(false)}
         onFocusCapture={handleFocusCapture}
         onBlurCapture={handleBlurCapture}
-        className={`group flex min-w-0 flex-col gap-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-2 text-left shadow-lg shadow-black/25 transition-[border-color,background-color,opacity,transform,box-shadow] sm:flex-row sm:items-center
+        className={`group flex min-w-0 flex-col gap-3 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] p-2 text-left transition-[border-color,background-color,opacity,transform,box-shadow] sm:flex-row sm:items-center
           ${isSelected ? 'ring-2 ring-accent-500 ring-offset-2 ring-offset-black' : 'hover:border-[color:var(--wb-border)] hover:bg-[color:var(--wb-panel)]/85'}
         `}
       >
@@ -658,7 +658,7 @@ function ImageItemView({ model }: { model: ImageItemModel }) {
       onBlurCapture={handleBlurCapture}
       data-toolbar={toolbarPlacement}
       data-menu-open={isActionMenuOpen}
-      className={`catalog-art-card library-card group relative flex min-w-0 flex-col rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] text-left shadow-lg shadow-black/25 transition-[border-color,box-shadow]
+      className={`catalog-art-card library-card group relative flex min-w-0 flex-col rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] text-left transition-[border-color,box-shadow]
         ${isMosaicView ? 'masonry-item mb-4' : ''}
         ${isSelected ? 'ring-2 ring-accent-500 ring-offset-2 ring-offset-black z-10' : 'hover:border-[color:var(--wb-border)]'}
       `}
@@ -735,13 +735,7 @@ function ImageItemActions({ model, compact }: { model: ImageItemModel; compact: 
         <>
           <CompactActionButton
             onClick={handleCopyPrompt}
-            icon={
-              copiedPrompt ? (
-                <Check width={14} height={14} />
-              ) : (
-                <ClipboardList width={14} height={14} />
-              )
-            }
+            icon={copiedPrompt ? <Check width={14} height={14} /> : <Copy width={14} height={14} />}
             label={copiedPrompt ? 'Prompt copied' : 'Copy prompt'}
           />
           <CompactActionButton
@@ -1686,7 +1680,7 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
                       </span>
                     </span>
                     {selected ? (
-                      <Check width={14} height={14} className="shrink-0 text-accent-200" />
+                      <Check width={14} height={14} className="shrink-0 text-accent-ink" />
                     ) : null}
                   </button>
                 );

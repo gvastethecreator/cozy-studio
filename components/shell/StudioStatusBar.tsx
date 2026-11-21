@@ -168,7 +168,7 @@ export function StudioStatusBar({
           <SidebarRight width={13} height={13} />
           <span>Jobs</span>
           {queueCount > 0 ? (
-            <span className="tabular-nums text-accent-200">{queueCount} active</span>
+            <span className="tabular-nums text-accent-ink">{queueCount} active</span>
           ) : null}
           {reviewCount > 0 ? (
             <span className="border-l border-[color:var(--wb-line)] pl-1.5 text-[color:var(--wb-warning)]">

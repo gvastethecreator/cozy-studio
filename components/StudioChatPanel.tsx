@@ -66,7 +66,7 @@ function getStatusClass(status: StudioJob['status']) {
   }
   if (status === 'needs_review')
     return 'border-amber-500/2 bg-amber-500/10 text-[color:var(--wb-warning)] ';
-  return 'border-accent-500/2 bg-accent-500/10 text-accent-300';
+  return 'border-accent-500/2 bg-accent-500/10 text-accent-ink';
 }
 
 export const StudioChatPanel: React.FC<StudioChatPanelProps> = ({
@@ -144,7 +144,7 @@ export const StudioChatPanel: React.FC<StudioChatPanelProps> = ({
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="flex items-center justify-between border-b border-[color:var(--wb-line)] px-5 py-4 sm:px-6">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="grid size-10 shrink-0 place-items-center rounded-[var(--wb-radius)] border border-accent-500/2 bg-accent-500/10 text-accent-300">
+              <div className="grid size-10 shrink-0 place-items-center rounded-[var(--wb-radius)] border border-accent-500/2 bg-accent-500/10 text-accent-ink">
                 <MessageSquare width={18} height={18} />
               </div>
               <div className="min-w-0">
@@ -188,7 +188,7 @@ export const StudioChatPanel: React.FC<StudioChatPanelProps> = ({
                       )}
                     >
                       {message.role === 'assistant' ? (
-                        <div className="mt-1 grid size-8 shrink-0 place-items-center rounded-[var(--wb-radius)] border border-accent-500/2 bg-accent-500/10 text-accent-300">
+                        <div className="mt-1 grid size-8 shrink-0 place-items-center rounded-[var(--wb-radius)] border border-accent-500/2 bg-accent-500/10 text-accent-ink">
                           <Icon width={15} height={15} />
                         </div>
                       ) : null}

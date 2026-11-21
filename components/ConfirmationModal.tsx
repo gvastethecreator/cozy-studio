@@ -41,7 +41,7 @@ const TONE_STYLES: Record<
   },
   accent: {
     icon: <RotateCcw width={18} height={18} />,
-    shell: 'bg-accent-500/10 text-accent-300 border border-accent-500/2',
+    shell: 'bg-accent-500/10 text-accent-ink border border-accent-500/2',
     button:
       'bg-accent-500/15 text-accent-100 border border-accent-500/2 hover:bg-accent-500/20 hover:border-accent-400/2',
   },

@@ -23,6 +23,7 @@
   --wb-muted: #a6a6a6;
   --wb-dim: #a0a0a0;
   --wb-disabled: #777;
+  --wb-accent-ink: rgb(var(--accent-300));
   --wb-line: var(--wb-border);
   --wb-border: color-mix(in srgb, var(--wb-ink) 5%, transparent);
   --wb-control-border: var(--wb-border);
@@ -37,8 +38,8 @@
   --wb-info: #a0c9f5;
   --wb-font: var(--wbp-font-ui, system-ui, sans-serif);
   --wb-mono: ui-monospace, 'SF Mono', Consolas, monospace;
-  --wb-fast: 100ms;
-  --wb-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --wb-fast: var(--dur-fast);
+  --wb-ease: var(--ease-ui);
   --amb-light-x: -0.65;
   --amb-light-y: -0.8;
   --amb-key-light-intensity: 0.85;
@@ -73,6 +74,7 @@
   --wb-muted: #a6a6a6;
   --wb-dim: #a0a0a0;
   --wb-disabled: #777;
+  --wb-accent-ink: rgb(var(--accent-300));
   --wb-line: var(--wb-border);
   --wb-border: color-mix(in srgb, var(--wb-ink) 5%, transparent);
   --wba-bg: #0a0a0a;
@@ -92,9 +94,10 @@
   --wb-canvas: #f6f3eb;
   --wb-well: #f6f3eb;
   --wb-ink: #1c1b18;
-  --wb-muted: #5e5b54;
-  --wb-dim: #655f55;
+  --wb-muted: #55524c;
+  --wb-dim: #5a554c;
   --wb-disabled: #8a857c;
+  --wb-accent-ink: rgb(var(--accent-800));
   --wb-line: var(--wb-border);
   --wb-border: color-mix(in srgb, var(--wb-ink) 5%, transparent);
   --wb-selection: #c9c2b4;
@@ -142,7 +145,7 @@
   --wb-border: color-mix(in srgb, var(--wb-ink) 5%, transparent);
   --wb-line: var(--wb-border);
   --wb-ink: #1c1b18;
-  --wb-muted: #5e5b54;
+  --wb-muted: #55524c;
 }
 
 :root,

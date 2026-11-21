@@ -232,7 +232,8 @@
 .create-workflow-quiet-select[data-workflow-accent] {
   --workflow-color: #a78bfa;
   --amb-albedo: color-mix(in srgb, var(--workflow-color) 24%, var(--wb-panel));
-  color: var(--workflow-color);
+  /* Mixed toward the theme ink so every hue stays above 4.5:1 on its tinted fill. */
+  color: color-mix(in oklab, var(--workflow-color) 70%, var(--wb-ink));
   border-color: color-mix(in srgb, var(--workflow-color) 45%, var(--wb-line));
   background: var(--amb-albedo);
 }
@@ -253,6 +254,10 @@
 }
 .create-workflow-quiet-select[data-workflow-accent='indigo'] {
   --workflow-color: #818cf8;
+}
+/* The hues above are light, so Paper takes a darker mix. */
+.wb[data-theme='paper'] .create-workflow-quiet-select[data-workflow-accent] {
+  color: color-mix(in oklab, var(--workflow-color) 35%, var(--wb-ink));
 }
 .style-example-image {
   display: grid;

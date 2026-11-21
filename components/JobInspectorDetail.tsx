@@ -50,7 +50,7 @@ function toneForStatus(status: StudioJob['status']) {
     case 'needs_review':
       return 'border-amber-500/2 bg-amber-500/10 text-[color:var(--wb-warning)] ';
     default:
-      return 'border-accent-500/2 bg-accent-500/10 text-accent-200';
+      return 'border-accent-500/2 bg-accent-500/10 text-accent-ink';
   }
 }
 
@@ -245,7 +245,7 @@ function SectionCard({
   return (
     <section className={cn('space-y-3', className)}>
       <div className="mb-3 flex items-center gap-3">
-        {icon ? <span className="text-accent-300">{icon}</span> : null}
+        {icon ? <span className="text-accent-ink">{icon}</span> : null}
         <div>
           {eyebrow ? (
             <p className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
@@ -358,7 +358,7 @@ function OutputPreviewStrip({
     return (
       <div>
         <div className="mb-3 flex items-center gap-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-          <MediaImage width={14} height={14} className="text-accent-300" />
+          <MediaImage width={14} height={14} className="text-accent-ink" />
           <span>{title}</span>
         </div>
         <div className="rounded-[var(--wb-radius)] border border-dashed border-[color:var(--wb-line)] bg-[color:var(--wb-well)] px-4 py-5 text-sm text-[color:var(--wb-muted)]">
@@ -371,7 +371,7 @@ function OutputPreviewStrip({
   return (
     <div>
       <div className="mb-3 flex items-center gap-2 text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
-        <MediaImage width={14} height={14} className="text-accent-300" />
+        <MediaImage width={14} height={14} className="text-accent-ink" />
         <span>{title}</span>
       </div>
       <div className="custom-scrollbar flex gap-3 overflow-x-auto pb-1">
@@ -459,7 +459,7 @@ function TaskMetricSummary({ metrics }: { metrics: JobDetailResponse['metrics'] 
           <div className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-muted)]">
             Tokens spent
           </div>
-          <div className="mt-1.5 font-mono text-xl font-semibold text-accent-200">
+          <div className="mt-1.5 font-mono text-xl font-semibold text-accent-ink">
             {formatTokenCount(metrics.tokenUsage?.totalTokens)}
           </div>
           <div className="mt-1 text-[11px] text-[color:var(--wb-muted)]">

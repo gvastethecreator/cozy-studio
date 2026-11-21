@@ -25,7 +25,7 @@ it('lets Escape reach an open overlay when either kind of tooltip is visible', (
     );
 
     const settings = screen.getByRole('button', { name: 'Settings' });
-    fireEvent.focusIn(settings);
+    act(() => settings.focus());
     act(() => {
       vi.advanceTimersByTime(300);
     });
@@ -35,7 +35,7 @@ it('lets Escape reach an open overlay when either kind of tooltip is visible', (
     expect(closeOverlay).toHaveBeenCalledTimes(1);
 
     const help = screen.getByRole('button', { name: 'Help control' });
-    fireEvent.focus(help);
+    act(() => help.focus());
     act(() => {
       vi.advanceTimersByTime(300);
     });

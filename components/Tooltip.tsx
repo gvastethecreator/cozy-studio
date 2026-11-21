@@ -53,7 +53,9 @@ const Tooltip: React.FC<TooltipProps> = ({
       onPointerLeave={() => {
         if (!ref.current?.contains(document.activeElement)) setOpen(false);
       }}
-      onFocus={() => setOpen(true)}
+      onFocus={(event) => {
+        if (event.target.matches(':focus-visible')) setOpen(true);
+      }}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
       }}
@@ -90,6 +92,8 @@ export function ControlTooltips() {
     const enter = (event: Event) => {
       if ('pointerType' in event && event.pointerType === 'touch') return;
       const target = event.target instanceof Element ? event.target : null;
+      // Focus moved by a click or by a dialog is not keyboard navigation.
+      if (event.type === 'focusin' && !target?.matches(':focus-visible')) return;
       const control = target?.closest<HTMLElement>(
         '[data-tooltip], button, [role="button"][aria-label], input[aria-label], select[aria-label]',
       );

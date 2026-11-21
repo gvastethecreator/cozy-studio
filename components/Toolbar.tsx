@@ -430,9 +430,9 @@ function useToolbarController(props: ToolbarProps) {
   }, [setGenerateBlock, generateBlockMessage]);
 
   const btnClass =
-    'studio-ghost-control h-10 min-h-10 w-full touch-manipulation sm:w-auto flex items-center justify-center gap-2 px-3 text-[length:var(--wbp-label)] font-semibold leading-none tracking-normal transition-[color,background-color,border-color,opacity,transform] hover:text-[color:var(--wb-ink)] active:scale-95 disabled:opacity-30 group whitespace-nowrap cursor-pointer';
+    'studio-ghost-control h-10 min-h-10 w-full touch-manipulation sm:w-auto flex items-center justify-center gap-2 px-3 text-[length:var(--wbp-label)] font-semibold leading-none tracking-normal transition-[color,background-color,border-color,opacity,scale] hover:text-[color:var(--wb-ink)] disabled:opacity-30 group whitespace-nowrap cursor-pointer';
   const iconBtnClass =
-    'studio-ghost-control size-10 min-w-10 flex-shrink-0 touch-manipulation flex items-center justify-center transition-[color,background-color,border-color,opacity,transform] hover:text-[color:var(--wb-ink)] active:scale-90 relative cursor-pointer disabled:cursor-not-allowed';
+    'studio-ghost-control size-10 min-w-10 flex-shrink-0 touch-manipulation flex items-center justify-center transition-[color,background-color,border-color,opacity,scale] hover:text-[color:var(--wb-ink)] relative cursor-pointer disabled:cursor-not-allowed';
   const activeIconBtnClass =
     'bg-gradient-to-b from-accent-800 to-accent-950 border border-accent-700/2 text-accent-300 shadow-[0_2px_10px_rgba(0,0,0,0.5)] cursor-pointer';
 
@@ -2420,10 +2420,10 @@ function ToolbarGenerateButton({ model }: { model: ToolbarModel }) {
         isRail
           ? `create-generate-button ${isGenerating ? 'is-busy' : ''}`
           : `group relative h-10 min-h-10 min-w-[8.75rem] px-4 rounded-[var(--wb-radius)] flex items-center justify-center gap-2 sm:ml-1 overflow-hidden
-                    text-[length:var(--wbp-label)] tracking-normal font-semibold transition-[color,background-color,border-color,opacity,transform,box-shadow] cursor-pointer disabled:cursor-not-allowed disabled:opacity-45 ${
+                    text-[length:var(--wbp-label)] tracking-normal font-semibold transition-[color,background-color,border-color,opacity,scale,box-shadow] studio-pressable cursor-pointer disabled:cursor-not-allowed disabled:opacity-45 ${
                       isGenerating
-                        ? 'bg-gradient-to-b from-accent-800 to-accent-950 text-accent-200 border border-accent-500/2 shadow-lg hover:border-accent-300/2 hover:text-white active:scale-95'
-                        : 'bg-gradient-to-b from-accent-700 via-accent-800 to-accent-950 hover:from-accent-600 hover:via-accent-700 hover:to-accent-900 text-accent-100 border-t border-accent-500/2 shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:shadow-[0_0_25px_rgba(var(--accent-600),0.3)] active:scale-95'
+                        ? 'bg-gradient-to-b from-accent-800 to-accent-950 text-accent-200 border border-accent-500/2 shadow-lg hover:border-accent-300/2 hover:text-white'
+                        : 'bg-gradient-to-b from-accent-700 via-accent-800 to-accent-950 hover:from-accent-600 hover:via-accent-700 hover:to-accent-900 text-accent-100 border-t border-accent-500/2 shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:shadow-[0_0_25px_rgba(var(--accent-600),0.3)]'
                     }`
       }
     >

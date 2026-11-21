@@ -412,6 +412,19 @@
   background: color-mix(in srgb, var(--wb-accent) 62%, #0a0a0a);
 }
 
+/* One press feedback for every pressable control: a 0.96 dip over 150 ms (transition in the control rule below). */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced'])
+    :is(
+      .studio-ghost-control,
+      .studio-primary-control,
+      .studio-pressable,
+      .create-generate-button
+    ):not(:disabled):active {
+    scale: 0.96;
+  }
+}
+
 .studio-menu-item {
   color: var(--wb-ink);
 }
@@ -709,8 +722,15 @@
 :root[data-motion='reduced'] *::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
+}
+/* Same split as the media rule in studio-foundation.css: fades stay, travel goes. */
+:root[data-motion='reduced'] :not([data-motion-surface], [data-gsap-dropdown]) {
+  transition-property:
+    opacity, color, background-color, border-color, outline-color, fill, stroke !important;
+}
+:root[data-motion='reduced'] :is([data-motion-surface], [data-gsap-dropdown]) {
+  transition-property: color, background-color, border-color !important;
 }
 .settings-provider-section {
   display: grid;
@@ -1123,9 +1143,11 @@
   select,
   textarea
 ) {
-  transition-property: color, background-color, border-color, box-shadow;
-  transition-duration: var(--dropdown-close-dur);
-  transition-timing-function: var(--dropdown-ease);
+  /* scale is the shared press dip (0.96 over 150 ms ease-out). */
+  transition-property: color, background-color, border-color, box-shadow, scale;
+  transition-duration: var(--dur-fast), var(--dur-fast), var(--dur-fast), var(--dur-fast), 150ms;
+  transition-timing-function:
+    var(--ease-ui), var(--ease-ui), var(--ease-ui), var(--ease-ui), ease-out;
 }
 
 :where(button, a[href], summary, input, select, textarea, [tabindex]):focus-visible {
@@ -1147,7 +1169,7 @@
 
 /* GSAP owns geometry and opacity; CSS only handles interactive colors. */
 [data-motion-surface] {
-  transition-property: color, background-color, border-color, box-shadow;
+  transition-property: color, background-color, border-color, box-shadow, scale;
 }
 
 @media (prefers-reduced-motion: no-preference) {

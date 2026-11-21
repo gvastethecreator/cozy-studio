@@ -29,7 +29,7 @@ function getJobTone(job: StudioJob) {
     case 'needs_review':
       return 'text-[color:var(--wb-warning)]  border-amber-500/2 bg-amber-500/10';
     default:
-      return 'text-accent-300 border-accent-500/2 bg-accent-500/10';
+      return 'text-accent-ink border-accent-500/2 bg-accent-500/10';
   }
 }
 
@@ -79,7 +79,7 @@ export const SessionOverview: React.FC<SessionOverviewProps> = ({
             <span className="block text-[length:var(--wbp-label)] tracking-normal text-[color:var(--wb-dim)]">
               Active Jobs
             </span>
-            <span className="text-lg font-semibold text-accent-300">{activeJobCount}</span>
+            <span className="text-lg font-semibold text-accent-ink">{activeJobCount}</span>
           </div>
         </div>
       </div>

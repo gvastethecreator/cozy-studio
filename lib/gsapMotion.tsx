@@ -1,4 +1,9 @@
-import { prefersReducedMotion } from '../lib/motionPreference';
+import {
+  MOTION_EASE,
+  REDUCED_MOTION_EASE,
+  motionDuration,
+  prefersReducedMotion,
+} from '../lib/motionPreference';
 import React, {
   createContext,
   use,
@@ -119,8 +124,7 @@ function isTransitionValue(transition?: MotionTransition): transition is MotionT
  * Normalize Framer-style ease values into GSAP eases.
  */
 function normalizeEase(ease?: MotionTransitionValue['ease']) {
-  if (Array.isArray(ease)) return 'power3.out';
-  if (!ease) return 'power2.out';
+  if (Array.isArray(ease) || !ease) return MOTION_EASE;
 
   if (ease === 'easeOut') return 'power2.out';
   if (ease === 'easeIn') return 'power2.in';
@@ -135,14 +139,14 @@ function normalizeEase(ease?: MotionTransitionValue['ease']) {
  */
 function normalizeTransition(transition?: MotionTransition) {
   if (!transition) {
-    return { duration: 0.28, delay: 0, ease: 'power2.out' };
+    return { duration: 0.28, delay: 0, ease: MOTION_EASE };
   }
 
   if (isTransitionValue(transition)) {
     return {
       duration: transition.duration ?? (transition.type === 'spring' ? 0.42 : 0.28),
       delay: transition.delay ?? 0,
-      ease: transition.type === 'spring' ? 'power3.out' : normalizeEase(transition.ease),
+      ease: transition.type === 'spring' ? MOTION_EASE : normalizeEase(transition.ease),
     };
   }
 
@@ -158,7 +162,7 @@ function normalizeTransition(transition?: MotionTransition) {
   return {
     duration: longestDuration || (first?.type === 'spring' ? 0.42 : 0.28),
     delay: longestDelay,
-    ease: first?.type === 'spring' ? 'power3.out' : normalizeEase(first?.ease),
+    ease: first?.type === 'spring' ? MOTION_EASE : normalizeEase(first?.ease),
   };
 }
 
@@ -189,6 +193,15 @@ function stripTransition(state: MotionState | null | undefined) {
     values,
     transition,
   };
+}
+
+function splitOpacity(values: Record<string, unknown>) {
+  const fade: Record<string, unknown> = {};
+  const rest: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(values)) {
+    (key === 'opacity' || key === 'autoAlpha' ? fade : rest)[key] = value;
+  }
+  return { fade, rest };
 }
 
 /**
@@ -253,28 +266,35 @@ function createMotionComponent<Tag extends MotionTag>(tagName: Tag) {
 
         const runAnimation = () => {
           const reduce = prefersReducedMotion();
-          const shouldSkipInitial =
-            reduce || (!hasAnimatedRef.current && presenceConfig.initial === false);
+          const exiting = presenceConfig.present === false;
+          const shouldSkipInitial = !hasAnimatedRef.current && presenceConfig.initial === false;
+          const target = animateState.values as Record<string, unknown>;
+          // Reduced motion fades opacity only; travel, scale and blur jump to the target.
+          const { fade, rest: still } = splitOpacity(target);
           const startValues = shouldSkipInitial
-            ? animateState.values
+            ? target
             : !hasAnimatedRef.current
-              ? initialState?.values
+              ? (initialState?.values as Record<string, unknown> | undefined)
               : null;
 
           if (startValues) {
-            gsap.set(element, startValues as Record<string, unknown>);
+            gsap.set(element, reduce ? { ...startValues, ...still } : startValues);
           }
 
           if (!shouldSkipInitial || hasAnimatedRef.current) {
+            if (reduce) gsap.set(element, still);
+            const values = reduce ? fade : target;
             tween = gsap.to(element, {
-              ...(animateState.values as Record<string, unknown>),
+              ...values,
               duration: reduce
-                ? 0
-                : presenceConfig.present === false
-                  ? 0.1
-                  : Math.min(mergedTransition.duration, 0.16),
-              delay: reduce || presenceConfig.present === false ? 0 : mergedTransition.delay,
-              ease: mergedTransition.ease,
+                ? Object.keys(fade).length
+                  ? motionDuration('--dur-fast')
+                  : 0
+                : exiting
+                  ? motionDuration('--dur-fast')
+                  : Math.min(mergedTransition.duration, motionDuration('--dur-base')),
+              delay: reduce || exiting ? 0 : mergedTransition.delay,
+              ease: reduce ? REDUCED_MOTION_EASE : mergedTransition.ease,
               overwrite: 'auto',
               onComplete: onAnimationComplete,
             });
@@ -340,8 +360,7 @@ function PresenceItem({
   const finish = useEffectEvent(onExit);
   useEffect(() => {
     if (present) return;
-    const duration = prefersReducedMotion() ? 0 : 120;
-    const timer = window.setTimeout(finish, duration);
+    const timer = window.setTimeout(finish, motionDuration('--dur-fast') * 1000);
     return () => window.clearTimeout(timer);
   }, [present]);
   const active = present && parent.present !== false;

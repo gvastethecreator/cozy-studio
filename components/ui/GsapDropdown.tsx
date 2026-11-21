@@ -11,7 +11,12 @@ import { createPortal } from 'react-dom';
 import { useGSAP } from '@gsap/react';
 
 import gsap from '../../lib/motionRuntime';
-import { prefersReducedMotion } from '../../lib/motionPreference';
+import {
+  MOTION_EASE,
+  REDUCED_MOTION_EASE,
+  motionDuration,
+  prefersReducedMotion,
+} from '../../lib/motionPreference';
 import { cn } from '../../lib/utils';
 import { workbenchAmbientPortalProps } from '../../lib/workbenchAmbient';
 
@@ -321,18 +326,20 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
         const panel = panelRef.current;
         if (!panel || !isMounted) return;
 
-        const reduceMotion = prefersReducedMotion() || keyboardInput.current;
-        const tokens = getComputedStyle(panel);
-        const duration = (name: string, fallback: number) =>
-          (Number.parseFloat(tokens.getPropertyValue(name)) || fallback) / 1000;
+        // Keyboard opens skip motion; reduced motion keeps a short fade with no travel or scale.
+        const keyboard = keyboardInput.current;
+        const reduceMotion = prefersReducedMotion();
+        const still = keyboard || reduceMotion;
+        const fade = motionDuration('--dur-fast');
+        const ease = reduceMotion ? REDUCED_MOTION_EASE : MOTION_EASE;
         gsap.killTweensOf(panel);
 
         if (open) {
           if (!panel.style.opacity)
             gsap.set(panel, {
               autoAlpha: 0,
-              scale: reduceMotion ? 1 : 0.985,
-              y: reduceMotion ? 0 : resolveOffset(placement, true),
+              scale: still ? 1 : 0.985,
+              y: still ? 0 : resolveOffset(placement, true),
               transformOrigin: resolveTransformOrigin(placement),
               willChange: 'transform, opacity',
             });
@@ -342,8 +349,8 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
             autoAlpha: 1,
             scale: 1,
             y: 0,
-            duration: reduceMotion ? 0 : duration('--dropdown-open-dur', 180),
-            ease: 'power3.out',
+            duration: keyboard ? 0 : reduceMotion ? fade : motionDuration('--dur-base'),
+            ease,
             overwrite: 'auto',
             clearProps: 'visibility',
             onComplete: () => gsap.set(panel, { willChange: 'auto' }),
@@ -354,10 +361,10 @@ export const GsapDropdown = React.forwardRef<HTMLDivElement, GsapDropdownProps>(
 
         gsap.to(panel, {
           autoAlpha: 0,
-          scale: reduceMotion ? 1 : 0.99,
-          y: reduceMotion ? 0 : resolveOffset(placement, false),
-          duration: reduceMotion ? 0 : duration('--dropdown-close-dur', 120),
-          ease: 'power3.out',
+          scale: still ? 1 : 0.99,
+          y: still ? 0 : resolveOffset(placement, false),
+          duration: keyboard ? 0 : fade,
+          ease,
           overwrite: 'auto',
           onComplete: () => setIsMounted(false),
         });

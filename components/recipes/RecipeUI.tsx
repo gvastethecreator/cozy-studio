@@ -122,7 +122,7 @@ export const MinimalColorPicker: React.FC<{ color: string; onChange: (c: string)
         ref={triggerRef}
         type="button"
         onClick={() => setIsOpen((open) => !open)}
-        className="group relative flex h-10 w-12 items-center justify-center overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] transition-[border-color,transform] hover:border-emerald-500/2 active:scale-95"
+        className="group relative flex h-10 w-12 items-center justify-center overflow-hidden rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] transition-[border-color,scale] hover:border-emerald-500/2 studio-pressable"
         style={{ backgroundColor: color }}
         aria-label="Open color picker"
         aria-haspopup="dialog"

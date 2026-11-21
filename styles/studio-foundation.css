@@ -30,8 +30,9 @@
   --color-accent-800: rgb(var(--accent-800));
   --color-accent-900: rgb(var(--accent-900));
   --color-accent-950: rgb(var(--accent-950));
+  --color-accent-ink: var(--wb-accent-ink);
 
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-expo: var(--ease-ui);
   --ease-in-out-smooth: cubic-bezier(0.65, 0, 0.35, 1);
 
   --animate-scan-line: scan 4s linear infinite;
@@ -97,16 +98,21 @@ react-scan-overlay,
 
 @layer base {
   :root {
-    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    /* The one motion token set. GSAP reads these through lib/motionPreference.ts. */
+    --ease-ui: cubic-bezier(0.22, 1, 0.36, 1);
+    --dur-fast: 120ms;
+    --dur-base: 180ms;
+    --dur-route: 220ms;
+    --ease-out-expo: var(--ease-ui);
     --ease-in-out-smooth: cubic-bezier(0.65, 0, 0.35, 1);
-    --dropdown-open-dur: 180ms;
-    --dropdown-close-dur: 120ms;
+    --dropdown-open-dur: var(--dur-base);
+    --dropdown-close-dur: var(--dur-fast);
     --dropdown-pre-scale: 0.97;
     --dropdown-closing-scale: 0.99;
-    --dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1);
-    --studio-route-dur: 220ms;
+    --dropdown-ease: var(--ease-ui);
+    --studio-route-dur: var(--dur-route);
     --studio-route-exit-dur: 170ms;
-    --studio-route-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --studio-route-ease: var(--ease-ui);
     --studio-route-distance: 12px;
     --studio-mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
     --studio-mobile-header-height: 104px;
@@ -158,14 +164,22 @@ react-scan-overlay,
     outline-offset: 2px;
   }
 
+  /* Reduced motion keeps short fades and color changes and drops travel, scale, clip and blur.
+     GSAP surfaces fade through lib/gsapMotion.tsx, so CSS leaves their opacity alone. */
   @media (prefers-reduced-motion: reduce) {
     *,
     ::before,
     ::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
+    }
+    :not([data-motion-surface], [data-gsap-dropdown]) {
+      transition-property:
+        opacity, color, background-color, border-color, outline-color, fill, stroke !important;
+    }
+    :is([data-motion-surface], [data-gsap-dropdown]) {
+      transition-property: color, background-color, border-color !important;
     }
   }
 

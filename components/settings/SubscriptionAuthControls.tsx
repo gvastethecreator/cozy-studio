@@ -20,7 +20,7 @@ import {
 } from '../../lib/subscriptionAuthUi';
 
 const controlBase =
-  'inline-flex h-9 items-center justify-center gap-2 rounded-[var(--wb-radius)] px-3 text-[11px] font-semibold transition-[color,background-color,border-color,transform] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex h-9 items-center justify-center gap-2 rounded-[var(--wb-radius)] px-3 text-[11px] font-semibold transition-[color,background-color,border-color,scale] studio-pressable disabled:cursor-not-allowed disabled:opacity-60';
 const controlPrimary = `${controlBase} studio-primary-control`;
 const controlGhost = `${controlBase} studio-ghost-control`;
 const controlQuiet = `${controlBase} border border-[color:var(--wb-line)] bg-transparent text-[color:var(--wb-muted)] hover:border-rose-500/2 hover:bg-rose-500/10 hover:text-[color:var(--wb-danger)] `;

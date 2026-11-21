@@ -14,8 +14,8 @@ import {
   Trash as Trash2,
   Expand as Maximize2,
   Collapse as Minimize2,
-  List as ClipboardList,
-  Clock as History,
+  ClockRotateRight,
+  MediaImagePlus,
   Check,
   Heart,
   HeartSolid,
@@ -983,13 +983,13 @@ function CarouselDetailActions({
 
       <ActionButton
         onClick={() => onLoadConfig(currentImage.config)}
-        icon={<History width={16} height={16} />}
+        icon={<ClockRotateRight width={16} height={16} />}
         label="Reuse settings · keep current references"
       />
       {currentImage.config.attachments.length > 0 && (
         <ActionButton
           onClick={() => onLoadConfig(currentImage.config, { restoreOriginalReferences: true })}
-          icon={<History width={16} height={16} />}
+          icon={<MediaImagePlus width={16} height={16} />}
           label="Reuse settings and original references"
         />
       )}

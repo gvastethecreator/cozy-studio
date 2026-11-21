@@ -202,12 +202,13 @@ describe('GsapDropdown Workbench Ambient', () => {
 
     document.documentElement.dataset.motion = 'reduced';
     try {
+      // Reduced motion keeps a short fade with no travel or scale, then unmounts.
       rerender(<GsapDropdown open={false}>Item</GsapDropdown>);
-      expect(container.querySelector('[data-gsap-dropdown]')).toBeNull();
+      await waitFor(() => expect(container.querySelector('[data-gsap-dropdown]')).toBeNull());
       rerender(<GsapDropdown open>Item</GsapDropdown>);
-      expect((container.querySelector('[data-gsap-dropdown]') as HTMLElement).style.opacity).toBe(
-        '1',
-      );
+      const reopened = container.querySelector('[data-gsap-dropdown]') as HTMLElement;
+      expect(reopened.style.transform).not.toMatch(/scale\(0\.|translate\(0px, -?[1-9]/);
+      await waitFor(() => expect(reopened.style.opacity).toBe('1'));
     } finally {
       delete document.documentElement.dataset.motion;
     }

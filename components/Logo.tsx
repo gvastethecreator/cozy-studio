@@ -81,7 +81,7 @@ const Logo: React.FC<LogoProps> = ({ isGenerating = false }) => {
           COZY
         </span>
         <span
-          className={`text-[7px] font-black uppercase tracking-widest transition-colors duration-300 ${appearance === 'light' ? 'text-accent-700 group-hover:text-accent-800' : 'text-accent-500 group-hover:text-accent-400'}`}
+          className={`text-[7px] font-black uppercase tracking-widest transition-colors duration-300 ${appearance === 'light' ? 'text-accent-800 group-hover:text-accent-900' : 'text-accent-500 group-hover:text-accent-400'}`}
         >
           STUDIO
         </span>

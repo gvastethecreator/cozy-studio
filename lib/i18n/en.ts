@@ -737,6 +737,10 @@ export const en = {
   'status.providerReady': '{provider} is ready to generate.',
   'characterLab.notReady': 'Not ready',
   'settings.importSources.destination': 'Selected images will be imported into "{workspace}".',
+  'styleExplorer.backToCreate': 'Back to create',
+  'styleExplorer.useSelected': { one: 'Use {count} selected', other: 'Use {count} selected' },
+  'styleExplorer.emptyTitle': 'Explore styles',
+  'styleExplorer.emptyHint': 'Click a card image to preview it.',
 } as const;
 
 export type MessageKey = keyof typeof en;

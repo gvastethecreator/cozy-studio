@@ -68,6 +68,7 @@ import {
   estimateImageGridItemHeight,
   estimateImageGridListItemHeight,
   IMAGE_GRID_CAPTION_HEIGHT,
+  resolveImageGridCaptionHeight,
   isWideImageGridFrame,
   resolveImageGridColumnCount,
   resolveImageGridAspectRatio,
@@ -629,7 +630,7 @@ function ImageItemView({ model }: { model: ImageItemModel }) {
           <span className="min-w-0 flex-1">
             <span
               data-tooltip={promptText}
-              className="line-clamp-2 text-sm font-semibold leading-5 text-[color:var(--wb-ink)]"
+              className="line-clamp-2 max-w-[72ch] text-sm font-semibold leading-5 text-[color:var(--wb-ink)]"
             >
               {promptText}
             </span>
@@ -644,6 +645,8 @@ function ImageItemView({ model }: { model: ImageItemModel }) {
   }
 
   const isMosaicView = viewMode === 'mosaic';
+  const captionHeight = resolveImageGridCaptionHeight(viewMode);
+  const compactCaption = viewMode !== 'cards';
   const toolbarPlacement = isWideImageGridFrame(image, viewMode) ? 'caption' : 'image';
 
   return (
@@ -658,12 +661,13 @@ function ImageItemView({ model }: { model: ImageItemModel }) {
       onBlurCapture={handleBlurCapture}
       data-toolbar={toolbarPlacement}
       data-menu-open={isActionMenuOpen}
+      data-caption={compactCaption ? 'compact' : 'full'}
       className={`catalog-art-card library-card group relative flex min-w-0 flex-col rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color:var(--wb-panel)] text-left transition-[border-color,box-shadow]
         ${isMosaicView ? 'masonry-item mb-4' : ''}
         ${isSelected ? 'ring-2 ring-accent-500 ring-offset-2 ring-offset-black z-10' : 'hover:border-[color:var(--wb-border)]'}
       `}
       style={{
-        ['--library-caption-height' as string]: `${IMAGE_GRID_CAPTION_HEIGHT}px`,
+        ['--library-caption-height' as string]: `${captionHeight}px`,
       }}
     >
       <div className="relative overflow-hidden rounded-t-[var(--wb-radius)]">
@@ -691,11 +695,11 @@ function ImageItemView({ model }: { model: ImageItemModel }) {
       </div>
       <div
         className="library-card-caption"
-        style={{ height: IMAGE_GRID_CAPTION_HEIGHT }}
+        style={{ height: captionHeight }}
         data-tooltip={promptText}
       >
         <span className="library-card-caption-title">{promptText}</span>
-        {metadataLine}
+        {compactCaption ? <div className="library-card-meta">{metadataLine}</div> : metadataLine}
       </div>
     </div>
   );
@@ -1432,8 +1436,13 @@ function ImageGridView({ model }: { model: ImageGridModel }) {
 
   return (
     <div className="w-full h-full relative flex min-h-0 flex-col">
+      {/* The live region always announces; it only shows on screen while something is selected. */}
       <p
-        className="absolute bottom-2 left-3 z-30 rounded bg-[color:var(--wb-panel)] px-2 py-1 text-xs"
+        className={
+          selectedImageCount > 0
+            ? 'absolute bottom-2 left-3 z-30 rounded bg-[color:var(--wb-panel)] px-2 py-1 text-xs'
+            : 'sr-only'
+        }
         role="status"
       >
         {t('library.selectionStatus', {
@@ -1458,7 +1467,7 @@ function ImageGridView({ model }: { model: ImageGridModel }) {
           ref={scrollContainerRef}
           onScroll={handleScroll}
           style={{ overflowAnchor: 'none' }}
-          className="custom-scrollbar relative min-h-0 flex-1 overflow-y-auto px-3 pt-3 pb-8 sm:px-8"
+          className={`custom-scrollbar relative min-h-0 flex-1 overflow-y-auto px-3 pt-3 sm:px-8 ${selectedImageCount > 0 ? 'pb-12' : 'pb-8'}`}
         >
           {showFavoritesOnly && imageCount === 0 && generationPlaceholders.length === 0 && (
             <div className="flex min-h-[45vh] items-center justify-center text-center">
@@ -1590,9 +1599,9 @@ function ImageGridToolbar({ model }: { model: ImageGridModel }) {
                   onClick={() => handleViewModeChange(value)}
                   aria-label={t('library.viewLabel', { view: label })}
                   aria-pressed={selected}
-                  className={`flex min-h-8 min-w-8 touch-manipulation items-center justify-center rounded-[var(--wb-radius)] transition-[background-color,color,transform,box-shadow] focus-visible:ring-2 focus-visible:ring-white/25 ${
+                  className={`studio-segment flex min-h-8 min-w-8 touch-manipulation items-center justify-center rounded-[var(--wb-radius)] transition-[background-color,color,box-shadow] focus-visible:ring-2 focus-visible:ring-white/25 ${
                     selected
-                      ? 'bg-accent-600 text-[color:var(--wb-ink)] shadow-[0_0_18px_rgba(var(--accent-500),0.18)]'
+                      ? ''
                       : 'text-[color:var(--wb-muted)] hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)] hover:text-[color:var(--wb-ink)]'
                   }`}
                 >

@@ -34,6 +34,7 @@ import { getStyleCollectionTabId, STYLE_PACKS_TAB_ID } from './styleTabRouting';
 import { USER_STYLE_PACK_ID, USER_STYLE_PACK_NAME } from './userStyleRuntimeAdapter';
 import { FAVORITES_PACK_ID, ALL_STYLE_CARDS_TAB_ID } from './styleTabRouting';
 import type { StylesBrowserViewModel } from './StylesBrowser';
+import { useT } from '../../lib/i18n';
 interface StylePresetGroupSectionProps {
   groupKey: string;
   title: string;
@@ -708,6 +709,7 @@ function StyleCatalogHeader({
     | 'getStyleTabHash'
   >;
 }) {
+  const { t } = useT();
   const {
     catalogExpanded,
     searchQuery,
@@ -749,8 +751,14 @@ function StyleCatalogHeader({
           onExplore={() => openStyleCatalog(true)}
         />
         {catalogExpanded && (
-          <button type="button" className="styles-explorer-done" onClick={closeStyleCatalog}>
-            {selectedStyles.length > 0 ? `Use ${selectedStyles.length} selected` : 'Back to create'}
+          <button
+            type="button"
+            className={`styles-explorer-done ${selectedStyles.length > 0 ? 'studio-primary-control' : 'studio-ghost-control'}`}
+            onClick={closeStyleCatalog}
+          >
+            {selectedStyles.length > 0
+              ? t('styleExplorer.useSelected', { count: selectedStyles.length })
+              : t('styleExplorer.backToCreate')}
           </button>
         )}
         {!isPackLandingOpen && <StyleCatalogDisplayOptions model={model} />}

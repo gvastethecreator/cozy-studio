@@ -425,6 +425,12 @@
   }
 }
 
+.studio-segment[aria-pressed='true'] {
+  background: var(--wb-segment-selected);
+  color: var(--wb-ink);
+  box-shadow: none;
+}
+
 .studio-menu-item {
   color: var(--wb-ink);
 }
@@ -473,8 +479,9 @@
   white-space: normal;
 }
 .studio-settings-nav .studio-tab.is-active {
-  border-color: color-mix(in srgb, var(--wb-accent) 45%, var(--wb-line));
-  background: color-mix(in srgb, var(--wb-accent) 10%, var(--wb-panel));
+  border-color: transparent;
+  background: var(--wb-segment-selected);
+  color: var(--wb-ink);
   box-shadow: none;
 }
 .studio-settings-content {
@@ -519,7 +526,7 @@
 }
 .settings-form-stack {
   display: grid;
-  gap: 20px;
+  gap: 24px;
   min-width: 0;
 }
 .settings-group {
@@ -527,13 +534,56 @@
   gap: 12px;
   min-width: 0;
 }
-.settings-group > h3 {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--wb-ink);
-}
 .settings-group > h3:not(:first-child) {
   margin-top: 12px;
+}
+/* One section heading style across Settings panels (a pack preview keeps its larger title). */
+.studio-settings-content h3:not(.text-base) {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0;
+  color: var(--wb-ink);
+}
+/* Native single selects keep their accessibility and match the Create dropdown triggers.
+   The .wb prefix outranks the dialog-body field rule that resets background. */
+.wb :is(.studio-settings-dialog, .styles-catalog-map-select) select:not([multiple]):not([size]) {
+  appearance: none;
+  height: var(--wb-control-height);
+  padding-inline: 10px 32px;
+  border-width: var(--wb-border-width);
+  border-color: color-mix(in srgb, var(--wb-ink) 12%, transparent);
+  border-radius: var(--wb-radius);
+  background-color: var(--wba-control-albedo, var(--wb-bar));
+  background-image: var(--wb-select-chevron);
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px 14px;
+}
+/* Disclosures use a NavArrowRight that turns 90 degrees instead of the native triangle. */
+.studio-settings-dialog details:not(.organization-appearance-popover) > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+}
+.studio-settings-dialog
+  details:not(.organization-appearance-popover)
+  > summary::-webkit-details-marker {
+  display: none;
+}
+.studio-settings-dialog details:not(.organization-appearance-popover) > summary::before {
+  content: '';
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  background-color: var(--wb-muted);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E")
+    center / 14px no-repeat;
+  transition: rotate 150ms ease-out;
+}
+.studio-settings-dialog details[open]:not(.organization-appearance-popover) > summary::before {
+  rotate: 90deg;
 }
 .settings-disclosure {
   min-width: 0;

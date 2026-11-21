@@ -29,6 +29,12 @@
   --wb-control-border: var(--wb-border);
   --wb-border-width: 2px;
   --wb-selection: #626262;
+  /* Selection: segments and navigation take the tint, items in a set take the inset ring.
+     The solid accent fill is reserved for the primary action. */
+  --wb-segment-selected: color-mix(in srgb, var(--wb-accent) 22%, transparent);
+  --wb-item-ring: inset 0 0 0 2px var(--wb-accent);
+  /* NavArrowDown at the muted color, for styled native selects. */
+  --wb-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a6a6a6' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   --wb-radius: 4px;
   --wb-control-height: 32px;
   --wb-font-size: 12px;
@@ -98,6 +104,7 @@
   --wb-dim: #5a554c;
   --wb-disabled: #8a857c;
   --wb-accent-ink: rgb(var(--accent-800));
+  --wb-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2355524c' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   --wb-line: var(--wb-border);
   --wb-border: color-mix(in srgb, var(--wb-ink) 5%, transparent);
   --wb-selection: #c9c2b4;

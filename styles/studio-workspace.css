@@ -1562,8 +1562,7 @@ button.studio-status-provider:hover {
   flex-shrink: 0;
 }
 .create-execution-choice[aria-pressed='true'] {
-  border-color: var(--wb-accent);
-  box-shadow: inset 0 0 0 1px var(--wb-accent);
+  box-shadow: var(--wb-item-ring);
 }
 .create-execution-choice:disabled {
   opacity: 0.45;
@@ -2388,6 +2387,9 @@ button.studio-status-provider:hover {
   min-width: 0;
   flex: 1;
 }
+.styles-catalog-panel[data-workspace-expanded='true'] .styles-catalog-map-select select {
+  flex: 0 1 320px;
+}
 
 .recipe-result-progress {
   flex: 0 0 auto;
@@ -2791,17 +2793,7 @@ html[data-theme='paper'] .cozy-mark {
   box-shadow: none;
 }
 .styles-explorer-done {
-  display: inline-flex;
   flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 32px;
-  padding: 5px 9px;
-  border: var(--wb-border-width) solid var(--wb-line);
-  border-radius: var(--wb-radius);
-  background: var(--wb-ink);
-  color: var(--wb-panel);
   font-size: var(--wbp-label, 12px);
 }
 .styles-catalog-panel[data-workspace-expanded='true'] {
@@ -2825,9 +2817,14 @@ html[data-theme='paper'] .cozy-mark {
 .styles-catalog-panel[data-workspace-expanded='true'] .styles-catalog-tabs {
   padding-top: 4px;
 }
+.styles-catalog-panel[data-workspace-expanded='true'] .styles-catalog-tab-group {
+  flex: 0 1 auto;
+  gap: 4px;
+}
 .styles-catalog-panel[data-workspace-expanded='true'] .styles-catalog-tab {
+  flex: 0 0 auto;
   height: 32px;
-  padding-inline: 10px;
+  padding-inline: 12px;
 }
 @container style-catalog (max-width: 760px) {
   .styles-catalog-panel[data-workspace-expanded='true'] .styles-catalog-search {
@@ -3490,6 +3487,30 @@ html[data-theme='paper'] .cozy-mark {
   line-height: 15px;
   color: var(--wb-ink);
 }
+/* Grid and Mosaic: one muted line so the image leads; the meta line shows on hover or focus. */
+.library-card[data-caption='compact'] .library-card-caption {
+  position: relative;
+  justify-content: center;
+  overflow: visible;
+}
+.library-card[data-caption='compact'] .library-card-caption-title {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  font-weight: 500;
+  color: var(--wb-muted);
+}
+.library-card-meta {
+  position: absolute;
+  inset: auto 0 100% 0;
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--wb-panel) 88%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease-ui);
+}
+.library-card:is(:hover, :focus-within) .library-card-meta {
+  opacity: 1;
+}
 @media (prefers-reduced-motion: reduce) {
   .library-card-toolbar {
     transition: none;
@@ -3521,7 +3542,7 @@ html[data-theme='paper'] .cozy-mark {
 }
 .styles-catalog-panel[data-workspace-expanded='true'] > [data-style-browser-root] {
   display: grid;
-  grid-template-columns: clamp(300px, 30%, 400px) minmax(0, 1fr);
+  grid-template-columns: 360px minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
 }
@@ -3543,6 +3564,15 @@ html[data-theme='paper'] .cozy-mark {
   min-height: 0;
   overflow: hidden;
   border-left: var(--wb-border-width) solid var(--wb-line);
+}
+/* With no card open, the browser takes the full width; the 360px list and detail pane come with a selection. */
+.styles-catalog-panel[data-workspace-expanded='true']:not(:has(.style-detail-preview))
+  > [data-style-browser-root] {
+  grid-template-columns: minmax(0, 1fr);
+}
+.styles-catalog-panel[data-workspace-expanded='true']:not(:has(.style-detail-preview))
+  .style-explorer-detail {
+  display: none;
 }
 .style-explorer-empty {
   display: grid;

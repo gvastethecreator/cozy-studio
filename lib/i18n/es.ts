@@ -758,4 +758,11 @@ export const es: Dictionary = {
   'status.providerReady': '{provider} está listo para generar.',
   'characterLab.notReady': 'No está listo',
   'settings.importSources.destination': 'Las imágenes seleccionadas se importarán a "{workspace}".',
+  'styleExplorer.backToCreate': 'Volver a crear',
+  'styleExplorer.useSelected': {
+    one: 'Usar {count} seleccionado',
+    other: 'Usar {count} seleccionados',
+  },
+  'styleExplorer.emptyTitle': 'Explorar estilos',
+  'styleExplorer.emptyHint': 'Haz clic en la imagen de una tarjeta para verla.',
 };

@@ -94,6 +94,7 @@ import type {
 import type { StylePresetSourceProvenance, StylePresetVisualState } from './StylePresetCardSurface';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { FAVORITES_PACK_ID, ALL_STYLE_CARDS_TAB_ID } from './styleTabRouting';
+import { useT } from '../../lib/i18n';
 const StyleCatalogPanel = React.lazy(() =>
   import('./StyleCatalogPanel').then((module) => ({ default: module.StyleCatalogPanel })),
 );
@@ -564,6 +565,7 @@ function useStylesBrowserController({
   defaultStyleIntensity,
   defaultStyleReferenceMode,
 }: StylesBrowserProps) {
+  const { t } = useT();
   const workbench = React.useContext(RecipeWorkbenchContext);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [tcgCatalogView, setTcgCatalogView] = useState<'visual' | 'components'>('visual');
@@ -1585,8 +1587,8 @@ function useStylesBrowserController({
     />
   ) : (
     <div className="style-explorer-empty">
-      <h2>Explore styles</h2>
-      <p>Select a card to see its examples, visual DNA and prompt.</p>
+      <h2>{t('styleExplorer.emptyTitle')}</h2>
+      <p>{t('styleExplorer.emptyHint')}</p>
     </div>
   );
 

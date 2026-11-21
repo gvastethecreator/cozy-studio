@@ -1620,15 +1620,18 @@ function ToolbarImageModels({ model }: { model: ToolbarModel }) {
   return (
     <section aria-labelledby="codex-image-model-label">
       <h4 id="codex-image-model-label">Image model</h4>
-      <button
-        type="button"
-        className="studio-ghost-control create-execution-choice"
-        aria-pressed={!generationConfig.codexImageModel}
-        onClick={() => updateConfig('codexImageModel', undefined)}
-      >
-        Account default
-      </button>
       <div className="create-execution-options">
+        <button
+          type="button"
+          className="studio-ghost-control create-execution-choice"
+          aria-pressed={!generationConfig.codexImageModel}
+          onClick={() => updateConfig('codexImageModel', undefined)}
+        >
+          <span className="create-execution-copy">
+            <strong>Account default</strong>
+          </span>
+          {!generationConfig.codexImageModel && <Check width={14} height={14} aria-hidden="true" />}
+        </button>
         {executionImageModels.map((imageModel) => {
           const isSelected = imageModel.id === generationConfig.codexImageModel;
           return (

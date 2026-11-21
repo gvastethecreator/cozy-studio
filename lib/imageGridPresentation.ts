@@ -10,8 +10,14 @@ export const MIN_THUMBNAIL_SIZE = 144;
 export const MAX_THUMBNAIL_SIZE = 320;
 export const THUMBNAIL_SIZE_STEP = 8;
 export const IMAGE_GRID_COLUMN_GAP = 16;
-/** Fixed caption block under every library card image, in px. */
-export const IMAGE_GRID_CAPTION_HEIGHT = 64;
+/** Caption block under a Grid or Mosaic card image, in px: one muted prompt line. */
+export const IMAGE_GRID_CAPTION_HEIGHT = 36;
+/** Cards view keeps a two-line prompt plus the meta line. */
+export const IMAGE_GRID_CARDS_CAPTION_HEIGHT = 64;
+
+export function resolveImageGridCaptionHeight(viewMode: ImageGridViewMode) {
+  return viewMode === 'cards' ? IMAGE_GRID_CARDS_CAPTION_HEIGHT : IMAGE_GRID_CAPTION_HEIGHT;
+}
 export const IMAGE_GRID_MAX_COLUMNS = 12;
 export const IMAGE_GRID_CARD_MIN_WIDTH = 256;
 export const IMAGE_GRID_PRIORITY_VIEWPORT_OVERSCAN_PX = 96;
@@ -185,9 +191,10 @@ export function estimateImageGridCardItemHeight({
   viewMode: ImageGridViewMode;
 }) {
   if (viewMode === 'list') return 104;
-  if (viewMode === 'grid') return itemWidth + IMAGE_GRID_CAPTION_HEIGHT;
+  const captionHeight = resolveImageGridCaptionHeight(viewMode);
+  if (viewMode === 'grid') return itemWidth + captionHeight;
   const ratio = resolveImageGridNumericRatio(image);
-  return itemWidth / ratio + IMAGE_GRID_CAPTION_HEIGHT;
+  return itemWidth / ratio + captionHeight;
 }
 
 export interface ImageGridVirtualWindow {

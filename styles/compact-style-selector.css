@@ -70,12 +70,8 @@
 }
 
 .cs-browse button[aria-pressed='true'] {
-  background: var(--wb-accent);
-  color: var(--wb-on-accent, #141414);
-}
-
-.cs-browse button[aria-pressed='true'] svg {
-  color: inherit;
+  background: var(--wb-segment-selected);
+  color: var(--wb-ink);
 }
 
 .cs-browse button:focus-visible {
@@ -971,8 +967,8 @@
 }
 
 .styles-catalog-tab.is-active {
-  border-color: var(--wb-line);
-  background: var(--wb-bar);
+  border-color: transparent;
+  background: var(--wb-segment-selected);
   color: var(--wb-ink);
 }
 

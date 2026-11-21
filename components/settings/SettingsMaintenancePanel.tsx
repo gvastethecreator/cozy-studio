@@ -222,12 +222,10 @@ export function SettingsMaintenancePanel({ maintenance }: SettingsMaintenancePan
     });
 
   return (
-    <div className="mt-4 rounded-[var(--wb-radius)] border border-[color:var(--wb-line)] bg-[color-mix(in_srgb,var(--wb-ink)_4%,transparent)] p-4">
+    <div className="mt-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-[length:var(--wbp-label)] font-semibold tracking-normal text-[color:var(--wb-ink)]">
-            {t('settings.maintenance.heading')}
-          </h3>
+          <h3>{t('settings.maintenance.heading')}</h3>
           <p className="mt-1 text-[length:var(--wbp-label)] font-bold tracking-normal text-[color:var(--wb-dim)]">
             {t('settings.maintenance.hint')}
           </p>

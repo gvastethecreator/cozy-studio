@@ -465,6 +465,42 @@ describe('worker shutdown', () => {
     expect(fetch).toHaveBeenCalledTimes(1);
     await restarted.controller.shutdown();
   });
+  it('cancels a running ChatGPT HTTP job when the user asks, and lets a retry send again', async () => {
+    const job = { ...createJob('http-user-cancel'), providerId: 'chatgpt' as const };
+    job.execution = {
+      ...CODEX_HTTP_EXECUTION_DEFAULTS,
+      providerOptions: {
+        chatgpt: resolveCodexExecutionPolicy(
+          CODEX_HTTP_EXECUTION_DEFAULTS,
+          null,
+          'subscription_http',
+        ),
+      },
+    };
+    const sent = createDeferred();
+    const run = createChatgptResponsesImageExecutor({
+      fetch: (_url, init) => {
+        sent.resolve();
+        return new Promise<never>((_, reject) =>
+          init?.signal?.addEventListener('abort', () =>
+            reject(Object.assign(new Error('aborted'), { name: 'AbortError' })),
+          ),
+        );
+      },
+      getAccessToken: async () => 'test-token',
+    });
+    const { addJobEvent, controller, jobs } = createWorkerHarness([job], run);
+    controller.enqueueJob(job);
+    await sent.promise;
+    controller.cancelQueuedOrRunningJob(job.id);
+    await vi.waitFor(() => expect(jobs.get(job.id)?.status).toBe('cancelled'));
+    expect(jobs.get(job.id)?.remoteExecution).toMatchObject({
+      providerId: 'chatgpt',
+      phase: 'failed',
+    });
+    expect(addJobEvent.mock.calls.map((call) => call[1])).not.toContain('job.needs_review');
+    await controller.shutdown();
+  });
   it('does not confirm cancellation of a recovered remote execution waiting for local capacity', async () => {
     const active = createJob('active');
     const remote = {

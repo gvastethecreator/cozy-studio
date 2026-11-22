@@ -254,6 +254,36 @@ describe('external provider results', () => {
     });
   });
 
+  it('keeps a stored inline image when its transcript cannot be written', () => {
+    const result = Effect.runSync(
+      Effect.scoped(
+        storeInlineImageResult({
+          providerId: 'chatgpt',
+          providerSlug: 'chatgpt-http',
+          model: 'gpt-image-2',
+          endpointBase: 'https://chatgpt.com/backend-api/codex',
+          job: { id: 'job-transcript' },
+          compiledInput: { sourceSpecId: 'spec-1', task: 'image_edit' },
+          responseJson: {},
+          image: { data: PNG_B64, mimeType: 'image/png' },
+          requestAttempts: 1,
+          startedAt: 1000,
+          files: {
+            resolveLibraryPath: (...segments) => `D:/studio-library/${segments.join('/')}`,
+            mkdir: (() => undefined) as typeof import('node:fs').mkdirSync,
+            writeFile: ((filePath) => {
+              if (String(filePath).includes('transcripts')) throw new Error('EBUSY');
+            }) as typeof import('node:fs').writeFileSync,
+            now: () => 1200,
+          },
+        }),
+      ),
+    );
+    expect(result.assets[0]?.sourcePath).toBe(
+      'D:/studio-library/assets/job-transcript-chatgpt-http-1200.png',
+    );
+  });
+
   it('rejects malformed inline image bytes before writing files', () => {
     expect(() =>
       Effect.runSync(

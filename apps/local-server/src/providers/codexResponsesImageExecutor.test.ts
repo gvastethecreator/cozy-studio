@@ -258,11 +258,54 @@ describe('ChatGPT responses image executor and captured Codex HTTP jobs', () => 
     }
   });
 
-  it('keeps a tool-less stream uncertain without permitting another submission', async () => {
+  it.each([
+    {
+      name: 'a completed response without an image fails with the model reply',
+      events: [
+        {
+          type: 'response.output_item.done',
+          item: {
+            type: 'message',
+            content: [{ type: 'output_text', text: "I can't help create that image." }],
+          },
+        },
+        { type: 'response.completed', response: { output: [] } },
+      ],
+      expected: {
+        name: 'SubscriptionHttpError',
+        code: 'empty_response',
+        message: expect.stringContaining("I can't help create that image."),
+      },
+      lastPhase: 'failed',
+    },
+    {
+      name: 'a completed response whose image call failed fails',
+      events: [
+        {
+          type: 'response.output_item.done',
+          item: { type: 'image_generation_call', status: 'failed' },
+        },
+        { type: 'response.completed', response: { output: [] } },
+      ],
+      expected: {
+        name: 'SubscriptionHttpError',
+        code: 'empty_response',
+        message: expect.stringContaining('image call ended as failed'),
+      },
+      lastPhase: 'failed',
+    },
+    {
+      name: 'a stream that ends before the response completes stays uncertain',
+      events: [{ type: 'response.created', response: { output: [] } }],
+      expected: { code: 'execution_uncertain' },
+      lastPhase: 'submitting',
+    },
+  ])('$name', async ({ events, expected, lastPhase }) => {
+    const checkpoint = vi.fn();
     const executor = createChatgptResponsesImageExecutor({
       getAccessToken: async () => 'codex-secret',
       fetch: async () =>
-        new Response('data: {"type":"response.completed"}\n\n', {
+        new Response(events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join(''), {
           headers: { 'content-type': 'text/event-stream' },
         }),
       resolveLibraryPath: (...segments) => `D:/studio-library/${segments.join('/')}`,
@@ -276,14 +319,13 @@ describe('ChatGPT responses image executor and captured Codex HTTP jobs', () => 
             id: 'job-empty',
             workspaceId: 'workspace-1',
             prompt: 'stone keep',
-            checkpointRemoteExecution: vi.fn(),
+            checkpointRemoteExecution: checkpoint,
             execution: httpExecution(),
           }),
         ),
       ),
-    ).rejects.toMatchObject({
-      code: 'execution_uncertain',
-    });
+    ).rejects.toMatchObject(expected);
+    expect(checkpoint).toHaveBeenLastCalledWith(expect.objectContaining({ phase: lastPhase }));
   });
 
   it('reports ChatGPT 403 as entitlement without switching transports', async () => {

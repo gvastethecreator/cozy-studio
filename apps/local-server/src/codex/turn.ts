@@ -226,7 +226,7 @@ function runCodexImagegenTurn(
       }
       turnId = turn?.turn?.id ?? null;
 
-      yield* session.client
+      const completion = yield* session.client
         .waitForNotification(
           (message) =>
             message.method === 'turn/completed' && (!turnId || message.params?.turn?.id === turnId),
@@ -283,6 +283,14 @@ function runCodexImagegenTurn(
       }
 
       if (!discoveredAsset?.sourcePath) {
+        const completedTurn = completion?.params?.turn;
+        if (completedTurn?.status === 'failed') {
+          const reason =
+            typeof completedTurn.error?.message === 'string' && completedTurn.error.message.trim()
+              ? completedTurn.error.message.trim()
+              : 'Codex reported no reason.';
+          throw new Error(`Codex turn failed: ${reason}`);
+        }
         return {
           assets: [],
           transcript: transcriptPath,

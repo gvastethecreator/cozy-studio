@@ -219,4 +219,56 @@ describe('createCodexTurn', () => {
       }),
     );
   });
+
+  it('fails with the provider error when the turn fails without an image', async () => {
+    const failed = {
+      method: 'turn/completed',
+      params: {
+        turn: {
+          id: 'turn-failed',
+          status: 'failed',
+          error: {
+            message:
+              "The 'gpt-5.4-mini' model is not supported when using Codex with a ChatGPT account.",
+          },
+        },
+      },
+    };
+    const turn = createCodexTurn({
+      getSession: vi.fn().mockReturnValue(
+        Effect.succeed({
+          client: {
+            getNotificationCount: () => 0,
+            request: vi.fn().mockReturnValue(Effect.succeed({ turn: { id: 'turn-failed' } })),
+            waitForNotification: vi.fn().mockReturnValue(Effect.succeed(failed)),
+            getNotificationsSince: () => [failed],
+          },
+          codexHome: null,
+          threadId: 'thread-failed',
+          sessionKey: 'pack_failed',
+          lock: Semaphore.makeUnsafe(1),
+        }),
+      ),
+      closeSession: vi.fn(),
+      getSessionKey: () => 'pack_failed',
+      resolveLibraryPath: (...parts) => `D:/tmp/${parts.join('/')}`,
+      resolveProcessCwd: () => 'D:/DEV/cozy-studio',
+      createAssetExtractor: () => ({ extract: async () => [] }),
+      resolveExecutionOptions: () => ({
+        model: 'gpt-5.4-mini',
+        reasoningEffort: 'low',
+        serviceTier: null,
+      }),
+      maxAttempts: 1,
+      retryDelayMs: 0,
+    });
+
+    await expect(
+      Effect.runPromise(
+        Effect.scoped(turn.runTurn({ jobId: 'job-failed', prompt: 'one motorcycle' })),
+      ),
+    ).rejects.toThrow(
+      "Codex turn failed: The 'gpt-5.4-mini' model is not supported when using Codex with a ChatGPT account.",
+    );
+  });
 });

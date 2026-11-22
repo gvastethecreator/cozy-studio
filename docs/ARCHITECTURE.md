@@ -195,7 +195,8 @@ Generation Tasks and Generation Providers stay separate:
 - ChatGPT image choice uses the explicit request, then `providerDefaults.chatgpt.imageModel`, then GPT Image 2.5 Flare. Static 2.6 names are requested aliases. File metadata and `studio_job` with `detail: true` keep `model` as requested or captured. File `reported_image_model` and MCP `reportedImageModel` appear only with explicit server evidence from `remoteExecution.reportedImageModel`; a generic identifier does not prove the requested variant. Regenerate restores the requested alias.
 - The composer hides resolution controls because the subscription endpoint does not reliably honor the output size. Saved requests keep their captured size contract.
 - The public [image generation guide](https://developers.openai.com/api/docs/guides/image-generation) defines the size limits. It does not prove subscription entitlement.
-- HTTP persists a submission marker before its single POST. A lost acknowledgement or a restart moves the job to review, with no second POST and no CLI fallback. Only a confirmed rejection permits a new retry.
+- HTTP persists a submission marker before its single POST. A lost acknowledgement, a stream that ends before `response.completed`, or a restart moves the job to review, with no second POST and no CLI fallback. Only a confirmed outcome permits a new retry: a rejection, or a completed response without an image, which fails the job with the model's reply.
+- A user cancellation or Studio reset of a running HTTP job cancels it and closes the submission marker. HTTP has no remote job to cancel or read back, so review would only repeat the user's decision.
 - Quality is medium; reasoning and speed are provider-managed. Requested canvas dimensions take priority over reference framing in compiled image prompts.
 - An auth change never changes the transport of an accepted job. Jobs from before the captured contract need a new, reviewed request.
 

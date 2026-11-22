@@ -500,6 +500,25 @@ export function createWorkerController({
   }
 
   function handleJobFailure(job: Job, error: unknown) {
+    const stopReason = runningJobAbortReasons.get(job.id);
+    const remote = job.remoteExecution;
+    if (
+      (stopReason === 'user' || stopReason === 'reset') &&
+      (remote?.providerId === 'chatgpt' || remote?.providerId === 'codex') &&
+      remote.phase === 'submitting'
+    ) {
+      // An HTTP request has no remote job to cancel or read back, so Review could only repeat
+      // the user's decision. Closing the submission lets a later retry send a new request.
+      const closed = { ...remote, phase: 'failed' as const };
+      updateJobRemoteExecutionFn(job.id, closed);
+      job.remoteExecution = closed;
+      const message = `${stopReason === 'reset' ? 'Job cancelled by Studio reset.' : 'Job cancelled by user.'} The request was already sent, so ChatGPT may have used usage for it.`;
+      recordJobEvent(job.id, 'job.cancelled', message);
+      updateJobStatusFn(job.id, 'cancelled');
+      publishEventFn('job.cancelled', getJobFn(job.id));
+      logger('info', 'worker', message, job.id);
+      return;
+    }
     if (
       error instanceof ProviderExecutionUncertainError ||
       (!isAbortError(error) &&

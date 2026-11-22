@@ -504,28 +504,33 @@ export function storeInlineImageResult({
       files.writeFile(outputPath, validated.buffer);
 
       const transcriptDir = files.resolveLibraryPath('transcripts', safeJobId);
-      files.mkdir(transcriptDir, { recursive: true });
       const transcriptPath = path.join(transcriptDir, `${providerSlug}.json`);
-      files.writeFile(
-        transcriptPath,
-        JSON.stringify(
-          {
-            providerId,
-            model,
-            endpointBase,
-            sourceSpecId: compiledInput.sourceSpecId,
-            task: compiledInput.task,
-            outputPath,
-            requestAttempts,
-            imageAttempts: 0,
-            ...(diagnostics ? { diagnostics } : {}),
-            responseShape: isRecord(responseJson) ? Object.keys(responseJson).sort() : [],
-          },
-          null,
-          2,
-        ),
-        'utf8',
-      );
+      // The transcript is a diagnostic. Failing to write it must not lose the image saved above.
+      try {
+        files.mkdir(transcriptDir, { recursive: true });
+        files.writeFile(
+          transcriptPath,
+          JSON.stringify(
+            {
+              providerId,
+              model,
+              endpointBase,
+              sourceSpecId: compiledInput.sourceSpecId,
+              task: compiledInput.task,
+              outputPath,
+              requestAttempts,
+              imageAttempts: 0,
+              ...(diagnostics ? { diagnostics } : {}),
+              responseShape: isRecord(responseJson) ? Object.keys(responseJson).sort() : [],
+            },
+            null,
+            2,
+          ),
+          'utf8',
+        );
+      } catch {
+        /* Job details skip a missing transcript. */
+      }
 
       return {
         assets: [{ type: 'file', sourcePath: outputPath, mimeType }],

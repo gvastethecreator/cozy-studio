@@ -92,10 +92,14 @@ function extractImageCandidates(value: unknown): {
   final: string | null;
   partial: string | null;
   reportedModel: ReportedImageModel | null;
+  replies: string[];
+  imageCallStatus: string | null;
 } {
   let finalB64: string | null = null;
   let partialB64: string | null = null;
   let reportedModel: ReportedImageModel | null = null;
+  const replies: string[] = [];
+  let imageCallStatus: string | null = null;
   const response = isRecord(value) && isRecord(value.response) ? value.response : null;
   if (Array.isArray(response?.tools)) {
     for (const tool of response.tools) {
@@ -111,7 +115,11 @@ function extractImageCandidates(value: unknown): {
       return;
     }
     if (!isRecord(node)) return;
+    if (node.type === 'output_text' && typeof node.text === 'string' && node.text.trim()) {
+      replies.push(node.text.trim());
+    }
     if (node.type === 'image_generation_call') {
+      if (typeof node.status === 'string') imageCallStatus = node.status;
       const model = readReturnedModel(node.model);
       if (model)
         reportedModel = {
@@ -130,7 +138,25 @@ function extractImageCandidates(value: unknown): {
     for (const child of Object.values(node)) walk(child);
   };
   walk(value);
-  return { final: finalB64, partial: partialB64, reportedModel };
+  return { final: finalB64, partial: partialB64, reportedModel, replies, imageCallStatus };
+}
+
+/** A finished response without an image: the provider decided, so a retry is the user's call. */
+function noImageFailure(
+  replies: ReadonlySet<string>,
+  imageCallStatus: string | null,
+  secrets: readonly string[],
+) {
+  const reply = [...replies].join(' ');
+  const detail = reply
+    ? ` It replied: "${responseSnippet(reply, secrets)}"`
+    : imageCallStatus && imageCallStatus !== 'completed'
+      ? ` Its image call ended as ${responseSnippet(imageCallStatus, secrets)}.`
+      : '';
+  return new SubscriptionHttpError(
+    `ChatGPT finished the request without an image.${detail} It may have declined the prompt or the reference images. Change the request before you retry it.`,
+    { code: 'empty_response', fallbackAllowed: false },
+  );
 }
 
 function sseFailureMessage(event: Record<string, unknown>, secrets: readonly string[]) {
@@ -576,6 +602,9 @@ export function createChatgptResponsesImageExecutor({
 
               let finalB64: string | null = null;
               let failedEvent: Record<string, unknown> | null = null;
+              let responseCompleted = false;
+              const replies = new Set<string>();
+              let imageCallStatus: string | null = null;
               try {
                 if (!response.body) throw new Error('ChatGPT HTTP response has no event stream.');
                 Result.getOrThrowWith(
@@ -586,8 +615,13 @@ export function createChatgptResponsesImageExecutor({
                         return;
                       }
                       if (failedEvent) return;
+                      if (isRecord(event) && event.type === 'response.completed') {
+                        responseCompleted = true;
+                      }
                       const found = extractImageCandidates(event);
                       if (found.final) finalB64 = found.final;
+                      for (const reply of found.replies) replies.add(reply);
+                      if (found.imageCallStatus) imageCallStatus = found.imageCallStatus;
                       const candidate = found.reportedModel;
                       if (
                         candidate &&
@@ -628,9 +662,13 @@ export function createChatgptResponsesImageExecutor({
                 throw yield* explainLimit(failure);
               }
               if (!finalB64) {
-                throw new ProviderExecutionUncertainError(
-                  'ChatGPT HTTP returned no final image. Review the existing request before creating another job.',
-                );
+                if (!responseCompleted) {
+                  throw new ProviderExecutionUncertainError(
+                    'ChatGPT HTTP response was interrupted. The provider may still have generated an image. Review this job before sending another request.',
+                  );
+                }
+                checkpoint('failed');
+                throw noImageFailure(replies, imageCallStatus, [token]);
               }
 
               try {
@@ -667,9 +705,10 @@ export function createChatgptResponsesImageExecutor({
                   (error) => error,
                 );
                 return result;
-              } catch {
+              } catch (error) {
                 throw new ProviderExecutionUncertainError(
-                  'ChatGPT HTTP returned a result, but Studio could not save it. Review the result before creating another job.',
+                  `ChatGPT HTTP returned a result, but Studio could not save it. Review the result before creating another job. ${responseSnippet(error instanceof Error ? error.message : '', [token])}`.trim(),
+                  { cause: error },
                 );
               }
             }),

@@ -196,6 +196,8 @@ const defaultLogStore: StudioLogStore = { listLogs };
 export interface CreateStudioAppOptions {
   runInit?: boolean;
   restart?: () => void;
+  /** Shuts the process down like SIGINT, for POST /api/updates/stop. */
+  stop?: () => void;
   /** Fetch origin/main once at startup so the UI and agents learn about updates on open. */
   checkUpdatesOnStart?: boolean;
   dependencies?: {
@@ -369,7 +371,7 @@ export async function createStudioApp(
     if (updates.blocksMutations()) return c.json({ error: updateBlockedMessage }, 503);
     await trackMutation(next);
   });
-  app.route('/api/updates', createRepositoryUpdateRoutes(updates));
+  app.route('/api/updates', createRepositoryUpdateRoutes(updates, options.stop));
 
   app.route(
     '/api',

@@ -263,9 +263,18 @@ describe('repository updates', { timeout: GIT_TIMEOUT }, () => {
       canRestart: false,
       blocker: expect.stringContaining('bun run dev'),
     });
+    const stop = vi.fn();
     const app = new Hono();
     app.use('*', createLocalApiSecurityMiddleware());
-    app.route('/api/updates', createRepositoryUpdateRoutes(unmanaged));
+    app.route('/api/updates', createRepositoryUpdateRoutes(unmanaged, stop));
+    expect((await app.request('/api/updates/stop', { method: 'POST', body: '' })).status).toBe(415);
+    const stopped = await app.request('/api/updates/stop', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    expect(stopped.status).toBe(202);
+    await vi.waitFor(() => expect(stop).toHaveBeenCalledTimes(1));
     expect(
       (
         await app.request('/api/updates/restart', {

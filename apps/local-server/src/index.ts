@@ -33,6 +33,7 @@ if (import.meta.main) {
             });
           }
         : undefined,
+    stop: () => stopProcess(),
   });
   const configuredPort = getSettings().serverPort;
   const hostname = '127.0.0.1';
@@ -99,19 +100,19 @@ if (import.meta.main) {
     return shutdownPromise;
   };
 
-  for (const signal of ['SIGINT', 'SIGTERM'] as const) {
-    process.once(signal, () => {
-      void beginSignalShutdown({
-        shutdown,
-        exit: (code) => process.exit(code),
-        reportError: (error) => {
-          console.error(
-            `Cozy Studio shutdown failed: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        },
-      });
+  // SIGINT, SIGTERM and POST /api/updates/stop. Exit code 0 also ends the dev launcher.
+  const stopProcess = () => {
+    void beginSignalShutdown({
+      shutdown,
+      exit: (code) => process.exit(code),
+      reportError: (error) => {
+        console.error(
+          `Cozy Studio shutdown failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      },
     });
-  }
+  };
+  for (const signal of ['SIGINT', 'SIGTERM'] as const) process.once(signal, stopProcess);
 
   const recoverableJobs = listRecoverableJobs();
   // Runs repair from durable job state before any recovered job can settle.

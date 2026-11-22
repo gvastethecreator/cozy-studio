@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import type { RepositoryUpdates } from './repositoryUpdates';
 
-export function createRepositoryUpdateRoutes(updates: RepositoryUpdates) {
+/** `stop` shuts Studio down the way Ctrl+C does; without it, Studio cannot stop itself. */
+export function createRepositoryUpdateRoutes(updates: RepositoryUpdates, stop?: () => void) {
   const routes = new Hono();
   routes.use('*', async (c, next) => {
     c.header('Cache-Control', 'no-store');
@@ -29,6 +30,12 @@ export function createRepositoryUpdateRoutes(updates: RepositoryUpdates) {
     } catch (error) {
       return c.json({ error: (error as Error).message }, 409);
     }
+  });
+  routes.post('/stop', (c) => {
+    if (!stop) return c.json({ error: 'This Studio cannot stop itself.' }, 409);
+    // Allow the accepted response to reach the caller before closing HTTP.
+    setTimeout(stop, 500);
+    return c.json({ stopping: true }, 202);
   });
   return routes;
 }

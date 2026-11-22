@@ -266,6 +266,7 @@ const CATEGORY_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   'pack_23::11. Modern Visual Techniques': 'Modern Visual Techniques',
   'pack_23::12. Hybrid Visual Studies': 'Hybrid Visual Studies',
   'pack_29::1. Stitched Picture Surfaces': 'Stitched pictures',
+  'pack_29::2. Thread & Fiber Crafts': 'Thread & fiber crafts',
   'pack_30::1. Ceramic and Glass Surfaces': 'Ceramic & glass',
   'pack_31::1. Habitat Paintings and Specimen Plates': 'Habitat & specimen plates',
   'pack_32::1. Painted and Stitched Local Traditions': 'Painted & stitched traditions',
@@ -277,6 +278,7 @@ const CATEGORY_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   'pack_35::6. Pixel': 'Pixel',
   'pack_35::7. Exploration': 'Exploration',
   'pack_36::1. Moklos Jam': 'Moklos Jam',
+  'pack_37::1. Cut, Carved & Inlaid Crafts': 'Cut, carved & inlaid crafts',
 };
 
 export function getStyleCategoryDisplayName(packId: string, sourceCategory: string) {

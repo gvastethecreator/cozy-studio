@@ -188,10 +188,10 @@ export const STYLE_COLLECTIONS = [
         categoryName: '4. Photography Eras',
       },
       {
-        id: 'pack33-night-optics',
+        id: 'pack33-optical-devices',
         kind: 'category',
         packId: 'pack_33',
-        categoryName: '2. Night Optics & Camera-less Prints',
+        categoryName: '2. Optical Devices & Camera-less Prints',
       },
     ],
     facets: {
@@ -952,7 +952,7 @@ export const STYLE_COLLECTIONS = [
       'Natural and synthetic materials, tactile surfaces, fabrics, and texture workflows.',
     icon: 'layers',
     order: 20,
-    sourcePackIds: ['pack_09', 'pack_10', 'pack_08', 'pack_03', 'pack_29', 'pack_30', 'pack_33'],
+    sourcePackIds: ['pack_09', 'pack_10', 'pack_08', 'pack_03', 'pack_29', 'pack_30', 'pack_37'],
     entries: [
       { id: 'pack09-materials', kind: 'pack', packId: 'pack_09' },
       {
@@ -989,17 +989,12 @@ export const STYLE_COLLECTIONS = [
         categoryName: '1. Ceramic and Glass Surfaces',
       },
       {
-        id: 'pack33-thread-fiber',
+        id: 'pack29-thread-fiber-crafts',
         kind: 'category',
-        packId: 'pack_33',
-        categoryName: '4. Thread & Fiber Nightcraft',
+        packId: 'pack_29',
+        categoryName: '2. Thread & Fiber Crafts',
       },
-      {
-        id: 'pack33-paper-wood-stone',
-        kind: 'category',
-        packId: 'pack_33',
-        categoryName: '5. Paper, Wood & Stone Nightcraft',
-      },
+      { id: 'pack37-applied-crafts', kind: 'pack', packId: 'pack_37' },
     ],
     facets: { medium: ['material', 'texture'], workflow: ['texture'] },
   },
@@ -1189,16 +1184,16 @@ export const STYLE_COLLECTIONS = [
     entries: [
       { id: 'applied-design-pack', kind: 'pack', packId: 'pack_25' },
       {
-        id: 'pack34-sticker-sheets',
+        id: 'pack34-sticker-finishes',
         kind: 'category',
         packId: 'pack_34',
-        categoryName: '1. Sticker Sheets & Finishes',
+        categoryName: '1. Sticker Finishes',
       },
       {
-        id: 'pack34-sticker-habitats',
+        id: 'pack34-sticker-formats-surfaces',
         kind: 'category',
         packId: 'pack_34',
-        categoryName: '3. Sticker Habitats',
+        categoryName: '2. Sticker Formats & Surfaces',
       },
     ],
     facets: { workflow: ['image', 'edit'] },
@@ -1491,10 +1486,10 @@ export const STYLE_COLLECTIONS = [
         categoryName: '1. Painted and Stitched Local Traditions',
       },
       {
-        id: 'pack34-mascots-charms',
+        id: 'pack34-mascots-character-merch',
         kind: 'category',
         packId: 'pack_34',
-        categoryName: '2. Mascots, Charms & Merch',
+        categoryName: '3. Mascots & Character Merch',
       },
     ],
     facets: { medium: ['toy', 'craft', 'food'], technique: ['scale'] },

@@ -19,7 +19,7 @@ export function createRepositoryUpdateRoutes(updates: RepositoryUpdates, stop?: 
       return c.json({ error: 'Check for updates before updating.' }, 400);
     }
     try {
-      return c.json(updates.apply(body.commit), 202);
+      return c.json(updates.apply(body.commit, body.force === true), 202);
     } catch (error) {
       return c.json({ error: (error as Error).message }, 409);
     }

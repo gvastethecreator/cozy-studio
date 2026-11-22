@@ -465,8 +465,11 @@ export const studioMcpTools = {
   studio_apply_update: {
     access: 'write',
     description:
-      'Apply the checked latestCommit token and restart Studio. Git checkouts fast-forward to the checked commit or release tag and install dependencies. Portable installs verify and stage the release ZIP. Needs Full control access and no active jobs. Ask the user first. Poll studio_status until Studio is back.',
-    schema: z.strictObject({ commit: z.string().regex(/^[a-f0-9]{40,64}$/) }),
+      'Apply the checked latestCommit token and restart Studio. Git checkouts fast-forward to the checked commit or release tag and install dependencies. Portable installs verify and stage the release ZIP. Needs Full control access. With queued or running jobs it refuses unless force: true (offered when canForceUpdate is true): the restart then stops running jobs and requeues them, queued jobs wait, and Studio resumes all of them after the restart. Ask the user first, and before force say how many jobs are running and queued. Poll studio_status until Studio is back.',
+    schema: z.strictObject({
+      commit: z.string().regex(/^[a-f0-9]{40,64}$/),
+      force: z.boolean().default(false),
+    }),
   },
 } as const satisfies Record<
   string,

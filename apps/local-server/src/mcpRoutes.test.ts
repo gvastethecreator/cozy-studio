@@ -747,8 +747,10 @@ describe('Studio MCP boundary', () => {
     expect(requests.at(-1)).toEqual({
       method: 'POST',
       path: '/api/updates/apply',
-      body: { commit },
+      body: { commit, force: false },
     });
+    await call('studio_apply_update', { commit, force: true });
+    expect(requests.at(-1)).toMatchObject({ body: { commit, force: true } });
     const digest = 'b'.repeat(64);
     expect((await call('studio_apply_update', { commit: digest })).status).toBe(200);
     expect(requests.at(-1)).toMatchObject({ path: '/api/updates/apply', body: { commit: digest } });

@@ -20,6 +20,21 @@ import type { RepositoryUpdateStatus } from '../../../packages/shared/src/reposi
 
 export const studioAppRoot = resolve(import.meta.dirname, '../../..');
 const busyMessage = 'Wait for active jobs and operations to finish before updating.';
+
+/** What is in progress when an update is asked for: HTTP mutations and queued or running jobs. */
+export interface UpdateWork {
+  operations: number;
+  jobs: number;
+}
+
+/**
+ * Why an update must wait, or null. force lets it go ahead with jobs in progress: the restart
+ * requeues running jobs and the next start recovers them with the queued ones. Operations such
+ * as an import always block.
+ */
+export function updateBusyReason({ operations, jobs }: UpdateWork, force = false) {
+  return operations > 0 || (jobs > 0 && !force) ? busyMessage : null;
+}
 const launcherMessage = 'Start Studio with the launcher in the main Cozy Studio folder to update.';
 const dataMessage =
   'Move Studio data, output folders and user extension folders outside the app folder before updating.';
@@ -261,13 +276,13 @@ export function createReleaseUpdates({
   appRoot = studioAppRoot,
   getProtectedRoots,
   restart,
-  isBusy,
+  activeWork,
   fetchImpl = fetch,
 }: {
   appRoot?: string;
   getProtectedRoots: () => string[];
   restart?: () => void;
-  isBusy: () => boolean;
+  activeWork: () => UpdateWork;
   fetchImpl?: FetchRelease;
 }) {
   appRoot = resolve(appRoot);
@@ -285,6 +300,7 @@ export function createReleaseUpdates({
     behind: 0,
     commits: [],
     canUpdate: false,
+    canForceUpdate: false,
     canRestart: false,
     blocker: null,
     error: null,
@@ -300,19 +316,21 @@ export function createReleaseUpdates({
   }
   function status(): RepositoryUpdateStatus {
     const locked = state.phase === 'updating' || state.phase === 'restarting';
-    const busy = isBusy();
+    const work = activeWork();
+    const busy = updateBusyReason(work);
     const blocked = blocker();
+    const ready = state.canUpdate && !blocked && !pending && !locked;
     return {
       ...state,
-      blocker: blocked ?? (busy ? busyMessage : null),
-      canUpdate: state.canUpdate && !blocked && !pending && !locked && !busy,
+      blocker: blocked ?? busy,
+      canUpdate: ready && !busy,
+      canForceUpdate: ready && !!busy && !updateBusyReason(work, true),
       canRestart: !!restart && !pending && !locked && !busy,
     };
   }
-  function assertUnblocked() {
-    const blocked = blocker();
+  function assertUnblocked(force: boolean) {
+    const blocked = blocker() ?? updateBusyReason(activeWork(), force);
     if (blocked) throw new Error(blocked);
-    if (isBusy()) throw new Error(busyMessage);
   }
   async function inspect() {
     state.canUpdate = false;
@@ -373,10 +391,10 @@ export function createReleaseUpdates({
     state.phase = 'restarting';
     setTimeout(() => restart?.(), 500);
   }
-  function apply(token: string) {
+  function apply(token: string, force = false) {
     if (pending || state.phase === 'restarting')
       throw new Error('An update operation is already running.');
-    assertUnblocked();
+    assertUnblocked(force);
     if (!state.latestCommit || token !== state.latestCommit)
       throw new Error('Check for updates again before updating.');
     const version = state.latestVersion;
@@ -387,14 +405,14 @@ export function createReleaseUpdates({
       if (token !== state.latestCommit || version !== state.latestVersion)
         throw new Error('A new release arrived. Check and review the update again.');
       if (!state.canUpdate) throw new Error('Studio is already up to date.');
-      assertUnblocked();
+      assertUnblocked(force);
       const bytes = await readResponse(
         await fetchImpl(assetUrl!, { signal: AbortSignal.timeout(300_000) }),
         MAX_DOWNLOAD_BYTES,
       );
       if (createHash('sha256').update(bytes).digest('hex') !== token)
         throw new Error('The Studio release ZIP failed its SHA-256 check.');
-      assertUnblocked();
+      assertUnblocked(force);
       const root = dirname(appRoot);
       for (const name of ['app.next', 'app.next.tmp', 'app.previous', 'app.failed'])
         removeAppCopy(join(root, name), appRoot, getProtectedRoots());
@@ -402,7 +420,7 @@ export function createReleaseUpdates({
         target: current.target,
         version: version!,
       });
-      assertUnblocked();
+      assertUnblocked(force);
       renameSync(join(root, 'app.next.tmp'), join(root, 'app.next'));
       scheduleRestart();
     })()

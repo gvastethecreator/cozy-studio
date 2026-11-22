@@ -28,10 +28,13 @@ if (import.meta.main) {
     restart:
       process.env.STUDIO_MANAGED_RESTART === '1'
         ? () => {
+            // Restart even when shutdown fails or times out: after an update the old code must not
+            // keep running, and the next start recovers any job still marked running.
             void beginSignalShutdown({
               shutdown,
-              exit: (code) => process.exit(code === 0 ? STUDIO_RESTART_EXIT_CODE : code),
-              reportError: (error) => console.error('Studio restart failed:', error),
+              exit: () => process.exit(STUDIO_RESTART_EXIT_CODE),
+              reportError: (error) =>
+                console.error('Studio restart did not shut down cleanly:', error),
             });
           }
         : undefined,

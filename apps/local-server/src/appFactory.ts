@@ -328,7 +328,7 @@ export async function createStudioApp(
   );
   const updateOptions = {
     restart: options.restart,
-    isBusy: () => activeMutations > 0 || listRecoverableJobs().length > 0,
+    activeWork: () => ({ operations: activeMutations, jobs: listRecoverableJobs().length }),
   };
   const updates = existsSync(resolve(studioAppRoot, 'portable.json'))
     ? createReleaseUpdates({

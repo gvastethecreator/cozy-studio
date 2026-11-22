@@ -6,11 +6,10 @@ import type {
   RepositoryUpdateChannel,
   RepositoryUpdateStatus,
 } from '../../../packages/shared/src/repositoryUpdates';
-import { readPublishedStudioRelease } from './releaseUpdates';
+import { readPublishedStudioRelease, updateBusyReason, type UpdateWork } from './releaseUpdates';
 
 const exec = promisify(execFile);
 const repoRoot = resolve(import.meta.dirname, '../../..');
-const busyMessage = 'Wait for active jobs and operations to finish before updating.';
 // Only the dev launcher restarts Studio after an update; other launches update by hand.
 const launcherMessage =
   'In-app updates need Studio started with bun run dev. Otherwise run git pull and bun install, then restart Studio.';
@@ -18,7 +17,7 @@ const launcherMessage =
 interface RepositoryUpdateOptions {
   root?: string;
   restart?: () => void;
-  isBusy: () => boolean;
+  activeWork: () => UpdateWork;
   install?: () => Promise<void>;
   getChannel?: () => RepositoryUpdateChannel;
   readRelease?: typeof readPublishedStudioRelease;
@@ -27,7 +26,7 @@ interface RepositoryUpdateOptions {
 export function createRepositoryUpdates({
   root = repoRoot,
   restart,
-  isBusy,
+  activeWork,
   getChannel = () => 'commits',
   readRelease = readPublishedStudioRelease,
   install = async () => {
@@ -56,6 +55,7 @@ export function createRepositoryUpdates({
     behind: 0,
     commits: [],
     canUpdate: false,
+    canForceUpdate: false,
     canRestart: false,
     blocker: null,
     error: null,
@@ -217,12 +217,15 @@ export function createRepositoryUpdates({
   function status(): RepositoryUpdateStatus {
     syncChannel();
     const locked = state.phase === 'updating' || state.phase === 'restarting';
-    const busy = isBusy();
+    const work = activeWork();
+    const busy = updateBusyReason(work);
+    const ready = state.canUpdate && !locked && !pending;
     return {
       ...state,
-      blocker: state.blocker ?? (busy ? busyMessage : null),
+      blocker: state.blocker ?? busy,
       canRestart: !!restart && !locked && !pending && !needsInstall && !busy,
-      canUpdate: state.canUpdate && !locked && !pending && !busy,
+      canUpdate: ready && !busy,
+      canForceUpdate: ready && !!busy && !updateBusyReason(work, true),
     };
   }
 
@@ -254,11 +257,13 @@ export function createRepositoryUpdates({
     setTimeout(() => restart?.(), 500);
   }
 
-  function apply(expectedCommit: string) {
+  /** force: true goes ahead with jobs in progress; see updateBusyReason. */
+  function apply(expectedCommit: string, force = false) {
     if (pending || state.phase === 'restarting')
       throw new Error('An update operation is already running.');
     if (!restart) throw new Error(launcherMessage);
-    if (isBusy()) throw new Error(busyMessage);
+    const busy = updateBusyReason(activeWork(), force);
+    if (busy) throw new Error(busy);
     const channel = syncChannel();
     if (!state.latestCommit || expectedCommit !== state.latestCommit)
       throw new Error('Check for updates again before updating.');
@@ -275,8 +280,8 @@ export function createRepositoryUpdates({
         await inspect(channel);
         if (state.latestCommit !== expectedCommit)
           throw new Error('New commits arrived. Check and review the update again.');
-        if (state.blocker) throw new Error(state.blocker);
-        if (isBusy()) throw new Error(busyMessage);
+        const blocked = state.blocker ?? updateBusyReason(activeWork(), force);
+        if (blocked) throw new Error(blocked);
         if (!state.canUpdate) throw new Error('Studio is already up to date.');
         assertChannel(channel);
         await git(

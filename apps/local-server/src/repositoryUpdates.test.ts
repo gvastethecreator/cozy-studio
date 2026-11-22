@@ -105,12 +105,12 @@ function fixture(options: Partial<Parameters<typeof createRepositoryUpdates>[0]>
   }
   const install = vi.fn(async () => {});
   const restart = vi.fn();
-  let busy = false;
+  let work = { operations: 0, jobs: 0 };
   const updates = createRepositoryUpdates({
     root,
     install,
     restart,
-    isBusy: () => busy,
+    activeWork: () => work,
     ...options,
   });
   activeUpdates.push(updates);
@@ -122,8 +122,8 @@ function fixture(options: Partial<Parameters<typeof createRepositoryUpdates>[0]>
     install,
     restart,
     updates,
-    setBusy: (value: boolean) => {
-      busy = value;
+    setWork: (value: Partial<typeof work>) => {
+      work = { operations: 0, jobs: 0, ...value };
     },
   };
 }
@@ -157,15 +157,32 @@ describe('repository updates', { timeout: GIT_TIMEOUT }, () => {
     });
 
     it('rechecks active work when applying', async () => {
-      f.setBusy(true);
+      f.setWork({ operations: 1 });
       expect(await f.updates.check()).toMatchObject({
         canUpdate: false,
+        canForceUpdate: false,
         blocker: expect.stringContaining('active jobs'),
       });
-      expect(() => f.updates.apply(target)).toThrow('active jobs');
+      expect(() => f.updates.apply(target, true)).toThrow('active jobs');
       expect(() => f.updates.restart()).toThrow('unavailable');
-      f.setBusy(false);
+      f.setWork({});
       expect(f.updates.status()).toMatchObject({ canUpdate: true, blocker: null });
+    });
+
+    it('updates with jobs in progress only when forced', async () => {
+      f.setWork({ jobs: 3 });
+      expect(f.updates.status()).toMatchObject({ canUpdate: false, canForceUpdate: true });
+      expect(() => f.updates.apply(target)).toThrow('active jobs');
+      const app = new Hono();
+      app.route('/api/updates', createRepositoryUpdateRoutes(f.updates));
+      const apply = await app.request('/api/updates/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commit: target, force: true }),
+      });
+      expect(apply.status).toBe(202);
+      await vi.waitFor(() => expect(f.restart).toHaveBeenCalledTimes(1), { timeout: GIT_TIMEOUT });
+      expect(headOf(f.root)).toBe(target);
     });
 
     it('rechecks local changes when applying', async () => {
@@ -255,7 +272,7 @@ describe('repository updates', { timeout: GIT_TIMEOUT }, () => {
     f.advance();
     const unmanaged = createRepositoryUpdates({
       root: f.root,
-      isBusy: () => false,
+      activeWork: () => ({ operations: 0, jobs: 0 }),
       install: f.install,
     });
     activeUpdates.push(unmanaged);
@@ -326,7 +343,7 @@ describe('release channel in a Git checkout', { timeout: GIT_TIMEOUT }, () => {
       root: f.root,
       restart: f.restart,
       install: f.install,
-      isBusy: () => false,
+      activeWork: () => ({ operations: 0, jobs: 0 }),
       getChannel: () => 'releases',
       readRelease,
     });
@@ -429,13 +446,13 @@ async function releaseFixture(edit?: (zip: JSZip) => void) {
     url.endsWith('/releases/latest') ? Response.json(release) : new Response(new Uint8Array(bytes)),
   );
   const restart = vi.fn();
-  let busy = false;
+  let jobs = 0;
   const protectedRoots = [libraryDir];
   const updates = createReleaseUpdates({
     appRoot,
     getProtectedRoots: () => protectedRoots,
     restart,
-    isBusy: () => busy,
+    activeWork: () => ({ operations: 0, jobs }),
     fetchImpl,
   });
   activeUpdates.push(updates);
@@ -449,8 +466,8 @@ async function releaseFixture(edit?: (zip: JSZip) => void) {
     updates,
     restart,
     fetchImpl,
-    setBusy: (value: boolean) => {
-      busy = value;
+    setJobs: (value: number) => {
+      jobs = value;
     },
   };
 }
@@ -469,9 +486,9 @@ describe('portable release updates', () => {
       latestCommit: f.digest,
       canUpdate: true,
     });
-    f.setBusy(true);
+    f.setJobs(2);
     expect(() => f.updates.apply(f.digest)).toThrow('active jobs');
-    f.setBusy(false);
+    f.setJobs(0);
     const app = new Hono();
     app.route('/api/updates', createRepositoryUpdateRoutes(f.updates));
     expect(
@@ -560,7 +577,7 @@ describe('portable release updates', () => {
         appRoot: f.appRoot,
         getProtectedRoots: () => [libraryDir],
         restart: f.restart,
-        isBusy: () => false,
+        activeWork: () => ({ operations: 0, jobs: 0 }),
         fetchImpl: f.fetchImpl,
       });
       expect(await updates.check()).toMatchObject({

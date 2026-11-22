@@ -15,6 +15,11 @@ export interface RepositoryUpdateStatus {
   /** The newest commits an update would apply, newest first, at most 20. Empty for releases. */
   commits: Array<{ commit: string; title: string }>;
   canUpdate: boolean;
+  /**
+   * True when queued or running jobs are the only reason canUpdate is false. Applying with
+   * force: true then goes ahead: the restart requeues running jobs and keeps queued ones.
+   */
+  canForceUpdate: boolean;
   canRestart: boolean;
   blocker: string | null;
   error: string | null;

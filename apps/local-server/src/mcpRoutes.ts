@@ -352,6 +352,7 @@ export function createMcpRoutes({
           behind?: number;
           latestCommit?: string | null;
           canUpdate?: boolean;
+          canForceUpdate?: boolean;
           blocker?: string | null;
           checkedAt?: string | null;
         } | null;
@@ -390,6 +391,7 @@ export function createMcpRoutes({
             behind,
             latestCommit: update.latestCommit ?? null,
             canUpdate: update.canUpdate ?? false,
+            canForceUpdate: update.canForceUpdate ?? false,
             blocker: update.blocker ?? null,
             checkedAt: update.checkedAt ?? null,
           },
@@ -745,7 +747,7 @@ export function createMcpRoutes({
       case 'studio_updates':
         return args.check ? post('/api/updates/check') : get('/api/updates');
       case 'studio_apply_update':
-        return post('/api/updates/apply', { commit: args.commit });
+        return post('/api/updates/apply', { commit: args.commit, force: args.force });
     }
   });
   return routes;

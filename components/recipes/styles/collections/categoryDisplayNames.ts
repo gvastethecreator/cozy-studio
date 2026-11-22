@@ -269,6 +269,14 @@ const CATEGORY_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   'pack_30::1. Ceramic and Glass Surfaces': 'Ceramic & glass',
   'pack_31::1. Habitat Paintings and Specimen Plates': 'Habitat & specimen plates',
   'pack_32::1. Painted and Stitched Local Traditions': 'Painted & stitched traditions',
+  'pack_35::1. Biomes': 'Biomes',
+  'pack_35::2. Characters': 'Characters',
+  'pack_35::3. Cards': 'Cards',
+  'pack_35::4. Skills': 'Skills',
+  'pack_35::5. Animation': 'Animation',
+  'pack_35::6. Pixel': 'Pixel',
+  'pack_35::7. Exploration': 'Exploration',
+  'pack_36::1. Moklos Jam': 'Moklos Jam',
 };
 
 export function getStyleCategoryDisplayName(packId: string, sourceCategory: string) {

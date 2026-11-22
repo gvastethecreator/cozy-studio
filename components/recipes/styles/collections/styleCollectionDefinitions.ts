@@ -173,7 +173,7 @@ export const STYLE_COLLECTIONS = [
     description: 'Film stocks, historical photo eras, darkroom processes, and camera artifacts.',
     icon: 'film',
     order: 20,
-    sourcePackIds: ['pack_01', 'pack_02'],
+    sourcePackIds: ['pack_01', 'pack_02', 'pack_33'],
     entries: [
       {
         id: 'photo-film-process',
@@ -186,6 +186,12 @@ export const STYLE_COLLECTIONS = [
         kind: 'category',
         packId: 'pack_02',
         categoryName: '4. Photography Eras',
+      },
+      {
+        id: 'pack33-night-optics',
+        kind: 'category',
+        packId: 'pack_33',
+        categoryName: '2. Night Optics & Camera-less Prints',
       },
     ],
     facets: {
@@ -201,7 +207,7 @@ export const STYLE_COLLECTIONS = [
     description: 'Lighting setups, optical effects, atmosphere, and camera-adjacent techniques.',
     icon: 'bolt',
     order: 30,
-    sourcePackIds: ['pack_01', 'pack_02', 'pack_03', 'pack_10'],
+    sourcePackIds: ['pack_01', 'pack_02', 'pack_03', 'pack_10', 'pack_33'],
     entries: [
       {
         id: 'photo-lighting',
@@ -239,6 +245,12 @@ export const STYLE_COLLECTIONS = [
         displayCategory: 'Light Line Systems',
         role: 'cross_link',
         facetOverrides: { technique: ['neon', 'light'] },
+      },
+      {
+        id: 'pack33-night-light-sources',
+        kind: 'category',
+        packId: 'pack_33',
+        categoryName: '3. Night Light Sources',
       },
     ],
     facets: { technique: ['lighting', 'optics', 'atmosphere'] },
@@ -807,7 +819,7 @@ export const STYLE_COLLECTIONS = [
     description: 'Pigment, paint handling, traditional surfaces, and mixed media.',
     icon: 'brush',
     order: 40,
-    sourcePackIds: ['pack_06', 'pack_11', 'pack_22', 'pack_31'],
+    sourcePackIds: ['pack_06', 'pack_11', 'pack_22', 'pack_31', 'pack_33'],
     entries: [
       {
         id: 'traditional-painting',
@@ -835,6 +847,12 @@ export const STYLE_COLLECTIONS = [
         kind: 'category',
         packId: 'pack_31',
         categoryName: '1. Habitat Paintings and Specimen Plates',
+      },
+      {
+        id: 'pack33-nightmare-paintings',
+        kind: 'category',
+        packId: 'pack_33',
+        categoryName: '1. Nightmare Paintings & Prints',
       },
     ],
     facets: { medium: ['painting', 'mixed-media'] },
@@ -934,7 +952,7 @@ export const STYLE_COLLECTIONS = [
       'Natural and synthetic materials, tactile surfaces, fabrics, and texture workflows.',
     icon: 'layers',
     order: 20,
-    sourcePackIds: ['pack_09', 'pack_10', 'pack_08', 'pack_03', 'pack_29', 'pack_30'],
+    sourcePackIds: ['pack_09', 'pack_10', 'pack_08', 'pack_03', 'pack_29', 'pack_30', 'pack_33'],
     entries: [
       { id: 'pack09-materials', kind: 'pack', packId: 'pack_09' },
       {
@@ -969,6 +987,18 @@ export const STYLE_COLLECTIONS = [
         kind: 'category',
         packId: 'pack_30',
         categoryName: '1. Ceramic and Glass Surfaces',
+      },
+      {
+        id: 'pack33-thread-fiber',
+        kind: 'category',
+        packId: 'pack_33',
+        categoryName: '4. Thread & Fiber Nightcraft',
+      },
+      {
+        id: 'pack33-paper-wood-stone',
+        kind: 'category',
+        packId: 'pack_33',
+        categoryName: '5. Paper, Wood & Stone Nightcraft',
       },
     ],
     facets: { medium: ['material', 'texture'], workflow: ['texture'] },
@@ -1155,8 +1185,22 @@ export const STYLE_COLLECTIONS = [
       'Logos, icons, interfaces, products, packaging, type, editorial, data, textiles, merch, wayfinding and motion styleframes. Requested words, marks and data stay exact.',
     icon: 'layers',
     order: 55,
-    sourcePackIds: ['pack_25'],
-    entries: [{ id: 'applied-design-pack', kind: 'pack', packId: 'pack_25' }],
+    sourcePackIds: ['pack_25', 'pack_34'],
+    entries: [
+      { id: 'applied-design-pack', kind: 'pack', packId: 'pack_25' },
+      {
+        id: 'pack34-sticker-sheets',
+        kind: 'category',
+        packId: 'pack_34',
+        categoryName: '1. Sticker Sheets & Finishes',
+      },
+      {
+        id: 'pack34-sticker-habitats',
+        kind: 'category',
+        packId: 'pack_34',
+        categoryName: '3. Sticker Habitats',
+      },
+    ],
     facets: { workflow: ['image', 'edit'] },
   },
   {
@@ -1409,7 +1453,7 @@ export const STYLE_COLLECTIONS = [
       'Toys, handmade craft, food looks, playful objects, and scale-shift visual systems.',
     icon: 'smile',
     order: 20,
-    sourcePackIds: ['pack_11', 'pack_07', 'pack_28', 'pack_32'],
+    sourcePackIds: ['pack_11', 'pack_07', 'pack_28', 'pack_32', 'pack_34'],
     featuredPresetIds: ['SP11-001', 'SP11-046', 'SP11-032', 'SP07-065', 'SP07-070'],
     entries: [
       {
@@ -1445,6 +1489,12 @@ export const STYLE_COLLECTIONS = [
         kind: 'category',
         packId: 'pack_32',
         categoryName: '1. Painted and Stitched Local Traditions',
+      },
+      {
+        id: 'pack34-mascots-charms',
+        kind: 'category',
+        packId: 'pack_34',
+        categoryName: '2. Mascots, Charms & Merch',
       },
     ],
     facets: { medium: ['toy', 'craft', 'food'], technique: ['scale'] },

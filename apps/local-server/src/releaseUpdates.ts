@@ -283,6 +283,7 @@ export function createReleaseUpdates({
     currentCommit: null,
     latestCommit: null,
     behind: 0,
+    commits: [],
     canUpdate: false,
     canRestart: false,
     blocker: null,

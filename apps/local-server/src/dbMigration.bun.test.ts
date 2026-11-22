@@ -330,6 +330,7 @@ function inspectJobsSummary() {
       ['a-2', 'batch-a', 'queued', 2, null],
       ['a-3', 'batch-a', 'completed', 3, null],
       ['solo', null, 'queued', 5, null],
+      ['stuck', null, 'running', 45, null],
       ['f-1', 'batch-f', 'failed', 30, 'Quota reached'],
       ['f-2', 'batch-f', 'failed', 40, 'Older error'],
       ['f-old', 'batch-old', 'failed', 25 * 60, 'Yesterday'],
@@ -362,18 +363,20 @@ function inspectJobsSummary() {
       queries.length === 5 &&
       tableScans.length === 0 &&
       JSON.stringify(summary.counts) ===
-        JSON.stringify({ queued: 2, running: 1, needs_review: 2 }) &&
+        JSON.stringify({ queued: 2, running: 2, needs_review: 2 }) &&
       summary.reviewGroups === 1 &&
+      JSON.stringify(summary.longRunning) ===
+        JSON.stringify({ count: 1, jobId: 'stuck', since: ago(45) }) &&
       summary.active.map(({ batchId, jobId }) => `${batchId}:${jobId}`).join() ===
-        'batch-a:a-1,null:solo' &&
+        'batch-a:a-1,null:solo,null:stuck' &&
       summary.active[0]?.counts.completed === 1 &&
       summary.active[0]?.workspaceName === 'Alpha' &&
       summary.recentFailures.length === 1 &&
       summary.recentFailures[0]?.failed === 2 &&
       summary.recentFailures[0]?.error === 'Quota reached' &&
-      active.open.length === 5 &&
+      active.open.length === 6 &&
       active.history.length === 0 &&
-      running.open.map(({ id }) => id).join() === 'a-1' &&
+      running.open.map(({ id }) => id).join() === 'a-1,stuck' &&
       running.history.length === 0
     );
   } finally {

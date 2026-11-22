@@ -159,6 +159,7 @@ function createFakeStores(overrides?: StudioStoreOverrides) {
       active: [],
       recentFailures: [],
       reviewGroups: 0,
+      longRunning: { count: 0, jobId: null, since: null },
     })),
     ...overrides,
   };

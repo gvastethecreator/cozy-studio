@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
+import { LATEST_DATABASE_SCHEMA_VERSION, readSchemaVersion } from './migrations';
 import { openTestDatabase } from './testDatabase';
 
 describe('migrateDatabase', () => {
+  it('reports the newest applied schema version', () => {
+    expect(readSchemaVersion(openTestDatabase())).toBe(LATEST_DATABASE_SCHEMA_VERSION);
+  });
+
   it('creates composite catalog indexes for hot workspace and gallery queries', () => {
     const database = openTestDatabase();
     const indexSql = (name: string) =>

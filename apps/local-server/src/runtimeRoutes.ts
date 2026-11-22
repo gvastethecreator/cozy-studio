@@ -12,6 +12,7 @@ import type { getSettings } from './config';
 import { createCheckingCodexRuntimeReport, readCodexRuntimeDoctor } from './codexRuntimeDoctor';
 import type { getAppServerDiagnostics } from './codex/processSupervisor';
 import type { inspectLibrary } from './library';
+import type { StudioStorage } from './studioStorage';
 import type { WorkerStatus } from './worker';
 import type { StudioReadinessLifecycle } from './studioReadinessLifecycle';
 import {
@@ -49,6 +50,8 @@ interface RuntimeRoutesDependencies {
   readGrokOnboardingFacts?: () => { grokCliAvailable: boolean; grokLoggedIn: boolean };
   readSubscriptionFacts?: () => { codexSignedIn: boolean; grokSignedIn: boolean };
   readEditableSettings?: () => { defaultProviderId?: GenerationProviderId | null };
+  /** The Library disk's free space and the database's size and schema; absent in tests. */
+  readStorage?: () => StudioStorage;
 }
 
 function redactRuntimeDoctor(report: CodexRuntimeDoctorReport): CodexRuntimeDoctorReport {
@@ -132,6 +135,7 @@ export function createRuntimeRoutes({
   readGrokOnboardingFacts = () => ({ grokCliAvailable: false, grokLoggedIn: false }),
   readSubscriptionFacts = readSubscriptionOnboardingFacts,
   readEditableSettings,
+  readStorage,
 }: RuntimeRoutesDependencies) {
   const routes = new Hono();
 
@@ -215,7 +219,16 @@ export function createRuntimeRoutes({
       worker: readWorkerStatus(),
       providerDispatch: { hold: providerDispatchHeld() },
       subscriptionHttp: { revision: SUBSCRIPTION_HTTP_DIAGNOSTIC_REVISION },
+      storage: readStorageOrNull(),
     };
+  };
+
+  const readStorageOrNull = () => {
+    try {
+      return readStorage?.() ?? null;
+    } catch {
+      return null;
+    }
   };
 
   const buildOnboardingResponse = (health: ReturnType<typeof buildHealthResponse>) => {

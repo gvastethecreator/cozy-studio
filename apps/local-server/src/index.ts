@@ -10,6 +10,8 @@ import { LOCAL_EXTENSION_BODY_LIMIT } from './localExtensionInstall';
 import { LIBRARY_ARCHIVE_MAX_BYTES } from '../../../packages/shared/src/libraryArchive';
 import { MIN_BUN_VERSION } from './imagePipeline';
 import { removeStudioServerDiscovery, writeStudioServerDiscovery } from './serverDiscovery';
+import { readStudioStorage } from './studioStorage';
+import { getDb } from './db/connection';
 import studioPackage from '../../../package.json';
 
 export { createStudioApp } from './appFactory';
@@ -34,6 +36,7 @@ if (import.meta.main) {
           }
         : undefined,
     stop: () => stopProcess(),
+    readStorage: () => readStudioStorage(getSettings().libraryDir, getDb()),
   });
   const configuredPort = getSettings().serverPort;
   const hostname = '127.0.0.1';

@@ -54,6 +54,7 @@ export function createRepositoryUpdates({
     currentCommit: null,
     latestCommit: null,
     behind: 0,
+    commits: [],
     canUpdate: false,
     canRestart: false,
     blocker: null,
@@ -67,6 +68,7 @@ export function createRepositoryUpdates({
     state.latestVersion = null;
     state.checkedAt = null;
     state.behind = 0;
+    state.commits = [];
     state.canUpdate = false;
     state.blocker = null;
     state.error = null;
@@ -132,6 +134,7 @@ export function createRepositoryUpdates({
     state.latestCommit = null;
     state.latestVersion = null;
     state.behind = 0;
+    state.commits = [];
     if (channel === 'releases') {
       const release = await readRelease();
       await git(
@@ -180,8 +183,21 @@ export function createRepositoryUpdates({
       ),
     ]);
     const [ahead, behind] = counts.split(/\s+/).map(Number);
+    const log = behind
+      ? await git(
+          ['log', '--no-merges', '-n', '20', '--format=%H%x1f%s', `HEAD..${state.latestCommit}`],
+          'Cannot list the new commits.',
+        )
+      : '';
     assertChannel(channel);
     state.behind = behind;
+    state.commits = log
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        const [commit = '', title = ''] = line.split('\x1f');
+        return { commit, title };
+      });
     // A blocker only matters when there is something to apply.
     state.blocker =
       behind === 0 && !needsInstall
@@ -271,6 +287,7 @@ export function createRepositoryUpdates({
         state.currentCommit = expectedCommit;
         state.currentVersion = await readCommitVersion(expectedCommit);
         state.behind = 0;
+        state.commits = [];
       }
       await install();
       needsInstall = false;

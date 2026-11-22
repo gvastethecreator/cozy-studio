@@ -166,7 +166,7 @@ Studio stores the filing in `sourceSpec.metadata.libraryOrganization` and applie
 
 `studio_jobs` takes `limit`, `workspaceId`, `status`, `cursor` and `summary`. Without `status`, or with a finished status (`completed`, `failed` or `cancelled`), it returns every open job (queued, running and `needs_review`) and one page of finished history filtered by that status. `status: "active"` returns only the open jobs, and `queued`, `running` or `needs_review` only the open jobs in that state, both with no history.
 
-With `summary: true`, `studio_jobs` ignores the other arguments and returns the jobs summary for all workspaces: `{counts: {queued, running, needs_review}, active, recentFailures, reviewGroups}`. A group is one batch, or one job sent alone (`batchId: null`), with `jobId` (its newest job), `workspaceId`, `workspaceName`, `providerId`, `promptPreview` and `updatedAt`. `active` lists up to 10 groups with queued or running jobs, newest first, and `counts` by state covers every job in the group, for progress. `recentFailures` lists up to 10 groups with jobs that failed in the last 24 hours, with `failed` (how many) and `error` (the newest error, at most 160 characters). `reviewGroups` counts the groups that hold `needs_review` jobs. Use it to check progress: it reads no job lists.
+With `summary: true`, `studio_jobs` ignores the other arguments and returns the jobs summary for all workspaces: `{counts: {queued, running, needs_review}, active, recentFailures, reviewGroups, longRunning}`. A group is one batch, or one job sent alone (`batchId: null`), with `jobId` (its newest job), `workspaceId`, `workspaceName`, `providerId`, `promptPreview` and `updatedAt`. `active` lists up to 10 groups with queued or running jobs, newest first, and `counts` by state covers every job in the group, for progress. `recentFailures` lists up to 10 groups with jobs that failed in the last 24 hours, with `failed` (how many) and `error` (the newest error, at most 160 characters). `reviewGroups` counts the groups that hold `needs_review` jobs. `longRunning` counts the running jobs with no update for 30 minutes, with `jobId` and `since` of the one quiet the longest. Use it to check progress: it reads no job lists.
 
 `studio_cancel` takes `{jobId}`. Finished jobs stay unchanged. Jobs that wait for human review keep that requirement. Cancelling does not guarantee a provider refund.
 
@@ -251,7 +251,7 @@ Loopback HTTP has no Agent access check: Studio checks only the host and the bro
 
 | Route                          | Use                                                                                            |
 | ------------------------------ | ---------------------------------------------------------------------------------------------- |
-| `GET /api/health`              | Backend health.                                                                                |
+| `GET /api/health`              | Backend health, worker pool and `storage` (Library disk space, database size, schema version). |
 | `GET /api/onboarding/probe`    | First-run readiness.                                                                           |
 | `GET /api/readiness`           | Provider readiness.                                                                            |
 | `GET /api/providers/preflight` | Provider runtime preflight.                                                                    |

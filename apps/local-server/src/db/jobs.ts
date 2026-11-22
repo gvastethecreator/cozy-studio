@@ -523,6 +523,7 @@ export function listJobSummaries(query: JobListQuery = {}, db?: Database) {
 
 const JOBS_SUMMARY_GROUP_LIMIT = 10;
 const JOBS_SUMMARY_FAILURE_WINDOW_MS = 24 * 60 * 60 * 1000;
+const JOBS_SUMMARY_LONG_RUNNING_MS = 30 * 60 * 1000;
 const JOBS_SUMMARY_COLUMNS = `jobs.id, jobs.batch_id, jobs.workspace_id, jobs.provider_id, jobs.status,
   jobs.error, jobs.updated_at, COALESCE(workspaces.name, jobs.workspace_id) AS workspace_name,
   substr(COALESCE(NULLIF(trim(jobs.final_prompt_used), ''), jobs.original_prompt, ''), 1, 160) AS prompt_preview`;
@@ -600,6 +601,10 @@ export function readJobsSummaryFromDb(database: Database, at = Date.now()): Jobs
         `SELECT ${JOBS_SUMMARY_COLUMNS} FROM ${JOBS_SUMMARY_FROM} WHERE jobs.status = 'failed' AND jobs.updated_at >= ?`,
       )
       .all(new Date(at - JOBS_SUMMARY_FAILURE_WINDOW_MS).toISOString()) as JobsSummaryRow[];
+    const quietSince = new Date(at - JOBS_SUMMARY_LONG_RUNNING_MS).toISOString();
+    const longRunning = working
+      .filter((row) => row.status === 'running' && row.updated_at < quietSince)
+      .sort((left, right) => left.updated_at.localeCompare(right.updated_at));
     return {
       counts,
       active: groupJobsSummaryRows([
@@ -623,6 +628,11 @@ export function readJobsSummaryFromDb(database: Database, at = Date.now()): Jobs
         error: rows[0]!.error && createPromptPreview(rows[0]!.error),
       })),
       reviewGroups,
+      longRunning: {
+        count: longRunning.length,
+        jobId: longRunning[0]?.id ?? null,
+        since: longRunning[0]?.updated_at ?? null,
+      },
     };
   })();
 }

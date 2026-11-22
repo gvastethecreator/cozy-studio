@@ -144,6 +144,7 @@ describe('repository updates', { timeout: GIT_TIMEOUT }, () => {
     it('checks origin/main without changing HEAD, then fast-forwards, installs and restarts once', async () => {
       expect(checked).toMatchObject({
         behind: 1,
+        commits: [{ commit: target, title: 'update' }],
         latestCommit: target,
         canUpdate: true,
       });

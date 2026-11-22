@@ -325,6 +325,12 @@ function readAppliedVersions(database: Database) {
   return new Set(rows.map((row) => row.version));
 }
 
+/** The newest migration applied to the database, or null before the first. */
+export function readSchemaVersion(database: Database) {
+  const versions = [...readAppliedVersions(database)];
+  return versions.length ? Math.max(...versions) : null;
+}
+
 /** Stops before any write when the database predates the baseline. A new database passes. */
 function assertSupportedSchema(database: Database, appliedVersions: Set<number>) {
   if (appliedVersions.has(BASELINE_SCHEMA_VERSION)) return;

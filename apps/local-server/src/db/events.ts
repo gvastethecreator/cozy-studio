@@ -89,11 +89,21 @@ export function pruneSystemLogs(options: { maxRows?: number } = {}, db?: Databas
     .run(maxRows);
 }
 
-export function listLogs(db?: Database) {
-  return getDb(db)
-    .query('SELECT * FROM system_logs ORDER BY id DESC LIMIT 300')
-    .all()
-    .map((row) => mapLog(row as Record<string, unknown>));
+/** The newest logs, newest first: at most `limit` (300 when absent), only `level` when given. */
+export function listLogs(filter: LogFilter = {}, db?: Database) {
+  const limit = filter.limit ?? 300;
+  return (
+    filter.level
+      ? getDb(db)
+          .query('SELECT * FROM system_logs WHERE level = ? ORDER BY id DESC LIMIT ?')
+          .all(filter.level, limit)
+      : getDb(db).query('SELECT * FROM system_logs ORDER BY id DESC LIMIT ?').all(limit)
+  ).map((row) => mapLog(row as Record<string, unknown>));
+}
+
+export interface LogFilter {
+  level?: SystemLog['level'];
+  limit?: number;
 }
 
 export function listJobEvents(jobId: string, db?: Database) {

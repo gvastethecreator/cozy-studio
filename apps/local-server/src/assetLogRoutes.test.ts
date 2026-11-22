@@ -31,9 +31,13 @@ describe('assetLogRoutes', () => {
       },
     ];
 
+    const filters: unknown[] = [];
     const routes = createAssetLogRoutes({
       listAssets: () => assets,
-      listLogs: () => logs,
+      listLogs: (filter) => {
+        filters.push(filter);
+        return logs;
+      },
     });
 
     const assetsResponse = await routes.request('/assets');
@@ -43,5 +47,9 @@ describe('assetLogRoutes', () => {
     const logsResponse = await routes.request('/logs');
     expect(logsResponse.status).toBe(200);
     await expect(logsResponse.json()).resolves.toEqual(logs);
+    expect((await routes.request('/logs?level=error&limit=1000')).status).toBe(200);
+    expect((await routes.request('/logs?level=fatal')).status).toBe(400);
+    expect((await routes.request('/logs?limit=ten')).status).toBe(400);
+    expect(filters).toEqual([{}, { level: 'error', limit: 300 }]);
   });
 });

@@ -231,4 +231,4 @@ bun run storage:thumbnails:backfill -- --limit=1000 --write --confirm=backfill-t
 
 ### I cannot find older log lines
 
-Backend logs rotate under `.studio/logs/history`. `/api/logs` and the activity panel show a recent window, not the full history.
+Backend logs rotate under `.studio/logs/history`. `/api/logs` and the activity panel show a recent window, not the full history. `/api/logs?level=error&limit=10` returns the newest errors only.

@@ -105,6 +105,7 @@ import { createLibrariesRoutes, type LibrariesRoutesDependencies } from './libra
 import { createJobRoutes } from './jobRoutes';
 import { jobBatchStore } from './db/jobBatches';
 import { createAssetLogRoutes } from './assetLogRoutes';
+import type { StudioStorage } from './studioStorage';
 import { createRuntimeRoutes } from './runtimeRoutes';
 import { createStudioControlRoutes } from './studioControlRoutes';
 import { createRepositoryUpdates } from './repositoryUpdates';
@@ -198,6 +199,8 @@ export interface CreateStudioAppOptions {
   restart?: () => void;
   /** Shuts the process down like SIGINT, for POST /api/updates/stop. */
   stop?: () => void;
+  /** The Library disk's free space and the database's size and schema, for GET /api/health. */
+  readStorage?: () => StudioStorage;
   /** Fetch origin/main once at startup so the UI and agents learn about updates on open. */
   checkUpdatesOnStart?: boolean;
   dependencies?: {
@@ -389,6 +392,7 @@ export async function createStudioApp(
       readiness,
       readGrokOnboardingFacts: () => grokOnboardingFactsFromDoctor(readGrokRuntimeDoctorFn()),
       readEditableSettings: () => readEditableStudioSettings(settingsStorage),
+      readStorage: options.readStorage,
     }),
   );
 
@@ -659,7 +663,7 @@ export async function createStudioApp(
     '/api',
     createAssetLogRoutes({
       listAssets: () => assetStore.listAssets(),
-      listLogs: () => logStore.listLogs(),
+      listLogs: (filter) => logStore.listLogs(filter),
     }),
   );
 

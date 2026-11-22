@@ -12,6 +12,8 @@ export interface RepositoryUpdateStatus {
   currentCommit: string | null;
   latestCommit: string | null;
   behind: number;
+  /** The newest commits an update would apply, newest first, at most 20. Empty for releases. */
+  commits: Array<{ commit: string; title: string }>;
   canUpdate: boolean;
   canRestart: boolean;
   blocker: string | null;

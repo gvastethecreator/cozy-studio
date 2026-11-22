@@ -333,6 +333,8 @@ export interface JobsSummary {
   recentFailures: Array<JobsSummaryGroup & { failed: number; error: string | null }>;
   /** How many groups hold needs_review jobs. */
   reviewGroups: number;
+  /** Running jobs with no update for 30 minutes, and the one quiet the longest. */
+  longRunning: { count: number; jobId: string | null; since: string | null };
 }
 export type JobCounts = Record<JobStatus, number> & {
   open: number;

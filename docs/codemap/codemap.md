@@ -1,15 +1,15 @@
 # Code map: cozy-studio
 
-Generated: 2026-11-21T08:13:01Z | Commit: `f8159662af11` | Schema: 2
-Generation: `f281addc8591d9a502525f0622d5ea46c1d35efc3511821bffd05819b4bb7b91`
+Generated: 2026-11-23T04:18:48Z | Commit: `b0100c2dd3a8` | Schema: 2
+Generation: `1b0e85ffa588032d1057e95695fd5f521e2eff32674fc3e33f06a6f0e965a508`
 Scope: . | Inventory: working-tree
-Nodes: 1053 | Edges: 7439 | Flows: 0
+Nodes: 1064 | Edges: 7555 | Flows: 0
 
 ## Coverage
 
-- Analysis: **partial**; 994 analyzed of 1012 included files.
+- Analysis: **partial**; 1004 analyzed of 1023 included files.
 - Configuration files: 7; omitted untracked files: 0.
-- Unresolved references and analysis limits: 5442.
+- Unresolved references and analysis limits: 5486.
 - Static references and call paths do not prove runtime execution or test coverage.
 
 ## Modules
@@ -29,12 +29,12 @@ Nodes: 1053 | Edges: 7439 | Flows: 0
 - `apps/local-server/src/appFactory.test.ts` | module | Repository | callers: none | callees: none | tests: 0 | entry: none
 - `apps/local-server/src/appFactory.ts` | module | Repository | callers: apps/local-server/src/index.ts, apps/local-server/src/index.ts | callees: apps/local-server/src/animationSequenceRoutes.ts, apps/local-server/src/animationSequenceRoutes.ts, apps/local-server/src/animationSequenceRunReconciler.ts, apps/local-server/src/animationSequenceRunReconciler.ts | tests: 0 | entry: none
 - `apps/local-server/src/assetLogRoutes.test.ts` | module | Repository | callers: none | callees: apps/local-server/src/assetLogRoutes.ts, apps/local-server/src/assetLogRoutes.ts, external:javascript:vitest, external:javascript:vitest | tests: 0 | entry: none
-- `apps/local-server/src/assetLogRoutes.ts` | module | Repository | callers: apps/local-server/src/appFactory.ts, apps/local-server/src/appFactory.ts, apps/local-server/src/assetLogRoutes.test.ts, apps/local-server/src/assetLogRoutes.test.ts | callees: external:javascript:hono, packages/shared/src/index.ts | tests: 1 | entry: none
+- `apps/local-server/src/assetLogRoutes.ts` | module | Repository | callers: apps/local-server/src/appFactory.ts, apps/local-server/src/appFactory.ts, apps/local-server/src/assetLogRoutes.test.ts, apps/local-server/src/assetLogRoutes.test.ts | callees: apps/local-server/src/db/events.ts, external:javascript:hono, packages/shared/src/index.ts | tests: 1 | entry: none
 - `apps/local-server/src/auth/authRoutes.test.ts` | module | Repository | callers: none | callees: apps/local-server/src/auth/authRoutes.ts, apps/local-server/src/auth/authRoutes.ts, apps/local-server/src/auth/constants.ts, apps/local-server/src/auth/controller.ts | tests: 0 | entry: none
 - `apps/local-server/src/auth/authRoutes.ts` | module | Repository | callers: apps/local-server/src/appFactory.ts, apps/local-server/src/appFactory.ts, apps/local-server/src/auth/authRoutes.test.ts, apps/local-server/src/auth/authRoutes.test.ts | callees: apps/local-server/src/auth/controller.ts, apps/local-server/src/auth/oauthHttp.ts, apps/local-server/src/auth/oauthHttp.ts, external:javascript:hono | tests: 1 | entry: none
 - `apps/local-server/src/auth/constants.ts` | module | Repository | callers: apps/local-server/src/auth/authRoutes.test.ts, apps/local-server/src/auth/deviceCode.test.ts, apps/local-server/src/auth/deviceCode.ts, apps/local-server/src/auth/deviceCode.ts | callees: none | tests: 3 | entry: none
 - `apps/local-server/src/auth/controller.ts` | module | Repository | callers: apps/local-server/src/auth/authRoutes.test.ts, apps/local-server/src/auth/authRoutes.test.ts, apps/local-server/src/auth/authRoutes.ts, apps/local-server/src/reset.ts | callees: apps/local-server/src/auth/deviceCode.ts, apps/local-server/src/auth/googleAuthorizationCode.ts, apps/local-server/src/auth/oauthHttp.ts, apps/local-server/src/auth/oauthHttp.ts | tests: 1 | entry: none
-- Showing 20 of 1053 nodes. Query `impact --module <path>` or open the HTML hierarchy for the rest.
+- Showing 20 of 1064 nodes. Query `impact --module <path>` or open the HTML hierarchy for the rest.
 
 ## Edges
 
@@ -88,7 +88,7 @@ Nodes: 1053 | Edges: 7439 | Flows: 0
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/animationGifEncoder.ts` | calls
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/animationGifEncoder.ts` | imports
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/db/jobs.ts` | imports
-- Showing 50 of 7439 edges; JSON contains every edge and its evidence.
+- Showing 50 of 7555 edges; JSON contains every edge and its evidence.
 
 ## Unknown
 
@@ -111,7 +111,7 @@ Nodes: 1053 | Edges: 7439 | Flows: 0
 
 ## Architecture changes
 
-- Nodes: +4 / -0; edges: +54 / -14.
+- Nodes: +11 / -0; edges: +134 / -18.
 - Boundary changes: 0; new cycles: 0.
 
 ## Read next

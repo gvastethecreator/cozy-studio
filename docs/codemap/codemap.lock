@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
-  "source_commit": "1a81b8f389f1ff8e66efbe911f1815817c8837bc",
+  "source_commit": "bac3ca739c4ad50ee059a4fe07c763ae90f9c23f",
   "working_tree_dirty": false,
-  "generated_at": "2026-11-23T14:37:41Z",
-  "generation_id": "5d2103405a36419c7fa86f214078897792b38a7f964c6d2c07f7c045bdaec079",
+  "generated_at": "2026-11-23T14:50:21Z",
+  "generation_id": "dae33ff3a5192f3bbb284996f9ab6e4d8950d84abb3025ac25b76941f2ac8a32",
   "analysis": {
     "version": "syntax-1",
     "digest": "ae6d608d107619ec3efae990b53b43e523c90e8f5d2c3e86ab86c9e8ec95d260"
@@ -5850,7 +5850,7 @@
         "path": "package.json",
         "origin": "tracked",
         "state": "present",
-        "digest": "b77928fba1fbb6dc8a888963eaeb910842e7ca7a87e7bd125e0c820988387d20",
+        "digest": "e9eb1d58786b75cc4cb580ca957c00a35a2a086e59b393aad9427c67c5693da5",
         "size": 6386
       },
       {
@@ -7233,12 +7233,12 @@
         "size": 1073
       }
     ],
-    "digest": "6a303b044c82e0af4cacdfa1654bdc48e6c32db557dd84d67ec2e05464522374"
+    "digest": "9550a8ac49e60cdcad348adbd88ba4333c30450c5e40f6270f4481d1719d6f62"
   },
-  "source_digest": "2dcdfb6e2478debb97f229e5d50bde7a2a2623696396a8b91a97fe6a9e3def5a",
+  "source_digest": "5fc9fc7d95b35dc62ed0f004c261c2b3ebaf76081ecbe59b54f6d20f7505bdea",
   "artifact_hashes": {
-    "codemap.json": "c4f83cff3bf42b03982ec4283f6d42c764f863ae94d312dc26d36485957eee02",
-    "codemap.md": "3506bd6521ffc80506bffa14065cfa1db45bd53bbc8c44d8a9d29b86b1491a91",
-    "codemap.html": "14412f12d6cf851fa1444c5ecaa7cce01d1ffdb1dc2a00d27edae8f4a1f07672"
+    "codemap.json": "b11ee7d88127e2221d37391536049dd24ec71af1bbadccf0073b7c6b2d58cba6",
+    "codemap.md": "b0f70783e7b8811e20410f7edf2cbaf513e724caa509ec4f7a4a94bb43c494fc",
+    "codemap.html": "d8780f6c899a91ebaa5ae9a068e3d19b3160687c1cef229ee3b95b5c71895139"
   }
 }

@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-23T14:37:41Z",
-  "generated_from_commit": "1a81b8f389f1ff8e66efbe911f1815817c8837bc",
+  "generated_at": "2026-11-23T14:50:21Z",
+  "generated_from_commit": "bac3ca739c4ad50ee059a4fe07c763ae90f9c23f",
   "scope": [
     "."
   ],
@@ -5851,7 +5851,7 @@
         "path": "package.json",
         "origin": "tracked",
         "state": "present",
-        "digest": "b77928fba1fbb6dc8a888963eaeb910842e7ca7a87e7bd125e0c820988387d20",
+        "digest": "e9eb1d58786b75cc4cb580ca957c00a35a2a086e59b393aad9427c67c5693da5",
         "size": 6386
       },
       {
@@ -7234,7 +7234,7 @@
         "size": 1073
       }
     ],
-    "digest": "6a303b044c82e0af4cacdfa1654bdc48e6c32db557dd84d67ec2e05464522374"
+    "digest": "9550a8ac49e60cdcad348adbd88ba4333c30450c5e40f6270f4481d1719d6f62"
   },
   "coverage": {
     "discovered_files": 1837,
@@ -341838,7 +341838,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "json-manifest",
-            "source_digest": "b77928fba1fbb6dc8a888963eaeb910842e7ca7a87e7bd125e0c820988387d20",
+            "source_digest": "e9eb1d58786b75cc4cb580ca957c00a35a2a086e59b393aad9427c67c5693da5",
             "kind": "file"
           }
         ]
@@ -591388,332 +591388,16 @@
     }
   ],
   "triggers": [],
-  "source_digest": "2dcdfb6e2478debb97f229e5d50bde7a2a2623696396a8b91a97fe6a9e3def5a",
+  "source_digest": "5fc9fc7d95b35dc62ed0f004c261c2b3ebaf76081ecbe59b54f6d20f7505bdea",
   "changes": {
-    "added_nodes": [
-      {
-        "id": "apps/local-server/src/managedFile.ts",
-        "path": "apps/local-server/src/managedFile.ts",
-        "type": "module",
-        "boundary": "Repository"
-      },
-      {
-        "id": "apps/local-server/src/storageVacuum.ts",
-        "path": "apps/local-server/src/storageVacuum.ts",
-        "type": "module",
-        "boundary": "Repository"
-      },
-      {
-        "id": "apps/local-server/src/storageVacuumWorker.ts",
-        "path": "apps/local-server/src/storageVacuumWorker.ts",
-        "type": "module",
-        "boundary": "Repository"
-      },
-      {
-        "id": "hooks/useInstalledStylePacksSync.ts",
-        "path": "hooks/useInstalledStylePacksSync.ts",
-        "type": "module",
-        "boundary": "Repository"
-      }
-    ],
+    "added_nodes": [],
     "removed_nodes": [],
-    "added_edges": [
-      {
-        "from": "apps/local-server/src/appFactory.ts",
-        "to": "apps/local-server/src/storageMaintenance.ts",
-        "type": "calls",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/appFactory.ts",
-        "to": "apps/local-server/src/storageMaintenance.ts",
-        "type": "imports",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/dbMigration.bun.test.ts",
-        "to": "apps/local-server/src/catalog.ts",
-        "type": "calls",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/dbMigration.bun.test.ts",
-        "to": "apps/local-server/src/catalog.ts",
-        "type": "imports",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/libraryArchive.ts",
-        "to": "apps/local-server/src/managedFile.ts",
-        "type": "calls",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/libraryArchive.ts",
-        "to": "apps/local-server/src/managedFile.ts",
-        "type": "imports",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/maintenanceRoutes.test.ts",
-        "to": "apps/local-server/src/storageVacuum.ts",
-        "type": "imports",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/managedFile.ts",
-        "to": "external:javascript:node:crypto",
-        "type": "calls",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/managedFile.ts",
-        "to": "external:javascript:node:crypto",
-        "type": "imports",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/managedFile.ts",
-        "to": "external:javascript:node:fs",
-        "type": "calls",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/managedFile.ts",
-        "to": "external:javascript:node:fs",
-        "type": "imports",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/managedFile.ts",
-        "to": "external:javascript:node:path",
-        "type": "imports",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/referenceImport.ts",
-        "to": "apps/local-server/src/managedFile.ts",
-        "type": "calls",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/referenceImport.ts",
-        "to": "apps/local-server/src/managedFile.ts",
-        "type": "imports",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/referenceManager.ts",
-        "to": "apps/local-server/src/managedFile.ts",
-        "type": "calls",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/referenceManager.ts",
-        "to": "apps/local-server/src/managedFile.ts",
-        "type": "imports",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/referenceManager.ts",
-        "to": "external:javascript:node:crypto",
-        "type": "calls",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/referenceManager.ts",
-        "to": "external:javascript:node:crypto",
-        "type": "imports",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/storageMaintenance.ts",
-        "to": "apps/local-server/src/storageVacuum.ts",
-        "type": "imports",
-        "type_only": true
-      },
-      {
-        "from": "apps/local-server/src/storageVacuum.ts",
-        "to": "apps/local-server/src/storageAudit.ts",
-        "type": "calls",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/storageVacuum.ts",
-        "to": "apps/local-server/src/storageAudit.ts",
-        "type": "imports",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/storageVacuumWorker.ts",
-        "to": "apps/local-server/src/storageVacuum.ts",
-        "type": "calls",
-        "type_only": false
-      },
-      {
-        "from": "apps/local-server/src/storageVacuumWorker.ts",
-        "to": "apps/local-server/src/storageVacuum.ts",
-        "type": "imports",
-        "type_only": false
-      },
-      {
-        "from": "components/recipes/StylesRecipe.tsx",
-        "to": "hooks/useInstalledStylePacksSync.ts",
-        "type": "calls",
-        "type_only": false
-      },
-      {
-        "from": "components/recipes/StylesRecipe.tsx",
-        "to": "hooks/useInstalledStylePacksSync.ts",
-        "type": "imports",
-        "type_only": false
-      },
-      {
-        "from": "components/settings/SettingsExtensionsPanel.tsx",
-        "to": "lib/installedStylePacks.ts",
-        "type": "calls",
-        "type_only": false
-      },
-      {
-        "from": "components/settings/SettingsExtensionsPanel.tsx",
-        "to": "lib/installedStylePacks.ts",
-        "type": "imports",
-        "type_only": false
-      },
-      {
-        "from": "hooks/useInstalledStylePacksSync.ts",
-        "to": "external:javascript:react",
-        "type": "calls",
-        "type_only": false
-      },
-      {
-        "from": "hooks/useInstalledStylePacksSync.ts",
-        "to": "external:javascript:react",
-        "type": "imports",
-        "type_only": false
-      },
-      {
-        "from": "hooks/useInstalledStylePacksSync.ts",
-        "to": "lib/installedStylePacks.ts",
-        "type": "calls",
-        "type_only": false
-      },
-      {
-        "from": "hooks/useInstalledStylePacksSync.ts",
-        "to": "lib/installedStylePacks.ts",
-        "type": "imports",
-        "type_only": false
-      },
-      {
-        "from": "hooks/useInstalledStylePacksSync.ts",
-        "to": "services/studioEventSource.ts",
-        "type": "calls",
-        "type_only": false
-      },
-      {
-        "from": "hooks/useInstalledStylePacksSync.ts",
-        "to": "services/studioEventSource.ts",
-        "type": "imports",
-        "type_only": false
-      },
-      {
-        "from": "main.tsx",
-        "to": "hooks/useInstalledStylePacksSync.ts",
-        "type": "calls",
-        "type_only": false
-      },
-      {
-        "from": "main.tsx",
-        "to": "hooks/useInstalledStylePacksSync.ts",
-        "type": "imports",
-        "type_only": false
-      }
-    ],
-    "removed_edges": [
-      {
-        "from": "apps/local-server/src/referenceManager.ts",
-        "to": "external:javascript:node:fs",
-        "type": "calls",
-        "type_only": false,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "apps/local-server/src/referenceManager.ts",
-              "symbol": "mkdirSync(referencesDir, { recursive: true })",
-              "start_line": 217,
-              "end_line": 217,
-              "extractor": "tree-sitter-typescript",
-              "source_digest": "25c3776494c66ff1fe2290f7235ae0a2104dccc8db5424df323389add19a80e8",
-              "kind": "call",
-              "resolved_target": "external:javascript:node:fs",
-              "target_symbol": "mkdirSync"
-            },
-            {
-              "path": "apps/local-server/src/referenceManager.ts",
-              "symbol": "writeFileSync(filePath, normalized.bytes)",
-              "start_line": 231,
-              "end_line": 231,
-              "extractor": "tree-sitter-typescript",
-              "source_digest": "25c3776494c66ff1fe2290f7235ae0a2104dccc8db5424df323389add19a80e8",
-              "kind": "call",
-              "resolved_target": "external:javascript:node:fs",
-              "target_symbol": "writeFileSync"
-            }
-          ]
-        },
-        "evidence_count": 2
-      },
-      {
-        "from": "apps/local-server/src/referenceManager.ts",
-        "to": "external:javascript:node:fs",
-        "type": "imports",
-        "type_only": false,
-        "evidence": {
-          "status": "verified",
-          "locations": [
-            {
-              "path": "apps/local-server/src/referenceManager.ts",
-              "symbol": "import { mkdirSync, writeFileSync } from 'node:fs';",
-              "start_line": 1,
-              "end_line": 1,
-              "extractor": "tree-sitter-typescript",
-              "source_digest": "25c3776494c66ff1fe2290f7235ae0a2104dccc8db5424df323389add19a80e8",
-              "kind": "import",
-              "resolved_target": "external:javascript:node:fs"
-            }
-          ]
-        },
-        "evidence_count": 1
-      }
-    ],
+    "added_edges": [],
+    "removed_edges": [],
     "boundary_changes": [],
     "new_cycles": [],
-    "changed": true,
-    "changed_node_ids": [
-      "apps/local-server/src/appFactory.ts",
-      "apps/local-server/src/catalog.ts",
-      "apps/local-server/src/dbMigration.bun.test.ts",
-      "apps/local-server/src/libraryArchive.ts",
-      "apps/local-server/src/maintenanceRoutes.test.ts",
-      "apps/local-server/src/managedFile.ts",
-      "apps/local-server/src/referenceImport.ts",
-      "apps/local-server/src/referenceManager.ts",
-      "apps/local-server/src/storageAudit.ts",
-      "apps/local-server/src/storageMaintenance.ts",
-      "apps/local-server/src/storageVacuum.ts",
-      "apps/local-server/src/storageVacuumWorker.ts",
-      "components/recipes/StylesRecipe.tsx",
-      "components/settings/SettingsExtensionsPanel.tsx",
-      "external:javascript:node:crypto",
-      "external:javascript:node:fs",
-      "external:javascript:node:path",
-      "external:javascript:react",
-      "hooks/useInstalledStylePacksSync.ts",
-      "lib/installedStylePacks.ts",
-      "main.tsx",
-      "services/studioEventSource.ts"
-    ]
+    "changed": false,
+    "changed_node_ids": []
   },
-  "generation_id": "5d2103405a36419c7fa86f214078897792b38a7f964c6d2c07f7c045bdaec079"
+  "generation_id": "dae33ff3a5192f3bbb284996f9ab6e4d8950d84abb3025ac25b76941f2ac8a32"
 }

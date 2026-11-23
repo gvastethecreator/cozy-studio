@@ -3,6 +3,7 @@ import { listRecoverableJobs } from './db/jobs';
 import { createStudioApp } from './appFactory';
 import { providerDispatchHeld, scheduleRecoverableJobs } from './providerDispatchHold';
 import { log } from './logger';
+import { startEventLoopMonitor } from './eventLoopMonitor';
 import { serveWithPortFallback } from './portUtils';
 import { beginSignalShutdown, shutdownStudioServer } from './serverShutdown';
 import { STUDIO_RESTART_EXIT_CODE } from '../../../packages/shared/src/repositoryUpdates';
@@ -78,6 +79,9 @@ if (import.meta.main) {
   );
 
   console.log(`Cozy Studio local-server listening on http://${hostname}:${boundPort}`);
+  startEventLoopMonitor((lagMs) =>
+    log('warn', 'server', `The event loop was blocked for ${lagMs} ms; requests waited that long.`),
+  );
 
   const dataRoot = resolveStudioDataRoot();
   try {

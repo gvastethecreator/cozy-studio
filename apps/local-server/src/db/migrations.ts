@@ -301,6 +301,30 @@ const DATABASE_MIGRATIONS = [
       database.run('ALTER TABLE workspaces ADD COLUMN style_scope_json TEXT');
     },
   },
+  {
+    version: 23,
+    name: 'assets-job-index',
+    migrate(database: Database) {
+      // Every finished job looks up its asset by job; without this each lookup read the whole table.
+      database.run('CREATE INDEX idx_assets_job_id ON assets(job_id)');
+    },
+  },
+  {
+    version: 24,
+    name: 'store-job-prompts-once',
+    migrate(database: Database) {
+      // An empty final prompt means "the original prompt", and an empty asset prompt means "the
+      // job's prompt": readers fall back to it (db/jobs.ts, db/assets.ts). The freed pages are
+      // reused; Library maintenance with VACUUM returns them to the disk.
+      database.run(`UPDATE assets SET prompt = ''
+        WHERE prompt <> '' AND prompt = (
+          SELECT COALESCE(NULLIF(jobs.final_prompt_used, ''), jobs.original_prompt)
+          FROM jobs WHERE jobs.id = assets.job_id
+        )`);
+      database.run(`UPDATE jobs SET final_prompt_used = ''
+        WHERE final_prompt_used <> '' AND final_prompt_used = original_prompt`);
+    },
+  },
 ] as const;
 
 export const LATEST_DATABASE_SCHEMA_VERSION =

@@ -18,6 +18,12 @@ export function getDb(db?: Database) {
     defaultDb.run('PRAGMA busy_timeout = 5000');
     defaultDb.run('PRAGMA journal_mode = WAL');
     defaultDb.run('PRAGMA foreign_keys = ON');
+    // Sized for a Library database of several hundred MB. NORMAL is durable with WAL: a commit
+    // waits for no fsync, and only a power loss can drop the last commits, never corrupt the file.
+    defaultDb.run('PRAGMA synchronous = NORMAL');
+    defaultDb.run('PRAGMA cache_size = -65536');
+    defaultDb.run('PRAGMA mmap_size = 268435456');
+    defaultDb.run('PRAGMA temp_store = MEMORY');
   }
   return defaultDb;
 }

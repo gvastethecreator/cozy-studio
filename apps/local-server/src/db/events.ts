@@ -81,10 +81,11 @@ export function pruneSystemLogs(options: { maxRows?: number } = {}, db?: Databas
     300,
     Math.floor(options.maxRows ?? Number(process.env.STUDIO_SYSTEM_LOG_RETENTION_ROWS || 5000)),
   );
+  // A rowid seek: NOT IN over the newest rows rebuilt a set of maxRows ids on every log write.
   getDb(db)
     .query(
       `DELETE FROM system_logs
-       WHERE id NOT IN (SELECT id FROM system_logs ORDER BY id DESC LIMIT ?)`,
+       WHERE id <= (SELECT id FROM system_logs ORDER BY id DESC LIMIT 1 OFFSET ?)`,
     )
     .run(maxRows);
 }

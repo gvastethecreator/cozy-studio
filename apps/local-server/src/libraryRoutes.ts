@@ -74,16 +74,14 @@ export function createLibraryRoutes({
       }
     }
 
+    // The Bun.file response goes out as it is, so Bun sends the file directly; copying its body
+    // into a new Response turned it into a plain stream.
     const fileResponse = createFileResponse(servedPath);
     const headers = buildLibraryAssetHeaders(servedPath, {
       cacheSeconds: resolveAssetCacheSeconds(variant),
     });
-
-    return new Response(fileResponse.body, {
-      status: fileResponse.status,
-      statusText: fileResponse.statusText,
-      headers,
-    });
+    for (const [name, value] of Object.entries(headers)) fileResponse.headers.set(name, value);
+    return fileResponse;
   });
 
   return routes;

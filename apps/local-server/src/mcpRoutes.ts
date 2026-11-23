@@ -41,6 +41,8 @@ import {
   type CatalogUnorganizedCount,
   type JobDetailResponse,
   type JobExecutionOptions,
+  type JobListPage,
+  type JobSummary,
   type JobsSummary,
 } from '../../../packages/shared/src/types';
 import {
@@ -57,6 +59,8 @@ type HttpCall = (path: string, payload?: unknown) => Promise<Response>;
 
 // Their runs coordinate many frames in the Studio UI (D6).
 const UI_ONLY_RECIPES = new Set(['sprite-atlas', 'animation-sequence']);
+/** Each studio_status read gets this long; together they stay well inside the MCP 30 s limit. */
+const STATUS_READ_TIMEOUT_MS = 8_000;
 // lib/recipeModules/styles.ts trusts these recipeParams as an already compiled style plan.
 const COMPILED_STYLE_FIELDS = [
   'compilerVersion',
@@ -338,18 +342,40 @@ export function createMcpRoutes({
       );
     switch (name) {
       case 'studio_status': {
-        const health = (await (await get('/api/health')).json()) as {
-          worker?: { pausedProviders?: Record<string, { message: string }> };
+        // The reads run together, each with its own limit: one slow read (a ChatGPT usage
+        // request, a git fetch) leaves its field null and listed in unavailable.
+        const unavailable: string[] = [];
+        const bounded = async (field: string, path: string) => {
+          let timer: ReturnType<typeof setTimeout> | undefined;
+          const timedOut = new Promise<null>((resolve) => {
+            timer = setTimeout(() => resolve(null), STATUS_READ_TIMEOUT_MS);
+          });
+          const value: unknown = await Promise.race([readJson(path), timedOut]);
+          clearTimeout(timer);
+          if (value == null) unavailable.push(field);
+          return value ?? null;
         };
-        const pauses = Object.entries(health.worker?.pausedProviders ?? {});
-        // A fresh read of the ChatGPT window and credits; null when Studio cannot read it.
-        const chatgptUsage = (await readJson('/api/providers/chatgpt/usage')) as {
+        const [health, usage, updates, summary, listed, counted] = await Promise.all([
+          bounded('health', '/api/health'),
+          // A fresh read of the ChatGPT window and credits; null when Studio cannot read it.
+          bounded('chatgptUsage', '/api/providers/chatgpt/usage'),
+          // Startup fetches origin/main once, so agents learn about updates on their first call.
+          bounded('update', '/api/updates'),
+          bounded('jobs', '/api/jobs/summary'),
+          // A failed workspace read counts nothing, so studio_status never fails on it.
+          bounded('unorganized', '/api/workspaces'),
+          bounded('unorganized', '/api/catalog/unorganized-counts'),
+        ]);
+        const pauses = Object.entries(
+          (health as { worker?: { pausedProviders?: Record<string, { message: string }> } } | null)
+            ?.worker?.pausedProviders ?? {},
+        );
+        const chatgptUsage = usage as {
           state?: string;
           summary?: string | null;
           creditPolicy?: string;
         } | null;
-        // Startup fetches origin/main once, so agents learn about updates on their first call.
-        const update = (await readJson('/api/updates')) as {
+        const update = updates as {
           source?: 'git' | 'release';
           channel?: 'commits' | 'releases';
           currentVersion?: string | null;
@@ -362,11 +388,8 @@ export function createMcpRoutes({
           checkedAt?: string | null;
         } | null;
         const behind = update?.behind ?? 0;
-        const jobs = (await readJson('/api/jobs/summary')) as JobsSummary | null;
-        // A failed workspace read counts nothing, so studio_status never fails on it.
-        const listed: unknown = await readJson('/api/workspaces');
+        const jobs = summary as JobsSummary | null;
         const workspaces = Array.isArray(listed) ? (listed as StudioWorkspace[]) : [];
-        const counted: unknown = await readJson('/api/catalog/unorganized-counts');
         const counts = new Map(
           (Array.isArray(counted) ? (counted as CatalogUnorganizedCount[]) : []).map(
             ({ workspaceId, count }) => [workspaceId, count],
@@ -403,6 +426,10 @@ export function createMcpRoutes({
             blocker: update.blocker ?? null,
             checkedAt: update.checkedAt ?? null,
           },
+          ...(unavailable.length > 0 && {
+            unavailable: [...new Set(unavailable)],
+            unavailableNotice: `Studio did not answer ${[...new Set(unavailable)].join(', ')} within ${STATUS_READ_TIMEOUT_MS / 1000} s; those fields are null or empty and the rest is current. Call studio_status again in a minute.`,
+          }),
           ...(behind > 0 && {
             notice: `${update?.channel === 'releases' ? `Studio version ${update.latestVersion} is available.` : `Studio is ${behind} commit${behind === 1 ? '' : 's'} behind origin/main.`} Tell the user an update is available and ask before applying it with studio_apply_update, or point them to Settings → Help & updates.`,
           }),
@@ -490,8 +517,26 @@ export function createMcpRoutes({
         return get(`/api/extensions/${String(args.extensionId)}/files/${String(args.path)}`);
       case 'studio_user_styles':
         return get('/api/styles/user');
-      case 'studio_jobs':
-        return args.summary ? get('/api/jobs/summary') : query('/api/jobs');
+      case 'studio_jobs': {
+        if (args.summary) return get('/api/jobs/summary');
+        const response = await query('/api/jobs');
+        if (!response.ok) return response;
+        // One short row per job; studio_job has the prompt, options and events of one job.
+        const page = (await response.json()) as Partial<JobListPage>;
+        const brief = (job: JobSummary) => ({
+          id: job.id,
+          status: job.status,
+          kind: job.kind,
+          providerId: job.providerId,
+          batchId: job.batchId ?? null,
+          error: job.error && job.error.length > 160 ? `${job.error.slice(0, 159)}…` : job.error,
+        });
+        return c.json({
+          ...page,
+          open: (page.open ?? []).map(brief),
+          history: (page.history ?? []).map(brief),
+        });
+      }
       case 'studio_job': {
         if (!args.detail) return get(`/api/jobs/${String(args.jobId)}/status`);
         const response = await get(`/api/jobs/${String(args.jobId)}`);

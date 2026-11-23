@@ -38,7 +38,7 @@ import {
   retryFailedJobBatch,
 } from './db/jobBatches';
 import type { Job, RetryJobBatchResponse } from '../../../packages/shared/src';
-import { addAsset } from './db/assets';
+import { addAsset, getAssetByJobId } from './db/assets';
 import { LATEST_DATABASE_SCHEMA_VERSION, migrateDatabase } from './db/migrations';
 import { createGenerationTaskSpec } from '../../../packages/shared/src/generationContracts';
 
@@ -164,11 +164,6 @@ function inspectOutputGenerations() {
   }
 }
 
-/** Undoes the newest migration (22: the workspace style scope column) so the next start applies it again. */
-function rewindLatestMigration(db: Database) {
-  db.run('ALTER TABLE workspaces DROP COLUMN style_scope_json');
-}
-
 function inspectPreMigrationBackup() {
   const root = mkdtempSync(path.join(os.tmpdir(), 'studio-pre-migration-'));
   const backupDir = path.join(root, 'state', 'pre-migration');
@@ -194,8 +189,7 @@ function inspectPreMigrationBackup() {
       );
     }
     writeFileSync(path.join(backupDir, 'notes.txt'), 'kept');
-    // Restore the v21 schema as well as its migration ledger before exercising v22.
-    rewindLatestMigration(db);
+    // The newest migration only rewrites repeated prompts, so removing its ledger row runs it again.
     db.query('DELETE FROM schema_migrations WHERE version = ?').run(latest);
     migrateDatabase(db);
     const backups = listBackups();
@@ -213,7 +207,6 @@ function inspectPreMigrationBackup() {
     failingDb = new Database(path.join(failingRoot, 'studio.sqlite'));
     migrateDatabase(failingDb);
     writeFileSync(path.join(failingRoot, 'state'), 'not a folder');
-    rewindLatestMigration(failingDb);
     failingDb.query('DELETE FROM schema_migrations WHERE version = ?').run(latest);
     let failure = '';
     try {
@@ -775,13 +768,68 @@ describe('database migrations', () => {
         preBaselineRefused: true,
         recoverableCheckpoint: true,
         summaryProjection: true,
-        schemaVersion: 22,
+        schemaVersion: 24,
         completeJobHistory: true,
         jobsSummary: true,
         executionPolicyPreserved: true,
         atomicBatchRecovery: true,
         durableOutputGenerations: true,
         preMigrationBackup: true,
+      });
+    } finally {
+      database.close();
+    }
+  });
+});
+
+describe('store-job-prompts-once migration', () => {
+  it('stores a repeated prompt once and reads the same prompts back', () => {
+    const database = createSeededDatabase();
+    try {
+      database
+        .query(
+          `INSERT INTO jobs (
+            id, workspace_id, kind, status, original_prompt, final_prompt_used, created_at, updated_at
+          ) VALUES (?, 'default', 'image_generate', 'completed', 'owl', 'owl, at dusk', ?, ?)`,
+        )
+        .run('job-rewritten', '2026-01-02', '2026-01-02');
+      // The seeded rows repeat each prompt, as every database before migration 24 does.
+      database.query('DELETE FROM schema_migrations WHERE version = 24').run();
+      migrateDatabase(database);
+      const stored = database
+        .query('SELECT id, final_prompt_used AS final FROM jobs ORDER BY id')
+        .all();
+      const storedAsset = database
+        .query("SELECT prompt FROM assets WHERE id = 'asset-sentinel'")
+        .get();
+      const readBack = {
+        sentinel: getJob('job-sentinel', database)?.finalPromptUsed,
+        rewritten: getJob('job-rewritten', database)?.finalPromptUsed,
+        asset: getAssetByJobId('job-sentinel', null, database)?.prompt,
+      };
+      updateJobFinalPrompt('job-rewritten', 'owl', database);
+      const rewrittenBack = database
+        .query("SELECT final_prompt_used AS final FROM jobs WHERE id = 'job-rewritten'")
+        .get();
+      expect({
+        stored,
+        storedAsset,
+        readBack,
+        rewrittenBack,
+        reread: getJob('job-rewritten', database)?.finalPromptUsed,
+      }).toEqual({
+        stored: [
+          { id: 'job-rewritten', final: 'owl, at dusk' },
+          { id: 'job-sentinel', final: '' },
+        ],
+        storedAsset: { prompt: '' },
+        readBack: {
+          sentinel: 'sentinel prompt',
+          rewritten: 'owl, at dusk',
+          asset: 'sentinel prompt',
+        },
+        rewrittenBack: { final: '' },
+        reread: 'owl',
       });
     } finally {
       database.close();

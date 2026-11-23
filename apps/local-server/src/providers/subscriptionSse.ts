@@ -17,7 +17,6 @@ export function consumeSseJson(
           }),
       );
       const decoder = new TextDecoder();
-      let pendingLine = '';
       let eventName: string | null = null;
       let dataLines: string[] = [];
       let frameChars = 0;
@@ -58,16 +57,28 @@ export function consumeSseJson(
         }
       };
 
+      // An image arrives as one data line of several MB. Only the new chunk is searched for line
+      // ends, and its pieces are joined once: rescanning the whole line per chunk blocked the
+      // event loop for about half a second per image.
+      let pendingParts: string[] = [];
+      let pendingChars = 0;
       const processChunk = (chunk: string) => {
-        pendingLine += chunk;
-        let newline = pendingLine.indexOf('\n');
+        let start = 0;
+        let newline = chunk.indexOf('\n');
         while (newline >= 0) {
-          const line = pendingLine.slice(0, newline).replace(/\r$/, '');
-          pendingLine = pendingLine.slice(newline + 1);
+          pendingParts.push(chunk.slice(start, newline));
+          const line = pendingParts.join('').replace(/\r$/, '');
+          pendingParts = [];
+          pendingChars = 0;
           processLine(line);
-          newline = pendingLine.indexOf('\n');
+          start = newline + 1;
+          newline = chunk.indexOf('\n', start);
         }
-        if (pendingLine.length + frameChars > maxFrameChars) {
+        if (start < chunk.length) {
+          pendingParts.push(chunk.slice(start));
+          pendingChars += chunk.length - start;
+        }
+        if (pendingChars + frameChars > maxFrameChars) {
           throw new Error('SSE image frame exceeded the size limit.');
         }
       };
@@ -81,6 +92,7 @@ export function consumeSseJson(
         processChunk(decoder.decode(value, { stream: true }));
       }
       processChunk(decoder.decode());
+      const pendingLine = pendingParts.join('');
       if (pendingLine) processLine(pendingLine.replace(/\r$/, ''));
       flush();
     }),

@@ -273,7 +273,7 @@ export const studioMcpTools = {
   studio_jobs: {
     access: 'read',
     description:
-      'List jobs in Studio, optionally by workspace or status. Without status, or with a finished status (completed, failed, cancelled), every open job (queued, running, needs_review) comes back with one page of finished history. status active returns only the open jobs, and queued, running or needs_review only those jobs, with no history. summary: true returns only the jobs summary for all workspaces (the same as studio_status jobs) and ignores the other arguments: use it to check progress without reading job lists.',
+      'List jobs in Studio, optionally by workspace or status. Without status, or with a finished status (completed, failed, cancelled), every open job (queued, running, needs_review) comes back with one page of finished history. status active returns only the open jobs, and queued, running or needs_review only those jobs, with no history. Each job row has only id, status, kind, providerId, batchId and a short error: use studio_job for the detail of one job. summary: true returns only the jobs summary for all workspaces (the same as studio_status jobs) and ignores the other arguments: use it to check progress without reading job lists.',
     schema: z.strictObject({
       ...page,
       workspaceId: id.optional(),

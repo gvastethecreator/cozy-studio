@@ -1,11 +1,14 @@
 import {
-  appendFileSync,
+  closeSync,
   existsSync,
+  fstatSync,
   mkdirSync,
+  openSync,
   readdirSync,
   renameSync,
   rmSync,
   statSync,
+  writeSync,
 } from 'node:fs';
 import path from 'node:path';
 
@@ -72,17 +75,44 @@ function pruneHistory(filePath: string, maxHistoryFiles: number) {
   }
 }
 
-function rotateLogIfNeeded(filePath: string, options: RotatingLogOptions = {}) {
-  const resolved = resolveRotatingLogOptions(options);
-  if (!existsSync(filePath)) return false;
-  const size = statSync(filePath).size;
-  if (size < resolved.maxBytes) return false;
-
+function rotateLog(filePath: string, resolved: ReturnType<typeof resolveRotatingLogOptions>) {
+  if (!existsSync(filePath)) return;
   const historyPath = createHistoryFilePath(filePath, resolved.now());
   mkdirSync(path.dirname(historyPath), { recursive: true });
   renameSync(filePath, historyPath);
   pruneHistory(filePath, resolved.maxHistoryFiles);
-  return true;
+}
+
+/**
+ * One open handle per log file, with its size counted here. On Windows, appendFileSync opens and
+ * closes the file for every line, about 20 ms each, and every log line blocked the event loop.
+ */
+const openLogs = new Map<string, { fd: number; size: number }>();
+
+function openLog(filePath: string) {
+  const open = openLogs.get(filePath);
+  if (open) return open;
+  mkdirSync(path.dirname(filePath), { recursive: true });
+  const fd = openSync(filePath, 'a');
+  const opened = { fd, size: fstatSync(fd).size };
+  openLogs.set(filePath, opened);
+  return opened;
+}
+
+function closeLog(filePath: string) {
+  const open = openLogs.get(filePath);
+  if (!open) return;
+  openLogs.delete(filePath);
+  try {
+    closeSync(open.fd);
+  } catch {
+    // The handle is gone already; the next line opens the file again.
+  }
+}
+
+/** Closes every open log file. Call it before deleting the logs folder. */
+export function closeRotatingLogs() {
+  for (const filePath of openLogs.keys()) closeLog(filePath);
 }
 
 export function appendRotatingLog(
@@ -90,7 +120,19 @@ export function appendRotatingLog(
   text: string,
   options: RotatingLogOptions = {},
 ) {
-  mkdirSync(path.dirname(filePath), { recursive: true });
-  rotateLogIfNeeded(filePath, options);
-  appendFileSync(filePath, text, 'utf8');
+  const resolved = resolveRotatingLogOptions(options);
+  let open = openLog(filePath);
+  if (open.size >= resolved.maxBytes) {
+    closeLog(filePath);
+    rotateLog(filePath, resolved);
+    open = openLog(filePath);
+  }
+  const bytes = Buffer.from(text, 'utf8');
+  try {
+    writeSync(open.fd, bytes);
+  } catch (error) {
+    closeLog(filePath);
+    throw error;
+  }
+  open.size += bytes.length;
 }

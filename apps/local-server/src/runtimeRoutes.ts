@@ -26,6 +26,7 @@ import {
   SUBSCRIPTION_HTTP_DIAGNOSTIC_REVISION,
 } from './providerDispatchHold';
 import { readXaiApiKey } from './auth/tokens';
+import { readEventLoopStatus } from './eventLoopMonitor';
 import {
   publishOnboardingActionFinished,
   publishOnboardingLog,
@@ -217,6 +218,7 @@ export function createRuntimeRoutes({
               : true),
       },
       worker: readWorkerStatus(),
+      eventLoop: readEventLoopStatus(),
       providerDispatch: { hold: providerDispatchHeld() },
       subscriptionHttp: { revision: SUBSCRIPTION_HTTP_DIAGNOSTIC_REVISION },
       storage: readStorageOrNull(),

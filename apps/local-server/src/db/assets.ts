@@ -4,6 +4,11 @@ import { randomUUID } from 'node:crypto';
 import type { Asset } from '../../../../packages/shared/src';
 import { getDb } from './connection';
 
+/** The job's prompt; an asset stores its own prompt only when it differs (migration 24). */
+const JOB_PROMPT_SQL =
+  "(SELECT COALESCE(NULLIF(jobs.final_prompt_used, ''), jobs.original_prompt) FROM jobs WHERE jobs.id = assets.job_id)";
+const SELECT_ASSETS = `SELECT assets.*, COALESCE(NULLIF(assets.prompt, ''), ${JOB_PROMPT_SQL}, '') AS resolved_prompt FROM assets`;
+
 function mapAsset(row: Record<string, unknown>): Asset {
   return {
     id: String(row.id),
@@ -11,7 +16,7 @@ function mapAsset(row: Record<string, unknown>): Asset {
     filePath: String(row.file_path),
     thumbnailPath: typeof row.thumbnail_path === 'string' ? row.thumbnail_path : null,
     publicUrl: String(row.public_url),
-    prompt: String(row.prompt),
+    prompt: String(row.resolved_prompt ?? row.prompt),
     width: typeof row.width === 'number' ? row.width : null,
     height: typeof row.height === 'number' ? row.height : null,
     mimeType: String(row.mime_type),
@@ -30,7 +35,7 @@ export function addAsset(input: Omit<Asset, 'id' | 'createdAt' | 'deletedAt'>, d
   getDb(db)
     .query(`
       INSERT INTO assets (id, job_id, file_path, thumbnail_path, public_url, prompt, width, height, mime_type, created_at, deleted_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, CASE WHEN ?6 = (SELECT COALESCE(NULLIF(final_prompt_used, ''), original_prompt) FROM jobs WHERE id = ?2) THEN '' ELSE ?6 END, ?, ?, ?, ?, ?)
     `)
     .run(
       asset.id,
@@ -50,7 +55,7 @@ export function addAsset(input: Omit<Asset, 'id' | 'createdAt' | 'deletedAt'>, d
 
 export function listAssets(db?: Database) {
   return getDb(db)
-    .query('SELECT * FROM assets WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 200')
+    .query(`${SELECT_ASSETS} WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 200`)
     .all()
     .map((row) => mapAsset(row as Record<string, unknown>));
 }
@@ -59,12 +64,12 @@ export function getAssetByJobId(jobId: string, filePath?: string | null, db?: Da
   const row = filePath
     ? getDb(db)
         .query(
-          'SELECT * FROM assets WHERE job_id = ? AND file_path = ? AND deleted_at IS NULL ORDER BY created_at ASC LIMIT 1',
+          `${SELECT_ASSETS} WHERE job_id = ? AND file_path = ? AND deleted_at IS NULL ORDER BY created_at ASC LIMIT 1`,
         )
         .get(jobId, filePath)
     : getDb(db)
         .query(
-          'SELECT * FROM assets WHERE job_id = ? AND deleted_at IS NULL ORDER BY created_at ASC LIMIT 1',
+          `${SELECT_ASSETS} WHERE job_id = ? AND deleted_at IS NULL ORDER BY created_at ASC LIMIT 1`,
         )
         .get(jobId);
   return row ? mapAsset(row as Record<string, unknown>) : null;

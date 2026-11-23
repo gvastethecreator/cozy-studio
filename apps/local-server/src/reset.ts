@@ -8,6 +8,7 @@ import { ensureDefaultWorkspace } from './db/workspaces';
 import { LIBRARY_FOLDERS, ensureLibrary, resolveLibraryPath } from './library';
 import { ensureDefaultLibrary } from './libraries';
 import { log } from './logger';
+import { closeRotatingLogs } from './rotatingLog';
 
 const LIBRARY_RESET_TARGETS = ['library.sqlite', ...LIBRARY_FOLDERS] as const;
 
@@ -20,6 +21,7 @@ export async function resetStudioData(worker: { resetWorkerState(): Promise<void
     getSubscriptionAuthController().logout('google'),
   ]);
   closeDb();
+  closeRotatingLogs();
 
   for (const target of LIBRARY_RESET_TARGETS) {
     const targetPath = resolveLibraryPath(target);

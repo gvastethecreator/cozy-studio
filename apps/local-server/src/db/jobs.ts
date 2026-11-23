@@ -99,7 +99,8 @@ export function mapJobRow(row: Record<string, unknown>): Job {
     remoteExecution: parseJson<JobRemoteExecution | null>(row.remote_execution_json, null),
     originalPrompt: String(row.original_prompt),
     expandedPrompt: nullableString(row.expanded_prompt),
-    finalPromptUsed: String(row.final_prompt_used),
+    // Empty when it equals the original prompt (migration 24 stores each prompt once).
+    finalPromptUsed: String(row.final_prompt_used || row.original_prompt),
     error: nullableString(row.error),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -221,7 +222,7 @@ export function createJob(
           job.libraryContext ? JSON.stringify(job.libraryContext) : null,
           job.originalPrompt,
           job.expandedPrompt,
-          job.finalPromptUsed,
+          storedFinalPrompt(job.finalPromptUsed, job.originalPrompt),
           job.error,
           job.createdAt,
           job.updatedAt,
@@ -234,9 +235,16 @@ export function createJob(
   return job;
 }
 
+/** The stored final prompt: empty when it repeats the original prompt, which readers use then. */
+function storedFinalPrompt(finalPrompt: string, originalPrompt: string) {
+  return finalPrompt === originalPrompt ? '' : finalPrompt;
+}
+
 export function updateJobFinalPrompt(id: string, finalPrompt: string, db?: Database) {
   getDb(db)
-    .query('UPDATE jobs SET final_prompt_used = ?, updated_at = ? WHERE id = ?')
+    .query(
+      "UPDATE jobs SET final_prompt_used = CASE WHEN ?1 = original_prompt THEN '' ELSE ?1 END, updated_at = ?2 WHERE id = ?3",
+    )
     .run(finalPrompt, now(), id);
   return getJob(id, db);
 }

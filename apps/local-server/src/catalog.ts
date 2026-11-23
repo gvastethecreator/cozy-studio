@@ -157,12 +157,21 @@ function mapCatalogImage(
     ...(typeof row.style_name === 'string' && row.style_name.trim()
       ? { styleName: row.style_name.trim() }
       : {}),
-    generationConfig: options.includeGenerationConfig
-      ? parseJson<Record<string, unknown> | null>(row.generation_config, null)
-      : null,
+    generationConfig: options.includeGenerationConfig ? readGenerationConfig(row) : null,
     createdAt: row.created_at,
     detailLevel: summary ? 'summary' : 'detail',
   };
+}
+
+/** An empty prompt in the stored config is the image's own prompt (migration 25 stores it once). */
+function readGenerationConfig(row: any) {
+  const config = parseJson<Record<string, unknown> | null>(row.generation_config, null);
+  if (config?.prompt === '' && typeof row.prompt === 'string') config.prompt = row.prompt;
+  return config;
+}
+
+function storedGenerationConfig(config: Record<string, unknown> | null, prompt: string | null) {
+  return JSON.stringify(prompt && config?.prompt === prompt ? { ...config, prompt: '' } : config);
 }
 
 export function registerCatalogImage(
@@ -241,7 +250,9 @@ export function registerCatalogImage(
         input.batchId ?? null,
         input.recipeId ?? null,
         JSON.stringify(input.tags ?? []),
-        input.generationConfig === undefined ? null : JSON.stringify(input.generationConfig),
+        input.generationConfig === undefined
+          ? null
+          : storedGenerationConfig(input.generationConfig, input.prompt ?? null),
         createdAt,
         input.isFavorite ? 1 : 0,
       );

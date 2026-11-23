@@ -70,6 +70,8 @@ function mapJobFinalization(row: Record<string, unknown>): JobFinalization | nul
 
 export function mapJobRow(row: Record<string, unknown>): Job {
   const sourceSpec = parseJson<GenerationTaskSpec | null>(row.source_spec_json, null);
+  // Empty when it equals the original prompt (migration 25 stores each prompt once).
+  if (sourceSpec?.prompt === '') sourceSpec.prompt = String(row.original_prompt);
   const workspaceId = resolveJobWorkspaceId({
     columnWorkspaceId: nullableString(row.workspace_id),
     sourceSpecMetadata: sourceSpec?.metadata,
@@ -214,7 +216,7 @@ export function createJob(
           job.aspectRatio ?? null,
           job.kind,
           job.providerId,
-          job.sourceSpec ? JSON.stringify(job.sourceSpec) : null,
+          job.sourceSpec ? storedSourceSpec(job.sourceSpec, job.originalPrompt) : null,
           job.status,
           job.execution ? JSON.stringify(job.execution) : null,
           job.libraryContext?.libraryId ?? null,
@@ -238,6 +240,13 @@ export function createJob(
 /** The stored final prompt: empty when it repeats the original prompt, which readers use then. */
 function storedFinalPrompt(finalPrompt: string, originalPrompt: string) {
   return finalPrompt === originalPrompt ? '' : finalPrompt;
+}
+
+/** The stored source spec: its prompt is empty when it repeats the original prompt. */
+function storedSourceSpec(spec: GenerationTaskSpec, originalPrompt: string) {
+  return JSON.stringify(
+    originalPrompt && spec.prompt === originalPrompt ? { ...spec, prompt: '' } : spec,
+  );
 }
 
 export function updateJobFinalPrompt(id: string, finalPrompt: string, db?: Database) {

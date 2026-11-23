@@ -39,6 +39,7 @@ import {
 } from './db/jobBatches';
 import type { Job, RetryJobBatchResponse } from '../../../packages/shared/src';
 import { addAsset, getAssetByJobId } from './db/assets';
+import { getCatalogImage } from './catalog';
 import { LATEST_DATABASE_SCHEMA_VERSION, migrateDatabase } from './db/migrations';
 import { createGenerationTaskSpec } from '../../../packages/shared/src/generationContracts';
 
@@ -768,7 +769,7 @@ describe('database migrations', () => {
         preBaselineRefused: true,
         recoverableCheckpoint: true,
         summaryProjection: true,
-        schemaVersion: 24,
+        schemaVersion: 25,
         completeJobHistory: true,
         jobsSummary: true,
         executionPolicyPreserved: true,
@@ -782,7 +783,7 @@ describe('database migrations', () => {
   });
 });
 
-describe('store-job-prompts-once migration', () => {
+describe('store-prompts-once migrations', () => {
   it('stores a repeated prompt once and reads the same prompts back', () => {
     const database = createSeededDatabase();
     try {
@@ -830,6 +831,80 @@ describe('store-job-prompts-once migration', () => {
         },
         rewrittenBack: { final: '' },
         reread: 'owl',
+      });
+    } finally {
+      database.close();
+    }
+  });
+
+  it('stores a source spec or generation config prompt once and reads the same JSON back', () => {
+    const database = createSeededDatabase();
+    try {
+      const spec = (prompt: string) => JSON.stringify({ id: 'spec', prompt, output: { count: 1 } });
+      const config = (prompt: string) => JSON.stringify({ prompt, model: 'm' });
+      database
+        .query("UPDATE jobs SET source_spec_json = ? WHERE id = 'job-sentinel'")
+        .run(spec('sentinel prompt'));
+      database
+        .query(
+          `INSERT INTO jobs (
+            id, workspace_id, kind, status, original_prompt, final_prompt_used, source_spec_json,
+            created_at, updated_at
+          ) VALUES ('job-other', 'default', 'image_generate', 'completed', 'owl', 'owl', ?, ?, ?)`,
+        )
+        .run(spec('owl, trimmed'), '2026-01-02', '2026-01-02');
+      database
+        .query(
+          "UPDATE catalog_images SET prompt = 'sentinel prompt', generation_config = ? WHERE id = 'catalog-sentinel'",
+        )
+        .run(config('sentinel prompt'));
+      database
+        .query(
+          `INSERT INTO catalog_images (id, library_id, file_path, public_url, mime_type, prompt, generation_config, created_at)
+           VALUES ('catalog-other', 'library-sentinel', 'D:/library/a.png', '/a.png', 'image/png', 'fox', ?, '2026-01-02')`,
+        )
+        .run(config('fox, edited'));
+      database.query('DELETE FROM schema_migrations WHERE version = 25').run();
+      migrateDatabase(database);
+      const created = createJob(
+        {
+          kind: 'image_generate',
+          prompt: 'heron',
+          sourceSpec: createGenerationTaskSpec({
+            id: 'spec-heron',
+            task: 'image_generate',
+            providerId: 'dry_run',
+            prompt: 'heron',
+          }),
+        },
+        database,
+      );
+      const storedPrompts = (sql: string) =>
+        Object.fromEntries(
+          (database.query(sql).all() as Array<{ id: string; prompt: string }>).map(
+            ({ id, prompt }) => [id, prompt],
+          ),
+        );
+      expect({
+        storedSpecs: storedPrompts(
+          "SELECT id, json_extract(source_spec_json, '$.prompt') AS prompt FROM jobs WHERE source_spec_json IS NOT NULL",
+        ),
+        storedConfigs: storedPrompts(
+          "SELECT id, json_extract(generation_config, '$.prompt') AS prompt FROM catalog_images",
+        ),
+        specs: ['job-sentinel', 'job-other', created.id].map((id) =>
+          JSON.stringify(getJob(id, database)?.sourceSpec),
+        ),
+        configs: ['catalog-sentinel', 'catalog-other'].map((id) =>
+          JSON.stringify(getCatalogImage(id, database)?.generationConfig),
+        ),
+        createdSpec: getJob(created.id, database)?.sourceSpec,
+      }).toEqual({
+        storedSpecs: { [created.id]: '', 'job-other': 'owl, trimmed', 'job-sentinel': '' },
+        storedConfigs: { 'catalog-other': 'fox, edited', 'catalog-sentinel': '' },
+        specs: [spec('sentinel prompt'), spec('owl, trimmed'), JSON.stringify(created.sourceSpec)],
+        configs: [config('sentinel prompt'), config('fox, edited')],
+        createdSpec: created.sourceSpec,
       });
     } finally {
       database.close();

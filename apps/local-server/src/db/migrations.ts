@@ -325,6 +325,25 @@ const DATABASE_MIGRATIONS = [
         WHERE final_prompt_used <> '' AND final_prompt_used = original_prompt`);
     },
   },
+  {
+    version: 25,
+    name: 'store-spec-prompts-once',
+    migrate(database: Database) {
+      // An empty prompt in a source spec means the job's original prompt, and an empty prompt in
+      // a generation config means the image's own prompt column: readers put it back (db/jobs.ts,
+      // catalog.ts). The key stays where it was, so the JSON reads back in the same key order.
+      database.run(`UPDATE jobs SET source_spec_json = json_set(source_spec_json, '$.prompt', '')
+        WHERE json_valid(source_spec_json)
+          AND json_type(source_spec_json, '$.prompt') = 'text'
+          AND original_prompt <> ''
+          AND json_extract(source_spec_json, '$.prompt') = original_prompt`);
+      database.run(`UPDATE catalog_images SET generation_config = json_set(generation_config, '$.prompt', '')
+        WHERE json_valid(generation_config)
+          AND json_type(generation_config, '$.prompt') = 'text'
+          AND prompt <> ''
+          AND json_extract(generation_config, '$.prompt') = prompt`);
+    },
+  },
 ] as const;
 
 export const LATEST_DATABASE_SCHEMA_VERSION =

@@ -1,5 +1,6 @@
-// Style packs come from installed Cozy Extensions (ADR 0011). The app loads the list once at
-// startup, before React mounts, so style surfaces can read pack summaries synchronously.
+// Style packs come from installed Cozy Extensions (ADR 0011). The app loads the list at startup,
+// before React mounts, so style surfaces can read pack summaries synchronously. It loads the list
+// again when the server comes back or the user checks again, so a tab never keeps a stale list.
 import {
   resolveStylePackExtensions,
   type ExtensionManifest,
@@ -21,6 +22,23 @@ export const INSTALLED_STYLE_PACK_SUMMARIES: StylePackSummary[] = [];
 
 let extensionByPackId = new Map<string, ExtensionManifest>();
 
+let catalogSignature: string | null = null;
+let catalogVersion = 0;
+const catalogListeners = new Set<() => void>();
+
+/** Runs when the installed pack list changes. Derived caches reset here, then style surfaces remount. */
+export function subscribeInstalledStylePacks(listener: () => void) {
+  catalogListeners.add(listener);
+  return () => {
+    catalogListeners.delete(listener);
+  };
+}
+
+/** Counts the changes to the installed pack list, so a surface can remount on a new list. */
+export function getInstalledStylePacksVersion() {
+  return catalogVersion;
+}
+
 const packIdsWithCards = new Set<string>();
 
 // Copied presets, such as Essentials entries, hidden because their source pack is installed.
@@ -30,6 +48,9 @@ export function registerInstalledStylePacks(
   extensions: readonly ExtensionManifest[],
   installedLayers: Readonly<Record<string, readonly string[]>> = {},
 ) {
+  const signature = JSON.stringify([extensions, installedLayers]);
+  const changed = catalogSignature !== signature;
+  catalogSignature = signature;
   ({ byPackId: extensionByPackId, hiddenPresetIds: hiddenPresetIdsByPack } =
     resolveStylePackExtensions(extensions));
   packIdsWithCards.clear();
@@ -50,6 +71,9 @@ export function registerInstalledStylePacks(
     .filter((summary) => summary.presetCount > 0)
     .sort((a, b) => compareStylePackIdsForDisplay(a.id, b.id));
   INSTALLED_STYLE_PACK_SUMMARIES.splice(0, INSTALLED_STYLE_PACK_SUMMARIES.length, ...summaries);
+  if (!changed) return;
+  catalogVersion += 1;
+  for (const listener of [...catalogListeners]) listener();
 }
 
 /** Drops copies whose source pack is installed from each collection share. */
@@ -119,6 +143,34 @@ export function loadInstalledStylePacks() {
       loading = null;
     });
   return loading;
+}
+
+/** Loads the installed extensions again, past the server's scan cache, and applies a changed list. */
+export async function reloadInstalledStylePacks() {
+  const response = await listInstalledExtensions({ refresh: true });
+  registerInstalledStylePacks(response.extensions, response.installedLayers);
+  return response;
+}
+
+/**
+ * Reloads the list when the event stream reconnects after a drop, such as a server restart, or
+ * when the first load failed. Returns the unsubscribe.
+ */
+export function reloadInstalledStylePacksOnReconnect(
+  onConnectionChange: (listener: (connected: boolean) => void) => () => void,
+) {
+  let stale = catalogSignature === null;
+  return onConnectionChange((connected) => {
+    if (!connected) {
+      stale = true;
+      return;
+    }
+    if (!stale) return;
+    stale = false;
+    reloadInstalledStylePacks().catch(() => {
+      stale = true;
+    });
+  });
 }
 
 function extensionForPack(packId: string) {

@@ -1,11 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { ExtensionManifest } from '../packages/shared/src/extensions';
 import {
+  getInstalledStylePacksVersion,
   getStyleLandingFolder,
   INSTALLED_STYLE_PACK_SUMMARIES,
   isHiddenStylePreset,
   registerInstalledStylePacks,
+  reloadInstalledStylePacksOnReconnect,
+  subscribeInstalledStylePacks,
 } from './installedStylePacks';
+
+const listInstalledExtensions = vi.hoisted(() => vi.fn());
+vi.mock('../services/studio-api/extensions', () => ({ listInstalledExtensions }));
 
 function stylePack(
   packId: string,
@@ -58,5 +64,37 @@ describe('installed style packs', () => {
 
     registerInstalledStylePacks([essentials, stylePack('pack_01', 140), stylePack('pack_02', 176)]);
     expect(INSTALLED_STYLE_PACK_SUMMARIES.map((pack) => pack.id)).toEqual(['pack_01', 'pack_02']);
+  });
+
+  it('applies a changed pack list once and reloads it when the event stream comes back', async () => {
+    const onChange = vi.fn();
+    const stop = subscribeInstalledStylePacks(onChange);
+    registerInstalledStylePacks([stylePack('pack_01', 140)]);
+    registerInstalledStylePacks([stylePack('pack_01', 140)]);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    const version = getInstalledStylePacksVersion();
+
+    let emit: (connected: boolean) => void = () => undefined;
+    const unsubscribe = reloadInstalledStylePacksOnReconnect((listener) => {
+      emit = listener;
+      return () => undefined;
+    });
+    listInstalledExtensions.mockResolvedValue({
+      extensions: [stylePack('pack_01', 140), stylePack('pack_33', 60)],
+      installedLayers: {},
+    });
+    emit(true);
+    expect(listInstalledExtensions).not.toHaveBeenCalled();
+
+    emit(false);
+    emit(true);
+    await vi.waitFor(() => expect(INSTALLED_STYLE_PACK_SUMMARIES).toHaveLength(2));
+    expect(listInstalledExtensions).toHaveBeenCalledWith({ refresh: true });
+    expect(getInstalledStylePacksVersion()).toBe(version + 1);
+    expect(onChange).toHaveBeenCalledTimes(2);
+    emit(true);
+    expect(listInstalledExtensions).toHaveBeenCalledTimes(1);
+    unsubscribe();
+    stop();
   });
 });

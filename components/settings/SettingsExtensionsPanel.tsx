@@ -7,6 +7,7 @@ import {
   getEditableStudioSettings,
   updateEditableStudioSettings,
 } from '../../services/studio-api/settings';
+import { reloadInstalledStylePacks } from '../../lib/installedStylePacks';
 import { PackCoverGrid, PackDetail, type BrowsablePack } from './StylePackBrowser';
 import {
   forgetExtensionHub,
@@ -15,7 +16,6 @@ import {
   getRemotePackPreview,
   installExtension,
   listAvailableExtensions,
-  listInstalledExtensions,
   removeExtension,
   unlockExtensionHub,
 } from '../../services/studio-api/extensions';
@@ -453,7 +453,7 @@ export function SettingsExtensionsPanel() {
     setError(null);
     try {
       const [installedResult, availableResult] = await Promise.allSettled([
-        listInstalledExtensions({ refresh: true }),
+        reloadInstalledStylePacks(),
         listAvailableExtensions(),
       ]);
       if (installedResult.status === 'fulfilled') setInstalled(installedResult.value);

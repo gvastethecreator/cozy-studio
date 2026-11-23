@@ -5,6 +5,7 @@ import {
   INSTALLED_STYLE_PACK_SUMMARIES,
   isHiddenStylePreset,
   isInstalledStylePack,
+  subscribeInstalledStylePacks,
 } from '../../lib/installedStylePacks';
 
 /** Installed style packs (ADR 0011), filled at startup before React mounts. */
@@ -45,9 +46,15 @@ export function createStyleRuntimeRegistry({
     return packs.filter((pack): pack is StyleRuntimePack => pack !== null);
   };
 
+  const clear = () => {
+    values.clear();
+    pending.clear();
+  };
+
   return {
     loadRuntimePack,
     loadRuntimePacks,
+    clear,
   };
 }
 
@@ -63,6 +70,8 @@ const styleRuntimeRegistry = createStyleRuntimeRegistry({
   },
   loadThumbnail: loadStyleThumbnailPack,
 });
+
+subscribeInstalledStylePacks(styleRuntimeRegistry.clear);
 
 export const loadStyleRuntimePack = styleRuntimeRegistry.loadRuntimePack;
 export const loadStyleRuntimePacks = styleRuntimeRegistry.loadRuntimePacks;

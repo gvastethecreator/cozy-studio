@@ -3,6 +3,7 @@ import React from 'react';
 import { NuqsAdapter } from 'nuqs/adapters/react';
 import App from './App';
 import { loadInstalledStylePacks } from './lib/installedStylePacks';
+import { useInstalledStylePacksSync } from './hooks/useInstalledStylePacksSync';
 import { registerDisabledWorkflowModules } from './lib/workflowModuleState';
 import { setLanguage, useT } from './lib/i18n';
 import { getEditableStudioSettings } from './services/studio-api/settings';
@@ -23,6 +24,7 @@ const settingsLoaded = getEditableStudioSettings().then((settings) => {
 // Re-renders the tree when the language changes. Memoized components call useT() themselves.
 function LocalizedApp() {
   useT();
+  useInstalledStylePacksSync();
   return <App />;
 }
 

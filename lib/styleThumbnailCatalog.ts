@@ -3,6 +3,7 @@ import {
   isInstalledStylePack,
   stylePackFileUrl,
   stylePackHasFullCards,
+  subscribeInstalledStylePacks,
 } from './installedStylePacks';
 import type { StylePresetImageVariant } from './stylePresetVisuals';
 
@@ -65,6 +66,7 @@ function rememberThumbnailProjection(projection: Record<string, string>) {
 }
 
 const thumbnailPackLoads = new Map<string, Promise<Record<string, string>>>();
+subscribeInstalledStylePacks(() => thumbnailPackLoads.clear());
 
 /** Loads a pack's card and category thumbnails from its installed extension (ADR 0011). */
 export function loadStyleThumbnailPack(packId: string): Promise<Record<string, string>> {

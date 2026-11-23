@@ -28,6 +28,7 @@ import {
   getStyleLandingFolder,
   stylePackIdsCopyingFrom,
   stylePresetCopySources,
+  subscribeInstalledStylePacks,
 } from '../../lib/installedStylePacks';
 import type { Attachment, GeneratedImageWithConfig, ImageGenerationConfig } from '../../types';
 import type { EditableStudioSettings, GenerationProviderId } from '../../packages/shared/src';
@@ -139,8 +140,8 @@ export interface StylesBrowserProps {
 
 const ALL_STYLE_CATEGORIES_TAB_ID = 'all_categories';
 const EMPTY_IMAGES: GeneratedImageWithConfig[] = [];
-// Installed packs are listed before React mounts and do not change until reload, so these
-// are computed on first use and stay stable for hook dependencies.
+// Installed packs are listed before React mounts and change only when the list reloads, which
+// remounts this browser, so these are computed on first use and stay stable for hook dependencies.
 let styleRuntimePackIdsCache: string[] | null = null;
 function styleRuntimePackIds() {
   styleRuntimePackIdsCache ??= STYLE_RUNTIME_PACK_SUMMARIES.map((pack) => pack.id);
@@ -150,6 +151,10 @@ function defaultStylePackId() {
   return styleRuntimePackIds()[0] ?? 'pack_01';
 }
 let styleTabRouteOptionsCache: StyleTabRouteOptions | null = null;
+subscribeInstalledStylePacks(() => {
+  styleRuntimePackIdsCache = null;
+  styleTabRouteOptionsCache = null;
+});
 function styleTabRouteOptions() {
   styleTabRouteOptionsCache ??= {
     favoritesPackId: FAVORITES_PACK_ID,

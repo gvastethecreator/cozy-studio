@@ -1,4 +1,8 @@
-import { fetchStylePackFile, stylePackIdsWithArchivedPresets } from '../../lib/installedStylePacks';
+import {
+  fetchStylePackFile,
+  stylePackIdsWithArchivedPresets,
+  subscribeInstalledStylePacks,
+} from '../../lib/installedStylePacks';
 import { loadStyleThumbnailPack } from '../../lib/styleThumbnailCatalog';
 import type { StyleRuntimePreset } from './styles/runtimeTypes';
 
@@ -14,6 +18,9 @@ interface ArchivedStylePresetFile {
 }
 
 let archivedEntriesRequest: Promise<Map<string, ArchivedStylePresetEntry>> | null = null;
+subscribeInstalledStylePacks(() => {
+  archivedEntriesRequest = null;
+});
 
 // Retired presets ship with their pack extension (archived.json), with their card thumbnails.
 async function loadArchivedEntries() {

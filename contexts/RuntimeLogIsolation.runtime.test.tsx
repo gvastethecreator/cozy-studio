@@ -25,10 +25,6 @@ vi.mock('../lib/workspaceIdbMigration', () => ({
     activeWorkspaceId: 'default',
     migrated: false,
   })),
-  loadDurableWorkspacesFromApi: vi.fn(async () => ({
-    workspaces: [{ id: 'default', name: 'Default', createdAt: Date.now() }],
-    activeWorkspaceId: 'default',
-  })),
 }));
 
 vi.mock('../utils/idb', () => ({

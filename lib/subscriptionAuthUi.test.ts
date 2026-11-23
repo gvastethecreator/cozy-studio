@@ -10,6 +10,7 @@ describe('subscription auth UI copy', () => {
     expect(subscriptionAuthStatusLabel('refresh_failed')).toBe('Sign in expired');
     expect(subscriptionAuthStatusLabel(null)).toBe('Checking');
     expect(providerReadyLabel({ canExecute: true, status: 'not_configured' })).toBe('Ready');
-    expect(providerReadyLabel({ canExecute: false, status: 'not_configured' })).toBe('Needs setup');
+    expect(providerReadyLabel({ canExecute: false, status: 'not_configured' })).toBe('Not set up');
+    expect(providerReadyLabel({ canExecute: false, status: 'active' })).toBe('Needs setup');
   });
 });

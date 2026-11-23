@@ -7,6 +7,7 @@ import falMark from '../assets/providers/fal.svg';
 import comfyMark from '../assets/providers/comfy.svg';
 import { providerBrandWellClass, providerRuntimeStatusDotClass } from '../lib/providerBrand';
 import { isUntestedGenerationProvider } from '../packages/shared/src/generationContracts';
+import { useT } from '../lib/i18n';
 
 const SIZE = {
   xs: { well: 'size-6', icon: 18 },
@@ -93,8 +94,24 @@ export function ProviderBrandMark({
   );
 }
 
-/** Marks adapters that have not been verified against the live service. */
-export function ProviderUntestedBadge({ providerId }: { providerId: string }) {
+/**
+ * Marks adapters that have not been verified against the live service. A provider that is not set
+ * up says so instead: that is the state the user can act on.
+ */
+export function ProviderUntestedBadge({
+  providerId,
+  status,
+}: {
+  providerId: string;
+  status?: string;
+}) {
+  const { t } = useT();
+  if (status === 'not_configured')
+    return (
+      <span className="inline-flex shrink-0 items-center rounded-[var(--wb-radius)] border border-[color:var(--wb-border)] px-1 text-[10px] font-semibold text-[color:var(--wb-muted)]">
+        {t('settings.providers.notConfigured')}
+      </span>
+    );
   if (!isUntestedGenerationProvider(providerId)) return null;
   return (
     <span

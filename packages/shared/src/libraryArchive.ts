@@ -6,10 +6,11 @@ import {
   validateCollectionEmoji,
 } from './catalogCollections';
 import { isRecord } from './types';
-import type { StudioWorkspace } from './workspaceContracts';
+import { MAX_WORKSPACE_STYLE_REFS, type StudioWorkspace } from './workspaceContracts';
 
 export const LIBRARY_ARCHIVE_FORMAT = 'cozy-studio.library';
-export const LIBRARY_ARCHIVE_VERSION = 1;
+/** Version 2 adds the workspace's linked styles. Import still reads version 1. */
+export const LIBRARY_ARCHIVE_VERSION = 2;
 export const LIBRARY_ARCHIVE_MAX_BYTES = 1024 * 1024 * 1024;
 export const LIBRARY_ARCHIVE_IMAGE_PATH = /^images\/[A-Za-z0-9-]{1,64}\.(png|jpg|jpeg|webp|gif)$/;
 
@@ -100,13 +101,25 @@ const shortText = z.string().max(256).nullable();
 export const libraryArchiveManifest = z
   .object({
     format: z.literal(LIBRARY_ARCHIVE_FORMAT),
-    version: z.literal(LIBRARY_ARCHIVE_VERSION),
+    version: z.union([z.literal(1), z.literal(LIBRARY_ARCHIVE_VERSION)]),
     exportedAt: z.iso.datetime(),
     studioVersion: z.string().min(1).max(64),
     workspace: z
       .object({
         name: z.string().trim().min(1).max(128),
         sortOrder: z.enum(['newest', 'oldest', 'favorite']),
+        styleScope: z
+          .array(
+            z
+              .object({
+                packId: z.string().trim().min(1).max(200),
+                category: z.string().trim().min(1).max(200).optional(),
+                presetId: z.string().trim().min(1).max(200).optional(),
+              })
+              .strict(),
+          )
+          .max(MAX_WORKSPACE_STYLE_REFS)
+          .optional(),
       })
       .strict(),
     tags: z
@@ -201,4 +214,6 @@ export interface LibraryArchiveImportResult {
   imported: number;
   skipped: { file: string; reason: string }[];
   missing: LibraryArchiveManifest['missing'];
+  /** Linked style packs that are not installed here; the workspace keeps the others. */
+  skippedStylePacks: string[];
 }

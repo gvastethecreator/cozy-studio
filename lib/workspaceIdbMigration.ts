@@ -2,46 +2,20 @@ import type { Workspace } from '../types';
 import {
   DEFAULT_WORKSPACE_ID,
   normalizeWorkspaceId,
-  normalizeWorkspaceStyleScope,
-  type StudioWorkspace,
 } from '../packages/shared/src/workspaceContracts';
-import { createWorkspace, listWorkspaces } from '../services/studio-api/workspaces';
+import {
+  createWorkspace,
+  listWorkspaces,
+  mapStudioWorkspaceToUi,
+} from '../services/studio-api/workspaces';
 import { del, get, set } from '../utils/idb';
 
 export const WORKSPACE_IDB_MIGRATION_MARKER = 'workspace-idb-migrated-v1';
 
-export function mapStudioWorkspaceToUi(workspace: StudioWorkspace): Workspace {
-  const createdAtMs = Date.parse(workspace.createdAt);
-  return {
-    id: workspace.id,
-    name: workspace.name,
-    createdAt: Number.isFinite(createdAtMs) ? createdAtMs : Date.now(),
-    styleScope: normalizeWorkspaceStyleScope(workspace.styleScope),
-  };
-}
-
-export async function loadDurableWorkspacesFromApi(): Promise<{
-  workspaces: Workspace[];
-  activeWorkspaceId: string;
-}> {
-  const remote = await listWorkspaces();
-  const workspaces = remote.map(mapStudioWorkspaceToUi);
-  if (!workspaces.some((workspace) => workspace.id === DEFAULT_WORKSPACE_ID)) {
-    workspaces.unshift({ id: DEFAULT_WORKSPACE_ID, name: 'Default', createdAt: Date.now() });
-  }
-  const storedActiveId = await get<string>('app-active-workspace-id');
-  return {
-    workspaces,
-    activeWorkspaceId:
-      storedActiveId && workspaces.some((workspace) => workspace.id === storedActiveId)
-        ? storedActiveId
-        : DEFAULT_WORKSPACE_ID,
-  };
-}
-
 /**
  * One-shot import of browser-owned workspaces into SQLite.
- * Idempotent via IDB migration marker.
+ * Idempotent via IDB migration marker. Delete this file after 2027-05-01: by then every install
+ * has run it, and startup loads workspaces with `loadDurableWorkspacesFromApi`.
  */
 export async function migrateIndexedDbWorkspacesToServer(options?: {
   getIdb?: <T>(key: string) => Promise<T | undefined>;

@@ -1,4 +1,6 @@
 import { useCallback, useMemo, useState, useDeferredValue } from 'react';
+import type { RuntimeStatusDetails } from '../components/shell/RuntimeStatusPanel';
+import { readableJobError } from '../lib/studioJobRetry';
 
 import { buildStudioCommandCenterProjection } from '../lib/commandCenterProjection';
 import { isStudioJobVisibleAfterAttentionClear } from '../lib/studioJobsListClear';
@@ -75,6 +77,7 @@ export interface StudioShellController {
     isVisible: boolean;
     props: HeaderToolbarProps;
     providerUsage: ReturnType<typeof useStudioRuntime>['status']['diagnostics']['providerUsage'];
+    runtimeDetails: RuntimeStatusDetails;
   };
   support: {
     isOpen: boolean;
@@ -249,7 +252,22 @@ export function useStudioShell(): StudioShellController {
   });
   const queueCounts = useMemo(() => {
     const jobs = studioRuntime.activity.studioJobs;
+    const quietSince = Date.now() - 30 * 60_000;
+    const lastFailed = jobs
+      .filter((job) => job.status === 'failed' && job.error)
+      .reduce<(typeof jobs)[number] | null>(
+        (latest, job) => (!latest || job.updatedAt > latest.updatedAt ? job : latest),
+        null,
+      );
+    const lastFailedMessage = lastFailed ? readableJobError(lastFailed) : null;
     return {
+      stuckJobCount: jobs.filter(
+        (job) => job.status === 'running' && Date.parse(job.updatedAt) < quietSince,
+      ).length,
+      lastJobError:
+        lastFailed && lastFailedMessage
+          ? { message: lastFailedMessage, at: lastFailed.updatedAt }
+          : null,
       activeJobCount: jobs.filter((job) => job.status === 'queued' || job.status === 'running')
         .length,
       reviewJobCount: jobs.filter(
@@ -1044,6 +1062,11 @@ export function useStudioShell(): StudioShellController {
         isVisible: !isUiChromeSuppressed,
         props: headerToolbarProps,
         providerUsage,
+        runtimeDetails: {
+          statusItems: studioRuntime.status.diagnostics.statusItems,
+          stuckJobCount: queueCounts.stuckJobCount,
+          lastJobError: queueCounts.lastJobError,
+        },
       },
       support: {
         isOpen: isSupportOpen,
@@ -1082,6 +1105,9 @@ export function useStudioShell(): StudioShellController {
       isUiChromeSuppressed,
       headerToolbarProps,
       providerUsage,
+      studioRuntime.status.diagnostics.statusItems,
+      queueCounts.stuckJobCount,
+      queueCounts.lastJobError,
       studioSettings.data.settingsDomain.settings,
       isSupportOpen,
       route.view,

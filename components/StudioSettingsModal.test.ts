@@ -345,13 +345,19 @@ describe('StudioSettingsModal provider defaults', () => {
       imported: 1,
       skipped: [],
       missing: [],
+      skippedStylePacks: [],
     });
     fireEvent.change(screen.getByLabelText('Library archive ZIP'), {
       target: { files: [new File(['fixture'], 'library.zip', { type: 'application/zip' })] },
     });
     await waitFor(() =>
       expect(workspaceState.adoptWorkspace).toHaveBeenCalledWith(
-        { id: 'restored', name: 'Restored', createdAt: Date.parse('2026-01-01T00:00:00.000Z') },
+        {
+          id: 'restored',
+          name: 'Restored',
+          createdAt: Date.parse('2026-01-01T00:00:00.000Z'),
+          styleScope: [],
+        },
         { activate: true },
       ),
     );

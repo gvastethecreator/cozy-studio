@@ -17,7 +17,7 @@ import { Hono } from 'hono';
 import sharp from 'sharp';
 import JSZip from 'jszip';
 import { createLibraryArchiveRoutes } from './libraryArchiveRoutes';
-import { createWorkspaceInDb } from './db/workspaces';
+import { createWorkspaceInDb, updateWorkspaceInDb } from './db/workspaces';
 import { createCatalogCollection } from './catalogCollections';
 import { libraryArchiveManifest } from '../../../packages/shared/src/libraryArchive';
 import {
@@ -616,6 +616,8 @@ describe('Library archives', () => {
     const database = openLibrary(path.join(root, 'library.sqlite'), root);
     try {
       const workspace = createWorkspaceInDb(database, { name: 'Sprites', sortOrder: 'oldest' });
+      const styleScope = [{ packId: 'pack_35' }, { packId: 'pack_99', presetId: 'SP99-103' }];
+      updateWorkspaceInDb(database, workspace.id, { styleScope });
       const png = await sharp({
         create: { width: 2, height: 2, channels: 4, background: '#aa3300' },
       })
@@ -690,6 +692,7 @@ describe('Library archives', () => {
           database,
           library: { id: LIBRARY_ID, path: root },
           publishEvent: (type, payload) => events.push({ type, payload }),
+          installedStylePackIds: async () => new Set(['pack_35']),
         }),
       );
       expect((await app.request('/api/workspaces/unknown/export')).status).toBe(404);
@@ -703,6 +706,7 @@ describe('Library archives', () => {
         JSON.parse(await zip.file('manifest.json')!.async('string')),
       );
       expect(manifest.missing).toEqual([{ id: source[2].id, reason: 'file_missing' }]);
+      expect(manifest.workspace.styleScope).toEqual(styleScope);
       expect(manifest.collections.find((collection) => collection.name === 'Live picks')).toEqual({
         name: 'Live picks',
         emoji: null,
@@ -727,8 +731,13 @@ describe('Library archives', () => {
       expect(result).toMatchObject({
         imported: 2,
         skipped: [],
-        workspace: { name: 'Sprites (imported)', sortOrder: 'oldest' },
+        workspace: {
+          name: 'Sprites (imported)',
+          sortOrder: 'oldest',
+          styleScope: [{ packId: 'pack_35' }],
+        },
         missing: manifest.missing,
+        skippedStylePacks: ['pack_99'],
       });
       expect(result.workspace.id).not.toBe(workspace.id);
       const rows = (

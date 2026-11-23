@@ -20,7 +20,7 @@ export interface CommandCenterProviderProjection {
   label: string;
   shortLabel: string;
   toolbarLabel: string;
-  status: 'active' | 'planned' | 'not_configured' | 'unknown';
+  status: 'active' | 'planned' | 'not_configured' | 'unknown' | 'offline';
   tone: StudioStatusTone;
   tooltip: string;
   canExecute: boolean;
@@ -106,13 +106,29 @@ function buildProviderProjection({
   compactMode,
   providerCapabilities,
   providerRuntimePreflight,
+  offline,
 }: Pick<
   BuildStudioCommandCenterProjectionArgs,
   'providerCapabilities' | 'providerRuntimePreflight'
 > & {
   providerId: GenerationProviderId;
   compactMode: boolean;
+  /** The Studio server does not answer, so no provider state is current. */
+  offline: boolean;
 }): CommandCenterProviderProjection {
+  if (offline) {
+    return {
+      id: providerId,
+      label: getProviderFacts(providerId)?.label ?? providerId,
+      shortLabel: getProviderFacts(providerId)?.compactLabel ?? providerId,
+      toolbarLabel: resolveProviderToolbarLabel(providerId, compactMode),
+      status: 'offline',
+      tone: 'warning',
+      tooltip: t('settings.providers.offlineDetail'),
+      canExecute: false,
+      statusDetail: t('settings.providers.offline'),
+    };
+  }
   const capability =
     providerCapabilities?.providers.find((provider) => provider.providerId === providerId) ?? null;
   const preflight =
@@ -143,13 +159,15 @@ function buildProviderProjection({
           : 'Ready'
         : status === 'unknown'
           ? 'Checking runtime'
-          : providerId === 'chatgpt'
-            ? t(
-                capability?.subscriptionAuthState === 'refresh_failed'
-                  ? 'onboarding.status.expired'
-                  : 'onboarding.status.notSignedIn',
-              )
-            : 'Needs setup';
+          : status === 'not_configured' && providerId !== 'chatgpt'
+            ? t('settings.providers.notConfigured')
+            : providerId === 'chatgpt'
+              ? t(
+                  capability?.subscriptionAuthState === 'refresh_failed'
+                    ? 'onboarding.status.expired'
+                    : 'onboarding.status.notSignedIn',
+                )
+              : 'Needs setup';
 
   return {
     id: providerId,
@@ -175,11 +193,13 @@ export function buildStudioCommandCenterProjection({
 }: BuildStudioCommandCenterProjectionArgs): StudioCommandCenterProjection {
   const activeProviderId = settings?.defaultProviderId ?? 'chatgpt';
   const compactMode = Boolean(settings?.commandCenterCompactMode);
+  const offline = statusItems.find((item) => item.key === 'backend')?.tone === 'danger';
   const provider = buildProviderProjection({
     providerId: activeProviderId,
     compactMode,
     providerCapabilities,
     providerRuntimePreflight,
+    offline,
   });
 
   return {
@@ -192,6 +212,7 @@ export function buildStudioCommandCenterProjection({
         compactMode,
         providerCapabilities,
         providerRuntimePreflight,
+        offline,
       }),
     ),
     queue: {

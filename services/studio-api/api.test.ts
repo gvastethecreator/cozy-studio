@@ -5,6 +5,13 @@ import { downloadConvertedCatalogImage } from './imageConversion';
 import { DEFAULT_IMAGE_CONVERSION_OPTIONS } from '../../packages/shared/src/imageConversion';
 import { readLocalStudioErrorMessage, request } from './http';
 import { getStudioRuntimeSnapshot, refreshStudioReadiness, runOnboardingSetup } from './runtime';
+import { loadDurableWorkspacesFromApi, mapStudioWorkspaceToUi } from './workspaces';
+import { get as getIdb } from '../../utils/idb';
+
+vi.mock('../../utils/idb', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../utils/idb')>()),
+  get: vi.fn(),
+}));
 
 function jsonResponse(value: unknown) {
   return new Response(JSON.stringify(value), {
@@ -197,5 +204,50 @@ describe('image conversion download', () => {
     await expect(
       downloadConvertedCatalogImage('missing', DEFAULT_IMAGE_CONVERSION_OPTIONS),
     ).rejects.toThrow('Image file is missing.');
+  });
+});
+
+describe('durable workspaces', () => {
+  it('restores the saved active workspace and keeps Default first', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockResolvedValue(
+        jsonResponse([
+          {
+            id: 'current',
+            name: 'Current',
+            filter: {},
+            sortOrder: 'newest',
+            styleScope: [],
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ]),
+      ),
+    );
+    vi.mocked(getIdb).mockResolvedValueOnce('current');
+
+    const result = await loadDurableWorkspacesFromApi();
+
+    expect(result.activeWorkspaceId).toBe('current');
+    expect(result.workspaces.map((workspace) => workspace.id)).toEqual(['default', 'current']);
+  });
+
+  it('maps server workspace DTOs into UI workspace rows', () => {
+    const mapped = mapStudioWorkspaceToUi({
+      id: 'ws-1',
+      name: 'Concept',
+      filter: {},
+      sortOrder: 'newest',
+      styleScope: [{ packId: 'pack_35' }],
+      createdAt: '2026-01-02T00:00:00.000Z',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+    });
+    expect(mapped).toEqual({
+      id: 'ws-1',
+      name: 'Concept',
+      createdAt: Date.parse('2026-01-02T00:00:00.000Z'),
+      styleScope: [{ packId: 'pack_35' }],
+    });
   });
 });

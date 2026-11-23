@@ -6,20 +6,20 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ToastUiProvider } from './ToastUiContext';
 import { WorkspaceProvider, useWorkspaceState } from './WorkspaceContext';
 import { CATALOG_WORKSPACE_SEEN } from '../services/studio-api/catalog';
-import { createWorkspace as createWorkspaceApi } from '../services/studio-api/workspaces';
 import {
-  migrateIndexedDbWorkspacesToServer,
+  createWorkspace as createWorkspaceApi,
   loadDurableWorkspacesFromApi,
-} from '../lib/workspaceIdbMigration';
+} from '../services/studio-api/workspaces';
+import { migrateIndexedDbWorkspacesToServer } from '../lib/workspaceIdbMigration';
 
 vi.mock('../lib/workspaceIdbMigration', () => ({
   migrateIndexedDbWorkspacesToServer: vi.fn(),
-  loadDurableWorkspacesFromApi: vi.fn(),
 }));
 vi.mock('../utils/idb', () => ({ set: vi.fn(async () => undefined) }));
 vi.mock('../services/studio-api/workspaces', () => ({
   createWorkspace: vi.fn(async (workspace) => workspace),
   deleteWorkspace: vi.fn(async () => undefined),
+  loadDurableWorkspacesFromApi: vi.fn(),
 }));
 
 function ActiveWorkspace() {

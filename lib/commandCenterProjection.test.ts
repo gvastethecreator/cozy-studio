@@ -4,7 +4,7 @@ import { buildStudioCommandCenterProjection } from './commandCenterProjection';
 
 describe('buildStudioCommandCenterProjection', () => {
   it('combines settings, provider preflight, runtime, and queue facts', () => {
-    const projection = buildStudioCommandCenterProjection({
+    const args: Parameters<typeof buildStudioCommandCenterProjection>[0] = {
       settings: {
         defaultProviderId: 'google',
         commandCenterCompactMode: true,
@@ -51,7 +51,8 @@ describe('buildStudioCommandCenterProjection', () => {
       activeJobCount: 3,
       reviewJobCount: 614,
       isQueueOpen: false,
-    });
+    };
+    const projection = buildStudioCommandCenterProjection(args);
 
     expect(projection.compactMode).toBe(true);
     expect(projection.runtimeStatus).toEqual({
@@ -74,6 +75,17 @@ describe('buildStudioCommandCenterProjection', () => {
       reviewCount: 614,
       isOpen: false,
     });
+
+    // The last provider answer is stale once the server stops answering.
+    const offline = buildStudioCommandCenterProjection({
+      ...args,
+      statusItems: [{ ...args.statusItems[0], value: 'Offline', tone: 'danger' }],
+    });
+    expect(offline.runtimeStatus.label).not.toBe('Ready');
+    expect(offline.provider).toEqual(
+      expect.objectContaining({ status: 'offline', canExecute: false, statusDetail: 'Offline' }),
+    );
+    expect(offline.providerOptions.every((provider) => !provider.canExecute)).toBe(true);
   });
 
   it('degrades provider tone when preflight blocks execution', () => {
@@ -350,7 +362,7 @@ describe('buildStudioCommandCenterProjection', () => {
         id: 'antigravity',
         label: 'Antigravity',
         canExecute: false,
-        statusDetail: 'Needs setup',
+        statusDetail: 'Not set up',
       }),
       expect.objectContaining({
         id: 'google',

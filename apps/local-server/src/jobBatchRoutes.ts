@@ -7,10 +7,11 @@ import type {
   RetryJobBatchRequest,
   RetryJobBatchResponse,
 } from '../../../packages/shared/src';
-import type {
-  createPersistentJobIntake,
-  PersistentJobIntakeDependencies,
-  PreparedPersistentJob,
+import {
+  fileBatchInOneCollection,
+  type createPersistentJobIntake,
+  type PersistentJobIntakeDependencies,
+  type PreparedPersistentJob,
 } from './persistentJobIntake';
 import { BatchRequestConflictError, type JobBatchStore } from './db/jobBatches';
 import { jobImageMetadata } from './providers/jobImageMetadata';
@@ -79,7 +80,7 @@ export function createJobBatchRoutes({
       requests.push(decoded.value as CreateJobRequest);
     }
     const prepared: PreparedPersistentJob[] = [];
-    for (const item of requests) {
+    for (const item of fileBatchInOneCollection(requests)) {
       const result = await intake.prepareJob(item);
       if (!result.ok) return c.json(result.error.body, result.error.status);
       prepared.push(result.prepared);

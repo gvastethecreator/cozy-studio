@@ -13,6 +13,10 @@ import {
   resolveChatgptExecutionPolicy,
 } from '../../../packages/shared/src/codexExecutionContract';
 import { parseLibraryOrganization } from '../../../packages/shared/src/catalogCollections';
+import {
+  deriveBatchCollectionName,
+  deriveLibraryTags,
+} from '../../../packages/shared/src/autoLibraryOrganization';
 import { collectGrokImagineJobIssues } from '../../../packages/shared/src/grokImagineContract';
 import { collectDirectGifJobIssues } from '../../../packages/shared/src/openaiImageContract';
 import { createDefaultEditableStudioSettings } from '../../../packages/shared/src/studioSettings';
@@ -180,6 +184,29 @@ export function resolvePersistentJobIntakeKind(
   return requestKind;
 }
 
+/**
+ * Organize while generating: the jobs of a batch of two or more go into one collection, unless a
+ * job brings its own filing (an agent sets it, even when it asks for none).
+ */
+export function fileBatchInOneCollection(requests: CreateJobRequest[], now = new Date()) {
+  if (requests.length < 2) return requests;
+  const collection = deriveBatchCollectionName(requests[0], now);
+  return requests.map((request) => {
+    const spec = request.sourceSpec;
+    if (!spec || Object.hasOwn(spec.metadata ?? {}, 'libraryOrganization')) return request;
+    return {
+      ...request,
+      sourceSpec: {
+        ...spec,
+        metadata: {
+          ...spec.metadata,
+          libraryOrganization: { tags: deriveLibraryTags(request), collection },
+        },
+      },
+    };
+  });
+}
+
 export function createPersistentJobIntake({
   ensureDefaultWorkspaceId = () => normalizeWorkspaceId(undefined),
   createJobId,
@@ -259,6 +286,14 @@ export function createPersistentJobIntake({
             },
           };
         }
+      } else {
+        // Organize while generating: a job without its own filing gets tags from its facts.
+        const tags = deriveLibraryTags({ kind: request.kind, sourceSpec });
+        if (tags.length)
+          sourceSpec = {
+            ...sourceSpec,
+            metadata: { ...sourceSpec.metadata, libraryOrganization: { tags, collection: null } },
+          };
       }
     }
     if (sourceSpec) {

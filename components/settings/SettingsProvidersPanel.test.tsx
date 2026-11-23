@@ -120,7 +120,8 @@ it('tells the truth about readiness without sending the user to Settings from Se
     screen.getByText('fal.ai cannot generate yet. Set it up below, or pick another provider.'),
   ).toBeTruthy();
   const chatgpt = document.querySelector('[data-provider="chatgpt"]')!;
-  expect(chatgpt.textContent).toContain('Needs setup');
+  expect(chatgpt.textContent).toContain('Not set up');
+  expect(chatgpt.textContent).not.toContain('Needs setup');
   expect(chatgpt.textContent).not.toContain('in Studio Settings');
   const grok = document.querySelector('[data-provider="grok"]')!;
   expect(await screen.findByText('Sign-in optional')).toBeTruthy();

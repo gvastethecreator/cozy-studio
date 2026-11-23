@@ -126,7 +126,10 @@ export function SettingsProvidersPanel({
                 />
                 <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs font-medium">
                   {providerBrandChipLabel(providerId)}
-                  <ProviderUntestedBadge providerId={providerId} />
+                  <ProviderUntestedBadge
+                    providerId={providerId}
+                    status={capabilityByProvider.get(providerId)?.status}
+                  />
                 </span>
               </label>
             );
@@ -220,15 +223,20 @@ export function SettingsProvidersPanel({
                           {provider.isDefault ? <small>Default</small> : null}
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
-                          <ProviderUntestedBadge providerId={provider.providerId} />
-                          <StatusPill
-                            className={providerReadyPillClass({
-                              canExecute: provider.canExecute,
-                              status: provider.status,
-                            })}
-                          >
-                            {readyLabel}
-                          </StatusPill>
+                          <ProviderUntestedBadge
+                            providerId={provider.providerId}
+                            status={provider.status}
+                          />
+                          {provider.status === 'not_configured' ? null : (
+                            <StatusPill
+                              className={providerReadyPillClass({
+                                canExecute: provider.canExecute,
+                                status: provider.status,
+                              })}
+                            >
+                              {readyLabel}
+                            </StatusPill>
+                          )}
                         </div>
                       </div>
                     </div>

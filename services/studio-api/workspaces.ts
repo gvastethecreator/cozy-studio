@@ -1,8 +1,14 @@
+import type { Workspace } from '../../types';
 import type {
   StudioWorkspace,
   StudioWorkspaceSortOrder,
   WorkspaceStyleRef,
 } from '../../packages/shared/src';
+import {
+  DEFAULT_WORKSPACE_ID,
+  normalizeWorkspaceStyleScope,
+} from '../../packages/shared/src/workspaceContracts';
+import { get } from '../../utils/idb';
 import type { LibraryArchiveImportResult } from '../../packages/shared/src/libraryArchive';
 import {
   getStudioApiBase,
@@ -13,6 +19,36 @@ import {
 
 export async function listWorkspaces() {
   return request<StudioWorkspace[]>('/api/workspaces');
+}
+
+export function mapStudioWorkspaceToUi(workspace: StudioWorkspace): Workspace {
+  const createdAtMs = Date.parse(workspace.createdAt);
+  return {
+    id: workspace.id,
+    name: workspace.name,
+    createdAt: Number.isFinite(createdAtMs) ? createdAtMs : Date.now(),
+    styleScope: normalizeWorkspaceStyleScope(workspace.styleScope),
+  };
+}
+
+/** The workspaces Studio loads at every start, with the saved active workspace. */
+export async function loadDurableWorkspacesFromApi(): Promise<{
+  workspaces: Workspace[];
+  activeWorkspaceId: string;
+}> {
+  const remote = await listWorkspaces();
+  const workspaces = remote.map(mapStudioWorkspaceToUi);
+  if (!workspaces.some((workspace) => workspace.id === DEFAULT_WORKSPACE_ID)) {
+    workspaces.unshift({ id: DEFAULT_WORKSPACE_ID, name: 'Default', createdAt: Date.now() });
+  }
+  const storedActiveId = await get<string>('app-active-workspace-id');
+  return {
+    workspaces,
+    activeWorkspaceId:
+      storedActiveId && workspaces.some((workspace) => workspace.id === storedActiveId)
+        ? storedActiveId
+        : DEFAULT_WORKSPACE_ID,
+  };
 }
 
 export async function exportLibraryArchive(workspaceId: string) {

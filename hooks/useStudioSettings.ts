@@ -35,6 +35,7 @@ import {
   runThumbnailBackfillMaintenance,
 } from '../services/studio-api/maintenance';
 import { createStudioEventStream } from '../services/studioEventSource';
+import { isStudioOfflineError } from '../services/studio-api/http';
 import type { Toast } from '../types';
 import {
   removeImportedOutputSourceFiles,
@@ -142,6 +143,7 @@ export function useStudioSettings({
       key: keyof typeof revisions.current,
       load: () => Promise<T>,
       apply: (value: T) => void,
+      onOffline?: () => void,
     ): Promise<string | null> => {
       const revision = ++revisions.current[key];
       try {
@@ -155,6 +157,7 @@ export function useStudioSettings({
         return null;
       } catch (cause) {
         if (!isMountedRef.current || revisions.current[key] !== revision) return null;
+        if (isStudioOfflineError(cause)) onOffline?.();
         return cause instanceof Error ? cause.message : String(cause);
       }
     },
@@ -163,12 +166,19 @@ export function useStudioSettings({
 
   const refreshProviders = useCallback(
     () =>
+      // Without the server, the last answer is stale: dropping it keeps a provider from showing Ready.
       Promise.all([
-        readResource('capabilities', getGenerationProviderCapabilities, setProviderCapabilities),
+        readResource(
+          'capabilities',
+          getGenerationProviderCapabilities,
+          setProviderCapabilities,
+          () => setProviderCapabilities(null),
+        ),
         readResource(
           'preflight',
           getGenerationProviderRuntimePreflight,
           setProviderRuntimePreflight,
+          () => setProviderRuntimePreflight(null),
         ),
       ]),
     [readResource],

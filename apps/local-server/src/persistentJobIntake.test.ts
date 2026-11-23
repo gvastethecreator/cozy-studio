@@ -8,6 +8,7 @@ import {
 } from '../../../packages/shared/src';
 import {
   createPersistentJobIntake,
+  fileBatchInOneCollection,
   resolvePersistentJobIntakeKind,
   type ReferenceProcessingErrorLike,
 } from './persistentJobIntake';
@@ -553,6 +554,47 @@ describe('persistentJobIntake', () => {
       },
     });
     expect(processReferences).not.toHaveBeenCalled();
+
+    // Organize while generating: without its own filing, a job is tagged from its facts and a
+    // batch shares one collection. Filing that the caller set, even none, is kept.
+    const styled = {
+      kind: 'image_generate' as const,
+      prompt: 'draw',
+      sourceSpec: createGenerationTaskSpec({
+        id: 'styled',
+        task: 'image_generate',
+        prompt: 'draw',
+        recipeId: 'styles',
+        recipeParams: {
+          presetId: 'SP35-016',
+          presetName: 'Tenebrist Pixel Portrait',
+          selectedStyles: [
+            { packId: 'pack_35', presetId: 'SP35-016', presetName: 'Tenebrist Pixel Portrait' },
+          ],
+        },
+      }),
+    };
+    const tagged = await intake.prepareJob(styled);
+    expect(tagged.ok && tagged.prepared.input.sourceSpec?.metadata.libraryOrganization).toEqual({
+      tags: ['pack_35', 'sp35-016'],
+      collection: null,
+    });
+    const unfiled = {
+      ...styled,
+      sourceSpec: { ...styled.sourceSpec, metadata: { libraryOrganization: null } },
+    };
+    const kept = await intake.prepareJob(unfiled);
+    expect(kept.ok && kept.prepared.input.sourceSpec?.metadata.libraryOrganization).toBeNull();
+    const batch = fileBatchInOneCollection(
+      [styled, styled, unfiled],
+      new Date(2026, 10, 22, 14, 5),
+    );
+    expect(batch[0].sourceSpec?.metadata.libraryOrganization).toEqual({
+      tags: ['pack_35', 'sp35-016'],
+      collection: 'Tenebrist Pixel Portrait · 2026-11-22 14:05',
+    });
+    expect(batch[2]).toBe(unfiled);
+    expect(fileBatchInOneCollection([styled])).toEqual([styled]);
   });
 
   it('rejects new jobs of a turned-off workflow module before reference persistence', async () => {

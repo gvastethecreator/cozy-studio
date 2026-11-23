@@ -62,6 +62,7 @@ export function materializeCatalogEntryImage(
     createdAt,
     isFavorite: entry.isFavorite,
     tags: entry.tags,
+    styleName: entry.styleName,
     localPath: entry.filePath || undefined,
     sourceUrl,
     sourceExists: entry.sourceExists,

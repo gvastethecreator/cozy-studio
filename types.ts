@@ -86,6 +86,7 @@ export interface GeneratedImage {
   createdAt: number;
   isFavorite?: boolean; // Added for pinning
   tags?: string[];
+  styleName?: string;
   localPath?: string;
   sourceUrl?: string;
   sourceExists?: boolean;

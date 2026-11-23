@@ -583,6 +583,10 @@ export const es: Dictionary = {
     'Inicia sesión con Google aquí abajo o añade una clave de API de Google.',
   'settings.providers.grokSetup':
     'Inicia sesión con xAI aquí abajo, define XAI_API_KEY o instala Grok Build e inicia sesión allí.',
+  'settings.providers.notConfigured': 'Sin configurar',
+  'settings.providers.offline': 'Sin conexión',
+  'settings.providers.offlineDetail':
+    'El servidor local de Studio no responde. El estado de los proveedores vuelve cuando responda.',
   'settings.appearance.zoomSensitivity': 'Sensibilidad del zoom',
   'settings.appearance.zoomSensitivityHint':
     'Qué tan rápido hacen zoom la rueda o el pellizco en las vistas previas de imágenes.',

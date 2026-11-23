@@ -41,14 +41,17 @@ export function SettingsLibraryArchivePanel() {
           id: result.workspace.id,
           name: result.workspace.name,
           createdAt: Date.parse(result.workspace.createdAt),
+          styleScope: result.workspace.styleScope,
         },
         { activate: true },
       );
-      const message = `Imported ${result.imported} images into "${result.workspace.name}".${result.skipped.length ? ` ${result.skipped.length} files skipped: ${result.skipped.map((item) => `${item.file} (${item.reason})`).join(', ')}` : ''}${result.missing.length ? ` ${result.missing.length} images were missing from the exported Library.` : ''}`;
+      const message = `Imported ${result.imported} images into "${result.workspace.name}".${result.skipped.length ? ` ${result.skipped.length} files skipped: ${result.skipped.map((item) => `${item.file} (${item.reason})`).join(', ')}` : ''}${result.missing.length ? ` ${result.missing.length} images were missing from the exported Library.` : ''}${result.skippedStylePacks.length ? ` Linked styles from packs that are not installed were left out: ${result.skippedStylePacks.join(', ')}. Install those packs and link them again.` : ''}`;
       setStatus(message);
       addToast(
         `Imported ${result.imported} images into "${result.workspace.name}".`,
-        result.skipped.length || result.missing.length ? 'warning' : 'success',
+        result.skipped.length || result.missing.length || result.skippedStylePacks.length
+          ? 'warning'
+          : 'success',
       );
     } catch (error) {
       reportError(error);

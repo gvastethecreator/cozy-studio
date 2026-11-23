@@ -2,6 +2,7 @@ import type {
   SubscriptionAuthStatus,
   SubscriptionProviderId,
 } from '../packages/shared/src/subscriptionAuth';
+import { t } from './i18n';
 
 export function subscriptionAuthStatusLabel(
   status: SubscriptionAuthStatus | 'loading' | null | undefined,
@@ -29,6 +30,7 @@ export function providerReadyLabel({
   if (canExecute) return 'Ready';
   if (status === 'planned') return 'Planned';
   if (status === 'unknown') return 'Checking';
+  if (status === 'not_configured') return t('settings.providers.notConfigured');
   return 'Needs setup';
 }
 

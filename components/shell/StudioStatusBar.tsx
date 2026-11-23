@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { LayoutRight as SidebarRight } from 'iconoir-react';
 
 import type { UseCatalogResult } from '../../hooks/useCatalogPage';
@@ -10,6 +10,7 @@ import { UsageStatusCard } from '../header/UsageStatusCard';
 import { CozyStatusCup } from '../CozyMascot';
 import { ProviderBrandMark } from '../ProviderBrandMark';
 import Tooltip from '../Tooltip';
+import { RuntimeStatusPanel, type RuntimeStatusDetails } from './RuntimeStatusPanel';
 
 export interface StudioStatusBarProps {
   providerUsage: Partial<Record<'codex' | 'chatgpt', StudioUsageSummary>>;
@@ -22,7 +23,15 @@ export interface StudioStatusBarProps {
   onToggleQueue: () => void;
   onOpenDashboard: () => void;
   onOpenOnboarding: () => void;
+  onOpenSettings?: () => void;
+  runtimeDetails?: RuntimeStatusDetails;
 }
+
+const NO_RUNTIME_DETAILS: RuntimeStatusDetails = {
+  statusItems: [],
+  stuckJobCount: 0,
+  lastJobError: null,
+};
 
 export function StudioStatusBar({
   providerUsage,
@@ -32,7 +41,34 @@ export function StudioStatusBar({
   onToggleQueue,
   onOpenDashboard,
   onOpenOnboarding,
+  onOpenSettings,
+  runtimeDetails = NO_RUNTIME_DETAILS,
 }: StudioStatusBarProps) {
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const statusRoot = useRef<HTMLDivElement>(null);
+  const statusTrigger = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!isStatusOpen) return;
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setIsStatusOpen(false);
+      statusTrigger.current?.focus();
+    };
+    const pointerdown = (event: PointerEvent) => {
+      if (event.target instanceof Node && !statusRoot.current?.contains(event.target))
+        setIsStatusOpen(false);
+    };
+    document.addEventListener('keydown', keydown);
+    document.addEventListener('pointerdown', pointerdown);
+    return () => {
+      document.removeEventListener('keydown', keydown);
+      document.removeEventListener('pointerdown', pointerdown);
+    };
+  }, [isStatusOpen]);
+  const closeStatusThen = (action: () => void) => () => {
+    setIsStatusOpen(false);
+    action();
+  };
   const runtimeStatus = commandCenter.runtimeStatus;
   const queueCount = commandCenter.queue.activeCount;
   const reviewCount = commandCenter.queue.reviewCount;
@@ -145,16 +181,36 @@ export function StudioStatusBar({
 
       <div className="studio-status-spacer" />
 
-      <Tooltip content={runtimeStatus.tooltip} position="top" className="shrink-0">
-        <button
-          type="button"
-          onClick={onOpenOnboarding}
-          aria-label={`Open runtime status: ${runtimeStatus.label}`}
-          className={`studio-command-surface studio-hit-target flex h-7 shrink-0 items-center justify-center rounded-[var(--wb-radius)] border border-transparent px-2 ${runtimeStatus.tone === 'success' ? 'text-[color:var(--wb-success)]' : 'text-[color:var(--wb-danger)]'}`}
-        >
-          <CozyStatusCup healthy={runtimeStatus.tone === 'success'} />
-        </button>
-      </Tooltip>
+      <div ref={statusRoot} className="relative shrink-0">
+        <Tooltip content={runtimeStatus.tooltip} position="top" hidden={isStatusOpen}>
+          <button
+            ref={statusTrigger}
+            type="button"
+            onClick={() => setIsStatusOpen(!isStatusOpen)}
+            aria-expanded={isStatusOpen}
+            aria-label={`Open runtime status: ${runtimeStatus.label}`}
+            className={`studio-command-surface studio-hit-target flex h-7 shrink-0 items-center justify-center rounded-[var(--wb-radius)] border border-transparent px-2 ${runtimeStatus.tone === 'success' ? 'text-[color:var(--wb-success)]' : 'text-[color:var(--wb-danger)]'}`}
+          >
+            <CozyStatusCup healthy={runtimeStatus.tone === 'success'} />
+          </button>
+        </Tooltip>
+        {isStatusOpen ? (
+          <RuntimeStatusPanel
+            commandCenter={commandCenter}
+            providerUsage={providerUsage}
+            details={runtimeDetails}
+            onClose={() => {
+              setIsStatusOpen(false);
+              statusTrigger.current?.focus();
+            }}
+            onOpenSettings={onOpenSettings && closeStatusThen(onOpenSettings)}
+            onOpenSetupGuide={closeStatusThen(onOpenOnboarding)}
+            onOpenJobs={closeStatusThen(() => {
+              if (!isQueueOpen) onToggleQueue();
+            })}
+          />
+        ) : null}
+      </div>
 
       <Tooltip content={`Jobs · ${queueLabel}`} position="top" hidden className="shrink-0">
         <button

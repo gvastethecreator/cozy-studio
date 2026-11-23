@@ -730,7 +730,18 @@ export async function createStudioApp(
     }),
   );
 
-  app.route('/api/workspaces', createLibraryArchiveRoutes({ publishEvent }));
+  app.route(
+    '/api/workspaces',
+    createLibraryArchiveRoutes({
+      publishEvent,
+      installedStylePackIds: async () =>
+        new Set(
+          (await extensionStore.list()).extensions.flatMap(({ manifest }) =>
+            manifest.kind === 'style-pack' ? [manifest.stylePack.id] : [],
+          ),
+        ),
+    }),
+  );
   app.route(
     '/api/workspaces',
     createWorkspaceRoutes({

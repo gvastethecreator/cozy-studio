@@ -479,6 +479,8 @@ export interface CatalogImage {
   isDeleted: boolean;
   deletedAt: string | null;
   tags: string[];
+  /** The style's display name from the generation config, when the image used one. */
+  styleName?: string;
   generationConfig: Record<string, unknown> | null;
   createdAt: string;
   detailLevel?: 'summary' | 'detail';

@@ -16,14 +16,12 @@ import { set } from '../utils/idb';
 import {
   createWorkspace as createWorkspaceApi,
   deleteWorkspace as deleteWorkspaceApi,
+  loadDurableWorkspacesFromApi,
   updateWorkspace as updateWorkspaceApi,
 } from '../services/studio-api/workspaces';
 import { CATALOG_WORKSPACE_SEEN } from '../services/studio-api/catalog';
 import { isStudioOfflineError, STUDIO_OFFLINE_MESSAGE } from '../services/studio-api/http';
-import {
-  loadDurableWorkspacesFromApi,
-  migrateIndexedDbWorkspacesToServer,
-} from '../lib/workspaceIdbMigration';
+import { migrateIndexedDbWorkspacesToServer } from '../lib/workspaceIdbMigration';
 import {
   DEFAULT_WORKSPACE_ID,
   type WorkspaceStyleRef,

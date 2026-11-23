@@ -41,5 +41,7 @@ export function providerRuntimeStatusDotClass({
 }) {
   if (canExecute) return 'bg-emerald-400';
   if (status === 'unknown') return 'bg-amber-400';
+  // Grey, like its label: nothing is broken, the provider is not set up or not reachable yet.
+  if (status === 'not_configured' || status === 'offline') return 'bg-zinc-500';
   return 'bg-rose-400';
 }

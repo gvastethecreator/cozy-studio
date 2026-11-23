@@ -53,6 +53,7 @@ import { STUDIO_OFFLINE_MESSAGE } from '../services/studio-api/http';
 import { buildGenerationConfigFromCatalogImage } from '../utils/catalogImageGenerationConfig';
 import { useToastUi } from '../contexts/GlobalContext';
 import { useImageConversion } from '../contexts/ImageConversionContext';
+import { libraryCardTitle } from '../lib/libraryCardTitle';
 import { providerBrandChipLabel } from '../lib/providerBrand';
 import {
   shouldAlwaysShowCatalogCardActions,
@@ -378,6 +379,7 @@ function useImageItem(props: ImageItemProps) {
   const frameAspectRatio = isGridView || isListView ? '1 / 1' : imageAspectRatio;
   const listThumbnailSize = Math.max(88, Math.min(136, Math.round(thumbnailSize * 0.66)));
   const promptText = image.config.prompt?.trim() || 'Untitled image';
+  const titleText = libraryCardTitle(image);
   const dimensionsLabel =
     typeof image.width === 'number' &&
     Number.isFinite(image.width) &&
@@ -523,6 +525,7 @@ function useImageItem(props: ImageItemProps) {
     handleImageClick,
     listThumbnailSize,
     promptText,
+    titleText,
     shouldMountActions,
     isCoarsePointer,
   };
@@ -550,6 +553,7 @@ function ImageItemView({ model }: { model: ImageItemModel }) {
     image,
     listThumbnailSize,
     promptText,
+    titleText,
     viewMode,
     isActionMenuOpen,
     shouldMountActions,
@@ -636,7 +640,7 @@ function ImageItemView({ model }: { model: ImageItemModel }) {
               data-tooltip={promptText}
               className="line-clamp-2 max-w-[72ch] text-sm font-semibold leading-5 text-[color:var(--wb-ink)]"
             >
-              {promptText}
+              {titleText}
             </span>
             <span className="mt-2 block">{metadataLine}</span>
           </span>
@@ -702,7 +706,7 @@ function ImageItemView({ model }: { model: ImageItemModel }) {
         style={{ height: captionHeight }}
         data-tooltip={promptText}
       >
-        <span className="library-card-caption-title">{promptText}</span>
+        <span className="library-card-caption-title">{titleText}</span>
         {compactCaption ? <div className="library-card-meta">{metadataLine}</div> : metadataLine}
       </div>
     </div>

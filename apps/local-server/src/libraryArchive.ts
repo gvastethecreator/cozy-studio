@@ -17,10 +17,11 @@ import {
   type LibraryArchiveManifest,
 } from '../../../packages/shared/src/libraryArchive';
 import { STUDIO_REFERENCE_IMPORT_MAX_PIXELS } from '../../../packages/shared/src/studioMcp';
+import { normalizeWorkspaceStyleScope } from '../../../packages/shared/src/workspaceContracts';
 import { getCatalogImage, listCatalogImageIds, registerCatalogImage } from './catalog';
 import { createCatalogCollection, listCatalogCollections } from './catalogCollections';
 import { getDb } from './db/connection';
-import { createWorkspaceInDb, getWorkspaceFromDb } from './db/workspaces';
+import { createWorkspaceInDb, getWorkspaceFromDb, updateWorkspaceInDb } from './db/workspaces';
 import { ensureDefaultLibrary, getLibrary } from './libraries';
 import { resolveLibraryPathFromRoot } from './library';
 import { ensureThumbnailVariant, resolveLibraryThumbnailPath } from './libraryAssetVariants';
@@ -41,6 +42,8 @@ const EXTENSIONS = {
 export interface LibraryArchiveDependencies {
   database?: Database;
   library?: { id: string; path: string };
+  /** Style pack ids installed here. Without it, import keeps every linked style. */
+  installedStylePackIds?: () => Promise<ReadonlySet<string>>;
 }
 
 export class LibraryArchiveError extends Error {
@@ -249,7 +252,11 @@ export function exportLibraryArchive(workspaceId: string, deps: LibraryArchiveDe
     version: LIBRARY_ARCHIVE_VERSION,
     exportedAt: new Date().toISOString(),
     studioVersion: studioPackage.version,
-    workspace: { name: workspace.name, sortOrder: workspace.sortOrder },
+    workspace: {
+      name: workspace.name,
+      sortOrder: workspace.sortOrder,
+      ...(workspace.styleScope.length && { styleScope: workspace.styleScope }),
+    },
     images,
     missing,
     tags: database
@@ -318,6 +325,14 @@ export async function importLibraryArchive(
   const name = options.name === undefined ? manifest.workspace.name : options.name.trim();
   if (!name || name.length > 128) reject('Workspace name must have 1 to 128 characters.');
   const library = deps.library ?? ensureDefaultLibrary();
+  const linkedStyles = normalizeWorkspaceStyleScope(manifest.workspace.styleScope);
+  const installedPacks = linkedStyles.length ? await deps.installedStylePackIds?.() : undefined;
+  const styleScope = linkedStyles.filter(
+    (ref) => !installedPacks || installedPacks.has(ref.packId),
+  );
+  const skippedStylePacks = [
+    ...new Set(linkedStyles.filter((ref) => !styleScope.includes(ref)).map((ref) => ref.packId)),
+  ];
   const workspaceId = randomUUID();
   const written: string[] = [];
   const imported: {
@@ -392,11 +407,13 @@ export async function importLibraryArchive(
         const suffix = collision === 1 ? ' (imported)' : ` (imported ${collision})`;
         importedName = `${name.slice(0, 128 - suffix.length)}${suffix}`;
       }
-      const created = createWorkspaceInDb(database, {
+      let created = createWorkspaceInDb(database, {
         id: workspaceId,
         name: importedName,
         sortOrder: manifest.workspace.sortOrder,
       });
+      if (styleScope.length)
+        created = updateWorkspaceInDb(database, workspaceId, { styleScope }) ?? created;
       const imageIds = new Map<string, string>();
       const batchIds = new Map<string, string>();
       for (const item of imported) {
@@ -441,7 +458,13 @@ export async function importLibraryArchive(
         );
       return created;
     })();
-    return { workspace, imported: imported.length, skipped, missing: manifest.missing };
+    return {
+      workspace,
+      imported: imported.length,
+      skipped,
+      missing: manifest.missing,
+      skippedStylePacks,
+    };
   } catch (error) {
     for (const file of written) {
       if (existsSync(file)) unlinkSync(file);

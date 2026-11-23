@@ -570,6 +570,10 @@ export const en = {
   'settings.providers.googleSetup': 'Sign in with Google below, or add a Google API key.',
   'settings.providers.grokSetup':
     'Sign in with xAI below, set XAI_API_KEY, or install Grok Build and sign in there.',
+  'settings.providers.notConfigured': 'Not set up',
+  'settings.providers.offline': 'Offline',
+  'settings.providers.offlineDetail':
+    "Studio's local server is not answering. Provider status comes back when it answers.",
   'settings.appearance.zoomSensitivity': 'Zoom sensitivity',
   'settings.appearance.zoomSensitivityHint': 'How fast scrolling or pinching zooms image previews.',
   'settings.agents.heading': 'Local agents',

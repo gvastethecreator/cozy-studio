@@ -154,6 +154,9 @@ function mapCatalogImage(
     isDeleted: Boolean(row.is_deleted),
     deletedAt: row.deleted_at,
     tags: parseJson<string[]>(row.tags, []),
+    ...(typeof row.style_name === 'string' && row.style_name.trim()
+      ? { styleName: row.style_name.trim() }
+      : {}),
     generationConfig: options.includeGenerationConfig
       ? parseJson<Record<string, unknown> | null>(row.generation_config, null)
       : null,
@@ -278,6 +281,8 @@ export function getCatalogImageByJobId(jobId: string, filePath?: string | null) 
 const SAFE_GENERATION_CONFIG =
   "CASE WHEN json_valid(generation_config) THEN generation_config ELSE '{}' END";
 const CATALOG_PROVIDER = `COALESCE((SELECT provider_id FROM jobs WHERE jobs.id = catalog_images.job_id), json_extract(${SAFE_GENERATION_CONFIG}, '$.providerId'))`;
+// Library cards title an image by its style; the summary list carries only that name.
+const CATALOG_STYLE_NAME = `json_extract(${SAFE_GENERATION_CONFIG}, '$.recipeParams.presetName')`;
 const DEFAULT_RECIPE =
   "CASE WHEN recipe_id IS NULL OR recipe_id = '' OR recipe_id = 'styles' THEN 'default' ELSE recipe_id END";
 
@@ -483,7 +488,7 @@ function queryCatalogInternal(
     .query(
       `SELECT ${
         options.includeGenerationConfig ? '*' : CATALOG_IMAGE_SUMMARY_COLUMNS
-      }, ${CATALOG_PROVIDER} AS provider_id FROM catalog_images ${where} ORDER BY ${orderBy[filters.sort ?? 'desc']} LIMIT ? OFFSET ?`,
+      }, ${CATALOG_PROVIDER} AS provider_id, ${CATALOG_STYLE_NAME} AS style_name FROM catalog_images ${where} ORDER BY ${orderBy[filters.sort ?? 'desc']} LIMIT ? OFFSET ?`,
     )
     .all(...params, limit, offset)
     .map((row) => mapCatalogImage(row, options));

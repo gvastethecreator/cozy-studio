@@ -13,6 +13,7 @@ import {
 } from 'iconoir-react';
 
 import { getActiveRecipeIndicator } from '../lib/activeRecipeIndicator';
+import { getProviderFacts } from '../packages/shared/src/providerCapabilities';
 import { summarizePersistentJobs } from '../lib/persistentJobSummary';
 import { canRetryStudioJob, canResumeStudioJob, readableJobError } from '../lib/studioJobRetry';
 import type { StudioQueueResultPreview } from '../lib/studioQueueResults';
@@ -36,15 +37,16 @@ import type { WorkerStatus } from '../packages/shared/src/workerContracts';
 import { formatDate, formatDateTime, useT } from '../lib/i18n';
 
 function formatWaitReason(wait: WorkerStatus['waiting'][number]) {
+  const provider = getProviderFacts(wait.providerId)?.label ?? wait.providerId;
   switch (wait.reason) {
     case 'provider_capacity':
-      return `Waiting for ${wait.providerId} capacity`;
+      return `Waiting for ${provider} capacity`;
     case 'global_capacity':
       return 'Waiting for a worker slot';
     case 'provider_turn':
-      return `Waiting for ${wait.providerId}'s turn`;
+      return `Waiting for ${provider}'s turn`;
     case 'provider_paused':
-      return `Paused until you sign in to ${wait.providerId} again in Settings`;
+      return `Paused until you sign in to ${provider} again in Settings`;
     case 'stopping':
       return 'Worker stopping; job remains queued';
   }
@@ -108,6 +110,29 @@ function resolveQueueRecipeLabel(
     getActiveRecipeIndicator(isRegisteredRecipeId(recipeId) ? recipeId : null)?.title ??
     formatQueueTaskLabel(fallbackTask)
   );
+}
+
+/**
+ * Jobs in one group often share a long opening ("Create one portrait 3:4 style-preview image.
+ * Preview brief: …"). Each card then shows only the part after it, so the cards differ at a glance.
+ */
+export function splitSharedPromptOpening(prompts: string[]) {
+  if (prompts.length < 2) return { opening: '', tails: prompts };
+  let shared = prompts[0];
+  for (const prompt of prompts.slice(1)) {
+    let index = 0;
+    while (index < shared.length && index < prompt.length && shared[index] === prompt[index])
+      index += 1;
+    shared = shared.slice(0, index);
+  }
+  // Cut after a sentence, a colon or at least a word, never inside one.
+  const boundary = Math.max(shared.lastIndexOf('. '), shared.lastIndexOf(': '));
+  const cut = boundary >= 0 ? boundary + 2 : shared.lastIndexOf(' ') + 1;
+  if (cut < 24) return { opening: '', tails: prompts };
+  return {
+    opening: shared.slice(0, cut).trim(),
+    tails: prompts.map((prompt) => prompt.slice(cut).trim() || prompt),
+  };
 }
 
 function QueueNavigation({
@@ -268,7 +293,8 @@ function QueueWorkerDetails({ worker }: { worker: ReturnType<typeof useWorkerDia
           <>
             <p>
               {worker.status.activeWorkerCount} / {worker.status.maxConcurrentJobs} worker slots
-              active{worker.status.stopping ? ' · Stopping' : ''}
+              active
+              {worker.status.stopping ? ' · Stopping' : ''}
             </p>
             {Object.entries(worker.status.providerLimits).map(([providerId, limit]) => (
               <p key={providerId}>
@@ -327,10 +353,13 @@ function useQueuePanelData(
   );
   const jobs = view === 'history' ? visibleHistory : view === 'review' ? reviewJobs : activeJobs;
   const visibleJobs = view === 'history' ? jobs : jobs.slice(0, visibleCount);
+  // A batch is one group. Outside History, jobs sent alone also group by task and workflow, so
+  // nine style previews read as one group instead of nine cards that start the same way.
   const jobGroups = Array.from(
     visibleJobs
       .reduce((groups, job) => {
-        const key = job.batchId ?? job.id;
+        const key =
+          job.batchId ?? (view === 'history' ? job.id : `task:${job.kind}:${job.recipeId ?? ''}`);
         const group = groups.get(key) ?? [];
         group.push(job);
         groups.set(key, group);
@@ -534,55 +563,62 @@ function QueueJobList({
         }
         className="space-y-2"
       >
-        {jobGroups.map(([groupId, group]) => (
-          <div key={groupId} className="space-y-2">
-            {group.length > 1 && (
-              <div className="flex items-center justify-between gap-2 pt-3 text-xs text-[color:var(--wb-ink)]">
-                <p>
-                  {resolveQueueRecipeLabel(group[0].recipeId, group[0].kind)} · {group.length} jobs
-                </p>
-                {selectReview ? (
-                  <button
-                    type="button"
-                    onClick={() => toggleReview(group.map((job) => job.id))}
-                    className="min-h-8 rounded-[var(--wb-radius)] px-2 hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)]"
-                  >
-                    {group.every((job) => selectedReviewIds.has(job.id))
-                      ? 'Clear group'
-                      : 'Select group'}
-                  </button>
-                ) : null}
-              </div>
-            )}
-            {group.map((job, index) => (
-              <ServerJobItem
-                key={job.id}
-                job={job}
-                showBatch={index === 0}
-                showRecipe={group.length === 1}
-                waitReason={
-                  job.status === 'queued' && waitReasons.has(job.id)
-                    ? formatWaitReason(waitReasons.get(job.id)!)
-                    : undefined
-                }
-                previewSrc={resultsByJobId.get(job.id) ?? null}
-                nowMs={nowMs}
-                isSelected={selectedJobId === job.id}
-                selection={
-                  selectReview
-                    ? {
-                        checked: selectedReviewIds.has(job.id),
-                        onToggle: () => toggleReview([job.id]),
-                      }
-                    : undefined
-                }
-                onInspect={() => onInspectJob(job.id)}
-                onRetry={onRetryServerJob ? () => onRetryServerJob(job.id) : undefined}
-                onCancel={() => onCancelServerJob(job.id)}
-              />
-            ))}
-          </div>
-        ))}
+        {jobGroups.map(([groupId, group]) => {
+          const { opening, tails } = splitSharedPromptOpening(
+            group.map((job) => job.originalPrompt || 'Untitled job'),
+          );
+          return (
+            <div key={groupId} className="space-y-2">
+              {group.length > 1 && (
+                <div className="flex items-center justify-between gap-2 pt-3 text-xs text-[color:var(--wb-ink)]">
+                  <p data-tooltip={opening || undefined}>
+                    {resolveQueueRecipeLabel(group[0].recipeId, group[0].kind)} · {group.length}{' '}
+                    jobs
+                  </p>
+                  {selectReview ? (
+                    <button
+                      type="button"
+                      onClick={() => toggleReview(group.map((job) => job.id))}
+                      className="min-h-8 rounded-[var(--wb-radius)] px-2 hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)]"
+                    >
+                      {group.every((job) => selectedReviewIds.has(job.id))
+                        ? 'Clear group'
+                        : 'Select group'}
+                    </button>
+                  ) : null}
+                </div>
+              )}
+              {group.map((job, index) => (
+                <ServerJobItem
+                  key={job.id}
+                  job={job}
+                  showBatch={index === 0}
+                  showRecipe={group.length === 1}
+                  promptText={tails[index]}
+                  waitReason={
+                    job.status === 'queued' && waitReasons.has(job.id)
+                      ? formatWaitReason(waitReasons.get(job.id)!)
+                      : undefined
+                  }
+                  previewSrc={resultsByJobId.get(job.id) ?? null}
+                  nowMs={nowMs}
+                  isSelected={selectedJobId === job.id}
+                  selection={
+                    selectReview
+                      ? {
+                          checked: selectedReviewIds.has(job.id),
+                          onToggle: () => toggleReview([job.id]),
+                        }
+                      : undefined
+                  }
+                  onInspect={() => onInspectJob(job.id)}
+                  onRetry={onRetryServerJob ? () => onRetryServerJob(job.id) : undefined}
+                  onCancel={() => onCancelServerJob(job.id)}
+                />
+              ))}
+            </div>
+          );
+        })}
       </section>
       {!jobHistory.loading && !jobHistory.error && jobs.length === 0 ? (
         <QueueEmptyState view={view} />
@@ -926,6 +962,8 @@ const ServerJobItem: React.FC<{
   job: StudioJob;
   showBatch?: boolean;
   showRecipe: boolean;
+  /** The prompt as the card shows it: the part that differs from the rest of its group. */
+  promptText: string;
   waitReason?: string;
   previewSrc: string | null;
   nowMs: number;
@@ -939,6 +977,7 @@ const ServerJobItem: React.FC<{
   job,
   showBatch = true,
   showRecipe,
+  promptText,
   waitReason,
   previewSrc,
   nowMs,
@@ -995,8 +1034,11 @@ const ServerJobItem: React.FC<{
               decoding="async"
             />
           ) : null}
-          <p className="line-clamp-2 text-xs leading-relaxed text-[color:var(--wb-ink)]">
-            {job.originalPrompt || 'Untitled job'}
+          <p
+            data-tooltip={job.originalPrompt || undefined}
+            className="line-clamp-2 text-xs leading-relaxed text-[color:var(--wb-ink)]"
+          >
+            {promptText}
           </p>
         </div>
       </button>

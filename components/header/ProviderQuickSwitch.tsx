@@ -158,7 +158,10 @@ function ProviderOption({
           <span className="truncate text-[length:var(--wbp-label)] font-semibold tracking-normal">
             {option.label}
           </span>
-          <ProviderUntestedBadge providerId={option.id} />
+          {/* The status line below already says "Not set up". */}
+          {option.status === 'not_configured' ? null : (
+            <ProviderUntestedBadge providerId={option.id} />
+          )}
         </span>
         <span className="mt-0.5 block text-[length:var(--wbp-label)] font-bold text-[color:var(--wb-muted)]">
           {option.statusDetail}

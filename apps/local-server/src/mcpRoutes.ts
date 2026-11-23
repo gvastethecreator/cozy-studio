@@ -202,7 +202,8 @@ async function buildGenerationRequest(
   }
   // The normal intake resolves execution defaults from Studio Settings.
   delete sourceSpec.metadata.execution;
-  if (libraryOrganization) sourceSpec.metadata.libraryOrganization = libraryOrganization;
+  // Always set, also when empty: an agent's filing, even none, replaces Studio's automatic filing.
+  sourceSpec.metadata.libraryOrganization = libraryOrganization;
 
   // The workspace is resolved last, so a rejected request creates no workspace.
   let workspace: Pick<StudioWorkspace, 'id' | 'name'> | undefined;

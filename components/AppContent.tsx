@@ -347,6 +347,8 @@ function AppWorkspace({ model }: { model: AppWorkbenchModel }) {
             onToggleQueue={shell.headerToolbar.props.onToggleQueue}
             onOpenDashboard={shell.headerToolbar.props.onOpenDashboard}
             onOpenOnboarding={shell.headerToolbar.props.onOpenOnboarding}
+            onOpenSettings={shell.headerToolbar.props.onOpenSettings}
+            runtimeDetails={shell.headerToolbar.runtimeDetails}
           />
         ) : null}
 

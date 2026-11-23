@@ -57,6 +57,12 @@ A connected session only confirms authentication. The job diagnostics name the c
 
 Studio does not switch a failed job to another provider. If a submission was interrupted or its result is uncertain, the job goes to review. Inspect it before you generate again.
 
+### ChatGPT sign-in expired and the queue is paused
+
+Symptoms: a notice says the ChatGPT sign-in expired or was rejected, and Jobs shows the queued ChatGPT jobs as "Paused until you sign in to chatgpt again".
+
+When ChatGPT rejects the session, Studio stops sending ChatGPT jobs. The job that got the rejection goes back to the queue with its siblings; none of them fails, and the rejected request used no usage. Sign in again in Settings → Accounts & models. The paused jobs then start on their own. Other providers keep running. A Studio restart forgets the pause: the first ChatGPT job that gets a rejection pauses the queue again.
+
 ## Codex route
 
 These problems affect only the Codex provider. They do not block an authenticated ChatGPT connection.
@@ -176,6 +182,12 @@ Edit sources must already be inside the Studio data folder that the job captured
 Symptoms: `dev:ui` opens, but jobs and assets do not sync.
 
 Use `bun run dev`, or run `dev:server` and `dev:ui` in parallel.
+
+### The UI starts slowly
+
+Symptoms: `bun run dev` prints "Studio UI at … is still starting; the server keeps running."
+
+`bun run dev` starts the backend and the Vite UI together. On a busy machine Vite can need most of a minute. The launcher prints that note after 10 seconds and a second note if the UI still does not answer after 60 seconds, but it never stops the backend for a slow UI. Jobs and agents keep working. Reload the page when Vite answers. After an update restart, the page reloads by itself once the UI answers. Only a UI process that exits stops `bun run dev`. For daily use without Vite, run `bun run studio` ([platform support](PLATFORMS.md#start)).
 
 ### Studio does not start after an update
 

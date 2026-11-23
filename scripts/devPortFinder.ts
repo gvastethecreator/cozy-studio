@@ -36,9 +36,39 @@ export async function findAvailablePort(
   );
 }
 
+export interface DevWaitOptions {
+  /** How long to wait in total. A loaded machine can need most of a minute. */
+  timeoutMs?: number;
+  /** When to print one console note that the wait is still going. */
+  slowAfterMs?: number;
+  warn?: (message: string) => void;
+}
+
+function slowNotice(slowAfterMs: number, warn: (message: string) => void, message: string) {
+  const timer = setTimeout(() => warn(message), slowAfterMs);
+  timer.unref?.();
+  return () => clearTimeout(timer);
+}
+
 /** Windows may report a wrapper exit before its children release their sockets. */
-export async function waitForPortRelease(ports: readonly number[]) {
-  const deadline = Date.now() + 10_000;
+export async function waitForPortRelease(
+  ports: readonly number[],
+  { timeoutMs = 60_000, slowAfterMs = 10_000, warn = console.warn }: DevWaitOptions = {},
+) {
+  const deadline = Date.now() + timeoutMs;
+  const stopNotice = slowNotice(
+    slowAfterMs,
+    warn,
+    `[dev] Waiting for ports ${ports.join(', ')} to close before Studio restarts...`,
+  );
+  try {
+    await waitUntilPortsRelease(ports, deadline);
+  } finally {
+    stopNotice();
+  }
+}
+
+async function waitUntilPortsRelease(ports: readonly number[], deadline: number) {
   while (true) {
     const available = await Promise.all(
       ports.map(
@@ -73,23 +103,39 @@ export async function probeUrl(url: string, timeoutMs = 2_000): Promise<boolean>
   }
 }
 
-/** A new backend instance is published only after the renderer can accept a reload. */
+/**
+ * Resolves true when the renderer answers, or false when it is still starting at the deadline.
+ * A slow renderer never stops the backend; only a renderer that exits rejects.
+ */
 export async function waitForRendererReady(
   url: string,
   child: { readonly exitCode: number | null },
+  { timeoutMs = 60_000, slowAfterMs = 10_000, warn = console.warn }: DevWaitOptions = {},
 ) {
   function assertRunning() {
     const exitCode = child.exitCode;
     if (exitCode !== null)
       throw new Error(`Studio UI exited before becoming ready (code ${exitCode}).`);
   }
-  const deadline = Date.now() + 10_000;
-  while (Date.now() < deadline) {
-    assertRunning();
-    const ready = await probeUrl(url, Math.max(1, Math.min(2_000, deadline - Date.now())));
-    assertRunning();
-    if (ready) return;
-    await new Promise((resolve) => setTimeout(resolve, 100));
+  const deadline = Date.now() + timeoutMs;
+  const stopNotice = slowNotice(
+    slowAfterMs,
+    warn,
+    `[dev] Studio UI at ${url} is still starting; the server keeps running.`,
+  );
+  try {
+    while (Date.now() < deadline) {
+      assertRunning();
+      const ready = await probeUrl(url, Math.max(1, Math.min(2_000, deadline - Date.now())));
+      assertRunning();
+      if (ready) return true;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  } finally {
+    stopNotice();
   }
-  throw new Error(`Studio UI did not become ready at ${url}. Check the renderer output.`);
+  warn(
+    `[dev] Studio UI did not answer at ${url} within ${Math.round(timeoutMs / 1000)} s. The server keeps running; check the renderer output.`,
+  );
+  return false;
 }

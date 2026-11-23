@@ -3,7 +3,24 @@ export interface WorkerLimits {
   providers: Record<string, number>;
 }
 
-export type JobWaitReason = 'provider_capacity' | 'global_capacity' | 'provider_turn' | 'stopping';
+export type JobWaitReason =
+  | 'provider_capacity'
+  | 'global_capacity'
+  | 'provider_turn'
+  | 'provider_paused'
+  | 'stopping';
+
+/** A provider whose queued jobs wait because it rejected the signed-in session. */
+export interface ProviderPause {
+  reason: 'session_rejected';
+  message: string;
+  since: string;
+}
+
+/** Payload of the `worker.provider_paused` Studio event. */
+export interface ProviderPausedEventPayload extends ProviderPause {
+  providerId: string;
+}
 
 export interface WorkerStatus {
   maxConcurrentJobs: number;
@@ -13,6 +30,8 @@ export interface WorkerStatus {
   providerLimits: Record<string, number>;
   activeByProvider: Record<string, number>;
   waiting: Array<{ jobId: string; providerId: string; reason: JobWaitReason }>;
+  /** Keyed by generation provider id; the worker sends no job to these until sign-in. */
+  pausedProviders?: Record<string, ProviderPause>;
   stopping: boolean;
 }
 

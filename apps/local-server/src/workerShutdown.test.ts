@@ -58,6 +58,7 @@ vi.mock('./db/jobs', () => ({
   updateJobFinalization: vi.fn(() => null),
   updateJobStatus: vi.fn(() => null),
   updateJobRemoteExecution: vi.fn(),
+  returnRejectedJobToQueue: vi.fn(() => null),
 }));
 
 vi.mock('./db/settings', () => ({
@@ -605,6 +606,7 @@ describe('worker shutdown', () => {
         BUILT_IN_GENERATION_PROVIDERS.map((provider) => [provider, 1]),
       ),
       activeByProvider: {},
+      pausedProviders: {},
       waiting: [],
       stopping: true,
     });

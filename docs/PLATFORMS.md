@@ -7,10 +7,13 @@ Studio runs a local Bun server and opens a browser. Windows, macOS and Linux sha
 | Mode                           | Command or launcher   |
 | ------------------------------ | --------------------- |
 | Source development             | `bun run dev`         |
+| Daily use from a checkout      | `bun run studio`      |
 | Built app, normal user storage | `bun run start`       |
 | Windows portable ZIP           | `Cozy Studio.bat`     |
 | macOS portable ZIP             | `Cozy Studio.command` |
 | Linux portable ZIP             | `Cozy Studio.sh`      |
+
+`bun run studio` runs one Studio server that serves the built UI at <http://localhost:17223>, without the Vite dev server. It builds `dist/` when the folder is missing or was built from another commit, and builds it again after each update restart. Run `bun run studio -- --rebuild` after you edit the UI without a commit. `STUDIO_SERVER_PORT` changes the port and `STUDIO_UI_DIST` the build folder. Stop `bun run dev` first: both use the same backend port. Keep `bun run dev` for UI development.
 
 Portable and built-app modes need `dist/`. A source checkout makes it with `bun run build`. Launchers find the app folder from their own location, not from the terminal's current folder. If browser opening is not available, use the printed loopback URL.
 

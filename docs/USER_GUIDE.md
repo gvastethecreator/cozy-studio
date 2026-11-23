@@ -268,6 +268,10 @@ PNG keeps full alpha. Animation Sequence export can keep alpha or apply an expli
 
 Jobs separates Active, Review and History, with a workspace filter for each view. Active holds only queued and running jobs. Jobs that need review stay in Review and do not show as loading images in the gallery. Each job has its batch progress and retry. Worker details shows the active slots and provider limits. Queued jobs show why they wait. Providers take turns, and jobs of one provider keep their arrival order.
 
+If a provider rejects your sign-in, for example when the ChatGPT session expires, Studio pauses that provider's queue instead of failing each job. A notice asks you to sign in again, and Active shows the pause. After you sign in in Settings → Accounts & models, the paused jobs start again.
+
+In Review, select several jobs with their check boxes, **Select group** or **Select all**. **Resume** reads the remote result of each selected job that Studio can still resume. **Mark as failed** moves the others to History after the same warning as for one job: if the provider already made an image, a retry uses usage again.
+
 In the Jobs header, **Clear** hides finished jobs and review requests. The choice persists in this browser and syncs across its Studio tabs. Jobs that are active when you clear stay visible after they finish. Images and job records are kept. **Show cleared jobs** restores the hidden items.
 
 The host sets the worker capacity, which applies after a restart. `STUDIO_MAX_CONCURRENT_JOBS` sets the global limit (default 4, range 1–16). Each `STUDIO_MAX_CONCURRENT_<PROVIDER>_JOBS` value limits one provider (default 1, no higher than the global limit). Invalid limits stop startup. `.env.example` in the checkout lists the provider-specific names.
@@ -280,7 +284,7 @@ Git checkouts default to **Commits**, which follows `origin/main`. They may sele
 
 **Update and restart** requires a managed launcher and no queued or running jobs. A Git checkout must be on clean `main`, without local commits ahead of the checked target. A portable install must keep its Library outside `app/` and start from the launcher in the main Cozy Studio folder.
 
-Git updates fast-forward to the checked commit, run `bun install --frozen-lockfile`, restart the backend and UI, and reconnect the page. If installation fails, Studio blocks new work and keeps the error visible. Retry installs dependencies for the commit already applied, without fetching Git again.
+Git updates fast-forward to the checked commit, run `bun install --frozen-lockfile`, restart the backend and UI, and reconnect the page. With `bun run studio`, the restart builds the UI for the new commit first. If installation fails, Studio blocks new work and keeps the error visible. Retry installs dependencies for the commit already applied, without fetching Git again.
 
 Portable updates download the matching release ZIP, verify its checksum and stage a new `app/` folder. The root launcher carries over `.env.local` and starts the new app. If it fails before the server begins listening, the launcher restores the previous app. The data folder stays in place; database backups are never restored automatically. See [platform support](PLATFORMS.md) for recovery and unsigned first-run instructions.
 

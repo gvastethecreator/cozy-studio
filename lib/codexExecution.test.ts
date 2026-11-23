@@ -37,14 +37,20 @@ describe('codexExecution', () => {
     expect(pickPreferredCodexModel(models, 'gpt-5.5')).toBe('gpt-5.5');
   });
 
-  it('prefers GPT-5.4 before other defaults when the current model is unavailable', () => {
+  it('prefers the account default, then GPT-5.4, when the current model is unavailable', () => {
     const models = [
       createModel({ id: 'gpt-5.5', isDefault: true }),
       createModel({ id: 'gpt-5.4', isDefault: false }),
       createModel({ id: 'gpt-5.4-mini', isDefault: false }),
     ];
 
-    expect(pickPreferredCodexModel(models, 'missing-model')).toBe('gpt-5.4');
+    expect(pickPreferredCodexModel(models, 'missing-model')).toBe('gpt-5.5');
+    expect(
+      pickPreferredCodexModel(
+        models.map((model) => ({ ...model, isDefault: false })),
+        'missing-model',
+      ),
+    ).toBe('gpt-5.4');
   });
 
   it('falls back to the model default reasoning effort when the requested one is unsupported', () => {

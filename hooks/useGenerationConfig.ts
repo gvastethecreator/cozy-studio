@@ -33,6 +33,8 @@ interface UseGenerationConfigProps {
   scopeKey?: string;
   recipeAliasId?: RecipeAliasId | null;
   log: (message: string) => void;
+  /** Tells the user that Studio replaced a saved Codex model the account no longer offers. */
+  notify?: (message: string) => void;
 }
 
 interface CodexModelCatalogState {
@@ -82,16 +84,43 @@ export function prepareGenerationConfigForPersist(
   };
 }
 
+/**
+ * A config that still holds a built-in default (today's or the old one) follows the account's
+ * default model, so Studio never pins a model the account does not offer or cannot use.
+ */
+function isUntouchedCodexDefault(config: ImageGenerationConfig) {
+  if (config.executionSpeed !== DEFAULT_GENERATION_CONFIG.executionSpeed) return false;
+  return (
+    (config.executionModel === LEGACY_DEFAULT_CODEX_EXECUTION_MODEL &&
+      config.executionReasoningEffort === LEGACY_DEFAULT_CODEX_EXECUTION_REASONING_EFFORT) ||
+    (config.executionModel === DEFAULT_GENERATION_CONFIG.executionModel &&
+      config.executionReasoningEffort === DEFAULT_GENERATION_CONFIG.executionReasoningEffort)
+  );
+}
+
+/** The notice for a saved model the account catalog no longer lists, or null. */
+export function describeReplacedCodexModel(
+  config: ImageGenerationConfig,
+  catalog: CodexModelCatalogResponse,
+) {
+  const models = catalog.models ?? [];
+  if (catalog.source === 'fallback' || models.length === 0 || isUntouchedCodexDefault(config))
+    return null;
+  if (!config.executionModel || models.some((model) => model.id === config.executionModel))
+    return null;
+  const replacement = pickPreferredCodexModel(models, null);
+  if (!replacement) return null;
+  const label = models.find((model) => model.id === replacement)?.displayName ?? replacement;
+  return `The Codex model ${config.executionModel} is no longer available for this account. Studio switched to ${label}.`;
+}
+
 export function normalizeGenerationConfigForCodexModels(
   config: ImageGenerationConfig,
   codexModels: CodexModel[],
 ): ImageGenerationConfig {
   if (codexModels.length === 0) return config;
 
-  const shouldUpgradeLegacyDefault =
-    config.executionModel === LEGACY_DEFAULT_CODEX_EXECUTION_MODEL &&
-    config.executionReasoningEffort === LEGACY_DEFAULT_CODEX_EXECUTION_REASONING_EFFORT &&
-    config.executionSpeed === DEFAULT_GENERATION_CONFIG.executionSpeed;
+  const shouldUpgradeLegacyDefault = isUntouchedCodexDefault(config);
   const preferredId = pickPreferredCodexModel(
     codexModels,
     shouldUpgradeLegacyDefault ? null : config.executionModel,
@@ -136,6 +165,7 @@ export const useGenerationConfig = ({
   log,
   scopeKey = 'default:studio',
   recipeAliasId,
+  notify,
 }: UseGenerationConfigProps) => {
   const [generationConfig, setGenerationConfig, setRecipeDraft, isDraftReady, draftPersistence] =
     useScopedGenerationDraft(
@@ -150,6 +180,8 @@ export const useGenerationConfig = ({
   });
 
   const logRef = useLatestRef(log);
+  const notifyRef = useLatestRef(notify);
+  const generationConfigRef = useLatestRef(generationConfig);
   const uploadPreviews = useRef(new Map<string, string>());
   const uploadScopes = useRef(new Map<string, string>());
   const [referenceSaveFailures, setReferenceSaveFailures] = useState<Record<string, string>>({});
@@ -327,9 +359,14 @@ export const useGenerationConfig = ({
         error: catalog.error,
         isLoading: false,
       });
+      const replaced = describeReplacedCodexModel(generationConfigRef.current, catalog);
+      if (replaced) {
+        logRef.current(replaced);
+        notifyRef.current?.(replaced);
+      }
       setGenerationConfig((prev) => normalizeGenerationConfigForCodexModels(prev, codexModels));
     },
-    [setGenerationConfig],
+    [generationConfigRef, logRef, notifyRef, setGenerationConfig],
   );
 
   const handleCodexModelCatalogFailed = useCallback((error: unknown) => {

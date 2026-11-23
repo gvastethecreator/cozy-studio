@@ -4,6 +4,7 @@ import { readChatgptHttpModels } from './chatgptAccountHttp';
 import { isAppServerRunning } from './processSupervisor';
 import { CodexRpcClient } from './rpcClient';
 import type { CodexModel, CodexModelCatalogResponse } from '../../../../packages/shared/src';
+import { pickRecommendedCodexModel } from '../../../../packages/shared/src/codexModels';
 import {
   resolveCodexAuthMode,
   type CodexRpcTransportFactory,
@@ -195,32 +196,12 @@ function mapModel(entry: any): CodexModel | null {
   };
 }
 
-function pickRecommendedModel(models: CodexModel[]) {
-  const preferred = [
-    'gpt-5.6-luna',
-    'gpt-6-astra',
-    'gpt-5.6-sol',
-    'gpt-5.6-terra',
-    'gpt-5.4',
-    'gpt-5.4-mini',
-    'gpt-5.5',
-    'gpt-5.3-codex-spark',
-  ];
-  for (const modelId of preferred) {
-    if (models.some((model) => model.id === modelId)) {
-      return modelId;
-    }
-  }
-
-  return models.find((model) => model.isDefault)?.id ?? models[0]?.id ?? null;
-}
-
 function buildFallbackCatalog(error: unknown): CodexModelCatalogResponse {
   return {
     models: FALLBACK_MODELS,
     authMode: null,
     planType: null,
-    recommendedDefaultModel: pickRecommendedModel(FALLBACK_MODELS),
+    recommendedDefaultModel: pickRecommendedCodexModel(FALLBACK_MODELS),
     source: 'fallback',
     fetchedAt: now(),
     error: error instanceof Error ? error.message : String(error),
@@ -250,7 +231,7 @@ async function readChatgptHttpCatalog(key: string): Promise<CodexModelCatalogRes
       models,
       authMode: 'chatgpt',
       planType: null,
-      recommendedDefaultModel: pickRecommendedModel(models),
+      recommendedDefaultModel: pickRecommendedCodexModel(models),
       source: 'chatgpt-http',
       fetchedAt: now(),
       error: null,
@@ -323,7 +304,7 @@ function createCodexModelCatalogReader({
               models,
               authMode: resolveCodexAuthMode(account),
               planType: typeof account?.planType === 'string' ? account.planType : null,
-              recommendedDefaultModel: pickRecommendedModel(models),
+              recommendedDefaultModel: pickRecommendedCodexModel(models),
               source: 'app-server',
               fetchedAt: now(),
               error: null,

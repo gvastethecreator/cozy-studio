@@ -59,7 +59,7 @@ bun run dev
 
 On Windows, keep `-c core.longpaths=true`. Some workflow asset paths are about 160 characters long, and a clone into a deep folder fails without it.
 
-Then open the UI at <http://localhost:17222>. To update a checkout later, use **Settings → Help & updates**. **Commits on main** is the default; select **Releases** to follow published release tags. Both fast-forward a clean `main`, install dependencies and restart Studio.
+Then open the UI at <http://localhost:17222>. For daily use without the Vite dev server, run `bun run studio` instead of `bun run dev` and open <http://localhost:17223>; it builds the UI when needed ([platform support](docs/PLATFORMS.md#start)). To update a checkout later, use **Settings → Help & updates**. **Commits on main** is the default; select **Releases** to follow published release tags. Both fast-forward a clean `main`, install dependencies and restart Studio.
 
 **Portable ZIP.** No portable ZIPs are published yet. To get one, prepare a portable UI with `bun run validate:release` and then run `bun run portable:build`. The release gate makes the UI use its own server's port. [Tooling](docs/TOOLING.md) lists the targets for each OS and CPU. Extract the ZIP and follow [PORTABLE.txt](PORTABLE.txt) to launch it. [Platform support](docs/PLATFORMS.md) lists the OS requirements.
 

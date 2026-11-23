@@ -14,13 +14,14 @@ import { upsertCodexTurn } from './db/codexTurns';
 import { addJobEvent } from './db/events';
 import {
   getJob,
+  returnRejectedJobToQueue,
   updateJobFinalization,
   updateJobStatus,
   updateJobRemoteExecution,
 } from './db/jobs';
 import { getSettingValue, setSettingValue } from './db/settings';
 import { getWorkspace, listWorkspaces } from './db/workspaces';
-import { publishEvent } from './events';
+import { publishEvent, subscribeEvents } from './events';
 import { resolveLibraryPath, toPublicAssetUrl } from './library';
 import { ensureThumbnailVariant as ensureThumbnailVariantDefault } from './libraryAssetVariants';
 import { log } from './logger';
@@ -34,7 +35,13 @@ import { embedMetadata } from './metadataEmbedder';
 import { parsePromptTransport } from '../../../packages/shared/src/promptTransport';
 import type { Job } from '../../../packages/shared/src/types';
 import {
+  subscriptionProviderIdForGeneration,
+  type SubscriptionAuthUpdatedEventPayload,
+  type SubscriptionProviderId,
+} from '../../../packages/shared/src/subscriptionAuth';
+import {
   validateWorkerLimits,
+  type ProviderPause,
   type WorkerStatus,
 } from '../../../packages/shared/src/workerContracts';
 import { readEditableStudioSettings } from './studioSettingsStore';
@@ -82,8 +89,10 @@ export interface CreateWorkerControllerDependencies {
   updateJobStatus?: typeof updateJobStatus;
   updateJobFinalization?: typeof updateJobFinalization;
   updateJobRemoteExecution?: typeof updateJobRemoteExecution;
+  returnRejectedJobToQueue?: typeof returnRejectedJobToQueue;
   upsertCodexTurn?: typeof upsertCodexTurn;
   publishEvent?: typeof publishEvent;
+  subscribeEvents?: typeof subscribeEvents;
   resolveLibraryPath?: typeof resolveLibraryPath;
   toPublicAssetUrl?: typeof toPublicAssetUrl;
   logger?: typeof log;
@@ -96,6 +105,28 @@ export interface CreateWorkerControllerDependencies {
   resolveJobCatalogContext?: typeof resolveJobCatalogContext;
   resolveWorkerRuntimeTarget?: typeof resolveWorkerRuntimeTarget;
   ensureThumbnailVariant?: typeof ensureThumbnailVariantDefault;
+}
+
+/** The sign-in a provider's HTTP jobs use, or null when Studio has no sign-in to wait for. */
+function sessionProviderFor(providerId: string): SubscriptionProviderId | null {
+  return (
+    subscriptionProviderIdForGeneration(providerId) ?? (providerId === 'codex' ? 'codex' : null)
+  );
+}
+
+const SESSION_PROVIDER_LABELS: Record<string, string> = {
+  chatgpt: 'ChatGPT',
+  codex: 'Codex',
+  grok: 'Grok',
+  google: 'Google',
+};
+
+/** The provider refused the signed-in session, so every queued job for it would fail the same way. */
+function isSessionRejection(error: unknown): error is SubscriptionHttpError {
+  return (
+    error instanceof SubscriptionHttpError &&
+    (error.code === 'invalid_grant' || error.code === 'not_signed_in')
+  );
 }
 
 function throwIfAborted(signal?: AbortSignal) {
@@ -137,8 +168,10 @@ export function createWorkerController({
   updateJobStatus: updateJobStatusFn = updateJobStatus,
   updateJobFinalization: updateJobFinalizationFn = updateJobFinalization,
   updateJobRemoteExecution: updateJobRemoteExecutionFn = updateJobRemoteExecution,
+  returnRejectedJobToQueue: returnRejectedJobToQueueFn = returnRejectedJobToQueue,
   upsertCodexTurn: upsertCodexTurnFn = upsertCodexTurn,
   publishEvent: publishEventFn = publishEvent,
+  subscribeEvents: subscribeEventsFn = subscribeEvents,
   resolveLibraryPath: resolveLibraryPathFn = resolveLibraryPath,
   toPublicAssetUrl: toPublicAssetUrlFn = toPublicAssetUrl,
   logger = log,
@@ -173,6 +206,9 @@ export function createWorkerController({
   const runningJobControllers = new Map<string, AbortController>();
   const runningJobAbortReasons = new Map<string, 'user' | 'reset' | 'shutdown'>();
   const activeJobFibers = new Map<string, Fiber.Fiber<void, never>>();
+  // A rejected session pauses its provider: its jobs stay queued instead of failing one by one.
+  const pausedProviders = new Map<string, ProviderPause>();
+  const jobsToRequeue = new Map<string, Job>();
   let activeWorkerCount = 0;
   let isShuttingDown = false;
   let shutdownPromise: Promise<void> | null = null;
@@ -564,6 +600,12 @@ export function createWorkerController({
         publishEventFn('job.cancelled', getJobFn(job.id));
         logger('info', 'worker', message, job.id);
       }
+    } else if (
+      isSessionRejection(error) &&
+      sessionProviderFor(providerFor(job)) &&
+      !isShuttingDown
+    ) {
+      pauseProviderAndRequeue(job, error);
     } else {
       const message = formatWorkerErrorMessage(error);
       recordJobEvent(
@@ -578,10 +620,53 @@ export function createWorkerController({
     }
   }
 
+  function pauseProviderAndRequeue(job: Job, error: SubscriptionHttpError) {
+    const providerId = providerFor(job);
+    if (!pausedProviders.has(providerId)) {
+      const label = SESSION_PROVIDER_LABELS[providerId] ?? providerId;
+      const pause: ProviderPause = {
+        reason: 'session_rejected',
+        message: `${label} sign-in expired or was rejected. Studio paused the queued ${label} jobs; sign in again in Settings to resume them.`,
+        since: new Date().toISOString(),
+      };
+      pausedProviders.set(providerId, pause);
+      publishEventFn('worker.provider_paused', { providerId, ...pause });
+      logger('warn', 'worker', pause.message, job.id);
+    }
+    recordJobEvent(
+      job.id,
+      'job.paused',
+      `${formatWorkerErrorMessage(error)} The job stays queued until sign-in.`,
+      subscriptionHttpFailureMetadata(error),
+    );
+    const queued = returnRejectedJobToQueueFn(job.id);
+    // The run settles first; then the job goes back to the front of the queue.
+    jobsToRequeue.set(job.id, queued ?? { ...job, status: 'queued', remoteExecution: null });
+    publishEventFn('job.queued', queued ?? getJobFn(job.id));
+  }
+
+  function resumeProviders(sessionProviderId: SubscriptionProviderId) {
+    for (const providerId of [...pausedProviders.keys()]) {
+      if (sessionProviderFor(providerId) !== sessionProviderId) continue;
+      pausedProviders.delete(providerId);
+      publishEventFn('worker.provider_resumed', { providerId });
+      logger('info', 'worker', `Sign-in restored; resuming queued ${providerId} jobs.`);
+    }
+    queueMicrotask(processQueue);
+  }
+
+  const unsubscribeAuth = subscribeEventsFn((event) => {
+    if (event.type !== 'auth.updated') return;
+    const payload = event.payload as SubscriptionAuthUpdatedEventPayload | null;
+    if (payload?.status === 'logged_in') resumeProviders(payload.providerId);
+  });
+
   function processQueue() {
     if (isShuttingDown) return;
     while (activeWorkerCount < getMaxConcurrentJobs() && jobQueue.length > 0) {
-      const providers = [...new Set(jobQueue.map(providerFor))];
+      const providers = [
+        ...new Set(jobQueue.map(providerFor).filter((provider) => !pausedProviders.has(provider))),
+      ];
       const lastIndex = lastStartedProvider ? providers.indexOf(lastStartedProvider) : -1;
       let selectedProvider: string | undefined;
       for (let offset = 1; offset <= providers.length; offset += 1) {
@@ -624,6 +709,12 @@ export function createWorkerController({
             runningJobControllers.delete(job.id);
             runningJobAbortReasons.delete(job.id);
             runningJobs.delete(job.id);
+            const requeued = jobsToRequeue.get(job.id);
+            jobsToRequeue.delete(job.id);
+            if (requeued && !isShuttingDown) {
+              runningJobs.add(requeued.id);
+              jobQueue.unshift(requeued);
+            }
             activeWorkerCount -= 1;
             const remaining = (activeByProvider.get(provider) ?? 1) - 1;
             if (remaining === 0) activeByProvider.delete(provider);
@@ -707,21 +798,25 @@ export function createWorkerController({
         providerLimits: { ...limits.providers },
         activeByProvider: Object.fromEntries(activeByProvider),
         stopping: isShuttingDown,
+        pausedProviders: Object.fromEntries(pausedProviders),
         waiting: jobQueue.map((job) => {
           const providerId = providerFor(job);
           const reason = isShuttingDown
             ? 'stopping'
-            : (activeByProvider.get(providerId) ?? 0) >= providerLimit(providerId)
-              ? 'provider_capacity'
-              : activeWorkerCount >= limits.global
-                ? 'global_capacity'
-                : 'provider_turn';
+            : pausedProviders.has(providerId)
+              ? 'provider_paused'
+              : (activeByProvider.get(providerId) ?? 0) >= providerLimit(providerId)
+                ? 'provider_capacity'
+                : activeWorkerCount >= limits.global
+                  ? 'global_capacity'
+                  : 'provider_turn';
           return { jobId: job.id, providerId, reason };
         }),
       };
     },
     async resetWorkerState() {
       const queuedJobs = jobQueue.splice(0, jobQueue.length);
+      pausedProviders.clear();
 
       for (const queuedJob of queuedJobs) {
         runningJobs.delete(queuedJob.id);
@@ -756,6 +851,7 @@ export function createWorkerController({
       if (!shutdownPromise) {
         shutdownPromise = (async () => {
           isShuttingDown = true;
+          unsubscribeAuth();
 
           const queuedJobs = jobQueue.splice(0, jobQueue.length);
           for (const queuedJob of queuedJobs) {

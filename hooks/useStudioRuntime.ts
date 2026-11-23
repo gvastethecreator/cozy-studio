@@ -11,7 +11,7 @@ import type { CatalogRefreshScope } from '../lib/catalogOperationResult';
 interface UseStudioRuntimeProps {
   logs: LogEntry[];
   log: (message: string) => void;
-  addToast: (message: string, type?: Toast['type']) => void;
+  addToast: (message: string, type?: Toast['type'] | 'warning', duration?: number) => void;
   shouldAutoOpen: boolean;
   onCatalogChanged?: (scope?: CatalogRefreshScope) => void;
 }
@@ -40,6 +40,8 @@ export function useStudioRuntime({
     logs,
     log,
     onCatalogChanged,
+    // Stays until dismissed: the queue waits for the user to sign in again.
+    onProviderPaused: (pause) => addToast(pause.message, 'warning', 0),
   });
   const readinessState = useStudioReadiness();
   const refreshHealth = useCallback(async () => {

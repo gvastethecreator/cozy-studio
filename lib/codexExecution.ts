@@ -1,15 +1,5 @@
 import type { CodexModel, CodexServiceTier } from '../packages/shared/src';
-
-const PREFERRED_MODEL_IDS = [
-  'gpt-5.6-luna',
-  'gpt-6-astra',
-  'gpt-5.6-sol',
-  'gpt-5.6-terra',
-  'gpt-5.4',
-  'gpt-5.4-mini',
-  'gpt-5.5',
-  'gpt-5.3-codex-spark',
-] as const;
+import { pickRecommendedCodexModel } from '../packages/shared/src/codexModels';
 const FALLBACK_REASONING_EFFORTS = ['low', 'medium', 'high'];
 const KNOWN_SPEED_TIERS: Exclude<CodexServiceTier, 'standard'>[] = ['fast', 'flex'];
 
@@ -21,15 +11,7 @@ export function pickPreferredCodexModel(models: CodexModel[], currentModel?: str
   if (currentModel && models.some((model) => model.id === currentModel)) {
     return currentModel;
   }
-
-  for (const preferred of PREFERRED_MODEL_IDS) {
-    if (models.some((model) => model.id === preferred)) {
-      return preferred;
-    }
-  }
-
-  const defaultModel = models.find((model) => model.isDefault);
-  return defaultModel?.id ?? models[0]?.id ?? null;
+  return pickRecommendedCodexModel(models);
 }
 
 export function getCodexReasoningOptions(model: CodexModel | null | undefined) {

@@ -12,6 +12,20 @@ import { t } from '../lib/i18n';
 const STARTUP_POLL_MS = 3000;
 const STARTUP_POLL_LIMIT = 20;
 
+/** The page's own origin: the Vite UI in development, the server for a built UI. */
+async function isStudioUiReachable() {
+  try {
+    const response = await fetch(new URL('/', window.location.href), {
+      method: 'HEAD',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(3_000),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export function useRepositoryUpdateNotifications(
   enabled: boolean,
   addToast: (message: string, type?: 'info' | 'error', duration?: number) => void,
@@ -98,7 +112,9 @@ export function useRepositoryUpdateNotifications(
         const status = await getRepositoryUpdateStatus();
         if (disposed) return;
         if (status.instanceId !== pending.instanceId) {
-          // The managed launcher starts this backend only after the renderer is ready.
+          // The launcher starts the backend and the UI together: reload only once the UI answers.
+          if (!(await isStudioUiReachable())) return;
+          if (disposed) return;
           forgetStudioRestart();
           window.location.reload();
         } else if (status.phase === 'error') {

@@ -30,6 +30,7 @@ vi.mock('./db/jobs', () => ({
   updateJobFinalization: vi.fn(() => null),
   updateJobStatus: vi.fn(() => null),
   updateJobRemoteExecution: vi.fn(),
+  returnRejectedJobToQueue: vi.fn(() => null),
 }));
 
 vi.mock('./db/settings', () => ({
@@ -64,6 +65,9 @@ function createJob(id: string): Job {
 
 function createHarness(run: GenerationProvider['run']) {
   const jobs = new Map<string, Job>();
+  const eventListeners: Array<
+    (event: { type: string; payload: unknown; createdAt: string }) => void
+  > = [];
   const addJobEvent = vi.fn();
   const updateJobStatus = vi.fn((id: string, status: Job['status'], error?: string | null) => {
     const current = jobs.get(id);
@@ -88,11 +92,18 @@ function createHarness(run: GenerationProvider['run']) {
     getJob: (id) => jobs.get(id) ?? null,
     updateJobStatus,
     updateJobRemoteExecution: vi.fn(),
+    returnRejectedJobToQueue: (id) => updateJobStatus(id, 'queued'),
     upsertCodexTurn: vi.fn(() => 'turn-record-1'),
     publishEvent: vi.fn(),
+    subscribeEvents: (listener) => {
+      eventListeners.push(listener);
+      return () => true;
+    },
     logger: vi.fn(),
   });
-  return { addJobEvent, controller, jobs };
+  const emit = (type: string, payload: unknown) =>
+    eventListeners.forEach((listener) => listener({ type, payload, createdAt: '' }));
+  return { addJobEvent, controller, emit, jobs };
 }
 
 function quotaDiagnostic() {
@@ -203,6 +214,47 @@ describe('worker quota diagnostic metadata', () => {
     expect(failed?.[3]).toMatchObject({ code: 'source_limit' });
     expect(failed?.[3].diagnostic).toBeUndefined();
     expect(JSON.stringify(failed?.[3])).not.toContain('PRIVATE_PROMPT_SENTINEL');
+    await harness.controller.shutdown();
+  });
+
+  it('pauses the provider queue on a rejected session and resumes it after sign-in', async () => {
+    let signedIn = false;
+    const run = vi.fn(() =>
+      providerSync(() => {
+        if (!signedIn)
+          throw new SubscriptionHttpError('ChatGPT session expired or was rejected.', {
+            code: 'invalid_grant',
+            fallbackAllowed: false,
+            httpStatus: 401,
+          });
+        throw new Error('ran after sign-in');
+      }),
+    );
+    const harness = createHarness(run);
+    const jobs = [createJob('session-a'), createJob('session-b')];
+    for (const job of jobs) {
+      harness.jobs.set(job.id, job);
+      harness.controller.enqueueJob(job);
+    }
+    await vi.waitFor(() =>
+      expect(harness.controller.getWorkerStatus().pausedProviders?.chatgpt).toBeDefined(),
+    );
+    await vi.waitFor(() => expect(harness.controller.getWorkerStatus().queuedJobs).toBe(2));
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(jobs.map((job) => harness.jobs.get(job.id)?.status)).toEqual(['queued', 'queued']);
+    expect(harness.controller.getWorkerStatus().waiting.map((wait) => wait.reason)).toEqual([
+      'provider_paused',
+      'provider_paused',
+    ]);
+    expect(harness.addJobEvent.mock.calls.map((call) => call[1])).not.toContain('job.failed');
+
+    signedIn = true;
+    harness.emit('auth.updated', { providerId: 'codex', status: 'logged_in', accountLabel: null });
+    await vi.waitFor(() =>
+      expect(jobs.map((job) => harness.jobs.get(job.id)?.status)).toEqual(['failed', 'failed']),
+    );
+    expect(run).toHaveBeenCalledTimes(3);
+    expect(harness.controller.getWorkerStatus().pausedProviders).toEqual({});
     await harness.controller.shutdown();
   });
 });

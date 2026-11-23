@@ -12,6 +12,7 @@ import type {
   UnknownStudioEvent,
   WorkflowRunUpdatedEventPayload,
 } from '../packages/shared/src';
+import type { ProviderPausedEventPayload } from '../packages/shared/src/workerContracts';
 import { getStudioApiBase } from './studio-api/http';
 import { getStudioJobStatus } from './studio-api/jobs';
 
@@ -99,6 +100,7 @@ export interface StudioEventStream {
   onWorkflowRunUpdated(callback: Listener<WorkflowRunUpdatedEventPayload>): Unsubscribe;
   onConnectionChange(callback: Listener<boolean>): Unsubscribe;
   onRevisionGap?(callback: Listener<void>): Unsubscribe;
+  onProviderPaused?(callback: Listener<ProviderPausedEventPayload>): Unsubscribe;
   close(): void;
 }
 
@@ -121,6 +123,7 @@ class BrowserStudioEventStream implements StudioEventStream {
   private workflowRunUpdatedListeners = new Set<Listener<WorkflowRunUpdatedEventPayload>>();
   private connectionListeners = new Set<Listener<boolean>>();
   private revisionGapListeners = new Set<Listener<void>>();
+  private providerPausedListeners = new Set<Listener<ProviderPausedEventPayload>>();
   private lastRevision = 0;
 
   constructor(private readonly apiBase = getStudioApiBase()) {
@@ -180,6 +183,11 @@ class BrowserStudioEventStream implements StudioEventStream {
   onRevisionGap(callback: Listener<void>) {
     this.revisionGapListeners.add(callback);
     return () => this.revisionGapListeners.delete(callback);
+  }
+
+  onProviderPaused(callback: Listener<ProviderPausedEventPayload>) {
+    this.providerPausedListeners.add(callback);
+    return () => this.providerPausedListeners.delete(callback);
   }
 
   close() {
@@ -283,6 +291,10 @@ class BrowserStudioEventStream implements StudioEventStream {
       this.workflowRunUpdatedListeners.forEach((listener) =>
         notifyListener(listener, event.payload as WorkflowRunUpdatedEventPayload),
       );
+    } else if (event.type === 'worker.provider_paused') {
+      this.providerPausedListeners.forEach((listener) =>
+        notifyListener(listener, event.payload as ProviderPausedEventPayload),
+      );
     }
   }
 }
@@ -333,6 +345,10 @@ class StudioEventStreamLease implements StudioEventStream {
 
   onRevisionGap(callback: Listener<void>) {
     return this.closed ? () => {} : (this.stream.onRevisionGap?.(callback) ?? (() => {}));
+  }
+
+  onProviderPaused(callback: Listener<ProviderPausedEventPayload>) {
+    return this.closed ? () => {} : (this.stream.onProviderPaused?.(callback) ?? (() => {}));
   }
 
   close() {

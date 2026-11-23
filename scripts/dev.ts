@@ -29,7 +29,9 @@ if (availableBackendPort !== defaultBackendPort) {
 
 let processes: ReturnType<typeof Bun.spawn>[] = [];
 
-async function startProcesses() {
+// The backend and the UI start together. A slow UI only prints a note: it never stops the backend.
+// After an update restart the browser reloads once the UI answers.
+function startProcesses() {
   processes = [];
   try {
     const renderer = Bun.spawn(['node', 'scripts/dev-ui.ts'], {
@@ -43,7 +45,9 @@ async function startProcesses() {
       },
     });
     processes.push(renderer);
-    await waitForRendererReady(`http://127.0.0.1:${defaultUiPort}/`, renderer);
+    void waitForRendererReady(`http://127.0.0.1:${defaultUiPort}/`, renderer).catch(() => {
+      // A renderer that exits ends the session through the exit watcher below.
+    });
     processes.push(
       Bun.spawn([process.execPath, 'apps/local-server/src/index.ts'], {
         stdout: 'inherit',
@@ -88,7 +92,7 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-await startProcesses();
+startProcesses();
 
 while (true) {
   const firstExitCode = await waitForFirstDevProcessExit(processes, stopOptions);
@@ -98,5 +102,5 @@ while (true) {
   }
   console.log('[dev] Restarting Studio...');
   await waitForPortRelease([defaultUiPort, availableBackendPort]);
-  await startProcesses();
+  startProcesses();
 }

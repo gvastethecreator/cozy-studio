@@ -29,7 +29,7 @@ describe('devPortFinder', () => {
     expect(released).toBe(true);
   });
 
-  it('waits for successful renderer responses and rejects a renderer that exits', async () => {
+  it('waits for renderer responses, tolerates a slow renderer and rejects one that exits', async () => {
     const port = await findAvailablePort(29300);
     let ready = false;
     const methods: string[] = [];
@@ -54,6 +54,19 @@ describe('devPortFinder', () => {
       });
       await requested;
       expect(connected).toBe(false);
+      // A slow renderer gets a console note and a false result, never an error that stops Studio.
+      const notes: string[] = [];
+      await expect(
+        waitForRendererReady(
+          url,
+          { exitCode: null },
+          { timeoutMs: 400, slowAfterMs: 100, warn: (note) => notes.push(note) },
+        ),
+      ).resolves.toBe(false);
+      expect(notes).toEqual([
+        expect.stringContaining('still starting'),
+        expect.stringContaining('did not answer'),
+      ]);
       ready = true;
       await waiting;
       expect(connected).toBe(true);

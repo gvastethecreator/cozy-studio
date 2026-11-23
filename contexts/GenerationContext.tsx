@@ -133,6 +133,7 @@ export const GenerationProvider: React.FC<GenerationProviderProps> = ({ children
 
   const configHook = useGenerationConfig({
     log,
+    notify: (message) => addToast(message, 'warning', 10_000),
     recipeAliasId: route.activeRecipeAliasId,
     scopeKey: `${activeWorkspaceId}:${activeRecipe === 'styles' ? 'studio' : (activeRecipe ?? 'studio')}`,
   });

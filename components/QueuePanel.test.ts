@@ -1,10 +1,10 @@
 /** @vitest-environment jsdom */
 import React from 'react';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { QueuePanel } from './QueuePanel';
 import { useJobHistory } from '../hooks/useJobHistory';
-import { getStudioJobBatchSummary } from '../services/studio-api/jobs';
+import { getStudioJobBatchSummary, markStudioJobFailed } from '../services/studio-api/jobs';
 
 vi.mock('../hooks/useJobHistory', () => ({ useJobHistory: vi.fn() }));
 vi.mock('../hooks/useWorkerDiagnostics', () => ({
@@ -12,6 +12,7 @@ vi.mock('../hooks/useWorkerDiagnostics', () => ({
 }));
 vi.mock('../services/studio-api/jobs', () => ({
   getStudioJobBatchSummary: vi.fn(),
+  markStudioJobFailed: vi.fn(async () => ({})),
   retryStudioJobBatch: vi.fn(),
 }));
 afterEach(() => {
@@ -65,7 +66,7 @@ describe('summarizePersistentJobs', () => {
 });
 
 describe('QueuePanel views', () => {
-  it('keeps review backlog separate and preserves job inspection and recovery', () => {
+  it('keeps review backlog separate and preserves job inspection and recovery', async () => {
     const review = Array.from({ length: 25 }, (_, index) => ({
       ...job(`review-${index}`, 'needs_review'),
       batchId: `batch-${index}`,
@@ -112,6 +113,18 @@ describe('QueuePanel views', () => {
     expect(getStudioJobBatchSummary).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Show more · 20 of 25' }));
     expect(screen.getAllByRole('article')).toHaveLength(25);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select job: Review image 1' }));
+    expect(screen.getByText('1 selected')).toBeTruthy();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all jobs in Review' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mark 25 as failed' }));
+    const confirm = screen.getByRole('dialog', { name: 'Mark 25 jobs as failed?', hidden: true });
+    fireEvent.click(
+      within(confirm).getByRole('button', { name: 'Mark 25 as failed', hidden: true }),
+    );
+    await vi.waitFor(() => expect(markStudioJobFailed).toHaveBeenCalledTimes(25));
+    expect(vi.mocked(markStudioJobFailed).mock.calls.map(([id]) => id)).toEqual(
+      review.map(({ id }) => id),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Inspect job: Review image 0' }));
     expect(inspect).toHaveBeenCalledWith('review-0');
     fireEvent.click(screen.getByRole('button', { name: 'History' }));

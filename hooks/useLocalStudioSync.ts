@@ -25,11 +25,15 @@ import {
 } from './localStudioSyncProjection';
 import { createLocalStudioSyncRefreshPolicy } from './localStudioSyncRefreshPolicy';
 import { createCatalogEventRefreshPolicy } from './catalogEventRefreshPolicy';
+import type { ProviderPausedEventPayload } from '../packages/shared/src/workerContracts';
+import { useLatestRef } from './useLatestRef';
 
 interface UseLocalStudioSyncProps {
   logs: LogEntry[];
   log: (message: string) => void;
   onCatalogChanged?: (scope?: CatalogRefreshScope) => void | Promise<void>;
+  /** A provider rejected the session and its queued jobs wait for sign-in. */
+  onProviderPaused?: (payload: ProviderPausedEventPayload) => void;
 }
 
 export interface LocalStudioSyncActivity {
@@ -53,7 +57,9 @@ export function useLocalStudioSync({
   logs,
   log,
   onCatalogChanged,
+  onProviderPaused,
 }: UseLocalStudioSyncProps): LocalStudioSyncResult {
+  const onProviderPausedRef = useLatestRef(onProviderPaused);
   const [backendState, dispatch] = useReducer(
     localStudioSyncBackendReducer,
     INITIAL_LOCAL_STUDIO_SYNC_BACKEND_STATE,
@@ -159,8 +165,11 @@ export function useLocalStudioSync({
         refreshPolicy.onRevisionGap();
         catalogRefreshPolicy.request({ kind: 'all' });
       }) ?? (() => {});
+    const unsubscribeProviderPaused =
+      stream.onProviderPaused?.((payload) => onProviderPausedRef.current?.(payload)) ?? (() => {});
 
     return () => {
+      unsubscribeProviderPaused();
       unsubscribeJob();
       unsubscribeAsset();
       unsubscribeCatalog();

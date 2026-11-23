@@ -337,7 +337,10 @@ export function createMcpRoutes({
       );
     switch (name) {
       case 'studio_status': {
-        const health = await get('/api/health');
+        const health = (await (await get('/api/health')).json()) as {
+          worker?: { pausedProviders?: Record<string, { message: string }> };
+        };
+        const pauses = Object.entries(health.worker?.pausedProviders ?? {});
         // A fresh read of the ChatGPT window and credits; null when Studio cannot read it.
         const chatgptUsage = (await readJson('/api/providers/chatgpt/usage')) as {
           state?: string;
@@ -374,7 +377,7 @@ export function createMcpRoutes({
         const total = unorganizedWorkspaces.reduce((sum, { count }) => sum + count, 0);
         const workspaceCount = unorganizedWorkspaces.length;
         return c.json({
-          health: await health.json(),
+          health,
           mcpAccess: settings.mcpAccess,
           mcpAccessLabel: STUDIO_MCP_ACCESS_LABELS[settings.mcpAccess],
           chatgptUsage,
@@ -382,6 +385,9 @@ export function createMcpRoutes({
           ...((chatgptUsage?.state === 'credits' || chatgptUsage?.state === 'exhausted') && {
             usageNotice:
               `${chatgptUsage.summary ?? ''} Tell the user before planning ChatGPT generation.${chatgptUsage.state === 'credits' && chatgptUsage.creditPolicy === 'ask' ? ' Studio asks before spending: ask the user, and only after they agree pass confirmCreditSpend: true.' : ''}`.trim(),
+          }),
+          ...(pauses.length > 0 && {
+            sessionNotice: `${pauses.map(([, pause]) => pause.message).join(' ')} Tell the user to sign in again in Studio Settings; the paused jobs start on their own after sign-in.`,
           }),
           unorganized: { total, workspaces: unorganizedWorkspaces },
           update: update && {

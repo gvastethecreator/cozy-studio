@@ -321,6 +321,22 @@ export function requeueJob(
 }
 
 /**
+ * Puts a job the provider rejected before it ran back in the queue, in the same attempt. A rejected
+ * HTTP submission is cleared, so the next dispatch can send the request again.
+ */
+export function returnRejectedJobToQueue(id: string, db?: Database) {
+  getDb(db)
+    .query(
+      `UPDATE jobs SET status = 'queued', error = NULL, updated_at = ?,
+       remote_execution_json = CASE WHEN json_extract(remote_execution_json, '$.phase') = 'failed'
+         THEN NULL ELSE remote_execution_json END
+       WHERE id = ? AND status IN ('queued', 'running')`,
+    )
+    .run(now(), id);
+  return getJob(id, db);
+}
+
+/**
  * The user's way out of Review for a job Studio cannot resume: it becomes `failed`, so the normal
  * Retry applies. A recorded HTTP submission is marked failed too, or the retry would stop at it.
  */

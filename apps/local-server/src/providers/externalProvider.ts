@@ -19,6 +19,7 @@ import {
 import { compileProviderInputForJob } from './providerInputCompiler';
 import type { GenerationProvider, GenerationProviderJob } from './types';
 import { readFreshChatgptUsageStatus } from '../codex/chatgptAccountHttp';
+import { SubscriptionHttpError } from './subscriptionHttpError';
 
 export interface ExternalProviderExecutionContext {
   providerId: ExternalExecutableProviderId;
@@ -92,9 +93,14 @@ export function createExternalGenerationProvider({
           }
 
           if (!preflight.canAttemptExecution && !job.remoteExecution) {
-            throw new Error(
-              `Provider runtime preflight failed for ${providerId}: ${formatPreflightDiagnostics(preflight)}`,
-            );
+            const message = `Provider runtime preflight failed for ${providerId}: ${formatPreflightDiagnostics(preflight)}`;
+            // A missing sign-in is a session error, so the worker pauses the queue instead of failing it.
+            if (preflight.runtimeKind === 'subscription_http' && !preflight.subscriptionAuthReady)
+              throw new SubscriptionHttpError(message, {
+                code: 'not_signed_in',
+                fallbackAllowed: false,
+              });
+            throw new Error(message);
           }
 
           const executor = execute ?? createExecutor(providerId);

@@ -87,7 +87,7 @@ All paths are under `apps/local-server/src/`. `appFactory.ts` composes the route
 
 ### Updates
 
-`appFactory.ts` selects one update controller for the process. `repositoryUpdates.ts` fast-forwards a clean `main` checkout; `releaseUpdates.ts` stages portable releases. Both use `/api/updates` and the existing mutation guard.
+`appFactory.ts` selects one update controller for the process. `repositoryUpdates.ts` fast-forwards a clean `main` checkout; `releaseUpdates.ts` stages portable releases. Both use `/api/updates` and the existing mutation guard. Every POST under `/api/updates` needs `Content-Type: application/json`, also `/stop` and `/restart`, which read no body: a cross-site form cannot send that header, so it guards these routes against CSRF. A request without it gets a 415 that names the header.
 
 - Git defaults to the Commits channel and may select Releases. The portable source always uses Releases. A channel change invalidates the checked update; Apply must match the checked source, channel and token.
 - Both refuse while jobs are queued or running and block mutations while applying. A failed Git dependency install keeps its retry lock. After installation, the backend exits with code 75, and its managed launcher restarts the processes it owns.

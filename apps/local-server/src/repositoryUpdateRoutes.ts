@@ -6,8 +6,15 @@ export function createRepositoryUpdateRoutes(updates: RepositoryUpdates, stop?: 
   const routes = new Hono();
   routes.use('*', async (c, next) => {
     c.header('Cache-Control', 'no-store');
+    // A browser form cannot send this header across sites, so it guards these POSTs against CSRF.
     if (c.req.method === 'POST' && !c.req.header('Content-Type')?.startsWith('application/json')) {
-      return c.json({ error: 'Expected application/json.' }, 415);
+      return c.json(
+        {
+          error:
+            'Send the header Content-Type: application/json. The body can be empty or {}; only /apply reads it.',
+        },
+        415,
+      );
     }
     await next();
   });

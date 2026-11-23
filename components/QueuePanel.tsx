@@ -29,6 +29,7 @@ import {
   isStudioJobVisibleAfterListClear,
 } from '../lib/studioJobsListClear';
 import { QueueBatchCard } from './QueueBatchCard';
+import { QueueReviewBulkBar } from './QueueReviewBulkBar';
 import type { QueueLink } from '../hooks/useJobsDeepLink';
 import type { TerminalJobStatus } from '../packages/shared/src';
 import type { WorkerStatus } from '../packages/shared/src/workerContracts';
@@ -42,6 +43,8 @@ function formatWaitReason(wait: WorkerStatus['waiting'][number]) {
       return 'Waiting for a worker slot';
     case 'provider_turn':
       return `Waiting for ${wait.providerId}'s turn`;
+    case 'provider_paused':
+      return `Paused until you sign in to ${wait.providerId} again in Settings`;
     case 'stopping':
       return 'Worker stopping; job remains queued';
   }
@@ -500,8 +503,27 @@ function QueueJobList({
     setVisibleCount,
     visibleJobs,
   } = data;
+  const [selectedReviewIds, setSelectedReviewIds] = useState<Set<string>>(() => new Set());
+  const selectReview = view === 'review' && jobs.length > 1;
+  const toggleReview = (ids: string[]) => {
+    const next = new Set(selectedReviewIds);
+    const select = ids.some((id) => !next.has(id));
+    for (const id of ids) {
+      if (select) next.add(id);
+      else next.delete(id);
+    }
+    setSelectedReviewIds(next);
+  };
   return (
     <>
+      {selectReview ? (
+        <QueueReviewBulkBar
+          jobs={jobs}
+          selectedIds={selectedReviewIds}
+          onSelectionChange={setSelectedReviewIds}
+          onResume={onRetryServerJob}
+        />
+      ) : null}
       <section
         aria-label={
           view === 'active'
@@ -515,9 +537,22 @@ function QueueJobList({
         {jobGroups.map(([groupId, group]) => (
           <div key={groupId} className="space-y-2">
             {group.length > 1 && (
-              <p className="pt-3 text-xs text-[color:var(--wb-ink)]">
-                {resolveQueueRecipeLabel(group[0].recipeId, group[0].kind)} · {group.length} jobs
-              </p>
+              <div className="flex items-center justify-between gap-2 pt-3 text-xs text-[color:var(--wb-ink)]">
+                <p>
+                  {resolveQueueRecipeLabel(group[0].recipeId, group[0].kind)} · {group.length} jobs
+                </p>
+                {selectReview ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleReview(group.map((job) => job.id))}
+                    className="min-h-8 rounded-[var(--wb-radius)] px-2 hover:bg-[color-mix(in_srgb,var(--wb-ink)_8%,transparent)]"
+                  >
+                    {group.every((job) => selectedReviewIds.has(job.id))
+                      ? 'Clear group'
+                      : 'Select group'}
+                  </button>
+                ) : null}
+              </div>
             )}
             {group.map((job, index) => (
               <ServerJobItem
@@ -533,6 +568,14 @@ function QueueJobList({
                 previewSrc={resultsByJobId.get(job.id) ?? null}
                 nowMs={nowMs}
                 isSelected={selectedJobId === job.id}
+                selection={
+                  selectReview
+                    ? {
+                        checked: selectedReviewIds.has(job.id),
+                        onToggle: () => toggleReview([job.id]),
+                      }
+                    : undefined
+                }
                 onInspect={() => onInspectJob(job.id)}
                 onRetry={onRetryServerJob ? () => onRetryServerJob(job.id) : undefined}
                 onCancel={() => onCancelServerJob(job.id)}
@@ -690,6 +733,17 @@ export const QueuePanel: React.FC<QueuePanelProps> = React.memo(
               attentionClearedAt={attentionClearedAt}
             />
           )}
+          {view === 'active'
+            ? Object.entries(worker.status?.pausedProviders ?? {}).map(([providerId, pause]) => (
+                <p
+                  key={providerId}
+                  role="status"
+                  className="rounded-[var(--wb-radius)] border border-[color:var(--wb-warning)] px-3 py-2 text-xs text-[color:var(--wb-warning)]"
+                >
+                  {pause.message}
+                </p>
+              ))
+            : null}
           <QueueJobList
             data={data}
             selectedJobId={selectedJobId}
@@ -876,6 +930,8 @@ const ServerJobItem: React.FC<{
   previewSrc: string | null;
   nowMs: number;
   isSelected: boolean;
+  /** A Review checkbox for the bulk actions. */
+  selection?: { checked: boolean; onToggle: () => void };
   onInspect: () => void;
   onRetry?: () => void;
   onCancel: () => void;
@@ -887,6 +943,7 @@ const ServerJobItem: React.FC<{
   previewSrc,
   nowMs,
   isSelected,
+  selection,
   onInspect,
   onRetry,
   onCancel,
@@ -952,7 +1009,16 @@ const ServerJobItem: React.FC<{
         </p>
       ) : null}
       <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-[11px] text-[color:var(--wb-muted)]">
+        <span className="flex min-w-0 items-center gap-2 truncate text-[11px] text-[color:var(--wb-muted)]">
+          {selection ? (
+            <input
+              type="checkbox"
+              checked={selection.checked}
+              onChange={selection.onToggle}
+              aria-label={`Select job: ${job.originalPrompt || 'Untitled job'}`}
+              className="size-4 shrink-0"
+            />
+          ) : null}
           {showRecipe ? recipeLabel : null}
         </span>
         <JobItemActions job={job} onRetry={onRetry} onCancel={onCancel} />

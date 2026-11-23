@@ -19,6 +19,7 @@
     "dev": "bun run scripts/dev.ts",
     "dev:ui": "vp dev",
     "dev:server": "bun apps/local-server/src/index.ts",
+    "studio": "bun run scripts/studio.ts",
     "studio:init": "bun run scripts/studio-init.ts",
     "studio:onboard": "bun run scripts/studio-onboard.ts",
     "assets:responsive": "bun run scripts/build-responsive-ui-images.ts",

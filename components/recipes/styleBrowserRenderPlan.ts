@@ -1,9 +1,13 @@
 import { estimateStyleGridMountedPresetCount } from './styleGridVirtualization';
 import {
-  getStyleRuntimePresetSearchNames,
+  styleRuntimePresetSearchFields,
   type StyleRuntimePack,
   type StyleRuntimePreset,
 } from './styles/runtimeTypes';
+import {
+  rankStyleSearch,
+  type StyleSearchFields,
+} from '../../packages/shared/src/styles/styleSearch';
 import { isRecord } from '../../packages/shared/src/types';
 
 export type StyleBrowserSortOrder =
@@ -233,23 +237,22 @@ function compareStylePresets(
   }
 }
 
-function describeSearchValue(value: unknown): string {
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number' || typeof value === 'boolean') return `${value}`;
-  return '';
-}
+const plainExploreSearchFields = (preset: StyleRuntimePreset) =>
+  styleRuntimePresetSearchFields(preset);
+const exploreSearchFieldsByLabel = new WeakMap<
+  (preset: StyleRuntimePreset) => string,
+  (preset: StyleRuntimePreset) => StyleSearchFields
+>();
 
-function createStylePresetSearchText(preset: StyleRuntimePreset) {
-  return [
-    preset.id,
-    ...getStyleRuntimePresetSearchNames(preset),
-    preset.category,
-    preset.domain,
-    ...Object.values(preset.style).map(describeSearchValue),
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
+/** One function per label function, so rankStyleSearch reuses its cached text across keystrokes. */
+function exploreSearchFields(categoryLabelForPreset?: (preset: StyleRuntimePreset) => string) {
+  if (!categoryLabelForPreset) return plainExploreSearchFields;
+  let fieldsOf = exploreSearchFieldsByLabel.get(categoryLabelForPreset);
+  if (!fieldsOf) {
+    fieldsOf = (preset) => styleRuntimePresetSearchFields(preset, [categoryLabelForPreset(preset)]);
+    exploreSearchFieldsByLabel.set(categoryLabelForPreset, fieldsOf);
+  }
+  return fieldsOf;
 }
 
 export function createStyleBrowserProcessedData({
@@ -275,13 +278,11 @@ export function createStyleBrowserProcessedData({
       : currentPackId === favoritesPackId
         ? favoritePresets
         : activePack.presets || [];
-  let filtered = rawPresets.filter((preset) => {
-    if (!normalizedSearch) return true;
-    return [createStylePresetSearchText(preset), categoryLabelForPreset?.(preset) ?? '']
-      .join(' ')
-      .toLowerCase()
-      .includes(normalizedSearch);
-  });
+  let filtered = rankStyleSearch(
+    rawPresets,
+    normalizedSearch,
+    exploreSearchFields(categoryLabelForPreset),
+  );
 
   if (showFavoritesOnly && currentPackId !== favoritesPackId) {
     filtered = filtered.filter((preset) => favoriteSet.has(preset.id));
@@ -290,8 +291,9 @@ export function createStyleBrowserProcessedData({
   const sourceIndexByPresetId = new Map(
     rawPresets.map((preset, index) => [preset.id, index] as const),
   );
+  // A search lists the best matches first; the sort order applies while browsing.
   const orderedPresets =
-    sortOrder === 'source'
+    sortOrder === 'source' || normalizedSearch
       ? filtered
       : filtered.sort((first, second) =>
           compareStylePresets(first, second, sortOrder, sourceIndexByPresetId),

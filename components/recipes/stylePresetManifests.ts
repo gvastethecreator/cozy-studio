@@ -1,4 +1,8 @@
 import { getStyleCategoryDisplayName } from './styles/collections/categoryDisplayNames';
+import {
+  rankStyleSearch,
+  type StyleSearchFields,
+} from '../../packages/shared/src/styles/styleSearch';
 import type {
   StylePackManifest,
   StylePresetEditorialTaxonomy,
@@ -100,6 +104,23 @@ export interface StylePresetCatalogSearchIndexPack {
 
 export interface StylePresetCatalogSearchIndexEntry extends StylePresetCatalogSearchResult {
   searchableText: string;
+}
+
+/** searchableText repeats the names and tags, so it only counts as the weakest field. */
+export function styleCatalogIndexEntrySearchFields(
+  entry: StylePresetCatalogSearchIndexEntry,
+): StyleSearchFields {
+  return {
+    names: [entry.id, entry.name, entry.sourceName],
+    tags: [
+      ...(entry.styleAnchors ?? []),
+      entry.categoryName,
+      entry.packName,
+      entry.domain,
+      ...entry.tags,
+    ],
+    text: [entry.searchableText],
+  };
 }
 
 export interface StylePresetCatalogSearchIndex {
@@ -915,24 +936,18 @@ export function searchStylePresetCatalogIndex(
   const tag = normalizeSearchText(filters.tag);
   const task = normalizeSearchText(filters.task);
   const limit = filters.limit && filters.limit > 0 ? filters.limit : undefined;
-  const results: StylePresetCatalogSearchResult[] = [];
-
-  for (const entry of index.presets) {
-    if (query && !entry.searchableText.includes(query)) continue;
-    if (packId && normalizeSearchText(entry.packId) !== packId) continue;
-    if (categoryId && normalizeSearchText(entry.categoryId) !== categoryId) continue;
-    if (categoryName && !includesText(entry.categoryName, categoryName)) continue;
-    if (domain && !includesText(entry.domain, domain)) continue;
-    if (tag && !entry.tags.some((value) => value.toLowerCase() === tag)) continue;
-    if (task && !entry.supportedTasks.some((value) => value.toLowerCase() === task)) continue;
-
-    const { searchableText: _searchableText, ...result } = entry;
-    results.push(result);
-
-    if (limit && results.length >= limit) break;
-  }
-
-  return results;
+  const filtered = index.presets.filter(
+    (entry) =>
+      (!packId || normalizeSearchText(entry.packId) === packId) &&
+      (!categoryId || normalizeSearchText(entry.categoryId) === categoryId) &&
+      (!categoryName || includesText(entry.categoryName, categoryName)) &&
+      (!domain || includesText(entry.domain, domain)) &&
+      (!tag || entry.tags.some((value) => value.toLowerCase() === tag)) &&
+      (!task || entry.supportedTasks.some((value) => value.toLowerCase() === task)),
+  );
+  return rankStyleSearch(filtered, query, styleCatalogIndexEntrySearchFields)
+    .slice(0, limit)
+    .map(({ searchableText: _searchableText, ...result }) => result);
 }
 
 export function resolveStylePresetCatalogSearchPackIds({

@@ -2,10 +2,12 @@ import {
   isPresetInWorkspaceStyleScope,
   type WorkspaceStyleRef,
 } from '../../packages/shared/src/workspaceContracts';
-import type {
-  StylePresetCatalogSearchIndex,
-  StylePresetCatalogSearchPackSummary,
-  StylePresetCatalogSearchResult,
+import { rankStyleSearch, styleSearchTerms } from '../../packages/shared/src/styles/styleSearch';
+import {
+  styleCatalogIndexEntrySearchFields,
+  type StylePresetCatalogSearchIndex,
+  type StylePresetCatalogSearchPackSummary,
+  type StylePresetCatalogSearchResult,
 } from './stylePresetManifests';
 
 export type CompactStyleRoute =
@@ -29,18 +31,6 @@ export function clampCompactStyleStrength(value: number) {
 
 export function formatCompactStyleStrength(value: number) {
   return `${Math.round(clampCompactStyleStrength(value) * 100)}%`;
-}
-
-export function normalizeCompactStyleQuery(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim()
-    .toLowerCase();
-}
-
-export function compactStyleSearchTerms(query: string) {
-  return normalizeCompactStyleQuery(query).split(/\s+/).filter(Boolean);
 }
 
 export function mergeCompactStyleSearchIndexes(
@@ -101,7 +91,7 @@ export function planCompactStyleCatalogPackIds({
   const runtimePackIds = packSummaries
     .map((pack) => pack.id)
     .filter((packId) => packId !== 'user_styles' && packId !== 'favorites');
-  if (compactStyleSearchTerms(query).length > 0) return runtimePackIds;
+  if (styleSearchTerms(query).length > 0) return runtimePackIds;
   if (route.view === 'packs') return [];
   if (route.view === 'project') {
     const scopedPackIds = new Set(projectScope.map((ref) => ref.packId));
@@ -126,12 +116,11 @@ export function filterCompactStyleCatalog({
   favorites: readonly string[];
   projectScope?: readonly WorkspaceStyleRef[];
 }): StylePresetCatalogSearchResult[] {
-  const terms = compactStyleSearchTerms(query);
+  if (styleSearchTerms(query).length > 0) {
+    return rankStyleSearch(index.presets, query, styleCatalogIndexEntrySearchFields);
+  }
   const favoriteIds = new Set(favorites);
   return index.presets.filter((preset) => {
-    if (terms.length > 0) {
-      return terms.every((term) => preset.searchableText.includes(term));
-    }
     if (route.view === 'favorites') return favoriteIds.has(preset.id);
     if (route.view === 'project') {
       return isPresetInWorkspaceStyleScope(projectScope, {

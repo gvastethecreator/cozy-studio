@@ -141,6 +141,15 @@ export const generationInput = z.strictObject({
     .describe(
       "How styles treat referenceIds: preserve keeps their layout, reinterpret restages them, generate ignores them (Intentional styles only). Defaults to the user's setting, preserve unless changed. With Intentional styles on, preserve needs referenceIds: without references, set generate.",
     ),
+  styleTargets: z
+    .strictObject({
+      materialTarget: z.string().trim().min(1).max(1000).optional(),
+      accent: z.string().trim().min(1).max(1000).optional(),
+    })
+    .optional()
+    .describe(
+      'Intentional styles only. materialTarget names the surface a material style covers ("the bowl only"); accent names the color of an accent style and where it goes ("vermilion on the handle"). A style whose policy requires one of them fails until it is set.',
+    ),
   model: z
     .string()
     .min(1)

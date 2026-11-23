@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { findStyles } from '../../apps/local-server/src/mcpStyles';
 import type { StyleRuntimePack, StyleRuntimePreset } from './styles/runtimeTypes';
 import {
   STYLE_BROWSER_FLAT_GROUP_KEY,
@@ -60,6 +61,39 @@ describe('styleBrowserRenderPlan', () => {
         .flat()
         .map((item) => item.id),
     ).toEqual(['game-a']);
+  });
+
+  it('ranks whole-word name matches before tags, DNA and substrings in Explore and the MCP', () => {
+    const named = (id: string, name: string, aesthetic = '') => ({
+      ...preset(id, 'Photography'),
+      name,
+      style: { ...preset(id, '').style, aesthetic },
+    });
+    const presets = [
+      named('wallace', 'Automotive Photography - Tim Wallace'),
+      named('market', 'E-Commerce White Sweep - Marketplace'),
+      named('interlaced', 'Interlaced Music Video'),
+      named('dna', 'Gothic Bridal', 'Ivory lace over black velvet'),
+      { ...named('tagged', 'Textile Macro'), category: 'Lace' },
+      named('chantilly', 'Lace - Chantilly Lace'),
+    ];
+    const explore = createStyleBrowserProcessedData({
+      activePack: pack(presets),
+      currentPackId: 'pack_01',
+      favoritesPackId: 'favorites',
+      favoritePresets: [],
+      searchPresets: presets,
+      favoriteIds: [],
+      searchQuery: 'lace',
+      sortOrder: 'az',
+      showFavoritesOnly: false,
+      viewMode: 'flat',
+    });
+    const expected = ['chantilly', 'tagged', 'dna', 'wallace', 'market', 'interlaced'];
+    expect(explore.flatPresets.map((item) => item.id)).toEqual(expected);
+    expect(findStyles([pack(presets)], { q: 'lace', limit: 10 }).map((s) => s.presetId)).toEqual(
+      expected,
+    );
   });
 
   it('applies favorites filtering to global style search results', () => {

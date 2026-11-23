@@ -1,4 +1,5 @@
 import type { Policy as IntentionalPolicy } from '../../../packages/shared/src/styles/intentional-v1/types';
+import type { StyleSearchFields } from '../../../packages/shared/src/styles/styleSearch';
 
 /** The Intentional styles policy of a preset, for the preset version it was written against. */
 export interface StyleRuntimeIntentional {
@@ -97,4 +98,18 @@ export function getStyleRuntimePresetSearchNames(
   });
 
   return Array.from(new Set(names));
+}
+
+/** What the Style explorer and studio_find_styles search in a runtime preset. */
+export function styleRuntimePresetSearchFields(
+  preset: StyleRuntimePreset,
+  tags: readonly (string | null | undefined)[] = [],
+): StyleSearchFields {
+  return {
+    names: [preset.id, getStyleRuntimePresetDisplayName(preset), preset.name],
+    tags: [...(preset.styleAnchors ?? []), preset.category, preset.domain, ...tags],
+    text: Object.values(preset.style).map((value) =>
+      typeof value === 'string' || typeof value === 'number' ? `${value}` : '',
+    ),
+  };
 }

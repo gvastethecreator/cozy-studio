@@ -197,14 +197,43 @@ describe('intentionalStyleCompile', () => {
   });
 
   it('blocks Oak Wood until a material target is set', async () => {
-    await expect(
-      compile({
-        slots: [slotFor('SP09-001')],
-        prompt: 'A wooden bowl.',
-        attachments: [],
-        mode: 'generate',
-      }),
-    ).rejects.toMatchObject({ name: 'CompilationBlocked' });
+    const input = {
+      slots: [slotFor('SP09-001')],
+      prompt: 'A wooden bowl.',
+      attachments: [],
+      mode: 'generate' as const,
+    };
+    await expect(compile(input)).rejects.toMatchObject({
+      issues: [expect.objectContaining({ code: 'PERMISSION_REQUIRED' })],
+    });
+    const compiled = await compile({ ...input, targets: { materialTarget: 'the bowl only' } });
+    expect(compiled.effectivePrompt).toContain('Material target: the bowl only.');
+    expect(compiled.recipeParams.styleTargets).toEqual({ materialTarget: 'the bowl only' });
+  });
+
+  it('lets structure and design styles change the subject outside preserve', async () => {
+    const reference = [{ id: 'ref-1', dataUrl: 'data:image/png;base64,aaaa' }];
+    for (const id of ['SP10-001', 'SP15-001'])
+      for (const mode of ['generate', 'reinterpret'] as const) {
+        const compiled = await compile({
+          slots: [slotFor(id)],
+          prompt: 'A lighthouse keeper on a rocky shore.',
+          attachments: mode === 'generate' ? [] : reference,
+          mode,
+        });
+        expect(compiled.effectivePrompt).toMatch(/^Allowed changes: (structure|design)\.$/m);
+      }
+    const blocked = await compile({
+      slots: [slotFor('SP10-001')],
+      prompt: 'Keep this lighthouse keeper.',
+      attachments: reference,
+      mode: 'preserve',
+    }).catch((error: Intentional.CompilationBlocked) => error);
+    expect(
+      (blocked as Intentional.CompilationBlocked).issues
+        .filter((issue) => issue.severity === 'error')
+        .map((issue) => issue.code),
+    ).toEqual(['STRUCTURE_LOCK_CONFLICT']);
   });
 
   it('keeps compiled provider directives free of style names and restage rules', () => {

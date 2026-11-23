@@ -633,6 +633,8 @@ function useStylesBrowserController({
     moveSelectedStyle,
     handleGenerateSelectedStyles,
     compileIssues,
+    styleTargets,
+    setStyleTarget,
     intentionalMode,
     setIntentionalMode,
   } = composition;
@@ -1125,6 +1127,11 @@ function useStylesBrowserController({
         : (loadedStylePacksById[packId]?.name ?? getStylePackSummary(packId)?.name ?? 'Styles'),
     [loadedStylePacksById],
   );
+  const getCategoryLabelForPreset = useCallback(
+    (preset: StyleRuntimePreset) =>
+      getStyleCategoryDisplayName(getPackIdForPreset(preset), preset.category || 'General'),
+    [getPackIdForPreset],
+  );
   const getGlobalStyleCategoryKeyForPreset = useCallback(
     (preset: StyleRuntimePreset) => {
       const presetPackId = getPackIdForPreset(preset);
@@ -1145,8 +1152,7 @@ function useStylesBrowserController({
             ? searchableStylePresets
             : undefined,
         favoriteIds: favorites,
-        categoryLabelForPreset: (preset) =>
-          getStyleCategoryDisplayName(getPackIdForPreset(preset), preset.category || 'General'),
+        categoryLabelForPreset: getCategoryLabelForPreset,
         categoryKeyForPreset: isAllStyleCategoriesTab
           ? getGlobalStyleCategoryKeyForPreset
           : undefined,
@@ -1162,8 +1168,8 @@ function useStylesBrowserController({
       activeStyleCollectionId,
       currentPackId,
       favoritePresets,
+      getCategoryLabelForPreset,
       getGlobalStyleCategoryKeyForPreset,
-      getPackIdForPreset,
       isGlobalStyleSearchActive,
       isGlobalStyleBrowseTab,
       isAllStyleCategoriesTab,
@@ -1769,6 +1775,8 @@ function useStylesBrowserController({
     intentionalMode,
     setIntentionalMode,
     compileIssues,
+    styleTargets,
+    setStyleTarget,
     handleGenerateSelectedStyles,
     activeSelectedStyleCount,
     grokGenerateBlock,
@@ -1939,6 +1947,8 @@ function StyleCompositionControls({
     | 'intentionalMode'
     | 'setIntentionalMode'
     | 'compileIssues'
+    | 'styleTargets'
+    | 'setStyleTarget'
     | 'handleGenerateSelectedStyles'
     | 'activeSelectedStyleCount'
     | 'grokGenerateBlock'
@@ -2080,6 +2090,7 @@ function StyleCompositionControls({
       {selectedStyles.length > 0 && (intentionalStylesV1 || referenceImages.length > 0) ? (
         <div className="mt-3 space-y-2">
           <StyleApplicationMode model={model} />
+          {intentionalStylesV1 ? <StyleTargetFields model={model} /> : null}
           {intentionalStylesV1 && compileIssues.length > 0 ? (
             <ul className="space-y-1 text-xs text-[color:var(--wb-warning)]">
               {compileIssues.map((issue) => (
@@ -2183,6 +2194,46 @@ function StylePreviewDetail({
       />
     </React.Suspense>
   );
+}
+
+const STYLE_TARGET_FIELDS = [
+  {
+    key: 'materialTarget',
+    label: 'Material target',
+    placeholder: 'Which surface gets the material, e.g. the bowl only',
+  },
+  {
+    key: 'accent',
+    label: 'Accent',
+    placeholder: 'Color and where it goes, e.g. red on the handle',
+  },
+] as const;
+
+/** Material and accent styles apply to what the user names here. */
+function StyleTargetFields({
+  model,
+}: {
+  model: React.ComponentProps<typeof StyleCompositionControls>['model'];
+}) {
+  const { selectedStyles, styleTargets, setStyleTarget } = model;
+  const fields = STYLE_TARGET_FIELDS.filter(({ key }) =>
+    selectedStyles.some(
+      (slot) => (slot.enabled ?? true) && slot.preset.intentional?.policy.requires === key,
+    ),
+  );
+  return fields.map(({ key, label, placeholder }) => (
+    <label key={key} className="block space-y-1 text-xs font-semibold">
+      <span>{label}</span>
+      <input
+        type="text"
+        value={styleTargets[key] ?? ''}
+        placeholder={placeholder}
+        maxLength={1000}
+        onChange={(event) => setStyleTarget(key, event.target.value)}
+        className="studio-input w-full text-xs font-normal"
+      />
+    </label>
+  ));
 }
 
 function StyleApplicationMode({

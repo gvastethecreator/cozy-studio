@@ -70,6 +70,13 @@ export function useStyleComposition({
     intentionalStylesV1,
   });
   const [compileIssues, setCompileIssues] = useState<Intentional.Issue[]>([]);
+  // Per request, like the prompt: a saved composition does not keep them.
+  const [styleTargets, setStyleTargets] = useState<Intentional.StyleTargets>({});
+  const setStyleTarget = useCallback(
+    (key: keyof Intentional.StyleTargets, value: string) =>
+      setStyleTargets((current) => ({ ...current, [key]: value })),
+    [],
+  );
   const commitComposition = useCallback(
     (slots: SelectedStyleSlot[], mode: Intentional.Mode) => {
       const current = configRef.current;
@@ -162,6 +169,7 @@ export function useStyleComposition({
             attachments: referenceImages,
             mode: intentionalMode,
             negativePrompt: config.negativePrompt,
+            targets: styleTargets,
           },
           { resolvePolicy: resolveIntentionalPolicy },
         );
@@ -213,6 +221,7 @@ export function useStyleComposition({
     intentionalStylesV1,
     referenceImages,
     selectedStyles,
+    styleTargets,
     updateConfig,
   ]);
   const updateSelectedStyleStrength = useCallback(
@@ -397,6 +406,8 @@ export function useStyleComposition({
     moveSelectedStyle,
     handleGenerateSelectedStyles,
     compileIssues,
+    styleTargets,
+    setStyleTarget,
     intentionalMode,
     setIntentionalMode,
   };

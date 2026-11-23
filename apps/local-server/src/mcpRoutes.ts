@@ -168,6 +168,7 @@ async function buildGenerationRequest(
       negativePrompt,
       references: attachments,
       styleMode: input.styleMode,
+      styleTargets: input.styleTargets,
       settings,
     });
     if ('error' in styled) return styled;

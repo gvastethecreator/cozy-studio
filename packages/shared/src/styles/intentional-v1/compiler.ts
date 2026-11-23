@@ -8,6 +8,8 @@ import {
   type EffectiveAvoidRule,
   type Layer,
   type FieldId,
+  type Permission,
+  type Permissions,
 } from './types.js';
 import { validateRequest } from './validation.js';
 import { verifyLayerHashes } from './composition.js';
@@ -29,6 +31,10 @@ function effectiveField(layer: Layer, field: FieldId, input: RequestInput): bool
     layer.fields[field].enabled &&
     !(field === 'camera_and_composition' && (input.locks.camera || input.locks.composition))
   );
+}
+function granted(permissions: Permissions, requirement: Permission): boolean {
+  const value = permissions[requirement];
+  return typeof value === 'string' ? Boolean(value.trim()) : value;
 }
 function permissionIsRelevant(layer: Layer, fields: AppliedField[]): boolean {
   const has = (field: FieldId) =>
@@ -131,20 +137,24 @@ export async function compileStyleRequest(raw: RequestInput): Promise<CompiledRe
     const requirement = layer.snapshot.policy.requires;
     if (requirement && permissionIsRelevant(layer, appliedFields)) {
       const permission = input.permissions[requirement];
-      if (!permission || (typeof permission === 'string' && !permission.trim()))
-        report(
-          'error',
-          'PERMISSION_REQUIRED',
-          `This layer requires an explicit ${requirement} permission or target. Disable the content-changing fields to use it as a partial modifier.`,
-          [layer.layerId],
-        );
-      if (
+      const structureLocked =
         requirement === 'structure' &&
         (input.mode === 'preserve' ||
           input.locks.camera ||
           input.locks.composition ||
-          input.locks.pose)
-      )
+          input.locks.pose);
+      if (!structureLocked && !granted(input.permissions, requirement))
+        report(
+          'error',
+          'PERMISSION_REQUIRED',
+          typeof permission === 'string'
+            ? `This style needs a ${requirement === 'accent' ? 'color accent and where it goes' : 'surface to apply the material to'}. Name it, or turn off the style's color and texture fields.`
+            : input.mode === 'preserve'
+              ? `Preserve keeps the reference's ${requirement}. Choose generate or reinterpret to let this style change it, or turn off its content-changing fields.`
+              : `This layer requires an explicit ${requirement} permission. Disable the content-changing fields to use it as a partial modifier.`,
+          [layer.layerId],
+        );
+      if (structureLocked)
         report(
           'error',
           'STRUCTURE_LOCK_CONFLICT',
@@ -272,6 +282,22 @@ export async function compileStyleRequest(raw: RequestInput): Promise<CompiledRe
     )
   )
     lines.push(`Selected accent: ${input.permissions.accent.trim()}.`);
+  const allowedChanges = [
+    ...new Set(
+      input.layers.flatMap((layer) => {
+        const requirement = layer.snapshot.policy.requires;
+        return layer.enabled &&
+          requirement &&
+          typeof input.permissions[requirement] === 'boolean' &&
+          granted(input.permissions, requirement) &&
+          permissionIsRelevant(layer, appliedFields)
+          ? [requirement]
+          : [];
+      }),
+    ),
+  ];
+  // Pack DNA phrases these fields as "with structural permission, ..."; this line settles it.
+  if (allowedChanges.length) lines.push(`Allowed changes: ${allowedChanges.join(', ')}.`);
   for (const [index, layer] of input.layers.entries()) {
     const fields = appliedFields.filter((f) => f.layerId === layer.layerId);
     if (!fields.length) continue;

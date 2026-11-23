@@ -39,15 +39,17 @@ Pass `styles` to `studio_generate` or `studio_plan_generation`:
 
 Preview every styled call with `studio_plan_generation`. Its `styles` field gives `compiler`, `mode` and `issues`, and `providerPrompt` shows the compiled prompt.
 
-| Error                                                                               | Action                                                                                                                                  |
-| ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `Style <packId>/<presetId> is not installed. Find presets with studio_find_styles.` | Use ids from `studio_find_styles`.                                                                                                      |
-| `styles uses the styles workflow. Leave recipeId out.`                              | Remove `recipeId`.                                                                                                                      |
-| `Pass styles instead of compiled style fields.`                                     | Remove compiled fields, such as `selectedStyles` or `compilerVersion`, from `recipeParams`.                                             |
-| 400 with `issues`, code `PRESERVATION_NEEDS_CONTENT_REFERENCE`                      | Add a reference, or set `styleMode: "generate"`.                                                                                        |
-| 400 with `issues`, code `UNMIGRATED_PRESET`                                         | Replace the presets it names with presets that have `hasIntentionalPolicy: true`, or ask the user about the Intentional styles setting. |
-| `The selected styles have no visual fields to apply.`                               | Choose other presets.                                                                                                                   |
-| `Style pack <packId> cannot be read: ... Reinstall extension <id>.`                 | Reinstall that pack (see below).                                                                                                        |
+| Error                                                                               | Action                                                                                                                                                                      |
+| ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Style <packId>/<presetId> is not installed. Find presets with studio_find_styles.` | Use ids from `studio_find_styles`.                                                                                                                                          |
+| `styles uses the styles workflow. Leave recipeId out.`                              | Remove `recipeId`.                                                                                                                                                          |
+| `Pass styles instead of compiled style fields.`                                     | Remove compiled fields, such as `selectedStyles` or `compilerVersion`, from `recipeParams`.                                                                                 |
+| 400 with `issues`, code `PRESERVATION_NEEDS_CONTENT_REFERENCE`                      | Add a reference, or set `styleMode: "generate"`.                                                                                                                            |
+| 400 with `issues`, code `PERMISSION_REQUIRED`                                       | A material or accent style needs `styleTargets.materialTarget` or `styleTargets.accent`: ask the user what it covers. In `preserve`, switch to `generate` or `reinterpret`. |
+| 400 with `issues`, code `STRUCTURE_LOCK_CONFLICT`                                   | A camera or layout style cannot preserve a reference. Use `reinterpret` or `generate`.                                                                                      |
+| 400 with `issues`, code `UNMIGRATED_PRESET`                                         | Replace the presets it names with presets that have `hasIntentionalPolicy: true`, or ask the user about the Intentional styles setting.                                     |
+| `The selected styles have no visual fields to apply.`                               | Choose other presets.                                                                                                                                                       |
+| `Style pack <packId> cannot be read: ... Reinstall extension <id>.`                 | Reinstall that pack (see below).                                                                                                                                            |
 
 `studio_user_styles` lists the user's saved styles. `styles` cannot use them yet; the user applies them in the Studio UI.
 

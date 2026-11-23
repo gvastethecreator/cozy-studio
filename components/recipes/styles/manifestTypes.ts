@@ -1,3 +1,4 @@
+import type { StylePackProject } from '../../../packages/shared/src/extensions';
 import type { StyleVisualDna } from './runtimeTypes';
 
 export type StylePresetManifestTask =
@@ -71,4 +72,6 @@ export interface StylePackManifest {
   cardDescription?: string;
   categories: StylePackManifestCategory[];
   presetRefs: string[];
+  /** A private project pack names its project; the extension manifest carries it to Studio. */
+  project?: StylePackProject;
 }

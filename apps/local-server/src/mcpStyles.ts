@@ -5,8 +5,10 @@ import {
 import {
   getStyleRuntimePresetDisplayName,
   normalizeStyleRuntimePack,
+  styleRuntimePresetSearchFields,
   type StyleRuntimePack,
 } from '../../../components/recipes/styles/runtimeTypes';
+import { rankStyleSearch } from '../../../packages/shared/src/styles/styleSearch';
 import {
   extensionFilePath,
   resolveStylePackExtensions,
@@ -65,27 +67,21 @@ export function findStyles(
     workspaceStyles,
   }: { q?: string; limit: number; workspaceStyles?: readonly WorkspaceStyleRef[] },
 ) {
-  const query = q?.trim().toLowerCase();
-  const matches = packs
-    .flatMap((pack) => pack.presets.map((preset) => ({ pack, preset })))
-    .filter(
-      ({ preset }) =>
-        !query ||
-        [preset.id, preset.name, preset.displayName, preset.category].some((value) =>
-          value?.toLowerCase().includes(query),
-        ),
-    )
-    .map((match) => ({
-      ...match,
-      linked: workspaceStyles
-        ? isPresetInWorkspaceStyleScope(workspaceStyles, {
-            packId: match.pack.id,
-            presetId: match.preset.id,
-            category: match.preset.category,
-          })
-        : false,
-    }));
-  // A stable sort keeps the pack order inside the linked and the other styles.
+  const matches = rankStyleSearch(
+    packs.flatMap((pack) => pack.presets.map((preset) => ({ pack, preset }))),
+    q ?? '',
+    ({ pack, preset }) => styleRuntimePresetSearchFields(preset, [pack.name]),
+  ).map((match) => ({
+    ...match,
+    linked: workspaceStyles
+      ? isPresetInWorkspaceStyleScope(workspaceStyles, {
+          packId: match.pack.id,
+          presetId: match.preset.id,
+          category: match.preset.category,
+        })
+      : false,
+  }));
+  // A stable sort keeps the search rank inside the linked and the other styles.
   if (workspaceStyles) matches.sort((a, b) => Number(b.linked) - Number(a.linked));
   return matches.slice(0, limit).map(({ pack, preset, linked }) => ({
     ...(workspaceStyles && { inWorkspaceStyles: linked }),
@@ -107,6 +103,7 @@ export async function compileMcpStyles(
     negativePrompt,
     references,
     styleMode,
+    styleTargets,
     settings,
   }: {
     styles: { packId: string; presetId: string; strength?: number }[];
@@ -114,6 +111,7 @@ export async function compileMcpStyles(
     negativePrompt?: string;
     references: readonly { id: string; dataUrl: string }[];
     styleMode?: Intentional.Mode;
+    styleTargets?: Intentional.StyleTargets;
     settings: Pick<
       EditableStudioSettings,
       'intentionalStylesV1' | 'defaultStyleIntensity' | 'defaultStyleReferenceMode'
@@ -158,7 +156,7 @@ export async function compileMcpStyles(
   if (settings.intentionalStylesV1) {
     try {
       const compiled = await Intentional.compileIntentionalStylePlan(
-        { slots, prompt, attachments: references, mode, negativePrompt },
+        { slots, prompt, attachments: references, mode, negativePrompt, targets: styleTargets },
         { resolvePolicy: async (slot) => slot.preset.intentional ?? null },
       );
       return {

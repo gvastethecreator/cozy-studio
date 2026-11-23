@@ -1,12 +1,12 @@
 import {
   CORE_VERSION,
   FREE_LAYOUT_LOCKS,
-  NO_PERMISSIONS,
   NO_VARIATION,
   PRESERVE_LOCKS,
   type Issue,
   type Locks,
   type Mode,
+  type Permissions,
   type Policy,
   type Reference,
 } from './types.js';
@@ -35,6 +35,25 @@ export function resolveStyleMode({
       ? saved
       : (defaultStyleReferenceMode ?? (intentionalStylesV1 ? 'generate' : 'preserve'));
   return !intentionalStylesV1 && preferred === 'generate' ? 'preserve' : preferred;
+}
+
+/** The surface a material style covers and the accent a color style adds. The user names them per request. */
+export type StyleTargets = Partial<Pick<Permissions, 'materialTarget' | 'accent'>>;
+
+/**
+ * Choosing a style in generate or reinterpret is the request to let it change what its policy names.
+ * Preserve keeps the reference, so it grants nothing.
+ */
+function permissionsFor(mode: Mode, targets: StyleTargets): Permissions {
+  const allowed = mode !== 'preserve';
+  return {
+    structure: allowed,
+    wardrobe: allowed,
+    design: allowed,
+    environment: allowed,
+    materialTarget: targets.materialTarget?.trim() ?? '',
+    accent: targets.accent?.trim() ?? '',
+  };
 }
 
 const MODE_LOCKS: Record<Mode, Locks> = {
@@ -78,12 +97,14 @@ export async function compileIntentionalStylePlan<S extends LegacySlot>(
     attachments,
     mode,
     negativePrompt,
+    targets = {},
   }: {
     slots: S[];
     prompt: string;
     attachments: readonly { id?: string; dataUrl?: string }[];
     mode: Mode;
     negativePrompt?: string | null;
+    targets?: StyleTargets;
   },
   {
     resolvePolicy,
@@ -138,6 +159,15 @@ export async function compileIntentionalStylePlan<S extends LegacySlot>(
     }),
   );
 
+  const permissions = permissionsFor(mode, targets);
+  const usedTargets = Object.fromEntries(
+    (['materialTarget', 'accent'] as const).flatMap((key) =>
+      permissions[key] &&
+      layers.some((layer) => layer.enabled && layer.snapshot.policy.requires === key)
+        ? [[key, permissions[key]]]
+        : [],
+    ),
+  );
   const userPrompt = prompt.trim() || 'Create a balanced composition using the selected styles.';
   const compiled = await compileStyleRequest({
     prompt: userPrompt,
@@ -145,7 +175,7 @@ export async function compileIntentionalStylePlan<S extends LegacySlot>(
     mode,
     locks: MODE_LOCKS[mode],
     variation: NO_VARIATION,
-    permissions: { ...NO_PERMISSIONS },
+    permissions,
     references: await hashedReferences(attachments, mode),
     baseAvoidRules: negativePrompt
       ? negativePrompt
@@ -183,6 +213,7 @@ export async function compileIntentionalStylePlan<S extends LegacySlot>(
       effectivePrompt: compiled.effectivePrompt,
       intentionalMode: mode,
       ...(mode === 'generate' ? {} : { styleReferenceMode: mode }),
+      ...(Object.keys(usedTargets).length ? { styleTargets: usedTargets } : {}),
       appliedFields: compiled.appliedFields,
       issues: compiled.issues,
     },

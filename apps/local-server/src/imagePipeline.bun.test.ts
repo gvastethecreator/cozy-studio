@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'bun:test';
@@ -51,27 +51,33 @@ describe('Bun.Image hot path', () => {
     }
   });
 
-  it('persists a reference webp with Bun.Image', async () => {
+  it('persists a reference webp once per content with Bun.Image', async () => {
     const libraryDir = mkdtempSync(path.join(os.tmpdir(), 'studio-bun-refs-'));
     try {
-      const result = await processReferences(
-        'handoff-test',
-        'Reference handoff.',
-        [
-          {
-            name: 'Hero Source.PNG',
-            dataUrl: `data:image/png;base64,${Buffer.from(ONE_BY_ONE_PNG).toString('base64')}`,
-            strength: 0.7,
-          },
-        ],
-        libraryDir,
-      );
+      const send = (name: string) =>
+        processReferences(
+          'Reference handoff.',
+          [
+            {
+              name,
+              dataUrl: `data:image/png;base64,${Buffer.from(ONE_BY_ONE_PNG).toString('base64')}`,
+              strength: 0.7,
+            },
+          ],
+          libraryDir,
+        );
+      const result = await send('Hero Source.PNG');
+      const repeated = await send('Hero Source copy.PNG');
 
       const reference = result.persistedRefs[0];
       expect(reference?.mimeType).toBe('image/webp');
+      expect(reference?.name).toBe('Hero Source.PNG');
       expect(reference?.path.replaceAll('\\', '/')).toMatch(
-        /\.studio\/references\/handoff-test\/Hero-Source\.webp$/,
+        /\.studio\/references\/content\/[0-9a-f]{64}\.webp$/,
       );
+      expect(repeated.persistedRefs[0]?.path).toBe(reference?.path);
+      expect(repeated.persistedRefs[0]?.name).toBe('Hero Source copy.PNG');
+      expect(readdirSync(path.dirname(reference!.path))).toEqual([path.basename(reference!.path)]);
       const encoded = readFileSync(reference!.path);
       const metadata = await readImageMetadata(encoded);
       expect(isWebpPayload(encoded)).toBe(true);

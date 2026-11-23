@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { linkSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -235,9 +235,11 @@ describe('readReferenceDedupeStats', () => {
       writeFileSync(path.join(dir, 'b.bin'), 'same');
       writeFileSync(path.join(dir, 'c.bin'), 'different');
       writeFileSync(path.join(dir, 'd.bin'), 'size');
+      linkSync(path.join(dir, 'c.bin'), path.join(dir, 'e.bin'));
 
       expect(readReferenceDedupeStats(dir)).toMatchObject({
-        files: 4,
+        files: 5,
+        bytes: 21,
         uniqueHashes: 3,
         duplicateFiles: 1,
         duplicateBytes: 4,

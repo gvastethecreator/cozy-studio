@@ -1,15 +1,5 @@
-import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
-import {
-  closeSync,
-  existsSync,
-  fsyncSync,
-  mkdirSync,
-  openSync,
-  readFileSync,
-  renameSync,
-  unlinkSync,
-  writeSync,
-} from 'node:fs';
+import { createHash, timingSafeEqual } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { open, realpath, stat } from 'node:fs/promises';
 import type { Database } from 'bun:sqlite';
@@ -27,6 +17,7 @@ import {
 import { getCatalogImage, registerCatalogImage } from './catalog';
 import { getDb } from './db/connection';
 import { resolveLibraryPathFromRoot } from './library';
+import { placeManagedFile } from './managedFile';
 import { ensureDefaultLibrary, getLibrary } from './libraries';
 import { authoringSharp as sharp, type Metadata } from './sharpAuthoringAdapter';
 
@@ -128,40 +119,6 @@ function managedPath(libraryPath: string, sha256: string) {
     throw new Error('Reference import could not be stored in the Studio Library.');
   }
   return destination;
-}
-
-export function placeManagedFile(destination: string, bytes: Buffer) {
-  mkdirSync(path.dirname(destination), { recursive: true });
-  if (existsSync(destination)) {
-    if (!readFileSync(destination).equals(bytes)) {
-      throw new Error(
-        'A managed reference file already exists for this digest and was left unchanged.',
-      );
-    }
-    return;
-  }
-  const partial = `${destination}.${randomUUID()}.partial`;
-  const fd = openSync(partial, 'wx');
-  try {
-    writeSync(fd, bytes);
-    fsyncSync(fd);
-  } catch (error) {
-    closeSync(fd);
-    unlinkSync(partial);
-    throw error;
-  }
-  closeSync(fd);
-  try {
-    renameSync(partial, destination);
-  } catch (error) {
-    try {
-      unlinkSync(partial);
-    } catch {
-      // The partial file is disposable. The named reference file stays as it is.
-    }
-    if (existsSync(destination) && readFileSync(destination).equals(bytes)) return;
-    throw error;
-  }
 }
 
 function readReceipt(database: Database, requestId: string) {

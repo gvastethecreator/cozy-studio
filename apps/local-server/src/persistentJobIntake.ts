@@ -63,7 +63,6 @@ export interface PersistentJobIntakeDependencies {
   }) => Job;
   updateJobFinalPrompt: (jobId: string, finalPrompt: string) => Job | null;
   processReferences: (
-    jobId: string,
     prompt: string,
     references: CreateJobRequest['references'],
     libraryDir: string,
@@ -370,7 +369,6 @@ export function createPersistentJobIntake({
     try {
       const libraryDir = libraryContext.rootPath;
       const processedReferences = await processReferences(
-        jobId,
         prompt,
         request.references || [],
         libraryDir,

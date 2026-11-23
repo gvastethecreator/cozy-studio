@@ -623,8 +623,8 @@ export async function createStudioApp(
         }),
       updateJobFinalPrompt: (jobId, finalPrompt) =>
         jobStore.updateJobFinalPrompt(jobId, finalPrompt),
-      processReferences: (jobId, prompt, references, libraryDir) =>
-        processReferences(jobId, prompt, references ?? [], libraryDir),
+      processReferences: (prompt, references, libraryDir) =>
+        processReferences(prompt, references ?? [], libraryDir),
       hydrateSourceSpecAssetPaths: (
         sourceSpec,
         references,
@@ -669,8 +669,7 @@ export async function createStudioApp(
     '/api/references',
     createReferenceRoutes({
       createHandoffId: () => `handoff-${randomUUID()}`,
-      processReferences: (handoffId, prompt, references, libraryDir) =>
-        processReferences(handoffId, prompt, references, libraryDir),
+      processReferences,
       readLibraryDir: () => ensureDefaultLibrary().path,
       toPublicAssetUrl: (filePath) => {
         const library = ensureDefaultLibrary();

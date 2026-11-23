@@ -1,8 +1,9 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import type { GenerationTaskSpec } from '../../../packages/shared/src';
 import { encodeResizedWebpFromBytes } from './imagePipeline';
 import { resolveLibraryPathFromRoot } from './library';
+import { placeManagedFile } from './managedFile';
 
 export interface RawReference {
   name: string;
@@ -52,23 +53,6 @@ export class ReferenceProcessingError extends Error {
     super(`Invalid reference "${referenceName}": ${reason}`);
     this.name = 'ReferenceError';
   }
-}
-
-function safeReferenceName(name: string, existing: Set<string>, index: number) {
-  const parsed = path.parse(name || `reference-${index + 1}.png`);
-  const base =
-    (parsed.name || `reference-${index + 1}`)
-      .replace(/[^a-z0-9._-]+/gi, '-')
-      .replace(/^\.+|\.+$/g, '')
-      .slice(0, 80) || `reference-${index + 1}`;
-  let candidate = `${base}.webp`;
-  let suffix = 2;
-  while (existing.has(candidate.toLowerCase())) {
-    candidate = `${base}_${suffix}.webp`;
-    suffix += 1;
-  }
-  existing.add(candidate.toLowerCase());
-  return candidate;
 }
 
 function decodeDataUrl(reference: RawReference) {
@@ -202,8 +186,11 @@ Use these local reference image files as visual context for the requested image.
 ${referenceBlock}`;
 }
 
+/**
+ * Stores each normalized reference once, named by the SHA-256 of its WebP bytes. Jobs and handoffs
+ * that send the same image share the file, which is never rewritten or deleted.
+ */
 export async function processReferences(
-  jobId: string,
   prompt: string,
   references: RawReference[],
   libraryDir: string,
@@ -213,32 +200,32 @@ export async function processReferences(
   }
 
   const decodedReferences = prepareReferencesForPersistence(references);
-  const referencesDir = resolveLibraryPathFromRoot(libraryDir, 'references', jobId);
-  mkdirSync(referencesDir, { recursive: true });
-  const existing = new Set<string>();
-  const persistedRefs: ProcessedReference[] = [];
   const normalizedReferences = await Promise.all(
     decodedReferences.map((decoded) =>
       normalizeReferenceForContext(decoded, DEFAULT_REFERENCE_PAYLOAD_LIMITS),
     ),
   );
 
-  for (const [index, decoded] of decodedReferences.entries()) {
-    const { reference } = decoded;
+  const persistedRefs = decodedReferences.map(({ reference }, index): ProcessedReference => {
     const normalized = normalizedReferences[index]!;
-    const fileName = safeReferenceName(reference.name, existing, index);
-    const filePath = path.join(referencesDir, fileName);
-    writeFileSync(filePath, normalized.bytes);
-    persistedRefs.push({
-      name: reference.name || fileName,
+    const sha256 = createHash('sha256').update(normalized.bytes).digest('hex');
+    const filePath = resolveLibraryPathFromRoot(
+      libraryDir,
+      'references',
+      'content',
+      `${sha256}.webp`,
+    );
+    placeManagedFile(filePath, normalized.bytes);
+    return {
+      name: reference.name || `reference-${index + 1}.webp`,
       path: filePath,
       strength: Math.max(0, Math.min(1, Number(reference.strength) || 0)),
       mimeType: 'image/webp',
       fileSizeBytes: normalized.bytes.length,
       width: normalized.width,
       height: normalized.height,
-    });
-  }
+    };
+  });
 
   return {
     persistedRefs,

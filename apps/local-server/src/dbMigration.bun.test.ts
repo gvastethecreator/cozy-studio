@@ -401,7 +401,7 @@ async function inspectJobBatches() {
       createJobId: () => `batch-job-${++sequence}`,
       createJob: (input) => createJob(input, batchDb),
       updateJobFinalPrompt: (id, prompt) => updateJobFinalPrompt(id, prompt, batchDb),
-      processReferences: async (_id, prompt) => ({ augmentedPrompt: prompt, persistedRefs: [] }),
+      processReferences: async (prompt) => ({ augmentedPrompt: prompt, persistedRefs: [] }),
       hydrateSourceSpecAssetPaths: (spec) => spec,
       readLibraryDir: () => 'X:/isolated-fixture',
 

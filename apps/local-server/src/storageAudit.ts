@@ -85,11 +85,21 @@ function readDirectoryStats(dirPath: string) {
   return { files: files.length, bytes: files.reduce((total, file) => total + file.bytes, 0) };
 }
 
-/** Hashes only files whose size matches another file: a file with a unique size has no duplicate. */
+/**
+ * Hashes only files whose size matches another file: a file with a unique size has no duplicate.
+ * Hard-linked names share one stored file, so they count once and are not duplicates.
+ */
 export function readReferenceDedupeStats(dirPath: string) {
   const files = listFiles(dirPath);
+  const storedFiles = new Set<string>();
   const bySize = new Map<number, string[]>();
+  let bytes = 0;
   for (const file of files) {
+    const { dev, ino } = statSync(file.path, { bigint: true });
+    const identity = `${dev}:${ino}`;
+    if (storedFiles.has(identity)) continue;
+    storedFiles.add(identity);
+    bytes += file.bytes;
     const group = bySize.get(file.bytes);
     if (group) group.push(file.path);
     else bySize.set(file.bytes, [file.path]);
@@ -97,7 +107,7 @@ export function readReferenceDedupeStats(dirPath: string) {
 
   const stats = {
     files: files.length,
-    bytes: files.reduce((total, file) => total + file.bytes, 0),
+    bytes,
     uniqueHashes: 0,
     duplicateFiles: 0,
     duplicateBytes: 0,

@@ -407,12 +407,7 @@ describe('persistentJobIntake', () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(processReferences).toHaveBeenCalledWith(
-      'job-retry',
-      'retry image',
-      [],
-      'D:/AI-Studio-Library',
-    );
+    expect(processReferences).toHaveBeenCalledWith('retry image', [], 'D:/AI-Studio-Library');
     expect(createJobFn).toHaveBeenCalledWith(
       expect.objectContaining({
         sourceSpec: expect.objectContaining({

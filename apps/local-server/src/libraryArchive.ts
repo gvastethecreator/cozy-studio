@@ -27,7 +27,8 @@ import { resolveLibraryPathFromRoot } from './library';
 import { ensureThumbnailVariant, resolveLibraryThumbnailPath } from './libraryAssetVariants';
 import { safePath } from './localExtensionInstall';
 import { isPathInside } from './pathContainment';
-import { mimeFromSignature, placeManagedFile } from './referenceImport';
+import { placeManagedFile } from './managedFile';
+import { mimeFromSignature } from './referenceImport';
 
 const MAX_MANIFEST_BYTES = 32 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 64 * 1024 * 1024;

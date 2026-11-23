@@ -10,7 +10,6 @@ import type {
 interface ReferenceRoutesDependencies {
   createHandoffId: () => string;
   processReferences: (
-    handoffId: string,
     prompt: string,
     references: RawReference[],
     libraryDir: string,
@@ -75,7 +74,6 @@ export function createReferenceRoutes({
 
     try {
       const processed = await processReferences(
-        handoffId,
         'Reference handoff.',
         [...decodedBody.value.references],
         readLibraryDir(),

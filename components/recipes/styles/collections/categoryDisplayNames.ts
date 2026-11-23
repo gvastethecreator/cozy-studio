@@ -279,6 +279,12 @@ const CATEGORY_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   'pack_35::7. Exploration': 'Exploration',
   'pack_36::1. Moklos Jam': 'Moklos Jam',
   'pack_37::1. Cut, Carved & Inlaid Crafts': 'Cut, carved & inlaid crafts',
+  'pack_99::1. Character Sheets': 'Character sheets',
+  'pack_99::2. Character Action & Variants': 'Character action & variants',
+  'pack_99::3. Camera & Storyboard': 'Camera & storyboard',
+  'pack_99::4. Animation on One Sheet': 'Animation on one sheet',
+  'pack_99::5. Game Asset Sheets': 'Game asset sheets',
+  'pack_99::6. Remaster & Finish': 'Remaster & finish',
 };
 
 export function getStyleCategoryDisplayName(packId: string, sourceCategory: string) {

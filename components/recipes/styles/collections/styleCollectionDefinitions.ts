@@ -1199,6 +1199,18 @@ export const STYLE_COLLECTIONS = [
     facets: { workflow: ['image', 'edit'] },
   },
   {
+    id: 'workflow_recipes',
+    title: 'Workflows',
+    familyId: 'design_assets_materials',
+    description:
+      "Ready-made one-image recipes from Studio's workflows: character sheets, storyboards, frame strips, sprite rows and remaster passes.",
+    icon: 'sliders',
+    order: 57,
+    sourcePackIds: ['pack_99'],
+    entries: [{ id: 'workflow-recipes-pack', kind: 'pack', packId: 'pack_99' }],
+    facets: { workflow: ['image', 'edit', 'sprite'] },
+  },
+  {
     id: 'games_ui_worlds',
     title: 'Game Formats & UI',
     familyId: 'design_assets_materials',

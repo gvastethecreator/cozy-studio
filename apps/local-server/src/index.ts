@@ -63,6 +63,7 @@ if (import.meta.main) {
         pathname === '/api/events' ||
         pathname === '/api/agent/events' ||
         pathname === '/api/workspaces/import' ||
+        pathname === '/api/maintenance/storage/audit' ||
         /^\/api\/workspaces\/[^/]+\/export$/.test(pathname)
       ) {
         server.timeout(req, 0);

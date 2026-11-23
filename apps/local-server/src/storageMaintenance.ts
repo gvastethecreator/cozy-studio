@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 
 import type {
@@ -17,6 +17,16 @@ import { ensureThumbnailVariant } from './libraryAssetVariants';
 import { CATALOG_TAG_COUNT_SQL } from './db/migrations';
 import { resolveLibraryPathFromRoot } from './library';
 import { authoringSharp } from './sharpAuthoringAdapter';
+import {
+  PAYLOAD_FIELDS,
+  formatBytes,
+  openStorageMaintenanceDatabase,
+  readStorageAuditReport,
+  type SqliteDatabase,
+  type StorageAuditPaths,
+} from './storageAudit';
+
+export { readReferenceDedupeStats } from './storageAudit';
 
 type JsonObject = Record<string, unknown>;
 
@@ -38,16 +48,6 @@ interface CompactResult {
   omittedBytes: number;
   recoverablePayloads: number;
   nonRecoverablePayloads: number;
-}
-
-interface SqliteDatabase {
-  query(sql: string): {
-    all(...params: unknown[]): unknown[];
-    get(...params: unknown[]): unknown;
-    run(...params: unknown[]): unknown;
-  };
-  run(sql: string): unknown;
-  close(): void;
 }
 
 export interface StorageMaintenanceOptions {
@@ -206,97 +206,10 @@ const INLINE_IMAGE_DATA_URL_RE = /^data:(image\/[a-z0-9.+-]+);base64,(.*)$/is;
 const COMPACT_CONFIRMATION = 'compact-inline-payloads';
 const THUMBNAIL_BACKFILL_CONFIRMATION = 'backfill-thumbnails';
 
-const PAYLOAD_FIELDS = [
-  { table: 'jobs', idColumn: 'id', field: 'source_spec_json' },
-  { table: 'catalog_images', idColumn: 'id', field: 'generation_config' },
-] as const;
-
-const COUNT_TABLES = [
-  'jobs',
-  'catalog_images',
-  'assets',
-  'codex_turns',
-  'job_events',
-  'system_logs',
-] as const;
-
 function resolveStorageMaintenanceOptions(options: StorageMaintenanceOptions = {}) {
   const libraryDir = options.libraryDir || getSettings().libraryDir;
   const dbPath = options.dbPath || resolveLibraryPathFromRoot(libraryDir, 'library.sqlite');
   return { libraryDir, dbPath };
-}
-
-function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ['KB', 'MB', 'GB', 'TB'];
-  let value = bytes / 1024;
-  let unitIndex = 0;
-  while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024;
-    unitIndex += 1;
-  }
-  return `${value.toFixed(2)} ${units[unitIndex]}`;
-}
-
-function readDirectoryStats(dirPath: string) {
-  const stats = { files: 0, bytes: 0 };
-  if (!existsSync(dirPath)) return stats;
-
-  const stack = [dirPath];
-  while (stack.length > 0) {
-    const current = stack.pop()!;
-    for (const entry of readdirSync(current, { withFileTypes: true })) {
-      const entryPath = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        stack.push(entryPath);
-      } else if (entry.isFile()) {
-        const fileStats = statSync(entryPath);
-        stats.files += 1;
-        stats.bytes += fileStats.size;
-      }
-    }
-  }
-
-  return stats;
-}
-
-export function readReferenceDedupeStats(dirPath: string) {
-  const stats = {
-    files: 0,
-    bytes: 0,
-    uniqueHashes: 0,
-    duplicateFiles: 0,
-    duplicateBytes: 0,
-  };
-  if (!existsSync(dirPath)) return stats;
-
-  const hashes = new Map<string, { count: number; bytes: number }>();
-  const stack = [dirPath];
-  while (stack.length > 0) {
-    const current = stack.pop()!;
-    for (const entry of readdirSync(current, { withFileTypes: true })) {
-      const entryPath = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        stack.push(entryPath);
-      } else if (entry.isFile()) {
-        const fileStats = statSync(entryPath);
-        const sha256 = createHash('sha256').update(readFileSync(entryPath)).digest('hex');
-        const previous = hashes.get(sha256);
-        stats.files += 1;
-        stats.bytes += fileStats.size;
-        if (previous) {
-          previous.count += 1;
-          stats.duplicateFiles += 1;
-          stats.duplicateBytes += fileStats.size;
-        } else {
-          hashes.set(sha256, { count: 1, bytes: fileStats.size });
-        }
-      }
-    }
-  }
-
-  stats.uniqueHashes = hashes.size;
-  return stats;
 }
 
 function parseInlineImageDataUrl(value: string) {
@@ -434,126 +347,6 @@ function compactValue(value: unknown, key: string | null = null): CompactResult 
 
 export function compactInlineImagePayloads(value: unknown) {
   return compactValue(value);
-}
-
-async function openStorageMaintenanceDatabase(
-  dbPath: string,
-  options: { readonly?: boolean } = {},
-) {
-  const { Database } = (await import('bun:sqlite')) as {
-    Database: new (path: string, options?: { readonly?: boolean }) => SqliteDatabase;
-  };
-  return options.readonly ? new Database(dbPath, { readonly: true }) : new Database(dbPath);
-}
-
-function readCountStats(db: SqliteDatabase) {
-  return Object.fromEntries(
-    COUNT_TABLES.map((table) => {
-      const row = db.query(`SELECT COUNT(*) as count FROM ${table}`).get() as { count: number };
-      return [table, row.count];
-    }),
-  );
-}
-
-function readPayloadFieldStats(db: SqliteDatabase, field: (typeof PAYLOAD_FIELDS)[number]) {
-  const row = db
-    .query(
-      `
-      SELECT
-        COUNT(*) as rows,
-        COALESCE(SUM(LENGTH(${field.field})), 0) as bytes,
-        COALESCE(MAX(LENGTH(${field.field})), 0) as maxBytes,
-        COALESCE(SUM(CASE WHEN ${field.field} LIKE '%data:image/%' THEN 1 ELSE 0 END), 0) as inlineRows,
-        COALESCE(SUM(CASE WHEN ${field.field} LIKE '%data:image/%' THEN LENGTH(${field.field}) ELSE 0 END), 0) as inlineBytes
-      FROM ${field.table}
-      WHERE ${field.field} IS NOT NULL
-    `,
-    )
-    .get() as {
-    rows: number;
-    bytes: number;
-    maxBytes: number;
-    inlineRows: number;
-    inlineBytes: number;
-  };
-
-  return {
-    table: field.table,
-    field: field.field,
-    rows: row.rows,
-    bytes: row.bytes,
-    formattedBytes: formatBytes(row.bytes),
-    maxBytes: row.maxBytes,
-    formattedMaxBytes: formatBytes(row.maxBytes),
-    inlineRows: row.inlineRows,
-    inlineBytes: row.inlineBytes,
-    formattedInlineBytes: formatBytes(row.inlineBytes),
-  };
-}
-
-function readCatalogMaintenanceStats(db: SqliteDatabase) {
-  const row = db
-    .query(
-      `
-      SELECT
-        COUNT(*) as rows,
-        COALESCE(SUM(CASE WHEN thumbnail_path IS NULL OR thumbnail_url IS NULL THEN 1 ELSE 0 END), 0) as missingThumbnails
-      FROM catalog_images
-      WHERE is_deleted = 0
-    `,
-    )
-    .get() as { rows: number; missingThumbnails: number };
-
-  return row;
-}
-
-function readDatabaseFileStats(dbPath: string) {
-  const databaseBytes = existsSync(dbPath) ? statSync(dbPath).size : 0;
-  const walBytes = existsSync(`${dbPath}-wal`) ? statSync(`${dbPath}-wal`).size : 0;
-  const shmBytes = existsSync(`${dbPath}-shm`) ? statSync(`${dbPath}-shm`).size : 0;
-  return {
-    bytes: databaseBytes,
-    formattedBytes: formatBytes(databaseBytes),
-    walBytes,
-    shmBytes,
-  };
-}
-
-function createStorageMaintenanceAuditReport(
-  options: Required<StorageMaintenanceOptions>,
-  db: SqliteDatabase,
-): StorageMaintenanceAuditReport {
-  const studioDir = resolveLibraryPathFromRoot(options.libraryDir, '.studio');
-  const referenceDedupe = readReferenceDedupeStats(path.join(studioDir, 'references'));
-  const directories = {
-    transcripts: readDirectoryStats(path.join(studioDir, 'transcripts')),
-    logs: readDirectoryStats(path.join(studioDir, 'logs')),
-    references: readDirectoryStats(path.join(studioDir, 'references')),
-    outputs: readDirectoryStats(resolveLibraryPathFromRoot(options.libraryDir, 'outputs')),
-    thumbnails: readDirectoryStats(
-      resolveLibraryPathFromRoot(options.libraryDir, 'outputs', 'thumbnails'),
-    ),
-    toolingLogs: readDirectoryStats(path.resolve(process.cwd(), 'logs', 'tooling')),
-  };
-
-  return {
-    libraryDir: options.libraryDir,
-    dbPath: options.dbPath,
-    database: readDatabaseFileStats(options.dbPath),
-    counts: readCountStats(db),
-    payloadFields: PAYLOAD_FIELDS.map((field) => readPayloadFieldStats(db, field)),
-    catalog: readCatalogMaintenanceStats(db),
-    references: {
-      ...referenceDedupe,
-      formattedDuplicateBytes: formatBytes(referenceDedupe.duplicateBytes),
-    },
-    directories: Object.fromEntries(
-      Object.entries(directories).map(([key, value]) => [
-        key,
-        { ...value, formattedBytes: formatBytes(value.bytes) },
-      ]),
-    ),
-  };
 }
 
 function toPublicAssetUrlForLibrary(libraryDir: string, filePath: string) {
@@ -711,20 +504,62 @@ async function createBackupForWrite(options: Required<StorageMaintenanceOptions>
   return createBackup(options);
 }
 
-export async function readStorageMaintenanceAudit(
-  options: StorageMaintenanceOptions = {},
-): Promise<StorageMaintenanceAuditReport> {
+function resolveStorageAuditPaths(options: StorageMaintenanceOptions): StorageAuditPaths {
   const resolvedOptions = resolveStorageMaintenanceOptions(options);
   if (!existsSync(resolvedOptions.dbPath)) {
     throw new Error(`Studio SQLite database was not found at ${resolvedOptions.dbPath}`);
   }
+  const studioDir = resolveLibraryPathFromRoot(resolvedOptions.libraryDir, '.studio');
+  return {
+    ...resolvedOptions,
+    directories: {
+      transcripts: path.join(studioDir, 'transcripts'),
+      logs: path.join(studioDir, 'logs'),
+      references: path.join(studioDir, 'references'),
+      outputs: resolveLibraryPathFromRoot(resolvedOptions.libraryDir, 'outputs'),
+      thumbnails: resolveLibraryPathFromRoot(resolvedOptions.libraryDir, 'outputs', 'thumbnails'),
+      toolingLogs: path.resolve(process.cwd(), 'logs', 'tooling'),
+    },
+  };
+}
 
-  const db = await openStorageMaintenanceDatabase(resolvedOptions.dbPath, { readonly: true });
-  try {
-    return createStorageMaintenanceAuditReport(resolvedOptions, db);
-  } finally {
-    db.close();
-  }
+export async function readStorageMaintenanceAudit(
+  options: StorageMaintenanceOptions = {},
+): Promise<StorageMaintenanceAuditReport> {
+  return readStorageAuditReport(resolveStorageAuditPaths(options));
+}
+
+let runningAudit: Promise<StorageMaintenanceAuditReport> | null = null;
+
+/**
+ * The audit walks and hashes the Library files and scans every payload column. A Bun Worker keeps
+ * that work off the request thread, and callers during a run share it.
+ */
+export function readStorageMaintenanceAuditInWorker(
+  options: StorageMaintenanceOptions = {},
+): Promise<StorageMaintenanceAuditReport> {
+  if (runningAudit) return runningAudit;
+  const paths = resolveStorageAuditPaths(options);
+  runningAudit = new Promise<StorageMaintenanceAuditReport>((resolve, reject) => {
+    const worker = new Worker(new URL('./storageAuditWorker.ts', import.meta.url).href);
+    worker.onmessage = (
+      event: MessageEvent<
+        { ok: true; report: StorageMaintenanceAuditReport } | { ok: false; error: string }
+      >,
+    ) => {
+      worker.terminate();
+      if (event.data.ok) resolve(event.data.report);
+      else reject(new Error(event.data.error));
+    };
+    worker.onerror = (event) => {
+      worker.terminate();
+      reject(new Error(event.message || 'The storage audit worker failed.'));
+    };
+    worker.postMessage(paths);
+  }).finally(() => {
+    runningAudit = null;
+  });
+  return runningAudit;
 }
 
 export async function compactStorageInlinePayloadFields(
@@ -745,8 +580,13 @@ export async function compactStorageInlinePayloadFields(
   const db = await openStorageMaintenanceDatabase(resolvedOptions.dbPath, { readonly: !write });
   try {
     const results = PAYLOAD_FIELDS.map((field) => compactField(db, field, write));
+    let checkpoint: StorageMaintenanceCompactResult['checkpoint'] = null;
     if (write && options.vacuum) {
       db.run('VACUUM');
+      // WAL mode keeps the old pages until a checkpoint; TRUNCATE shrinks the file now.
+      checkpoint = db.query('PRAGMA wal_checkpoint(TRUNCATE)').get() as NonNullable<
+        StorageMaintenanceCompactResult['checkpoint']
+      >;
     }
     return {
       libraryDir: resolvedOptions.libraryDir,
@@ -754,6 +594,7 @@ export async function compactStorageInlinePayloadFields(
       mode: write ? 'write' : 'dry-run',
       backup,
       vacuumRan: write && options.vacuum === true,
+      checkpoint,
       results,
     };
   } finally {

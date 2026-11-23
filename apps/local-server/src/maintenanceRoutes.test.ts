@@ -1,5 +1,29 @@
+import { mkdirSync, mkdtempSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it, vi } from 'vitest';
 import { createMaintenanceRoutes } from './maintenanceRoutes';
+import { compactStorageInlinePayloadFields } from './storageMaintenance';
+
+// Vitest runs on Node: back the bun:sqlite calls of storageMaintenance with node:sqlite.
+vi.mock('bun:sqlite', () => ({
+  Database: class {
+    private readonly db: DatabaseSync;
+    constructor(filePath: string, options?: { readonly?: boolean }) {
+      this.db = new DatabaseSync(filePath, { readOnly: options?.readonly === true });
+    }
+    query(sql: string) {
+      return this.db.prepare(sql);
+    }
+    run(sql: string) {
+      this.db.exec(sql);
+    }
+    close() {
+      this.db.close();
+    }
+  },
+}));
 
 describe('maintenanceRoutes', () => {
   it('requires a workspace and bounds duplicate scans without accepting a custom threshold', async () => {
@@ -78,6 +102,7 @@ describe('maintenanceRoutes', () => {
       mode: input.write ? ('write' as const) : ('dry-run' as const),
       backup: null,
       vacuumRan: false,
+      checkpoint: null,
       results: [],
     }));
     const routes = createMaintenanceRoutes({ compactStorage });
@@ -91,6 +116,46 @@ describe('maintenanceRoutes', () => {
       vacuum: false,
       confirm: null,
     });
+  });
+
+  it('truncates the WAL right after VACUUM so the database file shrinks at once', async () => {
+    const libraryDir = mkdtempSync(path.join(tmpdir(), 'cozy-compact-'));
+    const dbPath = path.join(libraryDir, '.studio', 'studio.sqlite');
+    mkdirSync(path.dirname(dbPath), { recursive: true });
+    // Stands in for the Studio connection that stays open, so SQLite keeps the WAL file.
+    const studioDb = new DatabaseSync(dbPath);
+    try {
+      studioDb.exec(`
+        PRAGMA journal_mode = WAL;
+        CREATE TABLE jobs (id TEXT PRIMARY KEY, source_spec_json TEXT);
+        CREATE TABLE catalog_images (id TEXT PRIMARY KEY, generation_config TEXT);
+      `);
+      const inline = JSON.stringify({ dataUrl: `data:image/png;base64,${'A'.repeat(400_000)}` });
+      const insert = studioDb.prepare('INSERT INTO jobs VALUES (?, ?)');
+      for (let index = 0; index < 20; index += 1) insert.run(`job-${index}`, inline);
+      studioDb.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+      const bytesBefore = statSync(dbPath).size;
+      const routes = createMaintenanceRoutes({
+        compactStorage: (input) =>
+          compactStorageInlinePayloadFields({ ...input, libraryDir, dbPath }),
+      });
+
+      const response = await routes.request('/storage/compact', {
+        method: 'POST',
+        body: JSON.stringify({ write: true, vacuum: true, confirm: 'compact-inline-payloads' }),
+      });
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        vacuumRan: true,
+        checkpoint: { busy: 0 },
+      });
+      expect(statSync(`${dbPath}-wal`).size).toBe(0);
+      expect(statSync(dbPath).size).toBeLessThan(bytesBefore / 10);
+    } finally {
+      studioDb.close();
+      rmSync(libraryDir, { force: true, recursive: true });
+    }
   });
 
   it('passes bounded thumbnail backfill write confirmation', async () => {

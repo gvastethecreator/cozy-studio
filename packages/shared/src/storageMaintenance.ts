@@ -102,6 +102,8 @@ export interface StorageMaintenanceCompactResult {
   mode: StorageMaintenanceMode;
   backup: StorageMaintenanceBackup | null;
   vacuumRan: boolean;
+  /** `PRAGMA wal_checkpoint(TRUNCATE)` after VACUUM; `busy: 1` means a reader blocked it. Null without VACUUM. */
+  checkpoint: { busy: number; log: number; checkpointed: number } | null;
   results: StorageMaintenanceCompactFieldResult[];
 }
 

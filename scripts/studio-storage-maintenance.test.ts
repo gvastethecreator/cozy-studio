@@ -234,10 +234,11 @@ describe('readReferenceDedupeStats', () => {
       writeFileSync(path.join(dir, 'a.bin'), 'same');
       writeFileSync(path.join(dir, 'b.bin'), 'same');
       writeFileSync(path.join(dir, 'c.bin'), 'different');
+      writeFileSync(path.join(dir, 'd.bin'), 'size');
 
       expect(readReferenceDedupeStats(dir)).toMatchObject({
-        files: 3,
-        uniqueHashes: 2,
+        files: 4,
+        uniqueHashes: 3,
         duplicateFiles: 1,
         duplicateBytes: 4,
       });

@@ -4,7 +4,7 @@ import {
   findCatalogDuplicates,
   backfillStorageThumbnails,
   compactStorageInlinePayloadFields,
-  readStorageMaintenanceAudit,
+  readStorageMaintenanceAuditInWorker,
   type CompactStorageMaintenanceOptions,
   type ThumbnailBackfillStorageMaintenanceOptions,
   type CatalogDuplicateScanOptions,
@@ -14,7 +14,7 @@ import { pruneToolingLogs } from './toolingLogMaintenance';
 
 interface MaintenanceRoutesDependencies {
   findDuplicates?: (input: CatalogDuplicateScanOptions) => ReturnType<typeof findCatalogDuplicates>;
-  readStorageAudit?: typeof readStorageMaintenanceAudit;
+  readStorageAudit?: typeof readStorageMaintenanceAuditInWorker;
   compactStorage?: typeof compactStorageInlinePayloadFields;
   backfillThumbnails?: typeof backfillStorageThumbnails;
   pruneLogs?: typeof pruneToolingLogs;
@@ -31,7 +31,7 @@ async function readJsonBody<T>(request: Request): Promise<Partial<T>> {
 
 export function createMaintenanceRoutes({
   findDuplicates = (input) => findCatalogDuplicates(getDb(), input),
-  readStorageAudit = readStorageMaintenanceAudit,
+  readStorageAudit = readStorageMaintenanceAuditInWorker,
   compactStorage = compactStorageInlinePayloadFields,
   backfillThumbnails = backfillStorageThumbnails,
   pruneLogs = pruneToolingLogs,

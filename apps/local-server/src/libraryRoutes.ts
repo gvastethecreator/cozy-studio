@@ -26,6 +26,21 @@ interface LibraryRoutesDependencies {
   logger?: typeof log;
 }
 
+const NOT_MODIFIED_HEADERS = ['ETag', 'Cache-Control', 'Last-Modified'] as const;
+
+function stripWeakPrefix(tag: string) {
+  return tag.startsWith('W/') ? tag.slice(2) : tag;
+}
+
+/** If-None-Match uses weak comparison: `*`, or any listed tag equal to the current one, W/ ignored. */
+function ifNoneMatchHits(header: string | undefined, etag: string | undefined) {
+  if (!header || !etag) return false;
+  const value = header.trim();
+  if (value === '*') return true;
+  const current = stripWeakPrefix(etag);
+  return value.split(',').some((candidate) => stripWeakPrefix(candidate.trim()) === current);
+}
+
 export function createLibraryRoutes({
   resolvePublicLibraryPath,
   resolvePublicLibraryAssetRequest,
@@ -74,12 +89,24 @@ export function createLibraryRoutes({
       }
     }
 
-    // The Bun.file response goes out as it is, so Bun sends the file directly; copying its body
-    // into a new Response turned it into a plain stream.
-    const fileResponse = createFileResponse(servedPath);
     const headers = buildLibraryAssetHeaders(servedPath, {
       cacheSeconds: resolveAssetCacheSeconds(variant),
     });
+
+    // A matching validator wins over Range (RFC 9110 13.2.2), so a revalidating browser gets
+    // a 304 without the file being opened.
+    if (ifNoneMatchHits(c.req.header('If-None-Match'), headers.ETag)) {
+      const notModified = new Headers();
+      for (const name of NOT_MODIFIED_HEADERS) {
+        const value = headers[name];
+        if (value) notModified.set(name, value);
+      }
+      return new Response(null, { status: 304, headers: notModified });
+    }
+
+    // The Bun.file response goes out as it is, so Bun sends the file directly; copying its body
+    // into a new Response turned it into a plain stream.
+    const fileResponse = createFileResponse(servedPath);
     for (const [name, value] of Object.entries(headers)) fileResponse.headers.set(name, value);
     return fileResponse;
   });

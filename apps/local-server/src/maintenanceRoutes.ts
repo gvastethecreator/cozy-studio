@@ -5,6 +5,7 @@ import {
   backfillStorageThumbnails,
   compactStorageInlinePayloadFields,
   readStorageMaintenanceAuditInWorker,
+  StorageMaintenanceBusyError,
   type CompactStorageMaintenanceOptions,
   type ThumbnailBackfillStorageMaintenanceOptions,
   type CatalogDuplicateScanOptions,
@@ -18,6 +19,8 @@ interface MaintenanceRoutesDependencies {
   compactStorage?: typeof compactStorageInlinePayloadFields;
   backfillThumbnails?: typeof backfillStorageThumbnails;
   pruneLogs?: typeof pruneToolingLogs;
+  /** Why Studio should not be locked out of its database now (running or queued jobs), or null. */
+  readBusyReason?: () => string | null;
 }
 
 async function readJsonBody<T>(request: Request): Promise<Partial<T>> {
@@ -35,6 +38,7 @@ export function createMaintenanceRoutes({
   compactStorage = compactStorageInlinePayloadFields,
   backfillThumbnails = backfillStorageThumbnails,
   pruneLogs = pruneToolingLogs,
+  readBusyReason = () => null,
 }: MaintenanceRoutesDependencies = {}) {
   const routes = new Hono();
 
@@ -65,13 +69,24 @@ export function createMaintenanceRoutes({
 
   routes.post('/storage/compact', async (c) => {
     const body = await readJsonBody<CompactStorageMaintenanceOptions>(c.req.raw);
-    return c.json(
-      await compactStorage({
-        write: body.write === true,
-        vacuum: body.vacuum === true,
-        confirm: body.confirm ?? null,
-      }),
-    );
+    const vacuum = body.write === true && body.vacuum === true;
+    // VACUUM holds the write lock for its whole run. A job's write would wait on the main thread
+    // for up to the 5 s busy timeout and then fail, so VACUUM starts only when no job is active.
+    const busyReason = vacuum ? readBusyReason() : null;
+    if (busyReason) return c.json({ error: `Compaction with VACUUM is busy: ${busyReason}` }, 409);
+    try {
+      return c.json(
+        await compactStorage({
+          write: body.write === true,
+          vacuum: body.vacuum === true,
+          confirm: body.confirm ?? null,
+        }),
+      );
+    } catch (error) {
+      if (error instanceof StorageMaintenanceBusyError)
+        return c.json({ error: error.message }, 409);
+      throw error;
+    }
   });
 
   routes.post('/storage/thumbnails/backfill', async (c) => {

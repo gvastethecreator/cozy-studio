@@ -4,7 +4,11 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it, vi } from 'vitest';
 import { createMaintenanceRoutes } from './maintenanceRoutes';
-import { compactStorageInlinePayloadFields } from './storageMaintenance';
+import {
+  compactStorageInlinePayloadFields,
+  StorageMaintenanceBusyError,
+} from './storageMaintenance';
+import { vacuumStorageDatabase } from './storageVacuum';
 
 // Vitest runs on Node: back the bun:sqlite calls of storageMaintenance with node:sqlite.
 vi.mock('bun:sqlite', () => ({
@@ -136,8 +140,12 @@ describe('maintenanceRoutes', () => {
       studioDb.exec('PRAGMA wal_checkpoint(TRUNCATE)');
       const bytesBefore = statSync(dbPath).size;
       const routes = createMaintenanceRoutes({
+        // The Bun Worker does not exist on Node; run the worker's function in-process.
         compactStorage: (input) =>
-          compactStorageInlinePayloadFields({ ...input, libraryDir, dbPath }),
+          compactStorageInlinePayloadFields(
+            { ...input, libraryDir, dbPath },
+            { runVacuum: vacuumStorageDatabase },
+          ),
       });
 
       const response = await routes.request('/storage/compact', {
@@ -156,6 +164,38 @@ describe('maintenanceRoutes', () => {
       studioDb.close();
       rmSync(libraryDir, { force: true, recursive: true });
     }
+  });
+
+  it('refuses VACUUM with 409 while jobs run or another VACUUM is running', async () => {
+    const compactStorage = vi.fn(async () => {
+      throw new StorageMaintenanceBusyError('A storage compaction with VACUUM is already running.');
+    });
+    const request = (routes: ReturnType<typeof createMaintenanceRoutes>, vacuum: boolean) =>
+      routes.request('/storage/compact', {
+        method: 'POST',
+        body: JSON.stringify({ write: true, vacuum, confirm: 'compact-inline-payloads' }),
+      });
+
+    const busy = createMaintenanceRoutes({
+      compactStorage: vi.fn(),
+      readBusyReason: () => '2 job(s) running',
+    });
+    const refused = await request(busy, true);
+    expect(refused.status).toBe(409);
+    await expect(refused.json()).resolves.toMatchObject({
+      error: expect.stringContaining('2 job'),
+    });
+
+    // Compaction without VACUUM never takes the write lock for long, so jobs do not block it.
+    const withoutVacuum = vi.fn(async () => ({}) as never);
+    const allowed = createMaintenanceRoutes({
+      compactStorage: withoutVacuum,
+      readBusyReason: () => '2 job(s) running',
+    });
+    expect((await request(allowed, false)).status).toBe(200);
+
+    const concurrent = createMaintenanceRoutes({ compactStorage });
+    expect((await request(concurrent, true)).status).toBe(409);
   });
 
   it('passes bounded thumbnail backfill write confirmation', async () => {

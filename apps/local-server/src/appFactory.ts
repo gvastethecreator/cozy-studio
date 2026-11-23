@@ -114,6 +114,7 @@ import { readExternalOutputSourceRegistry } from './outputSources';
 import { createRepositoryUpdateRoutes } from './repositoryUpdateRoutes';
 import { listRecoverableJobs } from './db/jobs';
 import { createMaintenanceRoutes } from './maintenanceRoutes';
+import { isStorageVacuumRunning } from './storageMaintenance';
 import { createEventStreamRoutes } from './eventStreamRoutes';
 import { createLibraryRoutes } from './libraryRoutes';
 import { createReferenceRoutes } from './referenceRoutes';
@@ -372,6 +373,17 @@ export async function createStudioApp(
       return next();
     }
     if (updates.blocksMutations()) return c.json({ error: updateBlockedMessage }, 503);
+    // VACUUM holds the database write lock; a write would stop the whole server until it ends.
+    if (isStorageVacuumRunning() && !c.req.path.startsWith('/api/maintenance')) {
+      return c.json(
+        {
+          error: 'Studio is compacting its database. Retry in a few seconds.',
+          code: 'storage_compacting',
+        },
+        503,
+        { 'Retry-After': '20' },
+      );
+    }
     await trackMutation(next);
   });
   app.route('/api/updates', createRepositoryUpdateRoutes(updates, options.stop));
@@ -481,7 +493,17 @@ export async function createStudioApp(
     }),
   );
 
-  app.route('/api/maintenance', createMaintenanceRoutes());
+  app.route(
+    '/api/maintenance',
+    createMaintenanceRoutes({
+      readBusyReason: () => {
+        const { activeWorkerCount, queuedJobs } = workerController.getWorkerStatus();
+        return activeWorkerCount > 0 || queuedJobs > 0
+          ? `${activeWorkerCount} job(s) running and ${queuedJobs} queued; retry when they finish.`
+          : null;
+      },
+    }),
+  );
   app.route(
     '/api/extensions',
     createExtensionRoutes({

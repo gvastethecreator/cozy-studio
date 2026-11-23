@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
+import { copyFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type {
@@ -25,8 +26,12 @@ import {
   type SqliteDatabase,
   type StorageAuditPaths,
 } from './storageAudit';
+import type { VacuumCheckpoint } from './storageVacuum';
 
 export { readReferenceDedupeStats } from './storageAudit';
+
+/** Another compaction with VACUUM is already running; the route answers 409. */
+export class StorageMaintenanceBusyError extends Error {}
 
 type JsonObject = Record<string, unknown>;
 
@@ -473,7 +478,9 @@ function compactField(db: SqliteDatabase, field: (typeof PAYLOAD_FIELDS)[number]
   };
 }
 
-function createBackup(options: Required<StorageMaintenanceOptions>): StorageMaintenanceBackup {
+async function createBackup(
+  options: Required<StorageMaintenanceOptions>,
+): Promise<StorageMaintenanceBackup> {
   const backupDir = resolveLibraryPathFromRoot(
     options.libraryDir,
     'state',
@@ -484,8 +491,9 @@ function createBackup(options: Required<StorageMaintenanceOptions>): StorageMain
   const files = [options.dbPath, `${options.dbPath}-wal`, `${options.dbPath}-shm`].filter(
     existsSync,
   );
+  // Asynchronous: the database can be hundreds of MB, and a synchronous copy stops every request.
   for (const file of files) {
-    copyFileSync(file, path.join(backupDir, path.basename(file)));
+    await copyFile(file, path.join(backupDir, path.basename(file)));
   }
 
   return {
@@ -562,8 +570,47 @@ export function readStorageMaintenanceAuditInWorker(
   return runningAudit;
 }
 
+let vacuumActive = false;
+
+/** True from the start of a compaction with VACUUM until it ends; Studio refuses writes meanwhile. */
+export function isStorageVacuumRunning() {
+  return vacuumActive;
+}
+
+/**
+ * VACUUM holds the database write lock for its whole run, 18 s on a 551 MB database. A Bun Worker
+ * with its own connection keeps Studio answering meanwhile. Reads keep working (WAL); a write from
+ * Studio would block its main thread until VACUUM ends, so appFactory answers 503 to API writes
+ * meanwhile and the maintenance route refuses to start while jobs run.
+ */
+function vacuumInWorker(dbPath: string): Promise<VacuumCheckpoint> {
+  return new Promise<VacuumCheckpoint>((resolve, reject) => {
+    const worker = new Worker(new URL('./storageVacuumWorker.ts', import.meta.url).href);
+    worker.onmessage = (
+      event: MessageEvent<
+        { ok: true; checkpoint: VacuumCheckpoint } | { ok: false; error: string }
+      >,
+    ) => {
+      worker.terminate();
+      if (event.data.ok) resolve(event.data.checkpoint);
+      else reject(new Error(event.data.error));
+    };
+    worker.onerror = (event) => {
+      worker.terminate();
+      reject(new Error(event.message || 'The VACUUM worker failed.'));
+    };
+    worker.postMessage({ dbPath });
+  });
+}
+
+export interface CompactStorageDependencies {
+  /** Runs VACUUM and the WAL checkpoint; the default uses a Bun Worker. */
+  runVacuum?: (dbPath: string) => Promise<VacuumCheckpoint>;
+}
+
 export async function compactStorageInlinePayloadFields(
   options: CompactStorageMaintenanceOptions = {},
+  { runVacuum = vacuumInWorker }: CompactStorageDependencies = {},
 ): Promise<StorageMaintenanceCompactResult> {
   const resolvedOptions = resolveStorageMaintenanceOptions(options);
   const write = options.write === true;
@@ -575,30 +622,36 @@ export async function compactStorageInlinePayloadFields(
       'Refusing to compact without explicit confirmation. Re-run after reviewing the dry-run output.',
     );
   }
-
-  const backup = write ? await createBackupForWrite(resolvedOptions) : null;
-  const db = await openStorageMaintenanceDatabase(resolvedOptions.dbPath, { readonly: !write });
-  try {
-    const results = PAYLOAD_FIELDS.map((field) => compactField(db, field, write));
-    let checkpoint: StorageMaintenanceCompactResult['checkpoint'] = null;
-    if (write && options.vacuum) {
-      db.run('VACUUM');
-      // WAL mode keeps the old pages until a checkpoint; TRUNCATE shrinks the file now.
-      checkpoint = db.query('PRAGMA wal_checkpoint(TRUNCATE)').get() as NonNullable<
-        StorageMaintenanceCompactResult['checkpoint']
-      >;
+  const vacuum = write && options.vacuum === true;
+  if (vacuum) {
+    // Claimed before the first await, so two requests cannot both pass this check.
+    if (vacuumActive) {
+      throw new StorageMaintenanceBusyError('A storage compaction with VACUUM is already running.');
     }
+    vacuumActive = true;
+  }
+  try {
+    const backup = write ? await createBackupForWrite(resolvedOptions) : null;
+    const db = await openStorageMaintenanceDatabase(resolvedOptions.dbPath, { readonly: !write });
+    let results: StorageMaintenanceCompactResult['results'];
+    try {
+      results = PAYLOAD_FIELDS.map((field) => compactField(db, field, write));
+    } finally {
+      // Closed before VACUUM: an open connection of this thread must not stand in its way.
+      db.close();
+    }
+    const checkpoint = vacuum ? await runVacuum(resolvedOptions.dbPath) : null;
     return {
       libraryDir: resolvedOptions.libraryDir,
       dbPath: resolvedOptions.dbPath,
       mode: write ? 'write' : 'dry-run',
       backup,
-      vacuumRan: write && options.vacuum === true,
+      vacuumRan: vacuum,
       checkpoint,
       results,
     };
   } finally {
-    db.close();
+    if (vacuum) vacuumActive = false;
   }
 }
 

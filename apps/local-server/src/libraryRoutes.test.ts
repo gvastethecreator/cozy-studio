@@ -88,6 +88,39 @@ describe('libraryRoutes', () => {
     expect(response.headers.get('Content-Type')).toBe('image/webp');
   });
 
+  it('answers a matching If-None-Match with a bodyless 304 for images and thumbnails', async () => {
+    const createFileResponse = vi.fn(() => new Response('image'));
+    const routes = createLibraryRoutes({
+      resolvePublicLibraryPath: () => 'D:/library/outputs/img.png',
+      ensureThumbnailVariant: vi.fn(async () => 'D:/library/outputs/thumbnails/img-thumb.webp'),
+      buildLibraryAssetHeaders: () => createTestHeaders('image/png'),
+      resolveAssetCacheSeconds: () => 60,
+      resolveThumbnailMaxEdge: () => 512,
+      fileExists: () => true,
+      createFileResponse,
+    });
+    const get = (url: string, headers: Record<string, string>) =>
+      routes.request(`http://local.test${url}`, { headers });
+
+    for (const url of ['/library/outputs/img.png', '/library/outputs/img.png?variant=thumb']) {
+      for (const header of ['W/"2-1"', '"2-1"', '"a", W/"2-1"', '*']) {
+        const response = await get(url, { 'If-None-Match': header });
+        expect(response.status).toBe(304);
+        expect(await response.text()).toBe('');
+        expect(response.headers.get('ETag')).toBe('W/"2-1"');
+        expect(response.headers.get('Cache-Control')).toBe('private, max-age=60');
+        expect(response.headers.get('Content-Length')).toBeNull();
+      }
+      expect((await get(url, { 'If-None-Match': 'W/"other"' })).status).toBe(200);
+    }
+    expect(createFileResponse).toHaveBeenCalledTimes(2);
+
+    // A Range request without a matching validator still reaches the file response.
+    const ranged = await get('/library/outputs/img.png', { Range: 'bytes=0-1' });
+    expect(ranged.status).toBe(200);
+    expect(createFileResponse).toHaveBeenCalledTimes(3);
+  });
+
   it('serves intended reference assets while denying transcripts', async () => {
     const createFileResponse = vi.fn(() => new Response('ref'));
     const routes = createLibraryRoutes({

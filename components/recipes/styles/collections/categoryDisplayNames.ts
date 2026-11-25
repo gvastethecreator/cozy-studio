@@ -285,9 +285,15 @@ const CATEGORY_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   'pack_99::4. Animation on One Sheet': 'Animation on one sheet',
   'pack_99::5. Game Asset Sheets': 'Game asset sheets',
   'pack_99::6. Remaster & Finish': 'Remaster & finish',
-  'pack_38::1. Commercial Overload': 'Commercial overload',
-  'pack_38::2. Ornamental Horror Vacui': 'Ornamental horror vacui',
-  'pack_38::3. Cosmic, Digital & Recursive Overload': 'Cosmic, digital & recursive overload',
+  'pack_38::1. Maximalism': 'Maximalism',
+  'pack_38::2. Epic Overkill': 'Epic overkill',
+  'pack_38::3. Plastic Perfection': 'Plastic perfection',
+  'pack_38::4. Engagement Bait': 'Engagement bait',
+  'pack_38::5. Cuteness Overload': 'Cuteness overload',
+  'pack_38::6. Inspirational Kitsch': 'Inspirational kitsch',
+  'pack_38::7. HDR Wallpaper Landscapes': 'HDR wallpaper landscapes',
+  'pack_38::8. Fantasy Desktop Art': 'Fantasy desktop art',
+  'pack_38::9. Corporate Stock Gloss': 'Corporate stock gloss',
 };
 
 export function getStyleCategoryDisplayName(packId: string, sourceCategory: string) {

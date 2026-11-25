@@ -1453,15 +1453,15 @@ export const STYLE_COLLECTIONS = [
     facets: { medium: ['abstract', 'glitch'], technique: ['systems'] },
   },
   {
-    id: 'maximalism_overload',
-    title: 'Maximalism',
+    id: 'ai_slop',
+    title: 'AI Slop',
     familyId: 'experimental_play',
     description:
-      'Horror vacui on purpose: every inch filled, the subject amplified and the hierarchy broken, across commercial formats, ornamental traditions and cosmic, digital and recursive overload.',
+      'AI-image cliches pushed past absurd on purpose: maximalism, epic overkill, plastic perfection, engagement bait, cuteness, inspirational kitsch, HDR wallpapers, fantasy desktops and corporate gloss.',
     icon: 'sliders',
     order: 15,
     sourcePackIds: ['pack_38'],
-    entries: [{ id: 'maximalism-pack', kind: 'pack', packId: 'pack_38' }],
+    entries: [{ id: 'ai-slop-pack', kind: 'pack', packId: 'pack_38' }],
     facets: { workflow: ['image', 'edit'] },
   },
   {

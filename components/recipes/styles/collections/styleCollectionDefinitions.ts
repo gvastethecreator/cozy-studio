@@ -1453,6 +1453,18 @@ export const STYLE_COLLECTIONS = [
     facets: { medium: ['abstract', 'glitch'], technique: ['systems'] },
   },
   {
+    id: 'maximalism_overload',
+    title: 'Maximalism',
+    familyId: 'experimental_play',
+    description:
+      'Horror vacui on purpose: every inch filled, the subject amplified and the hierarchy broken, across commercial formats, ornamental traditions and cosmic, digital and recursive overload.',
+    icon: 'sliders',
+    order: 15,
+    sourcePackIds: ['pack_38'],
+    entries: [{ id: 'maximalism-pack', kind: 'pack', packId: 'pack_38' }],
+    facets: { workflow: ['image', 'edit'] },
+  },
+  {
     id: 'toys_craft_food_scale',
     title: 'Craft, Food & Scale',
     familyId: 'experimental_play',

@@ -285,6 +285,9 @@ const CATEGORY_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   'pack_99::4. Animation on One Sheet': 'Animation on one sheet',
   'pack_99::5. Game Asset Sheets': 'Game asset sheets',
   'pack_99::6. Remaster & Finish': 'Remaster & finish',
+  'pack_38::1. Commercial Overload': 'Commercial overload',
+  'pack_38::2. Ornamental Horror Vacui': 'Ornamental horror vacui',
+  'pack_38::3. Cosmic, Digital & Recursive Overload': 'Cosmic, digital & recursive overload',
 };
 
 export function getStyleCategoryDisplayName(packId: string, sourceCategory: string) {

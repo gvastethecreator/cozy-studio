@@ -1457,11 +1457,23 @@ export const STYLE_COLLECTIONS = [
     title: 'AI Slop',
     familyId: 'experimental_play',
     description:
-      'AI-image cliches pushed past absurd on purpose: maximalism, epic overkill, plastic perfection, engagement bait, cuteness, inspirational kitsch, HDR wallpapers, fantasy desktops and corporate gloss.',
+      'Generic AI-image looks pushed to their extreme: prompt maximalism, glossy 3D renders, anime filters, fake photos, epic wallpapers, viral feed formats, product renders, stickers and the tells themselves.',
+    icon: 'sliders',
+    order: 14,
+    sourcePackIds: ['pack_39'],
+    entries: [{ id: 'ai-slop-pack', kind: 'pack', packId: 'pack_39' }],
+    facets: { workflow: ['image', 'edit'] },
+  },
+  {
+    id: 'cliche_overdrive',
+    title: 'Cliché Overdrive',
+    familyId: 'experimental_play',
+    description:
+      'Real techniques, traditions and hands, each pushing one cliche past absurd: maximalism, epic overkill, plastic perfection, engagement bait, cuteness, inspirational kitsch, HDR wallpapers, fantasy desktops and corporate gloss.',
     icon: 'sliders',
     order: 15,
     sourcePackIds: ['pack_38'],
-    entries: [{ id: 'ai-slop-pack', kind: 'pack', packId: 'pack_38' }],
+    entries: [{ id: 'cliche-overdrive-pack', kind: 'pack', packId: 'pack_38' }],
     facets: { workflow: ['image', 'edit'] },
   },
   {

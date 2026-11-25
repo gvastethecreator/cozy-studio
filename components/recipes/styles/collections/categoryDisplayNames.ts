@@ -294,6 +294,15 @@ const CATEGORY_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   'pack_38::7. HDR Wallpaper Landscapes': 'HDR wallpaper landscapes',
   'pack_38::8. Fantasy Desktop Art': 'Fantasy desktop art',
   'pack_38::9. Corporate Stock Gloss': 'Corporate stock gloss',
+  'pack_39::1. Prompt Maximalism': 'Prompt maximalism',
+  'pack_39::2. Glossy 3D Renders': 'Glossy 3D renders',
+  'pack_39::3. Anime & Storybook Filters': 'Anime & storybook filters',
+  'pack_39::4. Fake Photo Looks': 'Fake photo looks',
+  'pack_39::5. Epic Wallpaper Worlds': 'Epic wallpaper worlds',
+  'pack_39::6. Viral Feed Formats': 'Viral feed formats',
+  'pack_39::7. Ad & Product Renders': 'Ad & product renders',
+  'pack_39::8. Stickers, Icons & Mascots': 'Stickers, icons & mascots',
+  'pack_39::9. Tells & Artifacts': 'Tells & artifacts',
 };
 
 export function getStyleCategoryDisplayName(packId: string, sourceCategory: string) {

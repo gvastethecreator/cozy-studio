@@ -1,15 +1,15 @@
 # Code map: cozy-studio
 
-Generated: 2026-11-23T14:50:21Z | Commit: `bac3ca739c4a` | Schema: 2
-Generation: `dae33ff3a5192f3bbb284996f9ab6e4d8950d84abb3025ac25b76941f2ac8a32`
+Generated: 2026-11-26T04:59:34Z | Commit: `13025148afb5` | Schema: 2
+Generation: `eccdb053ed69f20ce075718d060cd07d088c6b6cacbe8f5e150deb1f3f9d88e7`
 Scope: . | Inventory: working-tree
-Nodes: 1068 | Edges: 7588 | Flows: 0
+Nodes: 1075 | Edges: 7675 | Flows: 0
 
 ## Coverage
 
-- Analysis: **partial**; 1008 analyzed of 1027 included files.
+- Analysis: **partial**; 1015 analyzed of 1034 included files.
 - Configuration files: 7; omitted untracked files: 0.
-- Unresolved references and analysis limits: 5499.
+- Unresolved references and analysis limits: 5562.
 - Static references and call paths do not prove runtime execution or test coverage.
 
 ## Modules
@@ -25,16 +25,16 @@ Nodes: 1068 | Edges: 7588 | Flows: 0
 - `apps/local-server/src/animationSequenceService.ts` | module | Repository | callers: apps/local-server/src/animationSequenceRoutes.ts, apps/local-server/src/animationSequenceRoutes.ts, apps/local-server/src/animationSequenceRunReconciler.test.ts, apps/local-server/src/animationSequenceRunReconciler.test.ts | callees: apps/local-server/src/animationGifEncoder.ts, apps/local-server/src/animationGifEncoder.ts, apps/local-server/src/db/jobs.ts, apps/local-server/src/library.ts | tests: 1 | entry: none
 - `apps/local-server/src/antigravityExecutable.ts` | module | Repository | callers: apps/local-server/src/antigravityRuntimeDoctor.test.ts, apps/local-server/src/antigravityRuntimeDoctor.test.ts, apps/local-server/src/antigravityRuntimeDoctor.ts, apps/local-server/src/antigravityRuntimeDoctor.ts | callees: apps/local-server/src/platformHome.ts, apps/local-server/src/platformHome.ts, external:javascript:node:fs, external:javascript:node:fs | tests: 1 | entry: none
 - `apps/local-server/src/antigravityRuntimeDoctor.test.ts` | module | Repository | callers: none | callees: apps/local-server/src/antigravityExecutable.ts, apps/local-server/src/antigravityExecutable.ts, apps/local-server/src/antigravityRuntimeDoctor.ts, apps/local-server/src/antigravityRuntimeDoctor.ts | tests: 0 | entry: none
-- `apps/local-server/src/antigravityRuntimeDoctor.ts` | module | Repository | callers: apps/local-server/src/antigravityRuntimeDoctor.test.ts, apps/local-server/src/antigravityRuntimeDoctor.test.ts, apps/local-server/src/appFactory.ts, apps/local-server/src/providerCapabilities.ts | callees: apps/local-server/src/antigravityExecutable.ts, apps/local-server/src/antigravityExecutable.ts, apps/local-server/src/cliProbe.ts, apps/local-server/src/runtimeDoctorCache.ts | tests: 3 | entry: none
+- `apps/local-server/src/antigravityRuntimeDoctor.ts` | module | Repository | callers: apps/local-server/src/antigravityRuntimeDoctor.test.ts, apps/local-server/src/antigravityRuntimeDoctor.test.ts, apps/local-server/src/appFactory.ts, apps/local-server/src/appFactory.ts | callees: apps/local-server/src/antigravityExecutable.ts, apps/local-server/src/antigravityExecutable.ts, apps/local-server/src/cliProbe.ts, apps/local-server/src/runtimeDoctorCache.ts | tests: 3 | entry: none
+- `apps/local-server/src/antigravityUsage.ts` | module | Repository | callers: apps/local-server/src/antigravityRuntimeDoctor.test.ts, apps/local-server/src/antigravityRuntimeDoctor.test.ts, apps/local-server/src/appFactory.ts, apps/local-server/src/appFactory.ts | callees: apps/local-server/src/antigravityExecutable.ts, apps/local-server/src/antigravityExecutable.ts, apps/local-server/src/cliProbe.ts, packages/shared/src/antigravityUsage.ts | tests: 1 | entry: none
 - `apps/local-server/src/appFactory.test.ts` | module | Repository | callers: none | callees: none | tests: 0 | entry: none
 - `apps/local-server/src/appFactory.ts` | module | Repository | callers: apps/local-server/src/index.ts, apps/local-server/src/index.ts | callees: apps/local-server/src/animationSequenceRoutes.ts, apps/local-server/src/animationSequenceRoutes.ts, apps/local-server/src/animationSequenceRunReconciler.ts, apps/local-server/src/animationSequenceRunReconciler.ts | tests: 0 | entry: none
 - `apps/local-server/src/assetLogRoutes.test.ts` | module | Repository | callers: none | callees: apps/local-server/src/assetLogRoutes.ts, apps/local-server/src/assetLogRoutes.ts, external:javascript:vitest, external:javascript:vitest | tests: 0 | entry: none
 - `apps/local-server/src/assetLogRoutes.ts` | module | Repository | callers: apps/local-server/src/appFactory.ts, apps/local-server/src/appFactory.ts, apps/local-server/src/assetLogRoutes.test.ts, apps/local-server/src/assetLogRoutes.test.ts | callees: apps/local-server/src/db/events.ts, external:javascript:hono, packages/shared/src/index.ts | tests: 1 | entry: none
 - `apps/local-server/src/auth/authRoutes.test.ts` | module | Repository | callers: none | callees: apps/local-server/src/auth/authRoutes.ts, apps/local-server/src/auth/authRoutes.ts, apps/local-server/src/auth/constants.ts, apps/local-server/src/auth/controller.ts | tests: 0 | entry: none
-- `apps/local-server/src/auth/authRoutes.ts` | module | Repository | callers: apps/local-server/src/appFactory.ts, apps/local-server/src/appFactory.ts, apps/local-server/src/auth/authRoutes.test.ts, apps/local-server/src/auth/authRoutes.test.ts | callees: apps/local-server/src/auth/controller.ts, apps/local-server/src/auth/oauthHttp.ts, apps/local-server/src/auth/oauthHttp.ts, external:javascript:hono | tests: 1 | entry: none
+- `apps/local-server/src/auth/authRoutes.ts` | module | Repository | callers: apps/local-server/src/appFactory.ts, apps/local-server/src/appFactory.ts, apps/local-server/src/auth/authRoutes.test.ts, apps/local-server/src/auth/authRoutes.test.ts | callees: apps/local-server/src/auth/controller.ts, apps/local-server/src/auth/googleCredentials.ts, apps/local-server/src/auth/googleCredentials.ts, apps/local-server/src/auth/oauthHttp.ts | tests: 1 | entry: none
 - `apps/local-server/src/auth/constants.ts` | module | Repository | callers: apps/local-server/src/auth/authRoutes.test.ts, apps/local-server/src/auth/deviceCode.test.ts, apps/local-server/src/auth/deviceCode.ts, apps/local-server/src/auth/deviceCode.ts | callees: none | tests: 3 | entry: none
-- `apps/local-server/src/auth/controller.ts` | module | Repository | callers: apps/local-server/src/auth/authRoutes.test.ts, apps/local-server/src/auth/authRoutes.test.ts, apps/local-server/src/auth/authRoutes.ts, apps/local-server/src/reset.ts | callees: apps/local-server/src/auth/deviceCode.ts, apps/local-server/src/auth/googleAuthorizationCode.ts, apps/local-server/src/auth/oauthHttp.ts, apps/local-server/src/auth/oauthHttp.ts | tests: 1 | entry: none
-- Showing 20 of 1068 nodes. Query `impact --module <path>` or open the HTML hierarchy for the rest.
+- Showing 20 of 1075 nodes. Query `impact --module <path>` or open the HTML hierarchy for the rest.
 
 ## Edges
 
@@ -88,7 +88,7 @@ Nodes: 1068 | Edges: 7588 | Flows: 0
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/animationGifEncoder.ts` | calls
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/animationGifEncoder.ts` | imports
 - `apps/local-server/src/animationSequenceService.ts` -> `apps/local-server/src/db/jobs.ts` | imports
-- Showing 50 of 7588 edges; JSON contains every edge and its evidence.
+- Showing 50 of 7675 edges; JSON contains every edge and its evidence.
 
 ## Unknown
 
@@ -111,8 +111,8 @@ Nodes: 1068 | Edges: 7588 | Flows: 0
 
 ## Architecture changes
 
-- Nodes: +0 / -0; edges: +0 / -0.
-- Boundary changes: 0; new cycles: 0.
+- Nodes: +7 / -0; edges: +87 / -0.
+- Boundary changes: 0; new cycles: 1.
 
 ## Read next
 

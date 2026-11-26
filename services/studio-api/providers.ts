@@ -1,6 +1,8 @@
 import type {
+  AntigravityUsageStatus,
   GenerationProviderCapabilitiesResponse,
   GenerationProviderRuntimePreflightResponse,
+  OnboardingHostActionResult,
 } from '../../packages/shared/src';
 import { request } from './http';
 
@@ -30,4 +32,29 @@ export function getGenerationProviderRuntimePreflight() {
   });
   preflightInFlight = promise;
   return promise;
+}
+
+export function getAntigravityUsageStatus(options: { force?: boolean; signal?: AbortSignal } = {}) {
+  const suffix = options.force ? '?force=1' : '';
+  return request<AntigravityUsageStatus>(`/api/providers/antigravity/usage${suffix}`, {
+    signal: options.signal,
+  });
+}
+
+export function refreshAntigravityProviderRuntime() {
+  invalidateGenerationProviderReads();
+  return request<{
+    capabilities: GenerationProviderCapabilitiesResponse;
+    preflights: GenerationProviderRuntimePreflightResponse['providers'];
+    usage: AntigravityUsageStatus;
+  }>('/api/providers/antigravity/refresh', {
+    method: 'POST',
+  });
+}
+
+export function launchAntigravityLoginTerminal() {
+  return request<OnboardingHostActionResult>('/api/providers/antigravity/login', {
+    method: 'POST',
+    body: JSON.stringify({ consent: true }),
+  });
 }

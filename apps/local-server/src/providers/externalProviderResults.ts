@@ -268,6 +268,18 @@ export function findFirstInlineImageData(value: unknown): InlineImageData | null
     }
   }
 
+  const outputs = Array.isArray(value.outputs) ? value.outputs : [];
+  for (const output of outputs) {
+    if (isRecord(output) && output.type === 'image' && typeof output.data === 'string') {
+      return {
+        data: output.data,
+        mimeType: typeof output.mime_type === 'string' ? output.mime_type : null,
+      };
+    }
+    const nested = findFirstInlineImageData(output);
+    if (nested) return nested;
+  }
+
   const parts = Array.isArray(value.parts) ? value.parts : [];
   for (const part of parts) {
     const image = findFirstInlineImageData(part);

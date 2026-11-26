@@ -67,6 +67,8 @@ export interface ImageGenerationConfig {
   executionReasoningEffort: CodexReasoningEffort;
   executionSpeed: CodexServiceTier;
   codexImageModel?: CodexHttpImageModel;
+  googleImageModel?: import('./packages/shared/src').GoogleImageModel;
+  antigravityModel?: string;
   codexTransport?: import('./packages/shared/src').CodexExecutionTransport;
   batchCount: number;
   useThinkingAndSearch?: boolean;

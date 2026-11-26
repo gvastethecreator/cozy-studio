@@ -63,6 +63,11 @@ import type {
   CodexHttpImageSizeTier,
 } from '../packages/shared/src/codexExecutionContract';
 import { resolveCodexHttpImageModel } from '../packages/shared/src/codexExecutionContract';
+import {
+  resolveGoogleImageModel,
+  type GoogleImageModelOption,
+  type GoogleImageSize,
+} from '../packages/shared/src/googleImageContract';
 import type { AspectRatio, Attachment, ImageGenerationConfig } from '../types';
 import { OutputBackgroundControl } from './create/OutputBackgroundControl';
 import {
@@ -224,6 +229,13 @@ function useToolbarController(props: ToolbarProps) {
     selectedExecutionImageSize,
     handleSelectExecutionImageSize,
     showCodexModelChrome,
+    showGoogleModelChrome,
+    googleImageModels,
+    selectedGoogleImageModel,
+    googleImageSizes,
+    selectedGoogleImageSize,
+    handleSelectGoogleImageModel,
+    handleSelectGoogleImageSize,
     executionSummary,
     executionChipLabel,
     selectedExecutionModel,
@@ -349,13 +361,23 @@ function useToolbarController(props: ToolbarProps) {
       {
         recipeId: activeRecipe,
         codexTransport: selectedCodexTransport,
-        imageSize: resolveProviderImageSize(activeProviderId, generationConfig.imageSize),
+        imageSize:
+          activeProviderId === 'google'
+            ? (selectedGoogleImageSize ?? '1K')
+            : resolveProviderImageSize(activeProviderId, generationConfig.imageSize),
         batchCount: Math.min(generationConfig.batchCount || 1, maxOutputCount),
         outputMimeType,
         ...(activeProviderId === 'chatgpt'
           ? {
               codexImageModel: resolveCodexHttpImageModel(
                 generationConfig.codexImageModel ?? props.providerDefaultImageModel,
+              ),
+            }
+          : {}),
+        ...(activeProviderId === 'google'
+          ? {
+              googleImageModel: resolveGoogleImageModel(
+                generationConfig.googleImageModel ?? props.providerDefaultImageModel,
               ),
             }
           : {}),
@@ -376,6 +398,8 @@ function useToolbarController(props: ToolbarProps) {
     generationConfig.batchCount,
     outputMimeType,
     generationConfig.codexImageModel,
+    generationConfig.googleImageModel,
+    selectedGoogleImageSize,
     props.providerDefaultImageModel,
     maxOutputCount,
     generationConfig.recipeParams,
@@ -617,6 +641,13 @@ function useToolbarController(props: ToolbarProps) {
     isProviderSaving,
     onOpenSettings,
     showCodexModelChrome,
+    showGoogleModelChrome,
+    googleImageModels,
+    selectedGoogleImageModel,
+    googleImageSizes,
+    selectedGoogleImageSize,
+    handleSelectGoogleImageModel,
+    handleSelectGoogleImageSize,
     executionButtonRef,
     isExecutionOpen,
     executionSummary,
@@ -927,14 +958,91 @@ function ToolbarDockPrompt({ model }: { model: ToolbarModel }) {
   );
 }
 
+function ToolbarGoogleExecutionOptions({ model }: { model: ToolbarModel }) {
+  const {
+    googleImageModels,
+    googleImageSizes,
+    selectedGoogleImageSize,
+    handleSelectGoogleImageModel,
+    handleSelectGoogleImageSize,
+    generationConfig,
+    updateConfig,
+  } = model;
+  return (
+    <div className="create-execution-body">
+      <section aria-labelledby="google-image-model-label">
+        <h4 id="google-image-model-label">Image model</h4>
+        <div className="create-execution-options">
+          <button
+            type="button"
+            className="studio-ghost-control create-execution-choice"
+            aria-pressed={!generationConfig.googleImageModel}
+            onClick={() => updateConfig('googleImageModel', undefined)}
+          >
+            <span className="create-execution-copy">
+              <strong>Account default</strong>
+            </span>
+            {!generationConfig.googleImageModel && (
+              <Check width={14} height={14} aria-hidden="true" />
+            )}
+          </button>
+          {googleImageModels.map((imageModel) => {
+            const isSelected = imageModel.id === generationConfig.googleImageModel;
+            return (
+              <button
+                type="button"
+                key={imageModel.id}
+                data-google-image-model={imageModel.id}
+                aria-pressed={isSelected}
+                aria-label={imageModel.displayName}
+                onClick={() => handleSelectGoogleImageModel(imageModel)}
+                className="studio-ghost-control create-execution-choice"
+              >
+                <span className="create-execution-copy">
+                  <strong>{imageModel.displayName}</strong>
+                </span>
+                {isSelected && <Check width={14} height={14} aria-hidden="true" />}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+      <section aria-labelledby="google-image-size-label">
+        <h4 id="google-image-size-label">Output size</h4>
+        <div className="create-execution-sizes" role="group" aria-label="Google image size">
+          {googleImageSizes.map((size) => (
+            <button
+              type="button"
+              key={size}
+              data-google-image-size={size}
+              aria-pressed={selectedGoogleImageSize === size}
+              aria-label={`Google image size: ${size}`}
+              onClick={() => handleSelectGoogleImageSize(size)}
+              className="studio-ghost-control create-execution-choice"
+            >
+              <span className="create-execution-copy">
+                <strong>{size}</strong>
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function ToolbarExecutionOptions({ model }: { model: ToolbarModel }) {
   const {
+    activeProviderId,
     selectedCodexTransport,
     showSizeControl,
     executionImageSizeOptions,
     selectedExecutionImageSize,
     handleSelectExecutionImageSize,
   } = model;
+  if (activeProviderId === 'google') {
+    return <ToolbarGoogleExecutionOptions model={model} />;
+  }
   return (
     <div className="create-execution-body">
       <ToolbarTextModels model={model} />
@@ -991,6 +1099,7 @@ function ToolbarProviderControls({ model }: { model: ToolbarModel }) {
     onOpenSettings,
     btnClass,
     showCodexModelChrome,
+    showGoogleModelChrome,
     activeProviderId,
   } = model;
   return (
@@ -1011,7 +1120,7 @@ function ToolbarProviderControls({ model }: { model: ToolbarModel }) {
         />
       ) : null}
 
-      {showCodexModelChrome ? (
+      {showCodexModelChrome || showGoogleModelChrome ? (
         <ToolbarExecutionPicker model={model} />
       ) : commandCenter && onSelectProvider ? null : (
         <div
@@ -1948,6 +2057,9 @@ function useToolbarProvider(props: ToolbarProps) {
         codexImageModel: resolveCodexHttpImageModel(
           generationConfig.codexImageModel ?? providerDefaultImageModel,
         ),
+        googleImageModel: resolveGoogleImageModel(
+          generationConfig.googleImageModel ?? providerDefaultImageModel,
+        ),
         executionModel: generationConfig.executionModel,
         executionReasoningEffort: generationConfig.executionReasoningEffort,
         executionSpeed: generationConfig.executionSpeed,
@@ -1961,6 +2073,7 @@ function useToolbarProvider(props: ToolbarProps) {
       codexModelCatalogError,
       codexAvailableTransports,
       generationConfig.codexImageModel,
+      generationConfig.googleImageModel,
       providerDefaultImageModel,
       selectedCodexTransport,
       generationConfig.aspectRatio,
@@ -1977,6 +2090,7 @@ function useToolbarProvider(props: ToolbarProps) {
     ratios: currentRatios,
     showCodexPromptTools,
     showCodexModelChrome,
+    showGoogleModelChrome,
     maxOutputCount,
     execution,
   } = providerChrome;
@@ -1986,17 +2100,23 @@ function useToolbarProvider(props: ToolbarProps) {
   const executionSpeedOptions = execution.speedOptions;
   const executionImageModels = execution.imageModels;
   const selectedExecutionImageModel = execution.selectedImageModel;
+  const googleImageModels = execution.googleImageModels;
+  const selectedGoogleImageModel = execution.selectedGoogleImageModel;
+  const googleImageSizes = execution.googleImageSizes;
+  const selectedGoogleImageSize = execution.selectedGoogleImageSize;
   const executionImageSizeOptions = execution.imageSizeOptions;
   const selectedExecutionImageSize = execution.selectedImageSize;
   const showSizeControl = execution.showImageSizeControl;
   const executionSourceMessage = execution.sourceMessage;
   const executionSummary = execution.summary;
-  const executionChipLabel = selectedExecutionImageModel
-    ? selectedExecutionImageModel.shortName
-    : formatCodexModelLabel(
-        selectedExecutionModel?.id ?? generationConfig.executionModel,
-        selectedExecutionModel?.displayName,
-      );
+  const executionChipLabel = selectedGoogleImageModel
+    ? [selectedGoogleImageModel.shortName, selectedGoogleImageSize].filter(Boolean).join(' · ')
+    : selectedExecutionImageModel
+      ? selectedExecutionImageModel.shortName
+      : formatCodexModelLabel(
+          selectedExecutionModel?.id ?? generationConfig.executionModel,
+          selectedExecutionModel?.displayName,
+        );
 
   const isScrambling = false;
 
@@ -2034,6 +2154,23 @@ function useToolbarProvider(props: ToolbarProps) {
     [selectedCodexTransport, updateConfig],
   );
 
+  const handleSelectGoogleImageModel = useCallback(
+    (model: GoogleImageModelOption) => {
+      updateConfig('googleImageModel', model.id);
+      if (selectedGoogleImageSize && !model.sizes.includes(selectedGoogleImageSize)) {
+        updateConfig('imageSize', model.sizes.includes('1K') ? '1K' : model.sizes[0]);
+      }
+    },
+    [selectedGoogleImageSize, updateConfig],
+  );
+
+  const handleSelectGoogleImageSize = useCallback(
+    (size: GoogleImageSize) => {
+      updateConfig('imageSize', size);
+    },
+    [updateConfig],
+  );
+
   const handleSelectExecutionSpeed = useCallback(
     (speed: CodexServiceTier) => {
       if (selectedCodexTransport === 'subscription_http') return;
@@ -2054,6 +2191,13 @@ function useToolbarProvider(props: ToolbarProps) {
     selectedExecutionImageSize,
     handleSelectExecutionImageSize,
     showCodexModelChrome,
+    showGoogleModelChrome,
+    googleImageModels,
+    selectedGoogleImageModel,
+    googleImageSizes,
+    selectedGoogleImageSize,
+    handleSelectGoogleImageModel,
+    handleSelectGoogleImageSize,
     executionSummary,
     executionChipLabel,
     selectedExecutionModel,
@@ -2238,7 +2382,7 @@ function ToolbarExecutionPicker({ model }: { model: ToolbarModel }) {
           setIsSizeOpen(false);
           setIsBatchOpen(false);
         }}
-        aria-label={`${activeProviderId === 'chatgpt' ? 'ChatGPT' : 'Codex'} task execution: ${executionSummary}`}
+        aria-label={`${activeProviderId === 'chatgpt' ? 'ChatGPT' : activeProviderId === 'google' ? 'Google' : 'Codex'} task execution: ${executionSummary}`}
         aria-haspopup="dialog"
         aria-expanded={isExecutionOpen}
         className={isRail ? 'create-tool-chip' : btnClass}
@@ -2246,7 +2390,9 @@ function ToolbarExecutionPicker({ model }: { model: ToolbarModel }) {
         {isRail ? null : <BrainCircuit width={14} height={14} />}
         {isRail ? (
           <span className="create-engine-copy">
-            {activeProviderId !== 'chatgpt' && <span className="create-engine-kicker">Model</span>}
+            {activeProviderId !== 'chatgpt' && activeProviderId !== 'google' && (
+              <span className="create-engine-kicker">Model</span>
+            )}
             <span className="create-engine-name">{executionChipLabel}</span>
           </span>
         ) : (

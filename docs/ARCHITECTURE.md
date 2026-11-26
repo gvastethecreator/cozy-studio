@@ -203,9 +203,9 @@ Generation Tasks and Generation Providers stay separate:
 ### Other adapters
 
 - **Grok Imagine** uses authenticated xAI HTTP when ready. The signed-in Grok Build CLI runs only when HTTP is unavailable or the explicit fallback policy allows it. It uses a bounded headless session and an exact `image_gen` or `image_edit` allowlist.
-- **Antigravity** runs one sandboxed headless CLI session with one `generate_image` call. Studio stages managed references in a temporary workspace and leaves CLI credentials and history untouched.
+- **Antigravity** runs one sandboxed headless CLI session allowlisted strictly to `generate_image` or `invoke_subagent` (`image-generator`). Studio stages managed references in a temporary workspace, reads zero-quota live usage/credits via `agy -p "/usage"` and `"/credits"`, and leaves CLI credentials and history untouched.
 - The OpenAI Images adapter uses `/v1/images/generations` for direct GIF output with GPT Image 2.6 Flare or Sunburst. Intake checks the captured model and text-only task before queueing. The ChatGPT subscription route does not offer GIF generation.
-- **Untested:** Google, fal.ai, OpenAI Images, Replicate and ComfyUI follow documented API shapes but have not run against the live services. Hosted adapters read keys from backend environment variables only.
+- **Untested:** Google, fal.ai, OpenAI Images, Replicate and ComfyUI follow documented API shapes but have not run against the live services. Google supports backend environment variables as well as Studio's private `0600` local credential store (`google-credentials.json`) for Gemini API keys and optional Google Cloud OAuth client config; other hosted adapters read keys from backend environment variables only.
 - `isUntestedGenerationProvider` in `packages/shared/src/generationContracts.ts` drives the Untested label.
 
 ComfyUI uses one configured API workflow template, and Studio does not start ComfyUI.

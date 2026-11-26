@@ -44,6 +44,7 @@ export type HostTerminalRunner = (request: HostTerminalSpawnRequest) => void;
 export function publicHostCommand(action: OnboardingHostActionId) {
   if (action === 'codex_login') return 'codex login';
   if (action === 'grok_login') return 'grok login';
+  if (action === 'antigravity_login') return 'agy acp --login';
   return 'codex';
 }
 
@@ -67,6 +68,15 @@ export function resolveHostTerminalLaunch(input: {
       title: 'Grok login',
       cwd: input.cwd,
       argv: ['grok', 'login'],
+      visible: true,
+    };
+  }
+  if (input.action === 'antigravity_login') {
+    return {
+      action: 'antigravity_login',
+      title: 'Antigravity login',
+      cwd: input.cwd,
+      argv: ['agy', 'acp', '--login'],
       visible: true,
     };
   }

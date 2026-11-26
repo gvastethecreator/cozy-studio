@@ -154,7 +154,7 @@ Symptoms: the Google Settings card shows `not_configured`, Sign in cannot start,
 bun run providers:preflight -- --provider=google
 ```
 
-The preflight names the missing field without showing its value. Check the credential steps in the [user guide](USER_GUIDE.md#google-nano-banana-untested). The Google Cloud project must have the Generative Language API turned on.
+The preflight names the missing field without showing its value. For the fastest setup, paste a Gemini API key from Google AI Studio directly into **Settings → Accounts & models → Google** (Studio verifies it live before saving). If you use the optional **Google Cloud OAuth (Advanced)** path, make sure the Generative Language API is turned on in your Cloud project and check the steps in the [user guide](USER_GUIDE.md#google-nano-banana-untested).
 
 - **An old model override fails:** remove a `gemini-2.5-flash-image` override and retry.
 - **The browser cannot return to Studio after Google sign-in:** the callback uses `127.0.0.1` on a temporary port. Allow local loopback traffic, cancel the pending sign-in and retry. A state mismatch closes that sign-in.
@@ -171,7 +171,7 @@ agy models
 bun run providers:preflight -- --provider=antigravity
 ```
 
-Studio needs a current CLI with the headless stream, sandbox, model and permission controls. If `agy models` reports an authentication error, open `agy` and complete Google authentication. Set `STUDIO_ANTIGRAVITY_CLI_PATH` to an absolute native executable path only when normal discovery selects the wrong binary.
+Studio needs a current CLI with the headless stream, sandbox, model and permission controls. If `agy models` reports an authentication error, click **Sign in with Antigravity** in Studio Settings (or run `agy acp --login`), finish Google authentication, and click **Refresh status**. Set `STUDIO_ANTIGRAVITY_CLI_PATH` to an absolute native executable path only when normal discovery selects the wrong binary.
 
 Edit sources must already be inside the Studio data folder that the job captured. A ready preflight proves the CLI, login, flags and model discovery. It does not prove image credits or account access; only a live generation does.
 

@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { createSubscriptionAuthRoutes } from './authRoutes';
 import { createSubscriptionAuthController } from './controller';
+import { createGoogleCredentialsStore } from './googleCredentials';
 import { createSubscriptionAuthStore } from './store';
 import {
   CODEX_DEVICE_TOKEN_URL,
@@ -397,6 +398,87 @@ describe('subscription auth routes', () => {
     expect(store.readProvider('xai')).toMatchObject({
       accessToken: null,
       refreshToken: null,
+    });
+  });
+
+  it('validates, saves, masks, and clears Google API key and OAuth config without leaking secrets', async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'studio-google-creds-'));
+    dirs.push(dir);
+    const googleStore = createGoogleCredentialsStore({
+      resolveFilePath: () => path.join(dir, 'google-credentials.json'),
+    });
+    const published: unknown[] = [];
+    const controller = createSubscriptionAuthController({
+      store: createSubscriptionAuthStore({
+        resolveFilePath: () => path.join(dir, 'studio-oauth.json'),
+      }),
+      ensureCredentialStoreWritable: () => undefined,
+      publish: (_type, payload) => published.push(payload),
+    });
+    const fetchMock = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = requestUrl(input);
+      expect(url).toContain('/models?pageSize=1');
+      const headers = new Headers(init?.headers);
+      const key = headers.get('x-goog-api-key');
+      if (key === 'AIzaSyGoodGeminiKey1234567890') {
+        return jsonResponse({ models: [{ name: 'models/gemini-nano-banana-2.1' }] });
+      }
+      return jsonResponse({ error: { message: 'API key not valid.' } }, 400);
+    };
+    const app = new Hono().route(
+      '/api/auth',
+      createSubscriptionAuthRoutes(controller, {
+        googleCredentialsStore: googleStore,
+        env: {},
+        fetch: fetchMock as typeof fetch,
+        publish: (_type, payload) => published.push(payload),
+      }),
+    );
+
+    const wrongContentType = await app.request('/api/auth/google/credentials', {
+      method: 'PUT',
+      body: JSON.stringify({ apiKey: 'AIzaSyGoodGeminiKey1234567890' }),
+    });
+    expect(wrongContentType.status).toBe(415);
+
+    const invalid = await app.request('/api/auth/google/credentials', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey: 'AIzaSyBadKey1234567890', validate: true }),
+    });
+    expect(invalid.status).toBe(400);
+    expect(googleStore.read().apiKey).toBeNull();
+
+    const saved = await app.request('/api/auth/google/credentials', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apiKey: 'AIzaSyGoodGeminiKey1234567890',
+        oauthClientId: '12345.apps.googleusercontent.com',
+        cloudProjectId: 'my-studio-cloud',
+        validate: true,
+      }),
+    });
+    const savedBody = await saved.json();
+    expect(saved.status).toBe(200);
+    expect(saved.headers.get('cache-control')).toBe('no-store');
+    expect(savedBody).toMatchObject({
+      apiKeyConfigured: true,
+      apiKeySource: 'store',
+      apiKeyHint: 'AIza…7890',
+      oauthConfigured: true,
+      oauthSource: 'store',
+      cloudProjectId: 'my-studio-cloud',
+    });
+    expect(JSON.stringify(savedBody)).not.toContain('AIzaSyGoodGeminiKey1234567890');
+    expect(published.length).toBeGreaterThan(0);
+
+    const clearedKey = await app.request('/api/auth/google/credentials?scope=api_key', {
+      method: 'DELETE',
+    });
+    expect(await clearedKey.json()).toMatchObject({
+      apiKeyConfigured: false,
+      oauthConfigured: true,
     });
   });
 });

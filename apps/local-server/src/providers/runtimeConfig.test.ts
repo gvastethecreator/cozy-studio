@@ -150,6 +150,9 @@ describe('provider runtime config', () => {
         GOOGLE_OAUTH_CLIENT_ID: 'studio.apps.googleusercontent.com',
       })?.diagnostics,
     ).toEqual(['Google OAuth requires a valid GOOGLE_CLOUD_PROJECT_ID.']);
+    expect(getExternalProviderRuntimePreflight('google', {})?.diagnostics).toEqual([
+      'Add a Gemini API key in Studio Settings, or configure Google Cloud OAuth.',
+    ]);
   });
 
   it('creates capability readiness maps from preflight state', () => {

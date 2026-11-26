@@ -966,6 +966,102 @@
 .settings-account-auth[data-compact='true'][data-has-account='true'] .settings-account-status {
   display: none;
 }
+.settings-google-key-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.settings-google-meta {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--wb-muted);
+  overflow-wrap: anywhere;
+}
+.settings-google-hint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--wb-muted);
+}
+.settings-google-status {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--wb-success);
+}
+.settings-field-error {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--wb-danger);
+}
+.settings-google-form {
+  display: grid;
+  gap: 6px;
+}
+.settings-google-field-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.settings-google-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wb-ink);
+}
+.settings-google-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--wb-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.settings-google-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+.settings-google-input {
+  width: 100%;
+  min-width: 0;
+  font-family: var(--wb-font-mono, monospace);
+  font-size: 12px;
+}
+.settings-google-input:is(:user-invalid, [aria-invalid='true']) {
+  border-color: var(--wb-danger);
+}
+.settings-google-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.settings-provider-advanced {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: var(--wb-border-width) solid var(--wb-line);
+  font-size: 12px;
+  color: var(--wb-muted);
+}
+.settings-provider-advanced summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--wb-ink);
+}
+.settings-provider-advanced summary span {
+  font-weight: 400;
+  color: var(--wb-success);
+}
+.settings-provider-advanced-body {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
 @media (max-width: 700px) {
   .studio-settings-dialog {
     --wbp-pad: 16px;

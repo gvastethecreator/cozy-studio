@@ -29,7 +29,9 @@ import {
   type AntigravityRuntimeDoctorReport,
 } from '../antigravityRuntimeDoctor';
 import { resolveLibraryPath, resolveLibraryPathFromRoot } from '../library';
+import { isManagedGenerationAssetPath } from '../managedAssetPolicy';
 import { isPathInside } from '../pathContainment';
+import type { JobLibraryContext } from '../../../../packages/shared/src';
 import type {
   ExternalProviderExecutionContext,
   ExternalProviderExecutor,
@@ -83,6 +85,8 @@ interface ParsedAntigravityStream {
   resultStatus: string;
   toolStepCount: number;
   eventTypes: string[];
+  imageToolMode: 'generate_image' | 'image-generator';
+  reportedPaths: string[];
 }
 
 export function runAntigravityCliProcess(
@@ -125,6 +129,7 @@ function stageManagedSources(
   payload: AntigravityImageCompiledPayload,
   libraryRoot: string,
   temporaryDirectory: string,
+  libraryContext?: JobLibraryContext | null,
 ) {
   const assets = payload.assets.filter((asset) => asset.role !== 'mask');
   if (assets.length > MAX_SOURCE_IMAGES) {
@@ -156,7 +161,10 @@ function stageManagedSources(
       throw new Error(`Antigravity source image must be PNG, JPEG, GIF, or WebP: ${sourcePath}.`);
     }
     const realSourcePath = realpathSync(sourcePath);
-    if (!isPathInside(realLibraryRoot, realSourcePath)) {
+    const allowedSource =
+      isPathInside(realLibraryRoot, realSourcePath) ||
+      (libraryContext ? isManagedGenerationAssetPath(realSourcePath, libraryContext) : false);
+    if (!allowedSource) {
       throw new Error(`Antigravity source image is outside the Job Studio Library: ${sourcePath}.`);
     }
     const stagedPath = path.join(
@@ -180,17 +188,19 @@ export function buildAntigravityImagePrompt(
     constraints.push(`Requested image size: ${payload.output.imageSize}.`);
   }
   return [
-    'Call generate_image exactly once. Do not call any other tool.',
-    'Produce exactly one image. Do not return success unless generate_image completes.',
+    'Generate the requested image using ONLY generate_image or the built-in image-generator subagent (invoke_subagent with TypeName "image-generator").',
+    'Invoke it once. After calling invoke_subagent, end your turn with no further tool calls and wait for its reply.',
+    'Do NOT call view_file, list_dir, wait, wait_5_seconds, manage_subagents, run_command, or any other tool or subagent before or after image generation.',
+    'Produce exactly one final image. Do not return success unless image generation completes.',
     '',
-    'Use these tool arguments:',
+    'Use these arguments:',
     `Prompt: ${JSON.stringify(constraints.join('\n\n'))}`,
     'ImageName: "studio-output.png"',
     ...(stagedSources.length > 0
       ? [`ImagePaths: ${JSON.stringify(stagedSources.map((source) => source.localPath))}`]
       : []),
     '',
-    'After the tool completes, return only a brief factual result summary.',
+    'As soon as image generation completes, immediately return only the saved image file path and a brief factual summary without calling any other tool.',
   ].join('\n');
 }
 
@@ -215,6 +225,78 @@ export function buildAntigravityImageArgs(payload: AntigravityImageCompiledPaylo
     args.push('--effort', payload.reasoningEffort);
   }
   return args;
+}
+
+function isImageGeneratorSubagentStep(step: Record<string, unknown>) {
+  if (step.tool_name !== 'invoke_subagent') return false;
+  if (step.step_type === 'subagent') {
+    const subagentInfo = isRecord(step.subagent_info) ? step.subagent_info : null;
+    const subagents = Array.isArray(subagentInfo?.subagents) ? subagentInfo.subagents : [];
+    return (
+      subagents.length === 1 &&
+      subagents.every(
+        (entry) =>
+          isRecord(entry) &&
+          (entry.type_name === 'image-generator' ||
+            entry.typeName === 'image-generator' ||
+            entry.TypeName === 'image-generator'),
+      )
+    );
+  }
+  const toolInfo = isRecord(step.tool_info) ? step.tool_info : null;
+  if (!toolInfo) return false;
+  const directCandidates = [
+    toolInfo.type_name,
+    toolInfo.typeName,
+    toolInfo.TypeName,
+    toolInfo.subagent,
+    toolInfo.subagent_type,
+    isRecord(toolInfo.arguments) ? toolInfo.arguments.TypeName : null,
+    isRecord(toolInfo.arguments) ? toolInfo.arguments.type_name : null,
+    isRecord(toolInfo.input) ? toolInfo.input.TypeName : null,
+    isRecord(toolInfo.input) ? toolInfo.input.type_name : null,
+    isRecord(toolInfo.params) ? toolInfo.params.TypeName : null,
+  ];
+  if (directCandidates.some((value) => value === 'image-generator')) return true;
+  if (typeof toolInfo.arguments === 'string') {
+    try {
+      const parsed = JSON.parse(toolInfo.arguments) as unknown;
+      if (
+        isRecord(parsed) &&
+        (parsed.TypeName === 'image-generator' || parsed.type_name === 'image-generator')
+      ) {
+        return true;
+      }
+    } catch {
+      // Ignore malformed JSON strings; rejected below.
+    }
+  }
+  return false;
+}
+
+function isAllowedImageToolStep(step: Record<string, unknown>) {
+  return step.tool_name === 'generate_image' || isImageGeneratorSubagentStep(step);
+}
+
+function normalizeMentionedPath(raw: string): string {
+  if (/^file:\/\//i.test(raw)) {
+    const stripped = decodeURIComponent(raw.replace(/^file:\/\//i, ''));
+    return /^\/[A-Za-z]:[\\/]/.test(stripped) ? stripped.slice(1) : stripped;
+  }
+  return raw;
+}
+
+function extractMentionedImagePaths(texts: readonly unknown[]): string[] {
+  const candidates: string[] = [];
+  const pattern =
+    /(?:file:\/\/\/(?:[A-Za-z]:[\\/]|\/)|[A-Za-z]:[\\/]|\/)[^\s"'`<>|()[\]]+\.(?:png|jpe?g|webp|gif)\b/gi;
+  for (const value of texts) {
+    if (typeof value !== 'string' || !value) continue;
+    for (const match of value.matchAll(pattern)) {
+      candidates.push(normalizeMentionedPath(match[0]));
+    }
+  }
+  return [...new Set(candidates)];
 }
 
 export function parseAntigravityStream(output: string): ParsedAntigravityStream {
@@ -248,7 +330,7 @@ export function parseAntigravityStream(output: string): ParsedAntigravityStream 
     throw new Error('Antigravity did not use the required request-review permission mode.');
   }
   const tools = Array.isArray(initPayload.tools) ? initPayload.tools : [];
-  if (!tools.includes('generate_image')) {
+  if (!tools.includes('generate_image') && !tools.includes('invoke_subagent')) {
     throw new Error('Antigravity did not expose the generate_image tool for this run.');
   }
   const cwd = typeof initPayload.cwd === 'string' ? initPayload.cwd.trim() : '';
@@ -257,10 +339,21 @@ export function parseAntigravityStream(output: string): ParsedAntigravityStream 
   }
   const toolSteps = events.flatMap((event) => {
     if (event.event !== 'step_update' || !isRecord(event.step_update)) return [];
-    return event.step_update.step_type === 'tool' ? [event.step_update] : [];
+    const stepType = event.step_update.step_type;
+    return stepType === 'tool' || stepType === 'subagent' ? [event.step_update] : [];
   });
-  if (toolSteps.some((step) => step.tool_name !== 'generate_image')) {
-    throw new Error('Antigravity called a tool other than generate_image.');
+  const disallowedSteps = toolSteps.filter((step) => !isAllowedImageToolStep(step));
+  if (disallowedSteps.length > 0) {
+    const names = [
+      ...new Set(
+        disallowedSteps.map((step) =>
+          typeof step.tool_name === 'string' && step.tool_name.trim()
+            ? step.tool_name.trim()
+            : 'unknown',
+        ),
+      ),
+    ];
+    throw new Error(`Antigravity called a tool other than generate_image (${names.join(', ')}).`);
   }
   if (
     toolSteps.some(
@@ -279,30 +372,54 @@ export function parseAntigravityStream(output: string): ParsedAntigravityStream 
     );
   }
   const completedImageSteps = toolSteps.filter(
-    (step) => step.tool_name === 'generate_image' && step.state === 'DONE',
+    (step) => isAllowedImageToolStep(step) && step.state === 'DONE',
   );
   if (completedImageSteps.length !== 1) {
     throw new Error(
       `Antigravity expected one completed generate_image call and found ${completedImageSteps.length}.`,
     );
   }
-  const toolInfo = completedImageSteps[0]!.tool_info;
-  if (!isRecord(toolInfo) || toolInfo.name !== 'generate_image' || toolInfo.error != null) {
-    throw new Error('Antigravity generate_image did not complete successfully.');
+  const completedStep = completedImageSteps[0]!;
+  let toolOutput: unknown = null;
+  if (completedStep.step_type === 'subagent') {
+    const subagentInfo = completedStep.subagent_info;
+    if (
+      !isRecord(subagentInfo) ||
+      subagentInfo.error != null ||
+      !isImageGeneratorSubagentStep(completedStep)
+    ) {
+      throw new Error('Antigravity generate_image did not complete successfully.');
+    }
+    toolOutput = subagentInfo.output ?? null;
+  } else {
+    const toolInfo = completedStep.tool_info;
+    if (
+      !isRecord(toolInfo) ||
+      (toolInfo.name !== 'generate_image' && toolInfo.name !== 'invoke_subagent') ||
+      toolInfo.error != null
+    ) {
+      throw new Error('Antigravity generate_image did not complete successfully.');
+    }
+    toolOutput = toolInfo.output ?? null;
   }
   const result = resultEvents[0]!.result;
-  if (!isRecord(result) || result.status !== 'SUCCESS' || result.num_turns !== 1) {
+  const numTurns = isRecord(result) && typeof result.num_turns === 'number' ? result.num_turns : 0;
+  if (!isRecord(result) || result.status !== 'SUCCESS' || numTurns < 1 || numTurns > 3) {
     throw new Error('Antigravity image generation did not finish with SUCCESS.');
   }
   if (result.conversation_id !== conversationId) {
     throw new Error('Antigravity result used an unexpected conversation id.');
   }
+  const imageToolMode =
+    completedStep.tool_name === 'invoke_subagent' ? 'image-generator' : 'generate_image';
   return {
     conversationId,
     cwd,
     resultStatus: result.status,
     toolStepCount: toolSteps.length,
     eventTypes: events.map((event) => event.event as string),
+    imageToolMode,
+    reportedPaths: extractMentionedImagePaths([toolOutput, result.response]),
   };
 }
 
@@ -329,7 +446,7 @@ function listArtifactImages(artifactDirectory: string) {
   while (pending.length > 0) {
     const current = pending.pop()!;
     for (const entry of readdirSync(current, { withFileTypes: true })) {
-      if (entry.name === '.system_generated') continue;
+      if (entry.name === '.system_generated' || entry.name === '.user_uploaded') continue;
       const target = path.join(current, entry.name);
       if (entry.isDirectory()) {
         pending.push(target);
@@ -343,6 +460,31 @@ function listArtifactImages(artifactDirectory: string) {
     }
   }
   return images.sort((left, right) => left.localeCompare(right));
+}
+
+function selectAntigravityArtifactImage(
+  images: readonly string[],
+  reportedPaths: readonly string[],
+): string {
+  if (images.length === 0) {
+    throw new Error('Antigravity expected one generated image and found 0.');
+  }
+  if (images.length === 1) return images[0]!;
+  const comparableByImage = new Map(images.map((image) => [normalizeComparablePath(image), image]));
+  for (const reported of reportedPaths) {
+    try {
+      if (!existsSync(reported)) continue;
+      const realReported = realpathSync(reported);
+      const matched = comparableByImage.get(normalizeComparablePath(realReported));
+      if (matched) return matched;
+    } catch {
+      // Ignore unresolvable paths from model prose and fall back to newest artifact.
+    }
+  }
+  return [...images].sort((left, right) => {
+    const mtimeDelta = statSync(right).mtimeMs - statSync(left).mtimeMs;
+    return mtimeDelta !== 0 ? mtimeDelta : right.localeCompare(left);
+  })[0]!;
 }
 
 function configuredTimeoutMs(env: NodeJS.ProcessEnv) {
@@ -391,7 +533,12 @@ export function createAntigravityImageExecutor({
           providerSync(() => assertOwnedTemporaryDirectory(createTemporaryDirectory())),
           (directory) => Effect.sync(() => rmSync(directory, { recursive: true, force: true })),
         );
-        const stagedSources = stageManagedSources(input.payload, libraryRoot, temporaryDirectory);
+        const stagedSources = stageManagedSources(
+          input.payload,
+          libraryRoot,
+          temporaryDirectory,
+          job.libraryContext,
+        );
         const prompt = buildAntigravityImagePrompt(input.payload, stagedSources);
         const stdin = `${JSON.stringify({ event: 'user', message: { content: prompt } })}\n`;
         const executable = resolveExecutable(env);
@@ -423,10 +570,7 @@ export function createAntigravityImageExecutor({
         }
         const artifactDirectory = resolveArtifactDirectory(resolveHome(env), stream.conversationId);
         const images = listArtifactImages(artifactDirectory);
-        if (images.length !== 1) {
-          throw new Error(`Antigravity expected one generated image and found ${images.length}.`);
-        }
-        const imagePath = images[0]!;
+        const imagePath = selectAntigravityArtifactImage(images, stream.reportedPaths);
         const imageSize = statSync(imagePath).size;
         if (imageSize <= 0) throw new Error('Antigravity generated an empty image file.');
         if (imageSize > MAX_IMAGE_BYTES) {
@@ -457,6 +601,8 @@ export function createAntigravityImageExecutor({
                 artifactDirectory,
                 sourceAssetCount: stagedSources.length,
                 toolStepCount: stream.toolStepCount,
+                imageToolMode: stream.imageToolMode,
+                candidateArtifactCount: images.length,
               },
               files: {
                 resolveLibraryPath: libraryPath,

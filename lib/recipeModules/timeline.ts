@@ -5,7 +5,7 @@ import {
   getNumber,
   getString,
 } from './directiveHelpers';
-import { createRecipeModule, options } from './params';
+import { createRecipeModule, MULTI_IMAGE_PROVIDERS, options } from './params';
 import { sequenceReferenceRules } from './composerRules';
 import type { RecipeDefinition, RecipeDirectiveContext, RecipeParams } from './types';
 
@@ -44,6 +44,7 @@ const module = createRecipeModule({
   defaultTask: 'image_generate',
   variation: 'none',
   supportedTasks: ['image_generate', 'image_edit'],
+  supportedProviders: MULTI_IMAGE_PROVIDERS,
   parameters: [
     {
       id: 'nextIndex',

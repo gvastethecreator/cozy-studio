@@ -14,7 +14,9 @@ import {
   GOOGLE_IMAGE_MODELS,
   isGoogleImageModel,
   isGoogleImageSizeSupported,
+  normalizeGoogleImageSizeTier,
   type GoogleImageModel,
+  type GoogleImageSize,
 } from '../../../../packages/shared/src/googleImageContract';
 import { readGoogleOAuthConfig } from '../auth/googleOAuthConfig';
 import {
@@ -40,6 +42,11 @@ import {
   storeInlineImageResult,
   type ExternalProviderFetch,
 } from './externalProviderResults';
+import { resolveGoogleApiBase } from './googleApiBase';
+import { SubscriptionHttpError } from './subscriptionHttpError';
+
+export { resolveGoogleApiBase };
+
 type ReadLocalFile = (path: string) => Uint8Array;
 
 export interface GoogleImageExecutorDependencies {
@@ -57,7 +64,6 @@ export interface GoogleImageExecutorDependencies {
   invalidateAccessToken?: (message: string) => void;
 }
 
-const DEFAULT_GOOGLE_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_RETRY_DELAY_MS = 750;
 const MAX_INPUT_IMAGE_BYTES = 25 * 1024 * 1024;
@@ -77,10 +83,6 @@ function asGooglePayload(value: unknown): HostedImageApiCompiledPayload {
   }
 
   return value as unknown as HostedImageApiCompiledPayload;
-}
-
-function trimTrailingSlash(value: string) {
-  return value.replace(/\/+$/, '');
 }
 
 function inferMimeType(filePath: string) {
@@ -113,9 +115,10 @@ function createGoogleAssetPart(asset: ProviderAssetInputRef, readFile: ReadLocal
     throw new Error(`Google image asset "${asset.name}" exceeded the 25 MB limit.`);
   }
   return {
-    type: 'image' as const,
-    mime_type: inferMimeType(asset.localPath),
-    data: bytes.toString('base64'),
+    inlineData: {
+      mimeType: inferMimeType(asset.localPath),
+      data: bytes.toString('base64'),
+    },
   };
 }
 
@@ -135,56 +138,60 @@ function createGoogleTranscriptDiagnostics(
   payload: HostedImageApiCompiledPayload,
   requestBody: Record<string, unknown>,
 ) {
-  const inputs = Array.isArray(requestBody.input) ? requestBody.input : [];
+  const contents = Array.isArray(requestBody.contents) ? requestBody.contents : [];
+  const firstTurn = isRecord(contents[0]) ? contents[0] : null;
+  const parts = Array.isArray(firstTurn?.parts) ? firstTurn.parts : [];
   return {
     assetCount: payload.assets.length,
     assetRoles: payload.assets.map((asset) => asset.role).sort(),
-    inlineImagePartCount: inputs.filter((input) => isRecord(input) && input.type === 'image')
+    inlineImagePartCount: parts.filter((part) => isRecord(part) && isRecord(part.inlineData))
       .length,
     requestFieldNames: Object.keys(requestBody).sort(),
   };
 }
 
-function normalizeGoogleImageSize(value: string | null, model: GoogleImageModel) {
-  const normalized = value?.trim().toUpperCase() ?? '';
-  if (['512', '1K', '2K', '4K'].includes(normalized)) {
-    if (!isGoogleImageSizeSupported(model, normalized)) {
-      throw new Error(`Google image model "${model}" does not support ${normalized} output.`);
+function normalizeGoogleImageSize(
+  value: string | null,
+  model: GoogleImageModel,
+): GoogleImageSize | null {
+  const tier = normalizeGoogleImageSizeTier(value);
+  if (tier) {
+    if (!isGoogleImageSizeSupported(model, tier)) {
+      throw new Error(`Google image model "${model}" does not support ${tier} output.`);
     }
-    return normalized;
+    return tier;
   }
+  const normalized = value?.trim().toUpperCase() ?? '';
   const dimensions = normalized.match(/^(\d+)X(\d+)$/);
   if (!dimensions) return null;
   const largest = Math.max(Number(dimensions[1]), Number(dimensions[2]));
-  const requested = largest <= 512 ? '512' : largest <= 1536 ? '1K' : largest <= 3072 ? '2K' : '4K';
+  const requested: GoogleImageSize =
+    largest <= 512 ? '512px' : largest <= 1536 ? '1K' : largest <= 3072 ? '2K' : '4K';
   return isGoogleImageSizeSupported(model, requested) ? requested : '1K';
 }
 
-function normalizeGoogleMimeType(value: string | null) {
-  const normalized = value?.trim().toLowerCase();
-  return normalized === 'image/jpeg' || normalized === 'image/webp' ? normalized : 'image/png';
-}
-
-export function resolveGoogleApiBase(value: string | undefined) {
-  const raw = trimTrailingSlash(value?.trim() || DEFAULT_GOOGLE_API_BASE);
-  let url: URL;
-  try {
-    url = new URL(raw);
-  } catch {
-    throw new Error('GOOGLE_API_BASE is not a valid URL.');
+function describeMissingImageReason(json: unknown): string | null {
+  if (!isRecord(json)) return null;
+  const feedback = isRecord(json.promptFeedback) ? json.promptFeedback : null;
+  if (feedback && typeof feedback.blockReason === 'string' && feedback.blockReason) {
+    return `Google blocked the request (${feedback.blockReason}).`;
   }
-  const hostname = url.hostname.toLowerCase();
-  const loopback = hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '::1';
-  if (
-    url.username ||
-    url.password ||
-    url.search ||
-    url.hash ||
-    (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback))
-  ) {
-    throw new Error('GOOGLE_API_BASE must use HTTPS or a credential-free loopback URL.');
+  const candidates = Array.isArray(json.candidates) ? json.candidates : [];
+  const first = isRecord(candidates[0]) ? candidates[0] : null;
+  const content = isRecord(first?.content) ? first.content : null;
+  const parts = Array.isArray(content?.parts) ? content.parts : [];
+  const textReply = parts
+    .flatMap((part) => (isRecord(part) && typeof part.text === 'string' ? [part.text.trim()] : []))
+    .filter(Boolean)
+    .join(' ')
+    .slice(0, 240);
+  if (textReply) {
+    return `Google returned text without an image: ${textReply}`;
   }
-  return trimTrailingSlash(url.href);
+  if (first && typeof first.finishReason === 'string' && first.finishReason !== 'STOP') {
+    return `Google did not return an image (finishReason: ${first.finishReason}).`;
+  }
+  return null;
 }
 
 export function createGoogleRequestBody(
@@ -206,7 +213,7 @@ export function createGoogleRequestBody(
       (
         entry,
       ): entry is {
-        part: { type: 'image'; mime_type: string; data: string };
+        part: { inlineData: { mimeType: string; data: string } };
         role: ProviderAssetInputRef['role'];
         strength: number | null;
       } => entry.part !== null,
@@ -229,22 +236,27 @@ export function createGoogleRequestBody(
       : '';
 
   const promptText = createGooglePromptText(payload) + editInstruction;
-  const promptPart = { type: 'text' as const, text: promptText };
+  const promptPart = { text: promptText };
   const parts = task === 'image_edit' ? [...inlineParts, promptPart] : [promptPart, ...inlineParts];
 
+  const aspectRatio = payload.output.aspectRatio?.trim() || null;
   const imageSize = normalizeGoogleImageSize(payload.output.imageSize, model);
+  const imageConfig: Record<string, string> = {
+    ...(aspectRatio ? { aspectRatio } : {}),
+    ...(imageSize ? { imageSize } : {}),
+  };
+
   return {
-    model,
-    input: parts,
-    response_format: {
-      type: 'image',
-      mime_type: normalizeGoogleMimeType(payload.output.mimeType),
-      ...(payload.output.aspectRatio?.trim()
-        ? { aspect_ratio: payload.output.aspectRatio.trim() }
-        : {}),
-      ...(imageSize ? { image_size: imageSize } : {}),
+    contents: [
+      {
+        role: 'user',
+        parts,
+      },
+    ],
+    generationConfig: {
+      responseModalities: ['IMAGE'],
+      ...(Object.keys(imageConfig).length > 0 ? { imageConfig } : {}),
     },
-    store: false,
   };
 }
 
@@ -297,7 +309,7 @@ export function createGoogleImageExecutor({
           throw new Error('Google image generation requires exactly one output image per Job.');
         }
         const apiBase = resolveGoogleApiBase(env.GOOGLE_API_BASE);
-        const endpoint = `${apiBase}/interactions`;
+        const endpoint = `${apiBase}/models/${encodeURIComponent(model)}:generateContent`;
         const requestBody = createGoogleRequestBody(payload, compiledInput.task, readFile, model);
         const headers: Record<string, string> = {
           Accept: 'application/json',
@@ -323,18 +335,30 @@ export function createGoogleImageExecutor({
 
         if (!response.ok) {
           const body = yield* providerBody(() => response.text().catch(() => ''));
+          const safeSnippet = body
+            ? ` ${responseSnippet(body, [apiKey ?? '', accessToken ?? '', cloudProjectId ?? ''])}`
+            : '';
           if (!apiKey && response.status === 401) {
-            invalidateAccessToken('Google rejected the stored access token. Sign in again.');
+            const message = 'Google rejected the stored access token. Sign in again.';
+            invalidateAccessToken(message);
+            throw new SubscriptionHttpError(message, {
+              code: 'invalid_grant',
+              fallbackAllowed: false,
+              httpStatus: 401,
+            });
           }
           throw new Error(
-            `Google image request failed after ${requestAttempts} attempt(s): ${response.status} ${response.statusText}${body ? ` ${responseSnippet(body, [apiKey ?? '', accessToken ?? '', cloudProjectId ?? ''])}` : ''}`,
+            `Google image request failed after ${requestAttempts} attempt(s): ${response.status} ${response.statusText}${safeSnippet}`,
           );
         }
 
         const json = yield* providerBody(() => response.json());
         const image = findFirstInlineImageData(json);
         if (!image) {
-          throw new Error('Google image response did not include inline image data.');
+          throw new Error(
+            describeMissingImageReason(json) ??
+              'Google image response did not include inline image data.',
+          );
         }
 
         return yield* storeInlineImageResult({

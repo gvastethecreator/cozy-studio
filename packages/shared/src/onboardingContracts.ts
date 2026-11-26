@@ -292,7 +292,11 @@ export interface OnboardingSetupSuccessResponse extends OnboardingSetupResult {
   probe: OnboardingProbe;
 }
 
-export type OnboardingHostActionId = 'codex_login' | 'ask_codex' | 'grok_login';
+export type OnboardingHostActionId =
+  | 'codex_login'
+  | 'ask_codex'
+  | 'grok_login'
+  | 'antigravity_login';
 
 export interface OnboardingHostActionRequest {
   consent: boolean;
@@ -317,7 +321,10 @@ export interface OnboardingHostActionErrorBody {
 export function parseOnboardingHostActionRequest(value: unknown): OnboardingHostActionRequest {
   const input = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
   const action =
-    input.action === 'codex_login' || input.action === 'ask_codex' || input.action === 'grok_login'
+    input.action === 'codex_login' ||
+    input.action === 'ask_codex' ||
+    input.action === 'grok_login' ||
+    input.action === 'antigravity_login'
       ? input.action
       : null;
   const prompt =
@@ -330,7 +337,12 @@ export function parseOnboardingHostActionRequest(value: unknown): OnboardingHost
 }
 
 export function isOnboardingHostActionId(value: unknown): value is OnboardingHostActionId {
-  return value === 'codex_login' || value === 'ask_codex' || value === 'grok_login';
+  return (
+    value === 'codex_login' ||
+    value === 'ask_codex' ||
+    value === 'grok_login' ||
+    value === 'antigravity_login'
+  );
 }
 
 export function looksLikeAbsoluteLibraryPath(value: string): boolean {

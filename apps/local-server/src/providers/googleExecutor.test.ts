@@ -16,9 +16,17 @@ function inputToUrl(input: string | URL | Request) {
 }
 
 interface GoogleRequestBody {
-  model: string;
-  input: unknown[];
-  response_format: Record<string, unknown>;
+  contents: Array<{
+    role?: string;
+    parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }>;
+  }>;
+  generationConfig: {
+    responseModalities?: string[];
+    imageConfig?: {
+      aspectRatio?: string;
+      imageSize?: string;
+    };
+  };
 }
 
 function parseJsonBody(body: BodyInit | null | undefined): GoogleRequestBody {
@@ -76,18 +84,18 @@ function createGoogleContext(
 }
 
 describe('google executor', () => {
-  it('runs Interactions, stores output_image, and avoids secret leaks', async () => {
+  it('runs Gemini generateContent, stores output image, and avoids secret leaks', async () => {
     const calls: Array<{ input: string; init?: RequestInit }> = [];
     const writes: Array<{ filePath: string; content: unknown; encoding?: unknown }> = [];
     const fetchMock = async (input: string | URL | Request, init?: RequestInit) => {
       calls.push({ input: inputToUrl(input), init });
       return new Response(
         JSON.stringify({
-          id: 'interaction-1',
-          steps: [
+          candidates: [
             {
-              type: 'model_output',
-              content: [{ type: 'image', mime_type: 'image/png', data: PNG_B64 }],
+              content: {
+                parts: [{ inlineData: { mimeType: 'image/png', data: PNG_B64 } }],
+              },
             },
           ],
         }),
@@ -113,16 +121,19 @@ describe('google executor', () => {
     const transcript = JSON.parse(String(transcriptWrite?.content));
 
     expect(calls).toHaveLength(1);
-    expect(calls[0].input).toBe('https://generativelanguage.googleapis.com/v1beta/interactions');
+    expect(calls[0].input).toBe(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-nano-banana-2.1:generateContent',
+    );
     expect(calls[0].init?.headers).toMatchObject({
       'Content-Type': 'application/json',
       'x-goog-api-key': 'secret-google-value',
     });
     expect(requestBody).toMatchObject({
-      model: 'gemini-nano-banana-2.1',
-      input: [{ type: 'text', text: 'small brass key\n\nAvoid: blur' }],
-      response_format: { type: 'image', mime_type: 'image/png', image_size: '1K' },
-      store: false,
+      contents: [{ role: 'user', parts: [{ text: 'small brass key\n\nAvoid: blur' }] }],
+      generationConfig: {
+        responseModalities: ['IMAGE'],
+        imageConfig: { imageSize: '1K' },
+      },
     });
     expect(result.assets).toEqual([
       {
@@ -138,7 +149,7 @@ describe('google executor', () => {
       diagnostics: {
         assetCount: 0,
         inlineImagePartCount: 0,
-        requestFieldNames: ['input', 'model', 'response_format', 'store'],
+        requestFieldNames: ['contents', 'generationConfig'],
       },
     });
     expect(JSON.stringify(writes)).not.toContain('secret-google-value');
@@ -153,7 +164,7 @@ describe('google executor', () => {
         calls.push({ input: inputToUrl(input), init });
         return new Response(
           JSON.stringify({
-            output_image: { mime_type: 'image/jpeg', data: '/9j/4A==' },
+            outputs: [{ type: 'image', mime_type: 'image/jpeg', data: '/9j/4A==' }],
           }),
         );
       },
@@ -190,10 +201,9 @@ describe('google executor', () => {
     );
     const transcript = JSON.parse(transcriptText);
 
-    expect(requestBody.input).toEqual([
-      { type: 'image', mime_type: 'image/png', data: 'AQID' },
+    expect(requestBody.contents[0]?.parts).toEqual([
+      { inlineData: { mimeType: 'image/png', data: 'AQID' } },
       {
-        type: 'text',
         text: 'small brass key\n\nAvoid: blur Edit the input image following the instructions above. Preserve the original composition, subject identity, and overall structure while applying the requested changes.',
       },
     ]);
@@ -254,7 +264,7 @@ describe('google executor', () => {
 
   it.each([
     ['gemini-3.1-flash-lite-image', '4K'],
-    ['gemini-nano-banana-2.1', '512'],
+    ['gemini-nano-banana-2.1', '512px'],
   ])('rejects unsupported %s image size %s', async (model, imageSize) => {
     const executor = createGoogleImageExecutor({
       env: { GOOGLE_API_KEY: 'secret-google-value' },
@@ -273,6 +283,68 @@ describe('google executor', () => {
         ),
       ),
     ).rejects.toThrow(`does not support ${imageSize} output`);
+  });
+
+  it('sends 512px and aspectRatio cleanly for gemini-3.1-flash-image', async () => {
+    const bodies: GoogleRequestBody[] = [];
+    const executor = createGoogleImageExecutor({
+      env: { GOOGLE_API_KEY: 'secret-google-value' },
+      fetch: async (_input, init) => {
+        bodies.push(parseJsonBody(init?.body));
+        return new Response(
+          JSON.stringify({
+            candidates: [
+              { content: { parts: [{ inlineData: { mimeType: 'image/png', data: PNG_B64 } }] } },
+            ],
+          }),
+        );
+      },
+      resolveLibraryPath: (...segments) => `D:/studio-library/${segments.join('/')}`,
+      mkdir: (() => undefined) as typeof import('node:fs').mkdirSync,
+      writeFile: (() => undefined) as typeof import('node:fs').writeFileSync,
+    });
+
+    await Effect.runPromise(
+      Effect.scoped(
+        executor(
+          createGoogleContext({
+            model: 'gemini-3.1-flash-image',
+            sourceSpec: { output: { count: 1, aspectRatio: '16:9', imageSize: '512px' } },
+          }),
+        ),
+      ),
+    );
+
+    expect(bodies[0]?.generationConfig).toEqual({
+      responseModalities: ['IMAGE'],
+      imageConfig: { aspectRatio: '16:9', imageSize: '512px' },
+    });
+  });
+
+  it('throws SubscriptionHttpError on OAuth 401 so the worker pauses instead of failing jobs', async () => {
+    const executor = createGoogleImageExecutor({
+      env: {
+        GOOGLE_OAUTH_CLIENT_ID: 'desktop.apps.googleusercontent.com',
+        GOOGLE_CLOUD_PROJECT_ID: 'studio-billing-project',
+      },
+      getAccessToken: async () => 'oauth-access-secret',
+      fetch: async () => new Response('unauthorized', { status: 401 }),
+    });
+
+    await expect(
+      Effect.runPromise(
+        Effect.scoped(
+          executor(
+            createGoogleContext({
+              env: {
+                GOOGLE_OAUTH_CLIENT_ID: 'desktop.apps.googleusercontent.com',
+                GOOGLE_CLOUD_PROJECT_ID: 'studio-billing-project',
+              },
+            }),
+          ),
+        ),
+      ),
+    ).rejects.toMatchObject({ name: 'SubscriptionHttpError', code: 'invalid_grant' });
   });
 
   it('uses Studio-owned OAuth with the billing project when no API key exists', async () => {

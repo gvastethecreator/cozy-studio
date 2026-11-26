@@ -1,5 +1,5 @@
 import { createModuleDirectives, directive, getBoolean, getString } from './directiveHelpers';
-import { createRecipeModule, options } from './params';
+import { createRecipeModule, MULTI_IMAGE_PROVIDERS, options } from './params';
 import type { RecipeDefinition, RecipeParams } from './types';
 
 const CHARACTER_OPTIONS = {
@@ -48,6 +48,7 @@ const module = createRecipeModule({
   defaultTask: 'image_generate',
   variation: 'details',
   supportedTasks: ['image_generate', 'image_edit'],
+  supportedProviders: MULTI_IMAGE_PROVIDERS,
   parameters: [
     {
       id: 'layout',

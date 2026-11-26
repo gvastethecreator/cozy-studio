@@ -1,4 +1,5 @@
 import type { GenerationTaskSpec } from './generationContracts';
+import { isGoogleImageModel } from './googleImageContract';
 import type {
   CodexModel,
   CodexReasoningEffort,
@@ -124,17 +125,19 @@ export function resolveCodexHttpImageModel(value?: string | null): CodexHttpImag
   return isCodexHttpImageModel(value) ? value : CODEX_HTTP_IMAGE_MODEL;
 }
 
-/** The model, reasoning and speed a run picks for the Codex or ChatGPT provider. */
+/** The model, reasoning and speed a run picks for the active provider. */
 export interface GenerationExecutionChoice {
   executionModel: string;
   executionReasoningEffort: CodexReasoningEffort;
   executionSpeed: CodexServiceTier;
   codexImageModel?: string | null;
+  googleImageModel?: string | null;
+  antigravityModel?: string | null;
 }
 
 /**
- * Execution options a Codex or ChatGPT job sends. Intake fills a choice that is left out from
- * Studio Settings, then from the provider bootstrap; other providers send none.
+ * Execution options a job sends from the Composer. Intake fills omitted fields from Studio
+ * Settings, then from the provider bootstrap.
  */
 export function resolveGenerationExecutionOverride(
   providerId: string,
@@ -157,6 +160,14 @@ export function resolveGenerationExecutionOverride(
           : {},
       },
     };
+  }
+  if (providerId === 'google') {
+    const model = choice.googleImageModel?.trim();
+    return model && isGoogleImageModel(model) ? { model } : undefined;
+  }
+  if (providerId === 'antigravity') {
+    const model = choice.antigravityModel?.trim();
+    return model ? { model } : undefined;
   }
   if (providerId !== 'codex') return undefined;
   return {

@@ -197,4 +197,43 @@ describe('composerProviderProjection', () => {
       }).maxOutputCount,
     ).toBe(1);
   });
+
+  it('projects Google image models, resolution tiers, and readiness blocks', () => {
+    const ready = buildComposerProviderProjection({
+      providerId: 'google',
+      recipeId: 'camera',
+      aspectRatio: '16:9',
+      attachments: emptyAttachments,
+      providerReadiness: { canExecute: true },
+      codexModelCatalog: null,
+      executionModel: 'gpt-5.4-mini',
+      executionReasoningEffort: 'low',
+      executionSpeed: 'standard',
+      googleImageModel: 'gemini-3.1-flash-image',
+      imageSize: '512px',
+      catalogError: null,
+    });
+    expect(ready.kind).toBe('google');
+    expect(ready.showGoogleModelChrome).toBe(true);
+    expect(ready.generateBlock).toBeNull();
+    expect(ready.execution.selectedGoogleImageModel?.id).toBe('gemini-3.1-flash-image');
+    expect(ready.execution.selectedGoogleImageSize).toBe('512px');
+    expect(ready.execution.summary).toBe('Gemini 3.1 Flash Image · 512px');
+    expect(resolveProviderImageSize('google', '512px')).toBe('512px');
+    expect(resolveProviderImageSize('google', '4K')).toBe('4K');
+
+    const unready = buildComposerProviderProjection({
+      providerId: 'google',
+      recipeId: null,
+      aspectRatio: '1:1',
+      attachments: emptyAttachments,
+      providerReadiness: { canExecute: false },
+      codexModelCatalog: null,
+      executionModel: 'gpt-5.4-mini',
+      executionReasoningEffort: 'low',
+      executionSpeed: 'standard',
+      catalogError: null,
+    });
+    expect(unready.generateBlock?.code).toBe('google_not_ready');
+  });
 });

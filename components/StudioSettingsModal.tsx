@@ -345,6 +345,7 @@ function SettingsDomainContent({
     libraryDir,
     providerCapabilities,
     providerRuntimePreflight,
+    onRefresh,
     outputSources,
     outputSourceFiles,
     loadingOutputSourceFiles,
@@ -489,6 +490,7 @@ function SettingsDomainContent({
               providerOptions={providerOptions}
               providerCapabilities={providerCapabilities}
               providerRuntimePreflight={providerRuntimePreflight}
+              onRefreshProviders={onRefresh}
             />
           </fieldset>
           {activeDomain === 'library' && (

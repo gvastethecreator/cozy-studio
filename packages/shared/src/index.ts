@@ -28,3 +28,4 @@ export * from './imageConversion';
 export * from './styleAuthoring';
 export * from './libraryArchive';
 export * from './chatgptUsage';
+export * from './antigravityUsage';

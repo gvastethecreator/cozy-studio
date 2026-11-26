@@ -39,6 +39,16 @@ describe('host terminal launches', () => {
     expect(launch.title).not.toMatch(/ask grok/i);
   });
 
+  it('opens visible antigravity login using agy acp --login', () => {
+    const launch = resolveHostTerminalLaunch({
+      action: 'antigravity_login',
+      cwd: 'D:/cozy-studio',
+    });
+    expect(launch.argv).toEqual(['agy', 'acp', '--login']);
+    expect(launch.visible).toBe(true);
+    expect(publicHostCommand('antigravity_login')).toBe('agy acp --login');
+  });
+
   it('opens visible interactive Codex with the Setup Prompt', () => {
     const launch = resolveHostTerminalLaunch({
       action: 'ask_codex',

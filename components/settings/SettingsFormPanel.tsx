@@ -22,6 +22,7 @@ interface SettingsFormPanelProps {
   providerOptions: GenerationProviderId[];
   providerCapabilities: GenerationProviderCapabilitiesResponse | null;
   providerRuntimePreflight: GenerationProviderRuntimePreflightResponse | null;
+  onRefreshProviders?: () => Promise<void> | void;
 }
 
 export function SettingsFormPanel({
@@ -32,6 +33,7 @@ export function SettingsFormPanel({
   providerOptions,
   providerCapabilities,
   providerRuntimePreflight,
+  onRefreshProviders,
 }: SettingsFormPanelProps) {
   return (
     <div className="settings-form-stack">
@@ -78,6 +80,7 @@ export function SettingsFormPanel({
           providerOptions={providerOptions}
           providerCapabilities={providerCapabilities}
           providerRuntimePreflight={providerRuntimePreflight}
+          onRefreshProviders={onRefreshProviders}
         />
       )}
       {domain === 'output' && (

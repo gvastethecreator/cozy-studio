@@ -1,4 +1,9 @@
 import { GOOGLE_OAUTH_AUTHORIZE_URL, GOOGLE_OAUTH_TOKEN_URL } from './constants';
+import {
+  getGoogleCredentialsStore,
+  readStoredGoogleCredentialsSafe,
+  type GoogleCredentialsStore,
+} from './googleCredentials';
 
 export interface GoogleOAuthClientCredentials {
   clientId: string;
@@ -46,21 +51,28 @@ export function resolveGoogleOAuthEndpoint(value: string | undefined, fallback: 
 
 export function readGoogleOAuthClientCredentials(
   env: Record<string, string | undefined> = process.env,
+  store: GoogleCredentialsStore = getGoogleCredentialsStore(),
 ): GoogleOAuthClientCredentials {
+  const stored = readStoredGoogleCredentialsSafe(store);
+  const rawClientId = env.GOOGLE_OAUTH_CLIENT_ID ?? stored.oauthClientId ?? undefined;
+  const rawClientSecret = env.GOOGLE_OAUTH_CLIENT_SECRET ?? stored.oauthClientSecret ?? undefined;
   return {
-    clientId: boundedConfigValue(env.GOOGLE_OAUTH_CLIENT_ID, 'GOOGLE_OAUTH_CLIENT_ID'),
-    clientSecret: env.GOOGLE_OAUTH_CLIENT_SECRET?.trim()
-      ? boundedConfigValue(env.GOOGLE_OAUTH_CLIENT_SECRET, 'GOOGLE_OAUTH_CLIENT_SECRET', 64 * 1024)
+    clientId: boundedConfigValue(rawClientId, 'GOOGLE_OAUTH_CLIENT_ID'),
+    clientSecret: rawClientSecret?.trim()
+      ? boundedConfigValue(rawClientSecret, 'GOOGLE_OAUTH_CLIENT_SECRET', 64 * 1024)
       : null,
   };
 }
 
 export function readGoogleOAuthConfig(
   env: Record<string, string | undefined> = process.env,
+  store: GoogleCredentialsStore = getGoogleCredentialsStore(),
 ): GoogleOAuthConfig {
+  const stored = readStoredGoogleCredentialsSafe(store);
+  const rawCloudProjectId = env.GOOGLE_CLOUD_PROJECT_ID ?? stored.cloudProjectId ?? undefined;
   return {
-    ...readGoogleOAuthClientCredentials(env),
-    cloudProjectId: boundedConfigValue(env.GOOGLE_CLOUD_PROJECT_ID, 'GOOGLE_CLOUD_PROJECT_ID', 256),
+    ...readGoogleOAuthClientCredentials(env, store),
+    cloudProjectId: boundedConfigValue(rawCloudProjectId, 'GOOGLE_CLOUD_PROJECT_ID', 256),
     authorizeUrl: resolveGoogleOAuthEndpoint(
       env.GOOGLE_OAUTH_AUTHORIZE_URL,
       GOOGLE_OAUTH_AUTHORIZE_URL,
@@ -69,9 +81,12 @@ export function readGoogleOAuthConfig(
   };
 }
 
-export function isGoogleOAuthConfigured(env: Record<string, string | undefined> = process.env) {
+export function isGoogleOAuthConfigured(
+  env: Record<string, string | undefined> = process.env,
+  store: GoogleCredentialsStore = getGoogleCredentialsStore(),
+) {
   try {
-    readGoogleOAuthConfig(env);
+    readGoogleOAuthConfig(env, store);
     return true;
   } catch {
     return false;

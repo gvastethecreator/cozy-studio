@@ -88,6 +88,15 @@ export function parseAvailableAntigravityModels(output: string) {
   return [...new Set(models)];
 }
 
+/** Prefer a lightweight Flash model so dispatching image generation does not spend heavy reasoning quota. */
+export function pickRecommendedAntigravityModel(availableModels: readonly string[]): string | null {
+  return (
+    availableModels.find((model) => /^gemini-.*flash.*-low$/i.test(model)) ??
+    availableModels.find((model) => /^gemini-.*flash/i.test(model)) ??
+    null
+  );
+}
+
 async function inspectCandidate({
   executable,
   cwd,
@@ -163,7 +172,7 @@ async function inspectCandidate({
           ? 'Antigravity CLI does not have a usable local login.'
           : 'Antigravity CLI did not report an available reasoning model.',
         action: loginBlocked
-          ? 'Open `agy`, complete Google authentication, then retry provider preflight.'
+          ? 'Run `agy acp --login` (or open `agy`), complete Google authentication, then refresh status.'
           : 'Run `agy models` and confirm that at least one model is available.',
       });
     }
@@ -177,7 +186,7 @@ async function inspectCandidate({
     canRunJobs: issues.length === 0 && generateImageSupported,
     selectedVersion,
     selectedVersionNumber,
-    defaultModel: null,
+    defaultModel: pickRecommendedAntigravityModel(availableModels),
     availableModels,
     headlessSupported,
     generateImageSupported,
@@ -268,4 +277,9 @@ export function readAntigravityRuntimeDoctor() {
 /** The last Antigravity report. Waits only while the first probe runs. */
 export function loadAntigravityRuntimeDoctor() {
   return doctorCache.load();
+}
+
+/** Forces a fresh Antigravity CLI probe and updates the shared cache. */
+export function refreshAntigravityRuntimeDoctor() {
+  return doctorCache.refresh();
 }

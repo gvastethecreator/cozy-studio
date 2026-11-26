@@ -57,7 +57,7 @@ export function RuntimeStatusPanel({
   onOpenJobs,
 }: {
   commandCenter: StudioCommandCenterProjection;
-  providerUsage: Partial<Record<'codex' | 'chatgpt', StudioUsageSummary>>;
+  providerUsage: Partial<Record<'codex' | 'chatgpt' | 'antigravity', StudioUsageSummary>>;
   details: RuntimeStatusDetails;
   onClose: () => void;
   onOpenSettings?: () => void;
@@ -70,9 +70,10 @@ export function RuntimeStatusPanel({
   const serverUp = backend?.tone === 'success';
   const { activeCount, reviewCount } = commandCenter.queue;
   const pauses = Object.values(worker.status?.pausedProviders ?? {});
-  const usages = (['chatgpt', 'codex'] as const).flatMap((id) => {
+  const usages = (['chatgpt', 'codex', 'antigravity'] as const).flatMap((id) => {
     const line = usageLine(providerUsage[id]);
-    return line ? [{ id, line, label: id === 'chatgpt' ? 'ChatGPT' : 'Codex' }] : [];
+    const label = id === 'chatgpt' ? 'ChatGPT' : id === 'codex' ? 'Codex' : 'Antigravity';
+    return line ? [{ id, line, label }] : [];
   });
 
   useEffect(() => {

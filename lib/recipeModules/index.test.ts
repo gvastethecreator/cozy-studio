@@ -312,7 +312,7 @@ describe('recipeModules', () => {
     expect(spec.metadata.recipeModule).toMatchObject({
       id: 'camera',
       defaultTask: 'image_generate',
-      supportedProviders: ['codex', 'chatgpt', 'dry_run'],
+      supportedProviders: ['codex', 'chatgpt', 'google', 'antigravity', 'dry_run'],
     });
     expect(spec.quality).toMatchObject({
       qualityPresetId: 'image_general',

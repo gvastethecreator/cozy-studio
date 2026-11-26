@@ -18,8 +18,13 @@ import {
 import {
   loadAntigravityRuntimeDoctor,
   readAntigravityRuntimeDoctor,
+  refreshAntigravityRuntimeDoctor,
   type AntigravityRuntimeDoctorReport,
 } from './antigravityRuntimeDoctor';
+import {
+  clearAntigravityUsageCache,
+  readAntigravityUsageStatus as readLiveAntigravityUsageStatus,
+} from './antigravityUsage';
 import { createCatalogCommands } from './catalogCommands';
 import { createCatalogRoutes } from './catalogRoutes';
 import { createImageConversionRoutes } from './imageConversionRoutes';
@@ -207,6 +212,9 @@ export interface CreateStudioAppOptions {
   dependencies?: {
     readLocalCodexSession?: () => Promise<LocalCodexSessionResponse>;
     readChatgptUsageStatus?: () => Promise<ChatgptUsageStatus>;
+    readAntigravityUsageStatus?: (options?: {
+      force?: boolean;
+    }) => Promise<import('../../../packages/shared/src').AntigravityUsageStatus>;
     readCodexModelCatalog?: () => Promise<CodexModelCatalogResponse>;
     readCodexRuntimeDoctor?: typeof readCodexRuntimeDoctor;
     readGrokRuntimeDoctor?: () => GrokRuntimeDoctorReport;
@@ -456,12 +464,38 @@ export async function createStudioApp(
       settled ? loadAntigravityRuntimeDoctorFn() : readAntigravityRuntimeDoctorFn(),
   });
 
+  const readAntigravityUsageStatus =
+    options.dependencies?.readAntigravityUsageStatus ??
+    (async (usageOptions?: { force?: boolean }) => {
+      const runtime = await loadAntigravityRuntimeDoctorFn();
+      if (!runtime.canRunJobs) {
+        return {
+          available: false,
+          checkedAt: new Date().toISOString(),
+          tightestPercentLeft: null,
+          tightestWindowLabel: null,
+          resetsAt: null,
+          buckets: [],
+          remainingCredits: null,
+          upgradeUri: null,
+          error: null,
+        };
+      }
+      return readLiveAntigravityUsageStatus(usageOptions);
+    });
   app.route(
     '/api/providers',
     createProviderRoutes({
       readProviderRuntimeSnapshot,
       readChatgptUsageStatus,
       readChatgptCreditSpend: () => readEditableStudioSettings(settingsStorage).chatgptCreditSpend,
+      readAntigravityUsageStatus,
+      refreshAntigravityRuntime: async () => {
+        clearAntigravityUsageCache();
+        if (!options.dependencies?.readAntigravityRuntimeDoctor) {
+          await refreshAntigravityRuntimeDoctor();
+        }
+      },
     }),
   );
 

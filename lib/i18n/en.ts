@@ -567,7 +567,8 @@ export const en = {
   'settings.providers.signInOptional': 'Sign-in optional',
   'settings.providers.defaultNotReady':
     '{provider} cannot generate yet. Set it up below, or pick another provider.',
-  'settings.providers.googleSetup': 'Sign in with Google below, or add a Google API key.',
+  'settings.providers.googleSetup':
+    'Add a Gemini API key below, or configure Google Cloud OAuth under Advanced.',
   'settings.providers.grokSetup':
     'Sign in with xAI below, set XAI_API_KEY, or install Grok Build and sign in there.',
   'settings.providers.notConfigured': 'Not set up',

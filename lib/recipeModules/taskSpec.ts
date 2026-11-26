@@ -7,6 +7,7 @@ import {
   type GenerationTaskKind,
 } from '../../packages/shared/src/generationContracts';
 import { resolveCodexHttpImageSize } from '../../packages/shared/src/codexExecutionContract';
+import { normalizeGoogleImageSizeTier } from '../../packages/shared/src/googleImageContract';
 import type { Attachment, ImageGenerationConfig } from '../../types';
 import {
   projectGenerationBackgroundParams,
@@ -176,12 +177,15 @@ export function buildGenerationTaskSpecFromRecipe({
   const taskKind =
     task ??
     (recipeTaskKind === 'image_edit' && referenceCount === 0 ? 'image_generate' : recipeTaskKind);
-  const resolvedImageSize = config.aspectRatio
-    ? resolveCodexHttpImageSize({
-        aspectRatio: config.aspectRatio,
-        imageSize: config.imageSize ?? '1K',
-      })
-    : (config.imageSize ?? null);
+  const resolvedImageSize =
+    providerId === 'google'
+      ? (normalizeGoogleImageSizeTier(config.imageSize) ?? '1K')
+      : config.aspectRatio
+        ? resolveCodexHttpImageSize({
+            aspectRatio: config.aspectRatio,
+            imageSize: config.imageSize ?? '1K',
+          })
+        : (config.imageSize ?? null);
   const negativePrompt = plan.negativePrompt || config.negativePrompt || null;
 
   const workflowIssue = validateWorkflowSpec({

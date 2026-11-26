@@ -3,6 +3,10 @@ import { DEFAULT_GOOGLE_IMAGE_MODEL } from '../../../../packages/shared/src/goog
 import { DEFAULT_OPENAI_IMAGE_MODEL } from '../../../../packages/shared/src/openaiImageContract';
 import { CODEX_HTTP_EXECUTION_DEFAULTS } from '../../../../packages/shared/src/codexExecutionContract';
 import { getSettings } from '../config';
+import {
+  readAntigravityRuntimeDoctor,
+  type AntigravityRuntimeDoctorReport,
+} from '../antigravityRuntimeDoctor';
 import { readGrokRuntimeDoctor, type GrokRuntimeDoctorReport } from '../grokRuntimeDoctor';
 
 export { DEFAULT_GOOGLE_IMAGE_MODEL };
@@ -13,6 +17,7 @@ export const DEFAULT_COMFY_MODEL = 'workflow-template';
 
 export interface ResolveBootstrapProviderExecutionOptionsInput {
   grokRuntime?: Pick<GrokRuntimeDoctorReport, 'defaultModel'>;
+  antigravityRuntime?: Pick<AntigravityRuntimeDoctorReport, 'defaultModel'>;
 }
 
 export function resolveBootstrapProviderExecutionOptions(
@@ -49,8 +54,10 @@ export function resolveBootstrapProviderExecutionOptions(
   }
 
   if (providerId === 'antigravity') {
+    const override = env.ANTIGRAVITY_IMAGE_MODEL?.trim() || null;
+    const antigravityRuntime = options.antigravityRuntime ?? readAntigravityRuntimeDoctor();
     return {
-      model: env.ANTIGRAVITY_IMAGE_MODEL?.trim() || '',
+      model: override || antigravityRuntime.defaultModel || '',
       reasoningEffort: 'low',
       serviceTier: null,
     };

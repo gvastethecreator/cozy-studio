@@ -5,6 +5,13 @@ import type {
 import type { RecipeModule } from './types';
 
 const CODEX_FIRST_PROVIDERS: GenerationProviderId[] = ['codex', 'chatgpt', 'dry_run'];
+export const MULTI_IMAGE_PROVIDERS: GenerationProviderId[] = [
+  'codex',
+  'chatgpt',
+  'google',
+  'antigravity',
+  'dry_run',
+];
 
 export function options(values: readonly string[]) {
   return [...values];

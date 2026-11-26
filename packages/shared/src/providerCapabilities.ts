@@ -108,7 +108,10 @@ export const PROVIDER_FACTS: Readonly<Record<BuiltInGenerationProvider, Provider
     maxInputImages: MAX_GROK_IMAGINE_SOURCE_IMAGES,
     maxOutputCount: 1,
   }),
-  google: providerFacts('Nano Banana 2.1', 'Google', { maxOutputCount: 1 }),
+  google: providerFacts('Nano Banana 2.1', 'Google', {
+    maxOutputCount: 1,
+    imageSizes: ['512px', '1K', '2K', '4K'],
+  }),
   antigravity: providerFacts('Antigravity', 'Antigravity', {
     compactLabel: 'AGY',
     maxOutputCount: 1,
@@ -189,10 +192,10 @@ export const BUILT_IN_PROVIDER_CAPABILITIES = [
     runtimeKind: 'hosted_api',
     hasAdapter: true,
     requiresSecret: true,
-    activeDetail: 'Nano Banana 2.1 is ready through the Google Interactions API.',
+    activeDetail: 'Nano Banana 2.1 is ready through the Gemini API.',
     subscriptionReadyDetail: 'Google OAuth is connected for direct Nano Banana 2.1 requests.',
     plannedDetail: 'Google Nano Banana adapter is available.',
-    missingDetail: 'Add a Google API key or connect Google OAuth in Studio Settings.',
+    missingDetail: 'Add a Gemini API key or connect Google Cloud OAuth in Studio Settings.',
   },
   {
     providerId: 'antigravity',

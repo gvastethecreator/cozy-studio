@@ -18,6 +18,11 @@ import {
   readGoogleOAuthConfig,
   resolveGoogleOAuthEndpoint,
 } from './googleOAuthConfig';
+import {
+  getGoogleCredentialsStore,
+  readStoredGoogleCredentialsSafe,
+  type GoogleCredentialsStore,
+} from './googleCredentials';
 import { readOAuthJson, safeOAuthText } from './oauthHttp';
 import { revokeSubscriptionToken } from './revoke';
 import {
@@ -474,11 +479,15 @@ export function readXaiApiKey(env: Record<string, string | undefined> = process.
   return env.XAI_API_KEY?.trim() || null;
 }
 
-export function readGoogleApiKey(env: Record<string, string | undefined> = process.env) {
+export function readGoogleApiKey(
+  env: Record<string, string | undefined> = process.env,
+  store: GoogleCredentialsStore = getGoogleCredentialsStore(),
+) {
   return (
     env.GOOGLE_API_KEY?.trim() ||
     env.GEMINI_API_KEY?.trim() ||
     env.NANO_BANANA_API_KEY?.trim() ||
+    readStoredGoogleCredentialsSafe(store).apiKey ||
     null
   );
 }

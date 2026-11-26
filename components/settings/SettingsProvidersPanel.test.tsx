@@ -8,15 +8,28 @@ import {
   getStudioSettingsFormState,
   type StudioSettingsFormState,
 } from '../../lib/studioSettingsForm';
-import { getSubscriptionAuthStatus } from '../../services/studio-api/auth';
+import {
+  getGoogleCredentialsStatus,
+  getSubscriptionAuthStatus,
+} from '../../services/studio-api/auth';
+import { getAntigravityUsageStatus } from '../../services/studio-api/providers';
 import { SettingsProvidersPanel } from './SettingsProvidersPanel';
 import { DIRECT_GIF_IMAGE_MODELS } from '../../packages/shared/src/openaiImageContract';
 
 vi.mock('../../services/studio-api/auth', () => ({
   cancelSubscriptionAuth: vi.fn(),
+  clearGoogleCredentials: vi.fn(),
+  getGoogleCredentialsStatus: vi.fn(),
   getSubscriptionAuthStatus: vi.fn(),
   logoutSubscriptionAuth: vi.fn(),
+  saveGoogleCredentials: vi.fn(),
   startSubscriptionAuth: vi.fn(),
+}));
+
+vi.mock('../../services/studio-api/providers', () => ({
+  getAntigravityUsageStatus: vi.fn(),
+  launchAntigravityLoginTerminal: vi.fn(),
+  refreshAntigravityProviderRuntime: vi.fn(),
 }));
 
 vi.mock('../../services/studioEventSource', () => ({
@@ -126,4 +139,72 @@ it('tells the truth about readiness without sending the user to Settings from Se
   const grok = document.querySelector('[data-provider="grok"]')!;
   expect(await screen.findByText('Sign-in optional')).toBeTruthy();
   expect(grok.textContent).not.toContain('Not signed in');
+});
+
+it('shows seamless Gemini API key setup and Antigravity login/quota controls', async () => {
+  vi.mocked(getGoogleCredentialsStatus).mockResolvedValue({
+    apiKeyConfigured: false,
+    apiKeySource: null,
+    apiKeyEnvName: null,
+    apiKeyHint: null,
+    oauthConfigured: false,
+    oauthSource: null,
+    oauthClientIdHint: null,
+    cloudProjectId: null,
+    updatedAt: null,
+  });
+  vi.mocked(getAntigravityUsageStatus).mockResolvedValue({
+    available: true,
+    checkedAt: '2026-11-25T20:00:00.000Z',
+    tightestPercentLeft: 80,
+    tightestWindowLabel: 'Weekly',
+    resetsAt: null,
+    buckets: [
+      {
+        id: 'gemini-5h',
+        label: 'Gemini',
+        window: '5h',
+        remainingPercent: 100,
+        resetTime: null,
+      },
+      {
+        id: 'gemini-weekly',
+        label: 'Gemini',
+        window: 'weekly',
+        remainingPercent: 80,
+        resetTime: null,
+      },
+    ],
+    remainingCredits: 500,
+    upgradeUri: null,
+    error: null,
+  });
+
+  render(
+    <SettingsProvidersPanel
+      formState={{
+        ...getStudioSettingsFormState(createDefaultEditableStudioSettings()),
+        defaultProviderId: 'google',
+      }}
+      onFormChange={vi.fn()}
+      providerOptions={['google', 'antigravity']}
+      providerCapabilities={{
+        providers: [
+          capability('google', false, 'Add a Gemini API key in Studio Settings.'),
+          {
+            ...capability('antigravity', true, 'Antigravity ready.'),
+            runtimeKind: 'agent_cli',
+            secretState: 'not_required',
+          },
+        ],
+      }}
+      providerRuntimePreflight={null}
+    />,
+  );
+
+  expect(await screen.findByRole('button', { name: 'Save & verify' })).toBeTruthy();
+  expect(screen.getByRole('link', { name: /Get key in Google AI Studio/i })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Sign in' })).toBeNull();
+  expect(await screen.findByText(/5h: 100% left · Weekly: 80% left · 500 G1 credits/)).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Refresh status' })).toBeTruthy();
 });

@@ -95,7 +95,12 @@ export function createExternalGenerationProvider({
           if (!preflight.canAttemptExecution && !job.remoteExecution) {
             const message = `Provider runtime preflight failed for ${providerId}: ${formatPreflightDiagnostics(preflight)}`;
             // A missing sign-in is a session error, so the worker pauses the queue instead of failing it.
-            if (preflight.runtimeKind === 'subscription_http' && !preflight.subscriptionAuthReady)
+            if (
+              (preflight.runtimeKind === 'subscription_http' && !preflight.subscriptionAuthReady) ||
+              (providerId === 'google' &&
+                !preflight.subscriptionAuthReady &&
+                preflight.diagnostics.some((line) => /refresh failed/i.test(line)))
+            )
               throw new SubscriptionHttpError(message, {
                 code: 'not_signed_in',
                 fallbackAllowed: false,

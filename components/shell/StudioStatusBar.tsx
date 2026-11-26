@@ -13,7 +13,7 @@ import Tooltip from '../Tooltip';
 import { RuntimeStatusPanel, type RuntimeStatusDetails } from './RuntimeStatusPanel';
 
 export interface StudioStatusBarProps {
-  providerUsage: Partial<Record<'codex' | 'chatgpt', StudioUsageSummary>>;
+  providerUsage: Partial<Record<'codex' | 'chatgpt' | 'antigravity', StudioUsageSummary>>;
   commandCenter: StudioCommandCenterProjection;
   imageHistory?: Pick<
     UseCatalogResult,
@@ -101,23 +101,41 @@ export function StudioStatusBar({
                 ? providerUsage.codex
                 : provider.id === 'chatgpt'
                   ? providerUsage.chatgpt
-                  : undefined;
+                  : provider.id === 'antigravity'
+                    ? providerUsage.antigravity
+                    : undefined;
             const weeklyLimit = usage?.limits.find((limit) => /weekly/i.test(limit.label));
+            const antigravityLowestPercent =
+              provider.id === 'antigravity' && usage?.limits.length
+                ? Math.min(...usage.limits.map((limit) => limit.availablePercent))
+                : null;
             // ChatGPT shows its usage state: window left, using credits, or limit reached.
             const usageCopy = provider.id === 'chatgpt' ? usage?.usageCopy : null;
             // No stale percent: ChatGPT shows only its state, and nothing shows while offline.
             const usageText =
               provider.id === 'chatgpt'
                 ? (usageCopy?.short ?? null)
-                : weeklyLimit && usage?.tone !== 'offline'
-                  ? `${Math.round(weeklyLimit.availablePercent)}% left`
-                  : null;
+                : provider.id === 'antigravity'
+                  ? usage?.tone === 'available'
+                    ? usage.value
+                    : null
+                  : weeklyLimit && usage?.tone !== 'offline'
+                    ? `${Math.round(weeklyLimit.availablePercent)}% left`
+                    : null;
             const usageDot =
               provider.canExecute && usageCopy?.tone === 'warning'
                 ? 'bg-amber-400'
                 : provider.canExecute && usageCopy?.tone === 'danger'
                   ? 'bg-rose-400'
-                  : providerRuntimeStatusDotClass(provider);
+                  : provider.canExecute &&
+                      antigravityLowestPercent !== null &&
+                      antigravityLowestPercent <= 0
+                    ? 'bg-rose-400'
+                    : provider.canExecute &&
+                        antigravityLowestPercent !== null &&
+                        antigravityLowestPercent <= 15
+                      ? 'bg-amber-400'
+                      : providerRuntimeStatusDotClass(provider);
             const pillClassName = cn(
               'studio-status-provider',
               provider.id === selected.id && 'is-active',

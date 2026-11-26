@@ -215,19 +215,19 @@ Grok Build keeps its CLI login under `GROK_HOME`. Default supports Grok, includi
 
 ### Google Nano Banana (Untested)
 
-1. Set `GOOGLE_API_KEY` or `GEMINI_API_KEY` to a restricted Gemini key. Or enable the Generative Language API, create a Desktop app OAuth client, and set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_CLOUD_PROJECT_ID`.
-2. For OAuth, add your account to the consent-screen test users while the app is in testing. Then connect Google from Studio Settings. `GOOGLE_OAUTH_CLIENT_SECRET` is optional.
+1. Open **Settings → Accounts & models**, find **Google**, and paste a restricted Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey). Studio verifies the key live before saving it in its private local credential file. (`GOOGLE_API_KEY` or `GEMINI_API_KEY` in backend environment variables also works and takes precedence.)
+2. Optional: if you prefer Google Cloud OAuth instead of an API key, expand **Google Cloud OAuth (Advanced)** inside the Google card, enter your Desktop OAuth Client ID and Google Cloud Project ID (with the Generative Language API enabled and your account added to test users while in testing), then connect Google there. (`GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_CLOUD_PROJECT_ID`, and optional `GOOGLE_OAUTH_CLIENT_SECRET` env vars are also supported.)
 3. Make sure that `bun run providers:preflight -- --provider=google` reports `canAttempt=true`.
 
-Direct requests use the Interactions API. An API key takes priority over OAuth. OAuth requests charge quota to `GOOGLE_CLOUD_PROJECT_ID`, and OAuth users need permission to use services in that project. Studio requests `store: false`, but Google's service terms and account controls still apply.
+Direct requests use the Gemini `:generateContent` image API (`responseModalities: ["IMAGE"]`). An API key takes priority over OAuth. OAuth requests charge quota to your Google Cloud project, and OAuth users need permission to use services in that project.
 
-New Google jobs use `gemini-nano-banana-2.1` (1K, 2K or 4K). Studio also supports `gemini-3.1-flash-lite-image` (1K), `gemini-3.1-flash-image` (512px to 4K) and `gemini-3-pro-image` (1K to 4K). Saved jobs keep their selected model. See [Google's image model guide](https://ai.google.dev/gemini-api/docs/image-generation).
+New Google jobs use `gemini-nano-banana-2.1` (1K, 2K or 4K). Studio also supports `gemini-3.1-flash-lite-image` (1K), `gemini-3.1-flash-image` (512px, 1K, 2K or 4K) and `gemini-3-pro-image` (1K, 2K or 4K). You can switch models and output sizes directly in **Create** or in **Settings → Accounts & models**. Saved jobs keep their selected model. See [Google's image model guide](https://ai.google.dev/gemini-api/docs/image-generation).
 
 ### Nano Banana through Antigravity
 
-1. Install the official `agy` CLI, open it once, and complete its Google authentication.
-2. Run `agy models`. Then make sure that `bun run providers:preflight -- --provider=antigravity` reports `canAttempt=true`.
-3. Select Antigravity in Studio. Its model setting chooses an Antigravity reasoning model. Nano Banana runs behind the CLI as the `generate_image` tool.
+1. Install the official `agy` CLI. If you are not signed in yet, click **Sign in with Antigravity** in **Settings → Accounts & models** (which opens `agy acp --login`), finish Google sign-in, and click **Refresh status**.
+2. Or verify from a terminal with `agy models` and `bun run providers:preflight -- --provider=antigravity` (`canAttempt=true`).
+3. Select Antigravity in Studio. By default Studio picks a lightweight Flash orchestration model (such as `gemini-3.8-flash-low`) so image jobs don't burn heavy reasoning quota. Nano Banana runs behind the CLI through `generate_image` or the built-in `image-generator` subagent, and Studio shows your live 5h/Weekly quota and G1 credits in Settings and the status bar.
 
 Studio never reads or copies Antigravity credentials. It runs one sandboxed headless conversation in a temporary workspace, imports one validated image and leaves Antigravity's own artifact history in place.
 
@@ -240,7 +240,7 @@ Settings marks these adapters **Untested**. They follow each API's documented re
 - Replicate: `REPLICATE_API_TOKEN`. `REPLICATE_MODEL` overrides `black-forest-labs/flux-schnell`. Text-to-image only.
 - ComfyUI local: `COMFY_API_URL` or `COMFYUI_API_URL`, plus `COMFY_WORKFLOW_TEMPLATE_PATH`.
 
-Provider API keys stay in backend environment variables. Do not put Provider Secrets in SQLite, logs, screenshots, docs or committed files.
+Other provider API keys stay in backend environment variables (Google's Gemini API key and optional OAuth client settings can also be saved from Studio Settings into Studio's private `0600` local credential store). Never put Provider Secrets in SQLite, logs, screenshots, docs or committed files.
 
 ## Workflows
 

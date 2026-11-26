@@ -18,6 +18,8 @@ import {
 import { providerBrandChipLabel, providerReadyPillClass } from '../../lib/providerBrand';
 import { useT } from '../../lib/i18n';
 import { ProviderBrandMark, ProviderUntestedBadge } from '../ProviderBrandMark';
+import { AntigravityProviderControls } from './AntigravityProviderControls';
+import { GoogleProviderAuthControls } from './GoogleProviderAuthControls';
 import { SubscriptionAuthControls } from './SubscriptionAuthControls';
 import { ProviderExecutionDefaultsFields } from './ProviderExecutionDefaultsFields';
 import {
@@ -32,6 +34,7 @@ interface SettingsProvidersPanelProps {
   providerOptions: GenerationProviderId[];
   providerCapabilities: GenerationProviderCapabilitiesResponse | null;
   providerRuntimePreflight: GenerationProviderRuntimePreflightResponse | null;
+  onRefreshProviders?: () => Promise<void> | void;
 }
 
 function StatusPill({ children, className }: { children: ReactNode; className: string }) {
@@ -50,6 +53,7 @@ export function SettingsProvidersPanel({
   providerOptions,
   providerCapabilities,
   providerRuntimePreflight,
+  onRefreshProviders,
 }: SettingsProvidersPanelProps) {
   const { t } = useT();
   const { defaultProviderId, providerDefaults } = formState;
@@ -250,11 +254,20 @@ export function SettingsProvidersPanel({
                         {attention}
                       </p>
                     )}
-                    {subscriptionId ? (
+                    {provider.providerId === 'google' ? (
+                      <GoogleProviderAuthControls onCredentialsChanged={onRefreshProviders} />
+                    ) : subscriptionId ? (
                       <SubscriptionAuthControls
                         providerId={subscriptionId}
                         compact
                         optional={provider.canExecute}
+                      />
+                    ) : null}
+                    {provider.providerId === 'antigravity' ? (
+                      <AntigravityProviderControls
+                        canExecute={provider.canExecute}
+                        localRuntimeState={preflight?.localRuntimeState}
+                        onRefreshProviders={onRefreshProviders}
                       />
                     ) : null}
                     {provider.providerId === 'chatgpt' ? (

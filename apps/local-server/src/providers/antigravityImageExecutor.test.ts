@@ -162,7 +162,7 @@ describe('Antigravity image executor', () => {
     expect(invocations[0]?.env).toMatchObject({ PATH: 'C:\\tools', NO_COLOR: '1' });
     expect(invocations[0]?.env.GOOGLE_API_KEY).toBeUndefined();
     expect(JSON.parse(invocations[0]!.stdin).event).toBe('user');
-    expect(invocations[0]?.stdin).toContain('generate_image exactly once');
+    expect(invocations[0]?.stdin).toContain('image-generator');
     expect(existsSync(invocations[0]!.cwd)).toBe(false);
     expect(result.assets[0]).toMatchObject({ type: 'file', mimeType: 'image/png' });
     expect(readFileSync(result.assets[0]!.sourcePath)).toEqual(PNG);
@@ -171,12 +171,256 @@ describe('Antigravity image executor', () => {
     expect(transcript).not.toContain('A tiny paper lighthouse');
   });
 
-  it('rejects any tool call outside generate_image', () => {
+  it('rejects any tool call outside generate_image or image-generator subagent', () => {
     const output = successStream().replace(
       '"tool_name":"generate_image"',
       '"tool_name":"run_command"',
     );
     expect(() => parseAntigravityStream(output)).toThrow('tool other than generate_image');
+
+    const badSubagent = [
+      JSON.stringify({
+        event: 'init',
+        conversation_id: CONVERSATION_ID,
+        init: { cwd: process.cwd(), tools: ['invoke_subagent'], permission_mode: 'request-review' },
+      }),
+      JSON.stringify({
+        event: 'step_update',
+        step_update: {
+          conversation_id: CONVERSATION_ID,
+          step_index: 1,
+          state: 'DONE',
+          step_type: 'subagent',
+          tool_name: 'invoke_subagent',
+          subagent_info: { subagents: [{ type_name: 'research', role: 'Researcher' }] },
+        },
+      }),
+      JSON.stringify({
+        event: 'result',
+        result: {
+          conversation_id: CONVERSATION_ID,
+          status: 'SUCCESS',
+          response: 'done',
+          num_turns: 1,
+        },
+      }),
+    ].join('\n');
+    expect(() => parseAntigravityStream(badSubagent)).toThrow('tool other than generate_image');
+  });
+
+  it('supports agy 1.2.16+ image-generator subagent and selects the final artifact on retry', async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), 'studio-antigravity-subagent-'));
+    roots.push(root);
+    const libraryRoot = path.join(root, 'library');
+    const antigravityHome = path.join(root, 'antigravity-home');
+    mkdirSync(libraryRoot, { recursive: true });
+    const finalPng = Buffer.concat([PNG, Buffer.from([1, 2, 3])]);
+    const sourceSpec = createGenerationTaskSpec({
+      id: 'spec-antigravity-subagent',
+      task: 'image_generate',
+      providerId: 'antigravity',
+      prompt: 'A cozy wooden studio.',
+    });
+    const job = {
+      id: 'job-antigravity-subagent',
+      workspaceId: 'workspace-1',
+      providerId: 'antigravity' as const,
+      prompt: sourceSpec.prompt,
+      sourceSpec,
+      libraryContext: { libraryId: 'library-1', rootPath: libraryRoot },
+      execution: { model: 'gemini-3.8-flash-low', reasoningEffort: 'low' as const },
+    };
+    const executor = createAntigravityImageExecutor({
+      readRuntimeDoctor: runtime,
+      resolveExecutable: () => 'agy',
+      resolveHome: () => antigravityHome,
+      createTemporaryDirectory: () => mkdtempSync(path.join(root, 'cozy-studio-antigravity-')),
+      runCli: ({ cwd }) =>
+        providerSync(() => {
+          const artifact = path.join(antigravityHome, 'brain', CONVERSATION_ID);
+          mkdirSync(path.join(artifact, '.user_uploaded'), { recursive: true });
+          const firstPath = path.join(artifact, 'attempt-1.png');
+          const secondPath = path.join(artifact, 'attempt-2.png');
+          writeFileSync(path.join(artifact, '.user_uploaded', 'input.png'), PNG);
+          writeFileSync(firstPath, PNG);
+          writeFileSync(secondPath, finalPng);
+          const secondFileUrl = `file:///${secondPath.replaceAll('\\', '/').replace(/^\/+/, '')}`;
+          const stream = [
+            JSON.stringify({
+              event: 'init',
+              conversation_id: CONVERSATION_ID,
+              init: {
+                cwd,
+                tools: ['generate_image', 'invoke_subagent'],
+                permission_mode: 'request-review',
+              },
+            }),
+            JSON.stringify({
+              event: 'step_update',
+              step_update: {
+                conversation_id: CONVERSATION_ID,
+                step_index: 2,
+                state: 'ACTIVE',
+                step_type: 'subagent',
+                tool_name: 'invoke_subagent',
+                subagent_info: {
+                  subagents: [{ type_name: 'image-generator', role: 'Image Generator' }],
+                },
+              },
+            }),
+            JSON.stringify({
+              event: 'step_update',
+              step_update: {
+                conversation_id: CONVERSATION_ID,
+                step_index: 2,
+                state: 'DONE',
+                step_type: 'subagent',
+                tool_name: 'invoke_subagent',
+                subagent_info: {
+                  subagents: [
+                    {
+                      type_name: 'image-generator',
+                      role: 'Image Generator',
+                      conversation_id: '8fa878b5-c7eb-4179-a99c-f04533118a00',
+                    },
+                  ],
+                },
+              },
+            }),
+            JSON.stringify({
+              event: 'result',
+              result: {
+                conversation_id: CONVERSATION_ID,
+                status: 'SUCCESS',
+                response: `Saved [attempt-2.png](${secondFileUrl})`,
+                num_turns: 1,
+              },
+            }),
+          ].join('\n');
+          return { status: 0, stdout: stream, stderr: '' };
+        }),
+    });
+
+    const result = await Effect.runPromise(
+      Effect.scoped(
+        executor({
+          providerId: 'antigravity',
+          job,
+          compiledInput: compileAntigravityImageInput(job),
+          preflight: {
+            providerId: 'antigravity',
+            runtimeKind: 'agent_cli',
+            secretState: 'not_required',
+            secretSource: null,
+            localRuntimeState: 'configured',
+            localRuntimeSource: 'agy',
+            canAttemptExecution: true,
+            diagnostics: [],
+          },
+        }),
+      ),
+    );
+
+    expect(readFileSync(result.assets[0]!.sourcePath)).toEqual(finalPng);
+  });
+
+  it('stages edit sources from registered output libraries while still blocking unmanaged paths', async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), 'studio-antigravity-edit-roots-'));
+    roots.push(root);
+    const libraryRoot = path.join(root, 'library');
+    const outputRoot = path.join(root, 'output-images');
+    const unmanagedRoot = path.join(root, 'outside');
+    const antigravityHome = path.join(root, 'antigravity-home');
+    mkdirSync(libraryRoot, { recursive: true });
+    mkdirSync(outputRoot, { recursive: true });
+    mkdirSync(unmanagedRoot, { recursive: true });
+    const outputSource = path.join(outputRoot, 'generated-mug.png');
+    const outsideSource = path.join(unmanagedRoot, 'secret.png');
+    writeFileSync(outputSource, PNG);
+    writeFileSync(outsideSource, PNG);
+
+    const makeEditJob = (localPath: string) => {
+      const sourceSpec = createGenerationTaskSpec({
+        id: 'spec-antigravity-edit',
+        task: 'image_edit',
+        providerId: 'antigravity',
+        prompt: 'Orbit camera right by 40 degrees.',
+        assets: [{ role: 'input', name: 'source.png', localPath }],
+      });
+      return {
+        id: 'job-antigravity-edit',
+        workspaceId: 'workspace-1',
+        providerId: 'antigravity' as const,
+        prompt: sourceSpec.prompt,
+        sourceSpec,
+        libraryContext: {
+          libraryId: 'library-1',
+          rootPath: libraryRoot,
+          sourceRoots: [{ rootPath: outputRoot, outputOnly: true }],
+        },
+        execution: { model: 'gemini-3.8-flash-low', reasoningEffort: 'low' as const },
+      };
+    };
+
+    const executor = createAntigravityImageExecutor({
+      readRuntimeDoctor: runtime,
+      resolveExecutable: () => 'agy',
+      resolveHome: () => antigravityHome,
+      createTemporaryDirectory: () => mkdtempSync(path.join(root, 'cozy-studio-antigravity-')),
+      runCli: ({ cwd, stdin }) =>
+        providerSync(() => {
+          expect(stdin).toContain('ImagePaths:');
+          const artifact = path.join(antigravityHome, 'brain', CONVERSATION_ID);
+          mkdirSync(artifact, { recursive: true });
+          writeFileSync(path.join(artifact, 'edited.png'), PNG);
+          return { status: 0, stdout: successStream(cwd), stderr: '' };
+        }),
+    });
+
+    const allowedJob = makeEditJob(outputSource);
+    const okResult = await Effect.runPromise(
+      Effect.scoped(
+        executor({
+          providerId: 'antigravity',
+          job: allowedJob,
+          compiledInput: compileAntigravityImageInput(allowedJob),
+          preflight: {
+            providerId: 'antigravity',
+            runtimeKind: 'agent_cli',
+            secretState: 'not_required',
+            secretSource: null,
+            localRuntimeState: 'configured',
+            localRuntimeSource: 'agy',
+            canAttemptExecution: true,
+            diagnostics: [],
+          },
+        }),
+      ),
+    );
+    expect(okResult.assets).toHaveLength(1);
+
+    const blockedJob = makeEditJob(outsideSource);
+    await expect(
+      Effect.runPromise(
+        Effect.scoped(
+          executor({
+            providerId: 'antigravity',
+            job: blockedJob,
+            compiledInput: compileAntigravityImageInput(blockedJob),
+            preflight: {
+              providerId: 'antigravity',
+              runtimeKind: 'agent_cli',
+              secretState: 'not_required',
+              secretSource: null,
+              localRuntimeState: 'configured',
+              localRuntimeSource: 'agy',
+              canAttemptExecution: true,
+              diagnostics: [],
+            },
+          }),
+        ),
+      ),
+    ).rejects.toThrow('outside the Job Studio Library');
   });
 
   it('rejects the unsafe always-proceed permission mode', () => {

@@ -1,8 +1,10 @@
 import type {
+  AntigravityUsageStatus,
   ChatgptUsageStatus,
   HealthResponse,
   LocalCodexSessionResponse,
 } from '../packages/shared/src';
+import { formatAntigravityWindowLabel } from '../packages/shared/src/antigravityUsage';
 import type { ChatgptUsageCopy } from '../packages/shared/src/chatgptUsage';
 
 export type StudioStatusTone = 'success' | 'warning' | 'danger';
@@ -44,7 +46,9 @@ export interface StudioDiagnosticsSnapshot {
   localCodexSession: LocalCodexSessionResponse | null;
   statusItems: StudioRuntimeStatusItem[];
   usage: StudioUsageSummary;
-  providerUsage: Record<'codex' | 'chatgpt', StudioUsageSummary>;
+  providerUsage: Record<'codex' | 'chatgpt', StudioUsageSummary> & {
+    antigravity?: StudioUsageSummary;
+  };
 }
 
 interface BuildStudioDiagnosticsSnapshotArgs {
@@ -120,6 +124,68 @@ function summarizeProviderUsage(
         : 'neutral',
     isLoading,
     usageStatus: connected && !isLoading ? (session?.usageStatus ?? null) : null,
+  };
+}
+
+export function summarizeAntigravityUsage(
+  usage: AntigravityUsageStatus | null,
+  connected: boolean,
+  isLoading: boolean,
+): StudioUsageSummary {
+  const byWindow = new Map<
+    string,
+    { id: string; label: string; availablePercent: number; resetEpochSeconds: number | null }
+  >();
+  for (const bucket of usage?.buckets ?? []) {
+    const label = `${formatAntigravityWindowLabel(bucket.window)} window`;
+    const parsedReset = bucket.resetTime ? Date.parse(bucket.resetTime) : Number.NaN;
+    const resetEpochSeconds = Number.isFinite(parsedReset) ? Math.floor(parsedReset / 1000) : null;
+    const existing = byWindow.get(bucket.window);
+    if (!existing || bucket.remainingPercent < existing.availablePercent) {
+      byWindow.set(bucket.window, {
+        id: bucket.id,
+        label,
+        availablePercent: bucket.remainingPercent,
+        resetEpochSeconds,
+      });
+    }
+  }
+  const limits = Array.from(byWindow.values()).map((entry) => ({
+    id: entry.id,
+    label: entry.label,
+    availablePercent: entry.availablePercent,
+    usedPercent: Math.max(0, 100 - entry.availablePercent),
+    resetLabel: formatResetLabel(entry.resetEpochSeconds),
+  }));
+  const creditsNote =
+    usage?.remainingCredits !== null && usage?.remainingCredits !== undefined
+      ? `${usage.remainingCredits} G1 credits`
+      : null;
+  return {
+    value: !connected
+      ? 'Offline'
+      : isLoading && !usage
+        ? 'Checking…'
+        : usage?.available && usage.tightestPercentLeft !== null
+          ? `${Math.round(usage.tightestPercentLeft)}% left`
+          : 'Unavailable',
+    meta: 'Antigravity',
+    tooltip: !connected
+      ? 'Antigravity usage is offline.'
+      : usage?.error
+        ? `Antigravity usage unavailable: ${usage.error}`
+        : usage?.available
+          ? ['Antigravity account', creditsNote].filter(Boolean).join(' · ')
+          : 'Antigravity usage is unavailable for this account.',
+    unitLabel: creditsNote ? 'G1 credits' : null,
+    limits,
+    tone: !connected
+      ? 'offline'
+      : usage?.available && (limits.length > 0 || usage.tightestPercentLeft !== null)
+        ? 'available'
+        : 'neutral',
+    isLoading: isLoading && !usage,
+    usageStatus: null,
   };
 }
 

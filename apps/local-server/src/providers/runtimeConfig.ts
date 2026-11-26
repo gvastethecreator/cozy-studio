@@ -28,6 +28,7 @@ import {
 } from '../auth/tokens';
 import { getSubscriptionAuthStore } from '../auth/store';
 import { readGoogleOAuthConfig } from '../auth/googleOAuthConfig';
+import { readStoredGoogleCredentialsSafe } from '../auth/googleCredentials';
 
 export type ExternalExecutableProviderId =
   | 'chatgpt'
@@ -188,11 +189,14 @@ export function readExternalProviderRuntimePreflights(
 export function createGoogleRuntimePreflight(
   env: Record<string, string | undefined> = process.env,
 ): ProviderRuntimePreflight {
-  const apiKeySource = firstConfiguredEnvName(env, [
+  const apiKeyEnvSource = firstConfiguredEnvName(env, [
     'GOOGLE_API_KEY',
     'GEMINI_API_KEY',
     'NANO_BANANA_API_KEY',
   ]);
+  const storedCredentials = readStoredGoogleCredentialsSafe();
+  const storedApiKeyReady = !apiKeyEnvSource && Boolean(storedCredentials.apiKey);
+  const apiKeySource = apiKeyEnvSource ?? (storedApiKeyReady ? 'Studio Google API key' : null);
   let oauthConfigurationError: string | null = null;
   try {
     readGoogleOAuthConfig(env);
@@ -200,22 +204,32 @@ export function createGoogleRuntimePreflight(
     oauthConfigurationError =
       error instanceof Error ? error.message : 'Google OAuth configuration is invalid.';
   }
+  const hasPartialOAuth = Boolean(
+    env.GOOGLE_OAUTH_CLIENT_ID?.trim() ||
+    env.GOOGLE_CLOUD_PROJECT_ID?.trim() ||
+    storedCredentials.oauthClientId ||
+    storedCredentials.cloudProjectId,
+  );
   const storedAuthState = readStoredSubscriptionState('google');
   const oauthReady = !oauthConfigurationError && storedAuthState === 'logged_in';
   const credentialReady = Boolean(apiKeySource) || oauthReady;
   const diagnostics: string[] = [];
-  if (apiKeySource) {
-    diagnostics.push(`Google API key detected in ${apiKeySource}.`);
+  if (apiKeyEnvSource) {
+    diagnostics.push(`Google API key detected in ${apiKeyEnvSource}.`);
+  } else if (storedApiKeyReady) {
+    diagnostics.push('Google Gemini API key is saved in Studio.');
   } else if (oauthReady) {
     diagnostics.push('Google OAuth and Cloud billing project are ready.');
-  } else if (oauthConfigurationError) {
+  } else if (oauthConfigurationError && hasPartialOAuth) {
     diagnostics.push(oauthConfigurationError);
   } else if (storedAuthState === 'refresh_failed') {
     diagnostics.push('Google OAuth refresh failed. Sign in to Google again in Studio Settings.');
-  } else {
+  } else if (!oauthConfigurationError) {
     diagnostics.push(
       'Google OAuth is configured but disconnected. Connect Google in Studio Settings.',
     );
+  } else {
+    diagnostics.push('Add a Gemini API key in Studio Settings, or configure Google Cloud OAuth.');
   }
   return {
     providerId: 'google',

@@ -1,5 +1,5 @@
 import { createModuleDirectives, directive, getNumber, getString } from './directiveHelpers';
-import { createRecipeModule, options } from './params';
+import { createRecipeModule, MULTI_IMAGE_PROVIDERS, options } from './params';
 import type { RecipeDefinition, RecipeParams } from './types';
 
 const REMASTER_OPTIONS = {
@@ -45,6 +45,7 @@ const module = createRecipeModule({
   defaultTask: 'image_generate',
   variation: 'none',
   supportedTasks: ['image_generate', 'image_edit'],
+  supportedProviders: MULTI_IMAGE_PROVIDERS,
   parameters: [
     {
       id: 'style',

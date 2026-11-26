@@ -580,7 +580,7 @@ export const es: Dictionary = {
   'settings.providers.defaultNotReady':
     '{provider} todavía no puede generar. Configúralo más abajo o elige otro proveedor.',
   'settings.providers.googleSetup':
-    'Inicia sesión con Google aquí abajo o añade una clave de API de Google.',
+    'Añade una clave de API de Gemini abajo o configura Google Cloud OAuth en Opciones avanzadas.',
   'settings.providers.grokSetup':
     'Inicia sesión con xAI aquí abajo, define XAI_API_KEY o instala Grok Build e inicia sesión allí.',
   'settings.providers.notConfigured': 'Sin configurar',

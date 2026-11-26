@@ -1,5 +1,6 @@
 import { existsSync, rmSync } from 'node:fs';
 import { getSubscriptionAuthController } from './auth/controller';
+import { getGoogleCredentialsStore } from './auth/googleCredentials';
 import { getSettings } from './config';
 import { stopAppServer } from './codex/processSupervisor';
 import { migrateDb } from './db/migrations';
@@ -20,6 +21,11 @@ export async function resetStudioData(worker: { resetWorkerState(): Promise<void
     getSubscriptionAuthController().logout('xai'),
     getSubscriptionAuthController().logout('google'),
   ]);
+  try {
+    getGoogleCredentialsStore().clear('all');
+  } catch {
+    // Best effort: preserve reset completion if credentials store is absent or unwritable.
+  }
   closeDb();
   closeRotatingLogs();
 

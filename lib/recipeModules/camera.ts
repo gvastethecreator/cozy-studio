@@ -5,7 +5,7 @@ import {
   getNumber,
   getString,
 } from './directiveHelpers';
-import { createRecipeModule } from './params';
+import { createRecipeModule, MULTI_IMAGE_PROVIDERS } from './params';
 import type { RecipeDefinition, RecipeParams } from './types';
 
 export interface CameraRecipeInput {
@@ -37,6 +37,7 @@ const module = createRecipeModule({
   defaultTask: 'image_generate',
   variation: 'none',
   supportedTasks: ['image_generate', 'image_edit'],
+  supportedProviders: MULTI_IMAGE_PROVIDERS,
   parameters: [
     {
       id: 'azimuth',

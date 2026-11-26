@@ -31,12 +31,25 @@ import {
   type CodexHttpImageModelOption,
   type CodexHttpImageSizeOption,
 } from '../packages/shared/src/codexExecutionContract';
+import {
+  GOOGLE_IMAGE_MODEL_OPTIONS,
+  getGoogleImageModelOption,
+  normalizeGoogleImageSizeTier,
+  type GoogleImageModelOption,
+  type GoogleImageSize,
+} from '../packages/shared/src/googleImageContract';
 import { getProviderFacts, PROVIDER_FACTS } from '../packages/shared/src/providerCapabilities';
 import type { ProviderReadiness } from './providerReadiness';
 
 const EMPTY_CODEX_MODELS: CodexModel[] = [];
 
-export type ComposerProviderKind = 'codex' | 'chatgpt' | 'grok' | 'other';
+export type ComposerProviderKind =
+  | 'codex'
+  | 'chatgpt'
+  | 'grok'
+  | 'google'
+  | 'antigravity'
+  | 'other';
 
 const FALLBACK_FACTS = PROVIDER_FACTS.dry_run;
 
@@ -87,6 +100,7 @@ export interface ComposerProviderProjection {
   ratios: typeof IMAGE_GEN_RATIO_OPTIONS;
   showCodexPromptTools: boolean;
   showCodexModelChrome: boolean;
+  showGoogleModelChrome: boolean;
   maxOutputCount: number;
   generateBlock: GrokImagineGenerateBlock | null;
   execution: {
@@ -97,6 +111,10 @@ export interface ComposerProviderProjection {
     selectedTransport: CodexExecutionTransport | null;
     imageModels: CodexHttpImageModelOption[];
     selectedImageModel: CodexHttpImageModelOption | null;
+    googleImageModels: readonly GoogleImageModelOption[];
+    selectedGoogleImageModel: GoogleImageModelOption | null;
+    googleImageSizes: readonly GoogleImageSize[];
+    selectedGoogleImageSize: GoogleImageSize | null;
     imageSizeOptions: CodexHttpImageSizeOption[];
     selectedImageSize: CodexHttpImageSizeOption | null;
     showImageSizeControl: boolean;
@@ -113,6 +131,8 @@ export function resolveComposerProviderKind(
   if (providerId === 'codex') return 'codex';
   if (providerId === 'chatgpt') return 'chatgpt';
   if (providerId === 'grok') return 'grok';
+  if (providerId === 'google') return 'google';
+  if (providerId === 'antigravity') return 'antigravity';
   return 'other';
 }
 
@@ -137,6 +157,7 @@ export function buildComposerProviderProjection({
   executionReasoningEffort,
   executionSpeed,
   codexImageModel,
+  googleImageModel,
   imageSize,
   catalogError,
 }: {
@@ -152,6 +173,7 @@ export function buildComposerProviderProjection({
   executionReasoningEffort: ImageGenerationConfig['executionReasoningEffort'];
   executionSpeed: ImageGenerationConfig['executionSpeed'];
   codexImageModel?: ImageGenerationConfig['codexImageModel'];
+  googleImageModel?: ImageGenerationConfig['googleImageModel'];
   imageSize?: ImageGenerationConfig['imageSize'];
   catalogError: string | null;
 }): ComposerProviderProjection {
@@ -171,6 +193,7 @@ export function buildComposerProviderProjection({
     !transportAvailabilityKnown ||
     availableTransports.includes(selectedTransport);
   const isHttp = kind === 'chatgpt';
+  const isGoogle = kind === 'google';
   const models = isHttp ? [CODEX_HTTP_MODEL] : (codexModelCatalog?.models ?? EMPTY_CODEX_MODELS);
   const preferredModelId = pickPreferredCodexModel(models, executionModel);
   const selectedModel = isHttp
@@ -178,6 +201,17 @@ export function buildComposerProviderProjection({
     : (models.find((model) => model.id === executionModel) ?? null);
   const imageModels = isHttp ? [...CODEX_HTTP_IMAGE_MODELS] : [];
   const selectedImageModel = isHttp ? getCodexHttpImageModelOption(codexImageModel) : null;
+  const googleImageModels = isGoogle ? GOOGLE_IMAGE_MODEL_OPTIONS : [];
+  const selectedGoogleImageModel = isGoogle ? getGoogleImageModelOption(googleImageModel) : null;
+  const googleImageSizes = selectedGoogleImageModel?.sizes ?? [];
+  const normalizedGoogleSize = normalizeGoogleImageSizeTier(imageSize);
+  const selectedGoogleImageSize: GoogleImageSize | null = selectedGoogleImageModel
+    ? normalizedGoogleSize && googleImageSizes.includes(normalizedGoogleSize)
+      ? normalizedGoogleSize
+      : googleImageSizes.includes('1K')
+        ? '1K'
+        : (googleImageSizes[0] ?? '1K')
+    : null;
   const imageSizeOptions = isHttp ? listCodexHttpImageSizeOptions(aspectRatio) : [];
   const selectedImageSizeTier = resolveCodexHttpImageSizeTier(imageSize);
   const selectedImageSize =
@@ -253,14 +287,24 @@ export function buildComposerProviderProjection({
     }
   }
 
+  const googleBlock: GrokImagineGenerateBlock | null =
+    isGoogle && !providerReadiness.canExecute
+      ? {
+          code: 'google_not_ready',
+          message: 'Add a Gemini API key in Settings → Accounts & models to generate.',
+        }
+      : null;
+
   return {
     kind,
     ratios: kind === 'grok' ? listGrokImagineRatioOptions() : IMAGE_GEN_RATIO_OPTIONS,
     showCodexPromptTools: kind !== 'grok',
     showCodexModelChrome: kind === 'codex' || kind === 'chatgpt',
+    showGoogleModelChrome: isGoogle,
     maxOutputCount: resolveProviderMaxOutputCount(providerId),
     generateBlock:
       codexBlock ??
+      googleBlock ??
       (kind === 'chatgpt' &&
       providerReadiness.usage?.blocksGeneration &&
       providerReadiness.usage.line
@@ -285,22 +329,30 @@ export function buildComposerProviderProjection({
       selectedTransport,
       imageModels,
       selectedImageModel,
+      googleImageModels,
+      selectedGoogleImageModel,
+      googleImageSizes,
+      selectedGoogleImageSize,
       imageSizeOptions,
       selectedImageSize,
       // Subscription output dimensions are not reliably honored by the provider.
       showImageSizeControl: false,
       reasoningOptions: isHttp ? [CODEX_HTTP_REASONING] : getCodexReasoningOptions(selectedModel),
       speedOptions: isHttp ? ['standard'] : getCodexSpeedOptions(selectedModel),
-      summary: [
-        modelLabel,
-        transportSummary,
-        isHttp ? selectedImageModel?.shortName : null,
-        isHttp ? 'AUTO' : executionReasoningEffort?.toUpperCase(),
-        !isHttp && executionSpeed !== 'standard' ? formatCodexSpeedLabel(executionSpeed) : null,
-      ]
-        .filter(Boolean)
-        .join(' · '),
-      sourceMessage: isHttp ? null : sourceMessage,
+      summary: isGoogle
+        ? [selectedGoogleImageModel?.displayName, selectedGoogleImageSize]
+            .filter(Boolean)
+            .join(' · ')
+        : [
+            modelLabel,
+            transportSummary,
+            isHttp ? selectedImageModel?.shortName : null,
+            isHttp ? 'AUTO' : executionReasoningEffort?.toUpperCase(),
+            !isHttp && executionSpeed !== 'standard' ? formatCodexSpeedLabel(executionSpeed) : null,
+          ]
+            .filter(Boolean)
+            .join(' · '),
+      sourceMessage: isHttp || isGoogle ? null : sourceMessage,
     },
   };
 }

@@ -35,6 +35,8 @@ import { buildStudioShellOverlayController } from './useStudioOverlayController'
 import { useStudioReset } from './useStudioReset';
 import { useStudioRuntime } from './useStudioRuntime';
 import { useStudioSettings } from './useStudioSettings';
+import { useAntigravityUsage } from './useAntigravityUsage';
+import { summarizeAntigravityUsage } from '../lib/studioDiagnostics';
 import { useRepositoryUpdateNotifications } from './useRepositoryUpdateNotifications';
 import { useSettingsSurface } from './useSettingsSurface';
 import { useStudioJobsListClearedAt } from './useStudioJobsListClearedAt';
@@ -144,6 +146,59 @@ function useCodexTransports(studioSettings: ReturnType<typeof useStudioSettings>
 function historyRecipeFilter(showWorkspaceHistory: boolean | undefined, activeRecipe: RecipeId) {
   if (showWorkspaceHistory !== false) return undefined;
   return activeRecipe === 'styles' ? null : (activeRecipe ?? null);
+}
+
+function useShellProviderUsage({
+  diagnosticsProviderUsage,
+  backendConnected,
+  providerCapabilities,
+  chatgptCreditSpend,
+}: {
+  diagnosticsProviderUsage: ReturnType<
+    typeof useStudioRuntime
+  >['status']['diagnostics']['providerUsage'];
+  backendConnected: boolean;
+  providerCapabilities: ReturnType<
+    typeof useStudioSettings
+  >['data']['providerDomain']['capabilities'];
+  chatgptCreditSpend: EditableStudioSettings['chatgptCreditSpend'];
+}) {
+  const antigravityCanExecute = Boolean(
+    providerCapabilities?.providers.find((provider) => provider.providerId === 'antigravity')
+      ?.canExecute,
+  );
+  const { usage: antigravityUsageRaw, isLoading: isLoadingAntigravityUsage } = useAntigravityUsage(
+    antigravityCanExecute && backendConnected,
+  );
+  const chatgptUsageCopy = useMemo(
+    () =>
+      diagnosticsProviderUsage.chatgpt?.usageStatus
+        ? describeChatgptUsage(diagnosticsProviderUsage.chatgpt.usageStatus, chatgptCreditSpend)
+        : null,
+    [diagnosticsProviderUsage.chatgpt?.usageStatus, chatgptCreditSpend],
+  );
+  const antigravityUsageSummary = useMemo(
+    () =>
+      antigravityCanExecute
+        ? summarizeAntigravityUsage(
+            antigravityUsageRaw,
+            backendConnected,
+            isLoadingAntigravityUsage,
+          )
+        : undefined,
+    [antigravityCanExecute, antigravityUsageRaw, backendConnected, isLoadingAntigravityUsage],
+  );
+  const providerUsage = useMemo(
+    () => ({
+      ...diagnosticsProviderUsage,
+      ...(diagnosticsProviderUsage.chatgpt
+        ? { chatgpt: { ...diagnosticsProviderUsage.chatgpt, usageCopy: chatgptUsageCopy } }
+        : {}),
+      ...(antigravityUsageSummary ? { antigravity: antigravityUsageSummary } : {}),
+    }),
+    [diagnosticsProviderUsage, chatgptUsageCopy, antigravityUsageSummary],
+  );
+  return { chatgptUsageCopy, providerUsage };
 }
 
 export function useStudioShell(): StudioShellController {
@@ -345,24 +400,12 @@ export function useStudioShell(): StudioShellController {
     studioSettings.data.providerDomain;
   const chatgptCreditSpend =
     studioSettings.data.settingsDomain.settings?.chatgptCreditSpend ?? 'ask';
-  const diagnosticsProviderUsage = studioRuntime.status.diagnostics.providerUsage;
-  const chatgptUsageCopy = useMemo(
-    () =>
-      diagnosticsProviderUsage.chatgpt?.usageStatus
-        ? describeChatgptUsage(diagnosticsProviderUsage.chatgpt.usageStatus, chatgptCreditSpend)
-        : null,
-    [diagnosticsProviderUsage.chatgpt?.usageStatus, chatgptCreditSpend],
-  );
-  const providerUsage = useMemo(
-    () =>
-      diagnosticsProviderUsage.chatgpt
-        ? {
-            ...diagnosticsProviderUsage,
-            chatgpt: { ...diagnosticsProviderUsage.chatgpt, usageCopy: chatgptUsageCopy },
-          }
-        : diagnosticsProviderUsage,
-    [diagnosticsProviderUsage, chatgptUsageCopy],
-  );
+  const { chatgptUsageCopy, providerUsage } = useShellProviderUsage({
+    diagnosticsProviderUsage: studioRuntime.status.diagnostics.providerUsage,
+    backendConnected: studioRuntime.status.diagnostics.backendConnected,
+    providerCapabilities,
+    chatgptCreditSpend,
+  });
   const activeProviderReadiness = useMemo(
     () => ({
       ...selectProviderReadiness(

@@ -1359,6 +1359,18 @@ export const STYLE_COLLECTIONS = [
     facets: { world: ['myth', 'folklore', 'ritual'] },
   },
   {
+    id: 'imaginary_cultures',
+    title: 'Imaginary Cultures',
+    familyId: 'worlds_genres',
+    description:
+      'Ten invented civilisations shown through their artifacts: salt reliefs, knotted net ledgers, beetle-wing robes, scrimshaw bones, glass votives, spore prints, obsidian finds, wooden automata, wasp-paper effigies and ice calendars.',
+    icon: 'moon',
+    order: 15,
+    sourcePackIds: ['pack_40'],
+    entries: [{ id: 'pack40-imaginary-cultures', kind: 'pack', packId: 'pack_40' }],
+    facets: { world: ['invented-culture', 'artifact', 'ritual'] },
+  },
+  {
     id: 'dungeon_dark_fantasy_wargame',
     title: 'Dark Fantasy',
     familyId: 'worlds_genres',

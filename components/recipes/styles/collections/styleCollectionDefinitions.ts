@@ -1457,7 +1457,7 @@ export const STYLE_COLLECTIONS = [
     title: 'AI Slop',
     familyId: 'experimental_play',
     description:
-      'Generic AI-image looks pushed to their extreme: prompt maximalism, glossy 3D renders, anime filters, fake photos, epic wallpapers, viral feed formats, product renders, stickers and the tells themselves.',
+      'Generic AI-image looks and AI feed trends pushed to their extreme: prompt maximalism, glossy 3D renders, anime filters, fake photos, epic wallpapers, viral feed formats, product renders, stickers, the tells themselves, brainrot creatures and current trends.',
     icon: 'sliders',
     order: 14,
     sourcePackIds: ['pack_39'],

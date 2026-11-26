@@ -1489,6 +1489,18 @@ export const STYLE_COLLECTIONS = [
     facets: { workflow: ['image', 'edit'] },
   },
   {
+    id: 'grown_not_made',
+    title: 'Grown, Not Made',
+    familyId: 'experimental_play',
+    description:
+      'Pictures made by living things: bacteria painted on agar, slime mould over clay, caddisfly cases of gold, spider-silk sculptures, bowerbird lawns, root lace, rice-paddy murals, grass photographs, petal carpets, coral-furred reefs and mourning hairwork.',
+    icon: 'sparkles',
+    order: 16,
+    sourcePackIds: ['pack_41'],
+    entries: [{ id: 'pack41-grown-not-made', kind: 'pack', packId: 'pack_41' }],
+    facets: { technique: ['living-material', 'bio-art', 'craft'], workflow: ['image', 'edit'] },
+  },
+  {
     id: 'toys_craft_food_scale',
     title: 'Craft, Food & Scale',
     familyId: 'experimental_play',

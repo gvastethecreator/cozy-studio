@@ -303,6 +303,8 @@ const CATEGORY_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   'pack_39::7. Ad & Product Renders': 'Ad & product renders',
   'pack_39::8. Stickers, Icons & Mascots': 'Stickers, icons & mascots',
   'pack_39::9. Tells & Artifacts': 'Tells & artifacts',
+  'pack_39::10. Brainrot': 'Brainrot',
+  'pack_39::11. Current Trends': 'Current trends',
 };
 
 export function getStyleCategoryDisplayName(packId: string, sourceCategory: string) {

@@ -1,6 +1,7 @@
 // Style packs come from installed Cozy Extensions (ADR 0011). The app loads the list at startup,
 // before React mounts, so style surfaces can read pack summaries synchronously. It loads the list
-// again when the server comes back or the user checks again, so a tab never keeps a stale list.
+// again when the server comes back, the window regains focus or the user checks again, so a tab
+// never keeps a stale list.
 import {
   resolveStylePackExtensions,
   type ExtensionManifest,
@@ -122,7 +123,11 @@ const LIST_TIMEOUT_MS = 4000;
 async function listWithRetry() {
   for (let attempt = 1; ; attempt += 1) {
     try {
-      return await listInstalledExtensions({ signal: AbortSignal.timeout(LIST_TIMEOUT_MS) });
+      // Rescan, so a page load sees the source folders as they are now.
+      return await listInstalledExtensions({
+        refresh: true,
+        signal: AbortSignal.timeout(LIST_TIMEOUT_MS),
+      });
     } catch (error) {
       if (attempt >= LIST_ATTEMPTS) throw error;
       await new Promise((resolve) => setTimeout(resolve, LIST_RETRY_MS));

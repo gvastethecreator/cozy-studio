@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import {
   getInstalledStylePacksVersion,
+  reloadInstalledStylePacks,
   reloadInstalledStylePacksOnReconnect,
   subscribeInstalledStylePacks,
 } from '../lib/installedStylePacks';
@@ -13,9 +14,13 @@ export function useInstalledStylePacksSync() {
     const stop = reloadInstalledStylePacksOnReconnect((listener) =>
       stream.onConnectionChange(listener),
     );
+    // A local source folder can change while the tab is open, such as a rebuilt style pack.
+    const onFocus = () => void reloadInstalledStylePacks().catch(() => undefined);
+    window.addEventListener('focus', onFocus);
     return () => {
       stop();
       stream.close();
+      window.removeEventListener('focus', onFocus);
     };
   }, []);
 }

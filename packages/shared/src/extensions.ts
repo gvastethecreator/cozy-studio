@@ -36,6 +36,8 @@ export interface StylePackSummary {
   description: string;
   cardTitle?: string;
   cardDescription?: string;
+  /** Lowercase words that identify this pack in style search. */
+  tags?: string[];
   presetCount: number;
   /** Style browser landing data this pack contributes; Studio sums it across installed packs. */
   landing?: StylePackLanding;
@@ -150,18 +152,27 @@ export interface StylePackPreview {
   schemaVersion: 1;
   title: string;
   description: string;
+  tags?: string[];
   presetCount: number;
   categories: { name: string; presetCount: number }[];
   cover: string | null;
   samples: { presetId: string; name: string; image: string }[];
 }
 
+function isOptionalTagList(value: unknown) {
+  return (
+    value === undefined ||
+    (Array.isArray(value) && value.every((tag) => typeof tag === 'string' && tag.trim() !== ''))
+  );
+}
+
 export function parseStylePackPreview(value: unknown): StylePackPreview | null {
   if (!isRecord(value) || value.schemaVersion !== 1) return null;
-  const { title, description, presetCount, categories, cover, samples } = value;
+  const { title, description, tags, presetCount, categories, cover, samples } = value;
   if (
     typeof title !== 'string' ||
     typeof description !== 'string' ||
+    !isOptionalTagList(tags) ||
     typeof presetCount !== 'number' ||
     !Array.isArray(categories) ||
     !categories.every(
@@ -363,6 +374,8 @@ export function parseExtensionManifest(value: unknown): ExtensionManifestParseRe
     stylePack.presetCount < 0
   )
     issues.push('stylePack needs id, name, description and presetCount');
+  else if (!isOptionalTagList(stylePack.tags))
+    issues.push('stylePack.tags must be a list of words');
   else if (stylePack.landing !== undefined && !isStylePackLanding(stylePack.landing))
     issues.push('stylePack.landing needs imageKeys and collections');
   else if (

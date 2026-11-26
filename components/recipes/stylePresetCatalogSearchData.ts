@@ -23,10 +23,15 @@ export async function loadStylePresetCatalogSearchIndex(
       return fetchStylePackFile<StylePresetCatalogSearchIndex>(id, 'search');
     }),
   );
+  const packTags = new Map(INSTALLED_STYLE_PACK_SUMMARIES.map((pack) => [pack.id, pack.tags]));
   const presets = sources
     .flatMap((source) => source.presets)
     .filter((preset) => !isHiddenStylePreset(preset.packId, preset.id))
-    .map((preset) => ({ ...preset, defaultImage: getStyleThumbnail(preset.id) }));
+    .map((preset) => ({
+      ...preset,
+      defaultImage: getStyleThumbnail(preset.id),
+      packTags: packTags.get(preset.packId),
+    }));
   const visibleCounts = new Map<string, number>();
   for (const preset of presets)
     visibleCounts.set(preset.packId, (visibleCounts.get(preset.packId) ?? 0) + 1);

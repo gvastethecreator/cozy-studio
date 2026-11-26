@@ -164,6 +164,15 @@ export function PackDetail({
         <h3 className="text-base font-semibold">{pack.title}</h3>
         <p className="text-xs studio-muted">{pack.subtitle}</p>
         {preview?.description ? <p className="mt-2 text-sm">{preview.description}</p> : null}
+        {preview?.tags?.length ? (
+          <ul className="mt-2 flex flex-wrap gap-1" aria-label="Tags">
+            {preview.tags.map((tag) => (
+              <li key={tag} className="studio-list-row px-1.5 py-0.5 text-[11px] studio-muted">
+                {tag}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
       {state.status === 'loading' || state.status === 'idle' ? (
         <p className="text-xs studio-muted">Loading preview…</p>

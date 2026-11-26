@@ -65,6 +65,7 @@ const styleRuntimeRegistry = createStyleRuntimeRegistry({
     const pack = await fetchStylePackFile<StyleRuntimePack>(packId, 'runtime');
     return {
       ...pack,
+      tags: STYLE_RUNTIME_PACK_SUMMARIES.find((summary) => summary.id === packId)?.tags,
       presets: pack.presets.filter((preset) => !isHiddenStylePreset(packId, preset.id)),
     };
   },

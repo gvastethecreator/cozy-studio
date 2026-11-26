@@ -104,6 +104,8 @@ export interface StylePresetCatalogSearchIndexPack {
 
 export interface StylePresetCatalogSearchIndexEntry extends StylePresetCatalogSearchResult {
   searchableText: string;
+  /** The installed pack's tags; Studio adds them when it loads the index. */
+  packTags?: readonly string[];
 }
 
 /** searchableText repeats the names and tags, so it only counts as the weakest field. */
@@ -118,6 +120,7 @@ export function styleCatalogIndexEntrySearchFields(
       entry.packName,
       entry.domain,
       ...entry.tags,
+      ...(entry.packTags ?? []),
     ],
     text: [entry.searchableText],
   };
@@ -947,7 +950,7 @@ export function searchStylePresetCatalogIndex(
   );
   return rankStyleSearch(filtered, query, styleCatalogIndexEntrySearchFields)
     .slice(0, limit)
-    .map(({ searchableText: _searchableText, ...result }) => result);
+    .map(({ searchableText: _searchableText, packTags: _packTags, ...result }) => result);
 }
 
 export function resolveStylePresetCatalogSearchPackIds({

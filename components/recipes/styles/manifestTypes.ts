@@ -70,6 +70,8 @@ export interface StylePackManifest {
   description: string;
   cardTitle?: string;
   cardDescription?: string;
+  /** Search tags; the extension manifest carries them to Studio's style search. */
+  tags?: string[];
   categories: StylePackManifestCategory[];
   presetRefs: string[];
   /** A private project pack names its project; the extension manifest carries it to Studio. */

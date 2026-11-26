@@ -96,6 +96,42 @@ describe('styleBrowserRenderPlan', () => {
     );
   });
 
+  it('ranks pack-tag matches below name matches and above DNA and substrings', () => {
+    const named = (id: string, name: string, aesthetic = '') => ({
+      ...preset(id, 'Prints'),
+      name,
+      style: { ...preset(id, '').style, aesthetic },
+    });
+    const untagged = pack([
+      named('substring', 'Risographic Fog'),
+      named('dna', 'Market Flyer', 'Two-drum risograph grain'),
+      named('named', 'Risograph Poster'),
+    ]);
+    const tagged = {
+      ...pack([named('plain', 'Quiet Harbor')]),
+      id: 'pack_02',
+      tags: ['risograph'],
+    };
+    const explore = createStyleBrowserProcessedData({
+      activePack: untagged,
+      currentPackId: 'pack_01',
+      favoritesPackId: 'favorites',
+      favoritePresets: [],
+      searchPresets: [...untagged.presets, ...tagged.presets],
+      favoriteIds: [],
+      searchTagsForPreset: (item) => (item.id === 'plain' ? tagged.tags : []),
+      searchQuery: 'risograph',
+      sortOrder: 'az',
+      showFavoritesOnly: false,
+      viewMode: 'flat',
+    });
+    const expected = ['named', 'plain', 'dna', 'substring'];
+    expect(explore.flatPresets.map((item) => item.id)).toEqual(expected);
+    expect(
+      findStyles([untagged, tagged], { q: 'risograph', limit: 10 }).map((s) => s.presetId),
+    ).toEqual(expected);
+  });
+
   it('applies favorites filtering to global style search results', () => {
     const activePackPreset = preset('photo-a', 'Photography');
     const favoriteOtherPackPreset = preset('game-a', 'Arcade Worlds');

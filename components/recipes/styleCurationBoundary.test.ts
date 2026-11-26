@@ -142,7 +142,7 @@ describe('curation end-to-end boundaries', () => {
       searchQuery: 'light studies',
       sortOrder: 'source',
       showFavoritesOnly: false,
-      categoryLabelForPreset: (preset) => getStyleCategoryDisplayName('pack_01', preset.category!),
+      searchTagsForPreset: (preset) => [getStyleCategoryDisplayName('pack_01', preset.category!)],
     });
     expect(Object.keys(result.groups)).toEqual(['2. Lighting Techniques']);
     expect(result.flatPresets.map((preset) => preset.id)).toEqual(['fixture']);

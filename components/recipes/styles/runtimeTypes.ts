@@ -46,6 +46,8 @@ export interface StyleRuntimePack {
   id: string;
   name: string;
   description: string;
+  /** The extension manifest's pack tags; Studio adds them when it loads the pack. */
+  tags?: readonly string[];
   presets: StyleRuntimePreset[];
 }
 

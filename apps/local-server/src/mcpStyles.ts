@@ -49,6 +49,7 @@ export async function loadInstalledStylePacks(
         const hidden = hiddenPresetIds.get(packId);
         return normalizeStyleRuntimePack({
           ...pack,
+          tags: extension.stylePack.tags,
           presets: pack.presets.filter((preset) => !hidden?.has(preset.id)),
         });
       }),
@@ -70,7 +71,7 @@ export function findStyles(
   const matches = rankStyleSearch(
     packs.flatMap((pack) => pack.presets.map((preset) => ({ pack, preset }))),
     q ?? '',
-    ({ pack, preset }) => styleRuntimePresetSearchFields(preset, [pack.name]),
+    ({ pack, preset }) => styleRuntimePresetSearchFields(preset, [pack.name, ...(pack.tags ?? [])]),
   ).map((match) => ({
     ...match,
     linked: workspaceStyles

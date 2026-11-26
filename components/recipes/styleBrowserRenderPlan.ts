@@ -38,7 +38,8 @@ export interface CreateStyleBrowserProcessedDataInput {
   searchPresets?: StyleRuntimePreset[];
   favoriteIds: string[];
   categoryKeyForPreset?: (preset: StyleRuntimePreset) => string;
-  categoryLabelForPreset?: (preset: StyleRuntimePreset) => string;
+  /** Extra search tags of a preset, such as its category label and its pack's tags. */
+  searchTagsForPreset?: (preset: StyleRuntimePreset) => readonly string[];
   pinFavorites?: boolean;
   searchQuery: string;
   sortOrder: StyleBrowserSortOrder;
@@ -239,18 +240,20 @@ function compareStylePresets(
 
 const plainExploreSearchFields = (preset: StyleRuntimePreset) =>
   styleRuntimePresetSearchFields(preset);
-const exploreSearchFieldsByLabel = new WeakMap<
-  (preset: StyleRuntimePreset) => string,
+const exploreSearchFieldsByTags = new WeakMap<
+  (preset: StyleRuntimePreset) => readonly string[],
   (preset: StyleRuntimePreset) => StyleSearchFields
 >();
 
-/** One function per label function, so rankStyleSearch reuses its cached text across keystrokes. */
-function exploreSearchFields(categoryLabelForPreset?: (preset: StyleRuntimePreset) => string) {
-  if (!categoryLabelForPreset) return plainExploreSearchFields;
-  let fieldsOf = exploreSearchFieldsByLabel.get(categoryLabelForPreset);
+/** One function per tags function, so rankStyleSearch reuses its cached text across keystrokes. */
+function exploreSearchFields(
+  searchTagsForPreset?: (preset: StyleRuntimePreset) => readonly string[],
+) {
+  if (!searchTagsForPreset) return plainExploreSearchFields;
+  let fieldsOf = exploreSearchFieldsByTags.get(searchTagsForPreset);
   if (!fieldsOf) {
-    fieldsOf = (preset) => styleRuntimePresetSearchFields(preset, [categoryLabelForPreset(preset)]);
-    exploreSearchFieldsByLabel.set(categoryLabelForPreset, fieldsOf);
+    fieldsOf = (preset) => styleRuntimePresetSearchFields(preset, searchTagsForPreset(preset));
+    exploreSearchFieldsByTags.set(searchTagsForPreset, fieldsOf);
   }
   return fieldsOf;
 }
@@ -263,7 +266,7 @@ export function createStyleBrowserProcessedData({
   searchPresets,
   favoriteIds,
   categoryKeyForPreset,
-  categoryLabelForPreset,
+  searchTagsForPreset,
   pinFavorites = true,
   searchQuery,
   sortOrder,
@@ -281,7 +284,7 @@ export function createStyleBrowserProcessedData({
   let filtered = rankStyleSearch(
     rawPresets,
     normalizedSearch,
-    exploreSearchFields(categoryLabelForPreset),
+    exploreSearchFields(searchTagsForPreset),
   );
 
   if (showFavoritesOnly && currentPackId !== favoritesPackId) {

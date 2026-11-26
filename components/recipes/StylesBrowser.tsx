@@ -1132,10 +1132,15 @@ function useStylesBrowserController({
         : (loadedStylePacksById[packId]?.name ?? getStylePackSummary(packId)?.name ?? 'Styles'),
     [loadedStylePacksById],
   );
-  const getCategoryLabelForPreset = useCallback(
-    (preset: StyleRuntimePreset) =>
-      getStyleCategoryDisplayName(getPackIdForPreset(preset), preset.category || 'General'),
-    [getPackIdForPreset],
+  const getSearchTagsForPreset = useCallback(
+    (preset: StyleRuntimePreset) => {
+      const presetPackId = getPackIdForPreset(preset);
+      return [
+        getStyleCategoryDisplayName(presetPackId, preset.category || 'General'),
+        ...(loadedStylePacksById[presetPackId]?.tags ?? []),
+      ];
+    },
+    [getPackIdForPreset, loadedStylePacksById],
   );
   const getGlobalStyleCategoryKeyForPreset = useCallback(
     (preset: StyleRuntimePreset) => {
@@ -1157,7 +1162,7 @@ function useStylesBrowserController({
             ? searchableStylePresets
             : undefined,
         favoriteIds: favorites,
-        categoryLabelForPreset: getCategoryLabelForPreset,
+        searchTagsForPreset: getSearchTagsForPreset,
         categoryKeyForPreset: isAllStyleCategoriesTab
           ? getGlobalStyleCategoryKeyForPreset
           : undefined,
@@ -1173,7 +1178,7 @@ function useStylesBrowserController({
       activeStyleCollectionId,
       currentPackId,
       favoritePresets,
-      getCategoryLabelForPreset,
+      getSearchTagsForPreset,
       getGlobalStyleCategoryKeyForPreset,
       isGlobalStyleSearchActive,
       isGlobalStyleBrowseTab,
